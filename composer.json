@@ -1,0 +1,14 @@
+{
+    "name": "gitonomy/gitlib",
+    "description": "Library for accessing git",
+
+    "autoload": {
+        "psr-0": { "Gitonomy\\Git": "src/" }
+    },
+
+    "require": {
+        "symfony/process": "dev-master"
+    },
+
+    "minimum-stability": "dev"
+}
