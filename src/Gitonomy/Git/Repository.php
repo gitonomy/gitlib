@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Symfony\Component\Process\ProcessBuilder;
+
 /**
  * Git repository object.
  *
@@ -172,5 +174,17 @@ class Repository
     public function getHooks()
     {
         return new Hooks($this);
+    }
+
+    public function getProcess($command, $args = array(), $returnBuilder = false)
+    {
+        $builder = new ProcessBuilder(array_merge(array('git', $command), $args));
+        $builder->setWorkingDirectory($this->path);
+
+        if ($returnBuilder) {
+            return $builder;
+        }
+
+        return $builder->getProcess();
     }
 }

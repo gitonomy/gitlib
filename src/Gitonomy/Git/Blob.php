@@ -19,42 +19,68 @@ namespace Gitonomy\Git;
  */
 class Blob
 {
+    /**
+     * @var Repository
+     */
     protected $repository;
+
+    /**
+     * @var string
+     */
     protected $hash;
+
+    /**
+     * @var boolean
+     */
     protected $initialized = false;
+
+    /**
+     * @var string
+     */
     protected $content;
 
+    /**
+     * @param Repository $repository Repository where the blob is located
+     * @param string     $hash       Hash of the blob
+     */
     public function __construct(Repository $repository, $hash)
     {
         $this->repository = $repository;
         $this->hash = $hash;
     }
 
+    /**
+     * @return string
+     */
     public function getHash()
     {
         return $this->hash;
     }
 
-    protected function initialize()
+    /**
+     * @throws RuntimeException Error occurred while getting content of blob
+     */
+    private function initialize()
     {
         if (true === $this->initialized) {
             return;
         }
 
-        ob_start();
-        system(sprintf(
-            'cd %s && git cat-file -p %s',
-            escapeshellarg($this->repository->getPath()),
-            escapeshellarg($this->hash)
-        ), $return);
+        $process = $this->repository->getProcess('cat-file', array('-p', $this->hash));
 
-        $this->content = ob_get_clean();
-
-        if (0 !== $return) {
-            throw new \RuntimeException('Error while getting content of a commit');
+        $process->run();
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException('Error while getting content of a blob : '.$process->getErrorOutput());
         }
+
+        $this->content = $process->getOutput();
     }
 
+    /**
+     * Returns content of the blob.
+     *
+     * @throws RuntimeException Error occurred while getting content of blob
+     */
     public function getContent()
     {
         $this->initialize();

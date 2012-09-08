@@ -19,7 +19,7 @@
 
 
     "autoload": {
-        "psr-0": { "Gitonomy\\Git": "src/" }
+        "psr-0": { "Gitonomy\\Git": ["src/", "tests/"] }
     },
 
     "require": {

@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Symfony\Component\Process\ProcessBuilder;
+
 /**
  * Administration class for Git repositories.
  *
@@ -20,16 +22,31 @@ namespace Gitonomy\Git;
 class Admin
 {
     /**
-     * Initializes a repository and returns the instance. If the repository
-     * already exists, this command is safe and does nothing.
+     * Initializes a repository and returns the instance.
      *
-     * @param string $path Path to the repository
+     * @param string  $path Path to the repository
+     * @param boolean $bare Indicate to create a bare repository
      *
-     * @return Gitonomy\Git\Repository
+     * @return Repository
+     *
+     * @throws RuntimeException Directory exists or not writable
      */
-    public static function init($path)
+    public static function init($path, $bare = true)
     {
-        system(sprintf('git init -q --bare %s', $path));
+        $builder = ProcessBuilder::create(array('git', 'init', '-q'));
+
+        if ($bare) {
+            $builder->add('--bare');
+        }
+
+        $builder->add($path);
+
+        $process = $builder->getProcess();
+        $process->run();
+
+        if (!$process->isSuccessFul()) {
+            throw new \RuntimeException(sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
+        }
 
         return new Repository($path);
     }
