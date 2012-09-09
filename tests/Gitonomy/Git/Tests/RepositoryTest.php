@@ -30,6 +30,6 @@ class RepositoryTest extends TestBase
         $repo = self::getLibRepository();
 
         $size = $repo->getSize();
-        $this->assertGreaterThan(500, $size, "Repository is greater than 500KB");
+        $this->assertGreaterThan(100, $size, "Repository is greater than 500KB");
     }
 }

@@ -5,4 +5,5 @@ API documentation
 
     api/admin
     api/repository
-    api/objects
+    api/commit
+    api/blob
