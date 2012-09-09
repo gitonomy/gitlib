@@ -24,4 +24,12 @@ class RepositoryTest extends TestBase
         $this->assertTrue($blob instanceof Blob, "getBlob() returns a Blob object");
         $this->assertEquals(BlobTest::README_BLOB, $blob->getHash(), "getHash() returns passed hash");
     }
+
+    public function testGetSize()
+    {
+        $repo = $this->getLibRepository();
+
+        $size = $repo->getSize();
+        $this->assertGreaterThan(500, $size, "Repository is greater than 500KB");
+    }
 }

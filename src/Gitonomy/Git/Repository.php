@@ -131,18 +131,20 @@ class Repository
      * Returns the size of repository, in kilobytes.
      *
      * @return int A sum, in kilobytes
+     *
+     * @throws RuntimeException An error occurred while computing size
      */
     public function getSize()
     {
-        ob_start();
-        system(sprintf('du -skc %s', escapeshellarg($this->path)), $return);
-        $result = ob_get_clean();
+        $process = ProcessBuilder::create(array('du', '-skc', $this->path))->getProcess();
 
-        if (0 !== $return) {
-            throw new \RuntimeException('Unable to compute filesize');
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException(sprintf('Unable to compute size: ', $process->getErrorOutput()));
         }
 
-        if (!preg_match('/(\d+)\s+total$/', $result, $vars)) {
+        if (!preg_match('/(\d+)\s+total$/', $process->getOutput(), $vars)) {
             throw new \RuntimeException('Unable to parse repository size output');
         }
 
