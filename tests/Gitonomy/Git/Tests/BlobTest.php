@@ -16,12 +16,9 @@ use Gitonomy\Git\Blob;
 
 class BlobTest extends TestBase
 {
-    const README_BLOB     = 'e43530af24200d2ba946db7e6a069899287ec772';
-    const README_FRAGMENT = 'methods to access Git repository';
-
     public function testGetContent()
     {
-        $repo = $this->getLibRepository();
+        $repo = self::getLibRepository();
 
         $blob = $repo->getBlob(self::README_BLOB);
 
@@ -33,7 +30,7 @@ class BlobTest extends TestBase
      */
     public function testGetContentOnNotExisting()
     {
-        $repo = $this->getLibRepository();
+        $repo = self::getLibRepository();
 
         $blob = $repo->getBlob("foobar");
 

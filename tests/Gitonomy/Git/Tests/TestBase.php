@@ -16,6 +16,20 @@ use Gitonomy\Git\Repository;
 
 class TestBase extends \PHPUnit_Framework_TestCase
 {
+    private static $repo;
+
+    // Initial commit is the first commit of the repository
+    const INITIAL_COMMIT       = '1040d331549232a7d64907ec75d71d31da2e43f4';
+    const INITIAL_TREE         = '8bfd3135e80ee17c0d12d4b0f0f2297469aafdb7';
+
+    // Travis commit is the commit integrating Travis-CI to the project
+    const TRAVIS_COMMIT        = '6964dfd6bdc1b4449f8de2d687e4609f08219cf2';
+    const TRAVIS_PARENT_COMMIT = '922b7419044ddab753f66e163bbdd8c236f4d21e';
+
+    // References a blob in project: the README file
+    const README_BLOB     = 'e43530af24200d2ba946db7e6a069899287ec772';
+    const README_FRAGMENT = 'methods to access Git repository';
+
     public function createTempDir()
     {
         $tmpDir = tempnam(sys_get_temp_dir(), 'gitlib_');
@@ -40,12 +54,17 @@ class TestBase extends \PHPUnit_Framework_TestCase
         rmdir($dir);
     }
 
-    public function getLibRepository()
+    static public function getLibRepository()
     {
-        $dir = __DIR__.'/../../../../test-sandbox';
-        if (!is_dir($dir)) {
-            $this->markTestSkipped("Test sandbox folder not present");
+        if (null === self::$repo) {
+            $dir = __DIR__.'/../../../../test-sandbox';
+            if (!is_dir($dir)) {
+                $this->markTestSkipped("Test sandbox folder not present");
+            }
+
+            self::$repo = new Repository($dir);
         }
-        return new Repository($dir);
+
+        return self::$repo;
     }
 }
