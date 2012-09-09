@@ -8,5 +8,6 @@ one aims to be usable without recompiling PHP. For this reason, the performance
 of this library is out of scope if you have requirements on performance.
 
 .. toctree::
+   :maxdepth: 2
 
-    api
+   api
