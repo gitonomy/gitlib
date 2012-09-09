@@ -12,7 +12,6 @@ To access a repository *Blob*, you need the hash identifier:
 
 .. code-block:: php
 
-    <?php
     $repository = new Gitonomy\Git\Repository('/path/to/repository');
     $blob = $repository->getBlob('a7c8d2b4');
 
@@ -23,5 +22,4 @@ To get content from a *Blob* object:
 
 .. code-block:: php
 
-    <?php
     echo $blob->getContent();

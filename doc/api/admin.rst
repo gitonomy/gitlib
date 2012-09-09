@@ -8,7 +8,6 @@ You can create a new repository like this:
 
 .. code-block:: php
 
-    <?php
     $repository = Gitonomy\Git\Admin::create('/path/to/folder');
     // Folder /path/to/folder contains git repository files: objects, HEAD...
 
@@ -17,6 +16,5 @@ repository with a working directory, pass ``false`` as second argument:
 
 .. code-block:: php
 
-    <?php
     $repository = Gitonomy\Git\Admin::create('/path/to/folder', false);
     // Folder /path/to/folder contains .git folder

@@ -14,7 +14,6 @@ object:
 
 .. code-block:: php
 
-    <?php
     $hooks = $repository->getHooks();
 
 Reading hooks
@@ -24,7 +23,6 @@ To read the content of a hook, use the *get* method like this:
 
 .. code-block:: php
 
-    <?php
     $content = $hooks->get('pre-receive'); // returns a string
 
 If the hook does not exist, an exception will be thrown (*InvalidArgumentException*).
@@ -33,7 +31,6 @@ You can test if a hook is present using the method *has*:
 
 .. code-block:: php
 
-    <?php
     $hooks->has('pre-receive'); // a boolean indicating presence
 
 Inserting hooks
@@ -45,7 +42,6 @@ To create the hook using a symlink:
 
 .. code-block:: php
 
-    <?php
     $hooks->setSymlink('pre-receive', '/path/to/file-to-link');
 
 If the hook already exist, a *LogicException* will be thrown. If an error occured
@@ -57,7 +53,6 @@ executable:
 
 .. code-block:: php
 
-    <?php
     $content = <<<HOOK
     #!/bin/bash
     echo "Push is disabled"
@@ -78,5 +73,4 @@ To remove a hook from a repository, use the function *remove*:
 
 .. code-block:: php
 
-    <?php
     $hooks->remove('pre-receive');

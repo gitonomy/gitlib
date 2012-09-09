@@ -20,7 +20,5 @@ The returned size is in kilobytes:
 
 .. code-block:: php
 
-    <?php
-
     $size = $repository->getSize();
     echo "Your repository size is ".$size."KB";

@@ -5,7 +5,6 @@ To access a *Commit*, starting from a repository object:
 
 .. code-block:: php
 
-    <?php
     $repository = new Gitonomy\Git\Repository('/path/to/repository');
     $commit = $repository->getCommit('a7c8d2b4');
 
@@ -32,7 +31,6 @@ For example, if you want to display all parents, starting from a commit:
 
 .. code-block:: php
 
-    <?php
     function displayLog(Gitonomy\Git\Commit $commit) {
         echo '- '.$commit->getShortMessage()."\n";
         foreach ($commit->getParents() as $parent) {
@@ -55,8 +53,6 @@ To access a tree starting from a commit:
 
 .. code-block:: php
 
-    <?php
-
     // Returns the tree hash
     $tree = $commit->getTreeHash();
 
@@ -74,8 +70,6 @@ the repository.
 You can access informations from author and committer using those methods:
 
 .. code-block:: php
-
-    <?php
 
     // Author
     $commit->getAuthorName();
@@ -97,7 +91,6 @@ To access the message, you can use the *getMessage* method:
 
 .. code-block:: php
 
-    <?php
     $commit->getMessage();
 
 For your convenience, this library provides a shortcut method to keep only the
@@ -105,7 +98,6 @@ first line or first 80 characters if the first line is too long:
 
 .. code-block:: php
 
-    <?php
     $commit->getShortMessage();
 
 Diff of a commit
@@ -127,7 +119,6 @@ To access the *Diff* object of a commit, use the method *getDiff*:
 
 .. code-block:: php
 
-    <?php
     $diff = $commit->getDiff();
     foreach ($diff as $file) {
         // see related chapter
