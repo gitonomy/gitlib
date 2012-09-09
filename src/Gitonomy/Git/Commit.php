@@ -136,17 +136,15 @@ class Commit
             return;
         }
 
-        ob_start();
-        system(sprintf(
-            'cd %s && git cat-file commit %s',
-            escapeshellarg($this->repository->getPath()),
-            escapeshellarg($this->hash)
-        ), $return);
-        $result = ob_get_clean();
+        $process = $this->repository->getProcess('cat-file', array('commit', $this->hash));
 
-        if (0 !== $return) {
-            throw new \RuntimeException('Error while getting content of a commit');
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException('Error while getting content of a commit: '.$process->getErrorOutput());
         }
+
+        $result = $process->getOutput();
 
         $parser = new Parser\CommitParser();
         $parser->parse($result);

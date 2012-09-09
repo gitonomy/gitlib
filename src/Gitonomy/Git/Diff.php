@@ -24,6 +24,11 @@ class Diff
         $this->revision   = $revision;
     }
 
+    public function getRevision()
+    {
+        return $this->revision;
+    }
+
     protected function initialize()
     {
         ob_start();

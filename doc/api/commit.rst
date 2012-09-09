@@ -62,3 +62,73 @@ To access a tree starting from a commit:
 
     // Returns the tree object
     $tree = $commit->getTree();
+
+Author & Committer informations
+-------------------------------
+
+Each commit has two authoring informations: an author and a committer. The
+author is the creator of the modification, authoring a modification in the
+repository. The committer is responsible of introducing this modification to
+the repository.
+
+You can access informations from author and committer using those methods:
+
+.. code-block:: php
+
+    <?php
+
+    // Author
+    $commit->getAuthorName();
+    $commit->getAuthorEmail();
+    $commit->getAuthorDate(); // returns a DateTime object
+
+    // Committer
+    $commit->getCommitterName();
+    $commit->getCommitterEmail();
+    $commit->getCommitterDate(); // returns a DateTime object
+
+Commit message and short message
+--------------------------------
+
+Each commit also has a message, associated to the modification. This message
+can be multilined.
+
+To access the message, you can use the *getMessage* method:
+
+.. code-block:: php
+
+    <?php
+    $commit->getMessage();
+
+For your convenience, this library provides a shortcut method to keep only the
+first line or first 80 characters if the first line is too long:
+
+.. code-block:: php
+
+    <?php
+    $commit->getShortMessage();
+
+Diff of a commit
+----------------
+
+You can check the modifications introduced by a commit using the *getDiff*
+method. When you request a diff for a commit, depending of the number of
+parents, the strategy will be different:
+
+* If you have *no parent*, the diff will be the content of the tree
+* If you only have *one parent*, the diff will be between the commit and his
+  parent
+* If you have *multiple parents*, the diff will be the difference between the
+  commit and the first common ancestor of all parents
+
+For more informations about the diff API, read the related chapter.
+
+To access the *Diff* object of a commit, use the method *getDiff*:
+
+.. code-block:: php
+
+    <?php
+    $diff = $commit->getDiff();
+    foreach ($diff as $file) {
+        // see related chapter
+    }
