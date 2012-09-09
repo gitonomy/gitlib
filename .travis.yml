@@ -1,6 +1,7 @@
 language: php
 php:
     - 5.3
+script: ./test.sh
 before_install:
     - sudo apt-get install -qq git
 before_script:

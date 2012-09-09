@@ -42,6 +42,10 @@ class TestBase extends \PHPUnit_Framework_TestCase
 
     public function getLibRepository()
     {
-        return new Repository(__DIR__.'/../../../../');
+        $dir = __DIR__.'/../../../../test-sandbox';
+        if (!is_dir($dir)) {
+            $this->markTestSkipped("Test sandbox folder not present");
+        }
+        return new Repository($dir);
     }
 }

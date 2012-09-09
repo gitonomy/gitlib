@@ -16,7 +16,7 @@ use Gitonomy\Git\Blob;
 
 class BlobTest extends TestBase
 {
-    const README_BLOB     = '093709108611ccde606535da6caef20c4890832d';
+    const README_BLOB     = 'e43530af24200d2ba946db7e6a069899287ec772';
     const README_FRAGMENT = 'methods to access Git repository';
 
     public function testGetContent()
