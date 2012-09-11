@@ -26,6 +26,9 @@ class TestBase extends \PHPUnit_Framework_TestCase
     const TRAVIS_COMMIT        = '6964dfd6bdc1b4449f8de2d687e4609f08219cf2';
     const TRAVIS_PARENT_COMMIT = '922b7419044ddab753f66e163bbdd8c236f4d21e';
 
+    // Doc & Test commit (new file, deleted file, modified files)
+    const DOC_COMMIT           = 'f3c32f1e23d46391380c84a8cb388d1b86de9dfc';
+
     // References a blob in project: the README file
     const README_BLOB     = 'e43530af24200d2ba946db7e6a069899287ec772';
     const README_FRAGMENT = 'methods to access Git repository';

@@ -128,6 +128,14 @@ class Repository
     }
 
     /**
+     * @return Diff
+     */
+    public function getDiff($revision)
+    {
+        return new Diff($this, $revision);
+    }
+
+    /**
      * Returns the size of repository, in kilobytes.
      *
      * @return int A sum, in kilobytes
