@@ -238,20 +238,14 @@ class Commit
         if (preg_match('#^/#', $path)) {
             $path = substr($path, 1);
         }
-        ob_start();
-        $cmd = sprintf(
-            'cd %s && git log --format="format:%%H" -n 1 %s -- %s',
-            escapeshellarg($this->repository->getPath()),
-            escapeshellarg($this->hash),
-            escapeshellarg($path)
-        );
-        system($cmd, $result);
-        $output = ob_get_clean();
-        if (0 != $result) {
-            throw new \InvalidArgumentException('Error running '.$cmd);
+
+        $process = $this->repository->getProcess('log', array('--format=%H', '-n', 1, $this->hash, '--', $path));
+        $process->run();
+        if (!$process->isSuccessful()) {
+            throw new \InvalidArgumentException('Error running git log: '.$process->getErrorOutput());
         }
 
-        return $this->repository->getCommit($output);
+        return $this->repository->getCommit(trim($process->getOutput()));
     }
 
     /**

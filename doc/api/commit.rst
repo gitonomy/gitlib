@@ -120,6 +120,20 @@ To access the *Diff* object of a commit, use the method *getDiff*:
 .. code-block:: php
 
     $diff = $commit->getDiff();
-    foreach ($diff as $file) {
-        // see related chapter
-    }
+
+Last modification of a file
+---------------------------
+
+To know the last modification of a file, you can use the *getLastModification*
+method on a commit.
+
+Here is a very straightforward example:
+
+.. code-block:: php
+
+    $last = $commit->getLastModification('README');
+
+    echo "Last README modification:\n";
+    echo"  Author: ".$last->getAuthorName()."\n";
+    echo"    Date: ".$last->getAuthorDate()->format('d/m/Y')."\n";
+    echo" Message: ".$last->getMessage();

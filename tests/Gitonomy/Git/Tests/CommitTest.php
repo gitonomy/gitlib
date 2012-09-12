@@ -123,6 +123,16 @@ class CommitTest extends TestBase
         $this->assertEquals('Initial commit', $commit->getShortMessage());
     }
 
+    public function testGetLastModification()
+    {
+        $commit = $this->getTravisCommit();
+
+        $lastModification = $commit->getLastModification('LICENSE');
+
+        $this->assertTrue($lastModification instanceof Commit, "Last modification is a Commit object");
+        $this->assertEquals(self::INITIAL_COMMIT, $lastModification->getHash(), "Last modification on LICENCE was initial commit");
+    }
+
     private function getInitialCommit()
     {
         return self::getLibRepository()->getCommit(self::INITIAL_COMMIT);
