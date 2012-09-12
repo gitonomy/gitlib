@@ -9,3 +9,4 @@ API documentation
    api/hooks
    api/commit
    api/blob
+   api/log
