@@ -36,20 +36,15 @@ class Tree
             return;
         }
 
-        ob_start();
-        system(sprintf(
-            'cd %s && git cat-file -p %s',
-            escapeshellarg($this->repository->getPath()),
-            escapeshellarg($this->hash)
-        ), $return);
-        $result = ob_get_clean();
+        $process = $this->repository->getProcess('cat-file', array('-p', $this->hash));
+        $process->run();
 
-        if (0 !== $return) {
-            throw new \RuntimeException('Error while getting content of a commit');
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException('Error while getting content of a commit: '.$process->getErrorOutput());
         }
 
         $parser = new Parser\TreeParser();
-        $parser->parse($result);
+        $parser->parse($process->getOutput());
 
         $this->entries = array();
 
