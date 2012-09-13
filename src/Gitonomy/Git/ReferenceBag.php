@@ -105,34 +105,70 @@ class ReferenceBag implements \Countable
         return current($this->references);
     }
 
+    /**
+     * @return array An array of Tag objects
+     */
     public function resolveTags($hash)
     {
         $this->initialize();
+
+        if ($hash instanceof Commit) {
+            $hash = $commit->getHash();
+        }
 
         $tags = array();
         foreach ($this->references as $k => $reference) {
             if ($reference instanceof Reference\Tag && $reference->getCommitHash() === $hash)
             {
-                $tags[] = $reference->getName();
+                $tags[] = $reference;
             }
         }
 
         return $tags;
     }
 
+    /**
+     * @return array An array of Branch objects
+     */
     public function resolveBranches($hash)
     {
         $this->initialize();
+
+        if ($hash instanceof Commit) {
+            $hash = $commit->getHash();
+        }
 
         $tags = array();
         foreach ($this->references as $k => $reference) {
             if ($reference instanceof Reference\Branch && $reference->getCommitHash() === $hash)
             {
-                $tags[] = $reference->getName();
+                $tags[] = $reference;
             }
         }
 
         return $tags;
+    }
+
+    /**
+     * @return array An array of references
+     */
+    public function resolve($hash)
+    {
+        $this->initialize();
+
+        if ($hash instanceof Commit) {
+            $hash = $commit->getHash();
+        }
+
+        $result = array();
+        foreach ($this->references as $k => $reference) {
+            if ($reference->getCommitHash() === $hash)
+            {
+                $result[] = $reference;
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -167,11 +203,17 @@ class ReferenceBag implements \Countable
     }
 
     /**
-     * Returns a given tag.
-     *
-     * @param string $name Name of the tag
-     *
-     * @return Gitonomy\Git\Reference\Tag
+     * @return array An associative array with fullname as key (refs/heads/master, refs/tags/0.1)
+     */
+    public function getAll()
+    {
+        $this->initialize();
+
+        return $this->references;
+    }
+
+    /**
+     * @return Tag
      */
     public function getTag($name)
     {
@@ -181,11 +223,7 @@ class ReferenceBag implements \Countable
     }
 
     /**
-     * Returns a given branch.
-     *
-     * @param string $name Name of the branch
-     *
-     * @return Gitonomy\Git\Reference\Branch
+     * @return Branch
      */
     public function getBranch($name)
     {
@@ -201,8 +239,7 @@ class ReferenceBag implements \Countable
         }
         $this->initialized = true;
 
-        $process = new Process('git show-ref --tags --heads');
-        $process->setWorkingDirectory($this->repository->getPath());
+        $process = $this->repository->getProcess('show-ref', array('--tags', '--heads'));
         $process->run();
 
         $output = $process->getOutput();
@@ -232,8 +269,11 @@ class ReferenceBag implements \Countable
         }
     }
 
+    /**
+     * @return int
+     */
     public function count()
     {
-        return $this->references;
+        return count($this->references);
     }
 }

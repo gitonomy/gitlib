@@ -10,3 +10,4 @@ API documentation
    api/commit
    api/blob
    api/log
+   api/references
