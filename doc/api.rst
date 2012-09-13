@@ -11,3 +11,4 @@ API documentation
    api/blob
    api/log
    api/references
+   api/revision

@@ -37,10 +37,20 @@ class Log
      */
     protected $limit;
 
-    public function __construct(Repository $repository, $revisions)
+    public function __construct(Repository $repository, $revisions, $offset = null, $limit = null)
     {
         $this->repository = $repository;
-        $this->revisions = $revisions;
+        $this->revisions  = $revisions;
+        $this->offset     = $offset;
+        $this->limit      = $limit;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRevisions()
+    {
+        return $this->revisions;
     }
 
     /**

@@ -12,10 +12,24 @@
 
 namespace Gitonomy\Git;
 
+/**
+ * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ */
 class Revision
 {
+    /**
+     * @var Repository
+     */
     protected $repository;
+
+    /**
+     * @var string
+     */
     protected $name;
+
+    /**
+     * @var string
+     */
     protected $resolved;
 
     public function __construct(Repository $repository, $name)
@@ -24,34 +38,32 @@ class Revision
         $this->name       = $name;
     }
 
-    public function getLog($limit = null)
+    /**
+     * @return Log
+     */
+    public function getLog($offset = null, $limit = null)
     {
-        return new Log($this->repository, $this->getResolved(), $limit);
+        return new Log($this->repository, $this->getResolved()->getHash(), $offset, $limit);
     }
 
+    /**
+     * Resolves the revision to a commit hash.
+     *
+     * @return Commit
+     */
     public function getResolved()
     {
         if (null !== $this->resolved) {
             return $this->resolved;
         }
 
-        ob_start();
-        system(sprintf(
-            'cd %s && git rev-parse --verify %s',
-            escapeshellarg($this->repository->getPath()),
-            escapeshellarg($this->name)
-        ), $result);
-        $output = ob_get_clean();
+        $process = $this->repository->getProcess('rev-parse', array('--verify', $this->name));
+        $process->run();
 
-        if (0 !== $result) {
-            throw new \RuntimeException(sprintf('Unable to resolve the revision "%s"', $this->name));
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException(sprintf('Unable to resolve the revision "%s": %s', $this->name, $process->getErrorOutput()));
         }
 
-        return $this->resolved = trim($output);
-    }
-
-    public function getCommit()
-    {
-        return $this->repository->getCommit($this->getResolved());
+        return $this->resolved = $this->repository->getCommit(trim($process->getOutput()));
     }
 }
