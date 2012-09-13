@@ -15,7 +15,7 @@ namespace Gitonomy\Git;
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Log
+class Log implements \Countable, \IteratorAggregate
 {
     /**
      * @var Repository
@@ -128,6 +128,22 @@ class Log
         }
 
         return $result;
+    }
+
+    /**
+     * @see Countable
+     */
+    public function count()
+    {
+        return $this->countCommits();
+    }
+
+    /**
+     * @see IteratorAggregate
+     */
+    public function getIterator()
+    {
+        return new \ArrayIterator($this->getCommits());
     }
 
     /**

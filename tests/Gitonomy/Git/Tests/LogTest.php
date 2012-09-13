@@ -19,9 +19,7 @@ class LogTest extends TestBase
     public function testGetCommits()
     {
         $repository = $this->getLibRepository();
-        $log = $repository->getLog(self::TRAVIS_COMMIT);
-        $log->setLimit(2);
-        $log->setLimit(3);
+        $log = $repository->getLog(self::TRAVIS_COMMIT, null, 3);
 
         $commits = $log->getCommits();
 
@@ -33,10 +31,31 @@ class LogTest extends TestBase
     public function testCountCommits()
     {
         $repository = $this->getLibRepository();
-        $log = $repository->getLog(self::TRAVIS_COMMIT);
-        $log->setLimit(2);
-        $log->setLimit(3);
+        $log = $repository->getLog(self::TRAVIS_COMMIT, 2, 3);
 
         $this->assertEquals(5, $log->countCommits(), "5 commits found in history");
+    }
+
+    public function testIterable()
+    {
+        $repository = $this->getLibRepository();
+        $log = $repository->getLog(self::TRAVIS_COMMIT);
+
+        $expectedHashes = array(self::TRAVIS_COMMIT, self::TRAVIS_PARENT_COMMIT);
+        foreach ($log as $entry) {
+            $hash = array_shift($expectedHashes);
+            $this->assertEquals($hash, $entry->getHash());
+            if (count($expectedHashes) == 0) {
+                break;
+            }
+        }
+    }
+
+    public function testCountable()
+    {
+        $repository = $this->getLibRepository();
+        $log = $repository->getLog(self::TRAVIS_COMMIT, 2, 3);
+
+        $this->assertEquals(5, count($log), "Log is countable");
     }
 }

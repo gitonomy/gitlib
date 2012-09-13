@@ -21,7 +21,7 @@ use Gitonomy\Git\Exception\ReferenceNotFoundException;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class ReferenceBag implements \Countable
+class ReferenceBag implements \Countable, \IteratorAggregate
 {
     /**
      * Repository object.
@@ -271,9 +271,23 @@ class ReferenceBag implements \Countable
 
     /**
      * @return int
+     *
+     * @see Countable
      */
     public function count()
     {
+        $this->initialize();
+
         return count($this->references);
+    }
+
+    /**
+     * @see IteratorAggregate
+     */
+    public function getIterator()
+    {
+        $this->initialize();
+
+        return new \ArrayIterator($this->references);
     }
 }

@@ -122,9 +122,9 @@ class Repository
         return $this->objects[$hash];
     }
 
-    public function getLog($reference = null)
+    public function getLog($reference = null, $offset = null, $limit = null)
     {
-        return new Log($this, $reference);
+        return new Log($this, $reference, $offset, $limit);
     }
 
     /**

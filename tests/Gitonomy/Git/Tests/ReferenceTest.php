@@ -83,4 +83,18 @@ class ReferenceTest extends TestBase
         $this->assertEquals(1, count($resolved), "1 revision resolved");
         $this->assertTrue($resolved[0] instanceof Branch, "Resolved object is a branch");
     }
+
+    public function testCountable()
+    {
+        $this->assertGreaterThanOrEqual(2, count($this->references), "At least two references in repository");
+    }
+
+    public function testIterable()
+    {
+        $i = 0;
+        foreach ($this->references as $ref) {
+            $i++;
+        }
+        $this->assertGreaterThanOrEqual(2, $i, "At least two references in repository");
+    }
 }
