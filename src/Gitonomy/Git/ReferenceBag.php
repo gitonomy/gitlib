@@ -113,7 +113,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         $this->initialize();
 
         if ($hash instanceof Commit) {
-            $hash = $commit->getHash();
+            $hash = $hash->getHash();
         }
 
         $tags = array();
@@ -135,7 +135,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         $this->initialize();
 
         if ($hash instanceof Commit) {
-            $hash = $commit->getHash();
+            $hash = $hash->getHash();
         }
 
         $tags = array();
@@ -157,7 +157,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         $this->initialize();
 
         if ($hash instanceof Commit) {
-            $hash = $commit->getHash();
+            $hash = $hash->getHash();
         }
 
         $result = array();
