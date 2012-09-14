@@ -1,5 +1,7 @@
-Git lib
-=======
+Welcome to gitlib's documentation
+=================================
+
+View on Github: https://github.com/gitonomy/gitlib
 
 This library is a PHP-library for browsing git repositories.
 
@@ -10,7 +12,7 @@ of this library is out of scope if you have requirements on performance.
 Requirements
 ------------
 
-Minimum PHP version: PHP 5.3
+Minimum PHP version: PHP 5.3.3
 
 To use this library, you must have *git* installed and available in shell.
 
