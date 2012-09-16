@@ -23,7 +23,7 @@
     },
 
     "require": {
-        "symfony/process": "2.1.*"
+        "symfony/process": ">=2.1"
     },
 
     "minimum-stability": "dev"
