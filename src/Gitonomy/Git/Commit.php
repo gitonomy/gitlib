@@ -253,7 +253,7 @@ class Commit
      *
      * @return string
      */
-    public function getShortMessage()
+    public function getShortMessage($limit = 50)
     {
         $this->initialize();
 
@@ -265,16 +265,16 @@ class Commit
         $length = mb_strlen($this->message);
 
         if (false === $pos) {
-            if ($length < 80) {
+            if ($length < $limit) {
                 $shortMessage = $this->message;
             } else {
-                $shortMessage = mb_substr($this->message, 0, 80).'...';
+                $shortMessage = mb_substr($this->message, 0, $limit).'...';
             }
         } else {
-            if ($pos < 80) {
+            if ($pos < $limit) {
                 $shortMessage = mb_substr($this->message, 0, $pos);
             } else {
-                $shortMessage = mb_substr($this->message, 0, 80).'...';
+                $shortMessage = mb_substr($this->message, 0, $limit).'...';
             }
         }
 
