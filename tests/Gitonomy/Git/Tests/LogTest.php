@@ -36,6 +36,14 @@ class LogTest extends TestBase
         $this->assertEquals(5, $log->countCommits(), "5 commits found in history");
     }
 
+    public function testCountAllCommits()
+    {
+        $repository = $this->getLibRepository();
+        $log = $log = $repository->getLog(null);
+
+        $this->assertGreaterThan(30, $log->countCommits(), "At least 10 commits");
+    }
+
     public function testIterable()
     {
         $repository = $this->getLibRepository();

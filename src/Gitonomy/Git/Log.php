@@ -153,7 +153,11 @@ class Log implements \Countable, \IteratorAggregate
      */
     public function countCommits()
     {
-        $process = $this->repository->getProcess('rev-list', array($this->revisions));
+        if (null === $this->revisions) {
+            $process = $this->repository->getProcess('rev-list', array('--all'));
+        } else {
+            $process = $this->repository->getProcess('rev-list', array($this->revisions));
+        }
         $process->run();
 
         if (!$process->isSuccessful()) {
