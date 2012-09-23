@@ -34,6 +34,13 @@ class Commit
     private $hash;
 
     /**
+     * Short hash.
+     *
+     * @var string
+     */
+    private $shortHash;
+
+    /**
      * A flag indicating if the commit is initialized.
      *
      * @var boolean
@@ -178,6 +185,28 @@ class Commit
     }
 
     /**
+     * Returns the short commit hash.
+     *
+     * @return string A SHA1 hash
+     */
+    public function getShortHash()
+    {
+        if (null !== $this->shortHash) {
+            return $this->shortHash;
+        }
+
+        $process = $this->repository->getProcess('log', array('--abbrev-commit', '--format=%h', '-n', 1, $this->hash));
+        $process->run();
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException('An error occured while computing short hash: '.$process->getErrorOutput());
+        }
+
+        $shortHash = trim($process->getOutput());
+
+        return $this->shortHash = $shortHash;
+    }
+
+    /**
      * Returns parent hashes.
      *
      * @return array An array of SHA1 hashes
@@ -242,7 +271,7 @@ class Commit
         $process = $this->repository->getProcess('log', array('--format=%H', '-n', 1, $this->hash, '--', $path));
         $process->run();
         if (!$process->isSuccessful()) {
-            throw new \InvalidArgumentException('Error running git log: '.$process->getErrorOutput());
+            throw new \RuntimeException('An error occured while computing modification of path: '.$process->getErrorOutput());
         }
 
         return $this->repository->getCommit(trim($process->getOutput()));

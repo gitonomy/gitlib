@@ -34,6 +34,13 @@ class CommitTest extends TestBase
         $this->assertEquals(self::INITIAL_COMMIT, $commit->getHash());
     }
 
+    public function testGetShortHash()
+    {
+        $commit = $this->getInitialCommit();
+
+        $this->assertEquals('1040d33', $commit->getShortHash(), "Short hash");
+    }
+
     public function testGetParentHashes_WithNoParent()
     {
         $commit = $this->getInitialCommit();
