@@ -48,6 +48,13 @@ class Repository
     protected $objects;
 
     /**
+     * Reference bag associated to this repository.
+     *
+     * @var ReferenceBag
+     */
+    protected $referenceBag;
+
+    /**
      * Constructor.
      *
      * @param string $path Path to the Git repository
@@ -103,7 +110,11 @@ class Repository
      */
     public function getReferences()
     {
-        return new ReferenceBag($this);
+        if (null === $this->referenceBag) {
+            $this->referenceBag = new ReferenceBag($this);
+        }
+
+        return $this->referenceBag;
     }
 
     /**
