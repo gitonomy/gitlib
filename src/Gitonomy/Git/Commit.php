@@ -45,7 +45,7 @@ class Commit
      *
      * @var boolean
      */
-    private $initialized;
+    private $initialized = false;
 
     /**
      * Hash of the tree.
@@ -129,7 +129,6 @@ class Commit
     {
         $this->repository = $repository;
         $this->hash = $hash;
-        $this->initialized = false;
     }
 
     /**

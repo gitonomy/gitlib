@@ -56,7 +56,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
      *
      * @var boolean
      */
-    protected $initialized;
+    protected $initialized = false;
 
     /**
      * Constructor.
@@ -66,7 +66,6 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     public function __construct($repository)
     {
         $this->repository  = $repository;
-        $this->initialized = false;
         $this->references  = array();
         $this->tags        = array();
         $this->branches    = array();
