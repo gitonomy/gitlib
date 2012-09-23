@@ -229,8 +229,10 @@ class Repository
 
     public function run($command, $args = array())
     {
-        if (!$command instanceof Process) {
+        if (is_string($command)) {
             $command = $this->getProcess($command, $args);
+        } elseif (!$command instanceof Process) {
+            throw new \InvalidArgumentException(sprintf('Expected a "string" or a "Process", "%s" given', gettype(variant)));
         }
 
         $command->run();

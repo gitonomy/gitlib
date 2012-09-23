@@ -142,17 +142,8 @@ class Commit
             return;
         }
 
-        $process = $this->repository->getProcess('cat-file', array('commit', $this->hash));
-
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException('Error while getting content of a commit: '.$process->getErrorOutput());
-        }
-
-        $result = $process->getOutput();
-
         $parser = new Parser\CommitParser();
+        $result = $this->repository->run('cat-file', array('commit', $this->hash));
         $parser->parse($result);
 
         $this->treeHash       = $parser->tree;
@@ -194,15 +185,9 @@ class Commit
             return $this->shortHash;
         }
 
-        $process = $this->repository->getProcess('log', array('--abbrev-commit', '--format=%h', '-n', 1, $this->hash));
-        $process->run();
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException('An error occured while computing short hash: '.$process->getErrorOutput());
-        }
+        $result = $this->repository->run('log', array('--abbrev-commit', '--format=%h', '-n', 1, $this->hash));
 
-        $shortHash = trim($process->getOutput());
-
-        return $this->shortHash = $shortHash;
+        return $this->shortHash = trim($result);
     }
 
     /**
@@ -267,13 +252,9 @@ class Commit
             $path = substr($path, 1);
         }
 
-        $process = $this->repository->getProcess('log', array('--format=%H', '-n', 1, $this->hash, '--', $path));
-        $process->run();
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException('An error occured while computing modification of path: '.$process->getErrorOutput());
-        }
+        $result = $this->repository->run('log', array('--format=%H', '-n', 1, $this->hash, '--', $path));
 
-        return $this->repository->getCommit(trim($process->getOutput()));
+        return $this->repository->getCommit(trim($result));
     }
 
     /**

@@ -111,13 +111,8 @@ class Log implements \Countable, \IteratorAggregate
 
         $builder->add(null === $this->revisions ? '--all' : $this->revisions);
         $process = $builder->getProcess();
-        $process->run();
 
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException('Error while getting log: '.$process->getErrorOutput());
-        }
-
-        $exp = explode("\n", $process->getOutput());
+        $exp = explode("\n", $this->repository->run($process));
 
         $result = array();
         foreach ($exp as $hash) {
@@ -154,16 +149,11 @@ class Log implements \Countable, \IteratorAggregate
     public function countCommits()
     {
         if (null === $this->revisions) {
-            $process = $this->repository->getProcess('rev-list', array('--all'));
+            $output = $this->repository->run('rev-list', array('--all'));
         } else {
-            $process = $this->repository->getProcess('rev-list', array($this->revisions));
-        }
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException('Error while counting log: '.$process->getErrorOutput());
+            $output = $this->repository->run('rev-list', array($this->revisions));
         }
 
-        return count(explode("\n", $process->getOutput())) - 1;
+        return count(explode("\n", $output)) - 1;
     }
 }

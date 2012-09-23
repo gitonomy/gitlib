@@ -140,18 +140,11 @@ class PushReference
             return false;
         }
 
-        $process = $this->repository->getProcess('merge-base', array(
+        $result = $this->repository->run('merge-base', array(
             $this->before,
             $this->after
         ));
-        $process->run();
 
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException('Error while getting content of a commit: '.$process->getErrorOutput());
-        }
-
-        $result = trim($process->getOutput());
-
-        return $this->before !== $result;
+        return $this->before !== trim($result);
     }
 }

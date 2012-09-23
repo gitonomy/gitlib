@@ -56,15 +56,10 @@ class Diff
 
     protected function initialize()
     {
-        $process = $this->repository->getProcess('diff-tree', array('-r', '-p', '-m', '-M', '--no-commit-id', $this->revision));
-
-        $process->run();
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException('Error while getting diff: '.$process->getErrorOutput());
-        }
+        $result = $this->repository->run('diff-tree', array('-r', '-p', '-m', '-M', '--no-commit-id', $this->revision));
 
         $parser = new Parser\DiffParser();
-        $parser->parse($process->getOutput());
+        $parser->parse($result);
 
         $this->files = $parser->files;
     }

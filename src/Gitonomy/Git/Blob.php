@@ -30,11 +30,6 @@ class Blob
     protected $hash;
 
     /**
-     * @var boolean
-     */
-    protected $initialized = false;
-
-    /**
      * @var string
      */
     protected $content;
@@ -58,32 +53,15 @@ class Blob
     }
 
     /**
-     * @throws RuntimeException Error occurred while getting content of blob
-     */
-    private function initialize()
-    {
-        if (true === $this->initialized) {
-            return;
-        }
-
-        $process = $this->repository->getProcess('cat-file', array('-p', $this->hash));
-
-        $process->run();
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException('Error while getting content of a blob : '.$process->getErrorOutput());
-        }
-
-        $this->content = $process->getOutput();
-    }
-
-    /**
      * Returns content of the blob.
      *
      * @throws RuntimeException Error occurred while getting content of blob
      */
     public function getContent()
     {
-        $this->initialize();
+        if (null === $this->content) {
+            $this->content = $this->repository->run('cat-file', array('-p', $this->hash));
+        }
 
         return $this->content;
     }

@@ -57,13 +57,8 @@ class Revision
             return $this->resolved;
         }
 
-        $process = $this->repository->getProcess('rev-parse', array('--verify', $this->name));
-        $process->run();
+        $result = $this->repository->run('rev-parse', array('--verify', $this->name));
 
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException(sprintf('Unable to resolve the revision "%s": %s', $this->name, $process->getErrorOutput()));
-        }
-
-        return $this->resolved = $this->repository->getCommit(trim($process->getOutput()));
+        return $this->resolved = $this->repository->getCommit(trim($result));
     }
 }
