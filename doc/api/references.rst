@@ -11,6 +11,14 @@ object from a *Repository*, use the *getReferences* method:
 
     $references = $repository->getReferences();
 
+First, you can test existence of tags and branches like this:
+
+.. code-block:: php
+
+    if ($references->hasBranch('master') && $references->hasTag('0.1')) {
+        echo "Good start!";
+    }
+
 If you want to access all branches or all tags:
 
 .. code-block:: php
@@ -19,8 +27,8 @@ If you want to access all branches or all tags:
     $tags     = $repository->getTags();
     $all      = $repository->getAll();
 
-To get a branch or a tag, use the *getBranch* or *getTag* method on the
-*ReferenceBag*. This method will return a *Branch* object or a *Tag* object:
+To get a given branch or tag, call *getBranch* or *getTag* on the
+*ReferenceBag*. Those methods return *Branch* and *Tag* objects:
 
 .. code-block:: php
 

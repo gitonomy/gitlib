@@ -32,6 +32,18 @@ class ReferenceTest extends TestBase
         $this->assertEquals($branch->getCommitHash(), $branch->getCommit()->getHash(), "Hash is correctly resolved");
     }
 
+    public function testHasBranch()
+    {
+        $this->assertTrue($this->references->hasBranch('master'), 'Branch master exists');
+        $this->assertFalse($this->references->hasBranch('foobar'), 'Branch foobar does not exists');
+    }
+
+    public function testHasTag()
+    {
+        $this->assertTrue($this->references->hasTag('0.1'), 'Tag master exists');
+        $this->assertFalse($this->references->hasTag('foobar'), 'Tag foobar does not exists');
+    }
+
     /**
      * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
      */

@@ -89,11 +89,28 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->references[$fullname];
     }
 
+    public function has($fullname)
+    {
+        $this->initialize();
+
+        return isset($this->references[$fullname]);
+    }
+
     public function hasBranches()
     {
         $this->initialize();
 
         return count($this->branches) > 0;
+    }
+
+    public function hasBranch($name)
+    {
+        return $this->has('refs/heads/'.$name);
+    }
+
+    public function hasTag($name)
+    {
+        return $this->has('refs/tags/'.$name);
     }
 
     public function getFirstBranch()
