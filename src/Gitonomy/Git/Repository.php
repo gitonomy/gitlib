@@ -96,7 +96,7 @@ class Repository
      *
      * @param string $name Name of the revision
      *
-     * @return Gitonomy\Git\Revision
+     * @return Revision
      */
     public function getRevision($name)
     {
@@ -106,7 +106,7 @@ class Repository
     /**
      * Returns the reference list associated to the repository.
      *
-     * @return Gitonomy\Git\ReferenceBag
+     * @return ReferenceBag
      */
     public function getReferences()
     {
@@ -122,7 +122,7 @@ class Repository
      *
      * @param string $hash A commit hash, with a length of 40
      *
-     * @return Gitonomy\Git\Commit
+     * @return Commit
      */
     public function getCommit($hash)
     {
@@ -208,7 +208,7 @@ class Repository
     /**
      * Returns the hooks object.
      *
-     * @return Gitonomy\Git\Hooks
+     * @return Hooks
      */
     public function getHooks()
     {
