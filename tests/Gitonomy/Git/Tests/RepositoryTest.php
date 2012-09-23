@@ -18,7 +18,7 @@ class RepositoryTest extends TestBase
 {
     public function testGetBlob_WithExisting_Works()
     {
-        $repo = self::getLibRepository();
+        $repo = $this->getLibRepository();
 
         $blob = $repo->getBlob(self::README_BLOB);
         $this->assertTrue($blob instanceof Blob, "getBlob() returns a Blob object");
@@ -27,7 +27,7 @@ class RepositoryTest extends TestBase
 
     public function testGetSize()
     {
-        $repo = self::getLibRepository();
+        $repo = $this->getLibRepository();
 
         $size = $repo->getSize();
         $this->assertGreaterThan(100, $size, "Repository is greater than 500KB");

@@ -18,7 +18,7 @@ class BlobTest extends TestBase
 {
     public function testGetContent()
     {
-        $repo = self::getLibRepository();
+        $repo = $this->getLibRepository();
 
         $blob = $repo->getBlob(self::README_BLOB);
 
@@ -30,7 +30,7 @@ class BlobTest extends TestBase
      */
     public function testGetContentOnNotExisting()
     {
-        $repo = self::getLibRepository();
+        $repo = $this->getLibRepository();
 
         $blob = $repo->getBlob("foobar");
 

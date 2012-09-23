@@ -1,0 +1,157 @@
+<?php
+
+/**
+ * This file is part of Gitonomy.
+ *
+ * (c) Alexandre Salomé <alexandre.salome@gmail.com>
+ * (c) Julien DIDIER <genzo.wm@gmail.com>
+ *
+ * This source file is subject to the GPL license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Gitonomy\Git;
+
+/**
+ * Push reference contains a commit interval. This object aggregates methods
+ * for this interval.
+ *
+ * @author Julien DIDIER <genzo.wm@gmail.com>
+ */
+class PushReference
+{
+    const ZERO = "0000000000000000000000000000000000000000";
+
+    /**
+     * @var string
+     */
+    protected $reference;
+
+    /**
+     * @var string
+     */
+    protected $before;
+
+    /**
+     * @var string
+     */
+    protected $after;
+
+    /**
+     * @var boolean
+     */
+    protected $isForce;
+
+    public function __construct(Repository $repository, $reference, $before, $after)
+    {
+        $this->repository = $repository;
+        $this->reference  = $reference;
+        $this->before     = $before;
+        $this->after      = $after;
+        $this->isForce    = $this->getForce();
+    }
+
+    /**
+     * @return string
+     */
+    public function getReference()
+    {
+        return $this->reference;
+    }
+
+    /**
+     * @return string
+     */
+    public function getBefore()
+    {
+        return $this->before;
+    }
+
+    /**
+     * @return string
+     */
+    public function getAfter()
+    {
+        return $this->after;
+    }
+
+    /**
+     * @return array
+     */
+    public function getLog()
+    {
+        if ($this->isCreate()) {
+            return $this->repository->getLog($this->getAfter());
+        }
+
+        if ($this->isDelete()) {
+            throw new \LogicException('No log on deletion');
+        }
+
+        return $this->repository->getLog($this->getBefore().'..'.$this->getAfter());
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isCreate()
+    {
+        return $this->isZero($this->before);
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isDelete()
+    {
+        return $this->isZero($this->after);
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isForce()
+    {
+        return $this->isForce;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isFastForward()
+    {
+        return !$this->isDelete() && !$this->isCreate() && !$this->isForce();
+    }
+
+    /**
+     * @return boolean
+     */
+    protected function isZero($reference)
+    {
+        return self::ZERO === $reference;
+    }
+
+    /**
+     * @return boolean
+     */
+    protected function getForce()
+    {
+        if ($this->isDelete() || $this->isCreate()) {
+            return false;
+        }
+
+        $process = $this->repository->getProcess('merge-base', array(
+            $this->before,
+            $this->after
+        ));
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new \RuntimeException('Error while getting content of a commit: '.$process->getErrorOutput());
+        }
+
+        $result = trim($process->getOutput());
+
+        return $this->before !== $result;
+    }
+}

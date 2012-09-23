@@ -142,11 +142,11 @@ class CommitTest extends TestBase
 
     private function getInitialCommit()
     {
-        return self::getLibRepository()->getCommit(self::INITIAL_COMMIT);
+        return $this->getLibRepository()->getCommit(self::INITIAL_COMMIT);
     }
 
     private function getTravisCommit()
     {
-        return self::getLibRepository()->getCommit(self::TRAVIS_COMMIT);
+        return $this->getLibRepository()->getCommit(self::TRAVIS_COMMIT);
     }
 }

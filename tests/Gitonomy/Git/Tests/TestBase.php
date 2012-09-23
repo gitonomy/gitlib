@@ -57,7 +57,7 @@ class TestBase extends \PHPUnit_Framework_TestCase
         rmdir($dir);
     }
 
-    static public function getLibRepository()
+    public function getLibRepository()
     {
         if (null === self::$repo) {
             $dir = __DIR__.'/../../../../test-sandbox';

@@ -77,11 +77,11 @@ class DiffTest extends TestBase
 
     private function getDocDiff()
     {
-        return self::getLibRepository()->getDiff(self::DOC_COMMIT);
+        return $this->getLibRepository()->getDiff(self::DOC_COMMIT);
     }
 
     private function getTravisDiff()
     {
-        return self::getLibRepository()->getDiff(self::TRAVIS_COMMIT);
+        return $this->getLibRepository()->getDiff(self::TRAVIS_COMMIT);
     }
 }
