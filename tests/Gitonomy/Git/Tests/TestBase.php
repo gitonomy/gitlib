@@ -16,7 +16,8 @@ use Gitonomy\Git\Repository;
 
 class TestBase extends \PHPUnit_Framework_TestCase
 {
-    private static $repo;
+    private static $libRepo;
+    private static $testRepo;
 
     // Initial commit is the first commit of the repository
     const INITIAL_COMMIT       = '1040d331549232a7d64907ec75d71d31da2e43f4';
@@ -59,15 +60,28 @@ class TestBase extends \PHPUnit_Framework_TestCase
 
     public function getLibRepository()
     {
-        if (null === self::$repo) {
-            $dir = __DIR__.'/../../../../test-sandbox';
-            if (!is_dir($dir)) {
-                $this->markTestSkipped("Test sandbox folder not present");
-            }
-
-            self::$repo = new Repository($dir);
+        if (null === self::$libRepo) {
+            self::$libRepo = $this->getDirRepository(__DIR__.'/../../../../test-sandbox');
         }
 
-        return self::$repo;
+        return self::$libRepo;
+    }
+
+    public function getTestRepository()
+    {
+        if (null === self::$testRepo) {
+            self::$testRepo = $this->getDirRepository(__DIR__.'/../../../..');
+        }
+
+        return self::$testRepo;
+    }
+
+    protected function getDirRepository($dir)
+    {
+        if (!is_dir($dir)) {
+            $this->markTestSkipped("Test sandbox folder not present");
+        }
+
+        return new Repository($dir);
     }
 }

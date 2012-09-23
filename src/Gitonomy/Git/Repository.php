@@ -13,6 +13,7 @@
 namespace Gitonomy\Git;
 
 use Symfony\Component\Process\ProcessBuilder;
+use Symfony\Component\Process\Process;
 
 /**
  * Git repository object.
@@ -29,6 +30,13 @@ class Repository
      * @var string
      */
     protected $path;
+
+    /**
+     * Boolean indicating if repository is a bare repository
+     *
+     * @var boolean
+     */
+    protected $isBare;
 
     /**
      * Cache containing all objets of the repository.
@@ -53,7 +61,17 @@ class Repository
         if (!is_dir($path)) {
             throw new \InvalidArgumentException(sprintf('The folder "%s" does not exists', $path));
         }
+
         $this->path   = $path;
+    }
+
+    public function isBare()
+    {
+        if (null === $this->isBare) {
+            $this->isBare = trim($this->run('config', array('core.bare'))) == 'true';
+        }
+
+        return $this->isBare;
     }
 
     /**
@@ -196,5 +214,20 @@ class Repository
         }
 
         return $builder->getProcess();
+    }
+
+    public function run($command, $args = array())
+    {
+        if (!$command instanceof Process) {
+            $command = $this->getProcess($command, $args);
+        }
+
+        $command->run();
+
+        if (!$command->isSuccessful()) {
+            throw new \RuntimeException('Error while running git command: '.$command->getErrorOutput());
+        }
+
+        return $command->getOutput();
     }
 }

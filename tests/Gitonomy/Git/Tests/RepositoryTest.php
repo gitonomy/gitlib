@@ -32,4 +32,15 @@ class RepositoryTest extends TestBase
         $size = $repo->getSize();
         $this->assertGreaterThan(100, $size, "Repository is greater than 500KB");
     }
+
+    public function testIsBare()
+    {
+        // Lib repository
+        $repo = $this->getLibRepository();
+        $this->assertTrue($repo->isBare(), "Lib repository is bare");
+
+        // Test repository
+        $repo = $this->getTestRepository();
+        $this->assertFalse($repo->isBare(), "Working copy is not bare");
+    }
 }
