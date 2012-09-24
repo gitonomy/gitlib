@@ -25,11 +25,14 @@ use Symfony\Component\Process\Process;
 class Repository
 {
     /**
-     * Path to the repository
-     *
      * @var string
      */
-    protected $path;
+    protected $gitDir;
+
+    /**
+     * @var string
+     */
+    protected $workingDir;
 
     /**
      * Boolean indicating if repository is a bare repository
@@ -57,19 +60,26 @@ class Repository
     /**
      * Constructor.
      *
-     * @param string $path Path to the Git repository
-     *
      * @throws InvalidArgumentException The folder does not exists
      */
-    public function __construct($path)
+    public function __construct($gitDir, $workingDir = null)
     {
-        $this->objects = array();
-
-        if (!is_dir($path)) {
-            throw new \InvalidArgumentException(sprintf('The folder "%s" does not exists', $path));
+        if (null === $workingDir && is_dir($gitDir.'/.git')) {
+            $workingDir = $gitDir;
+            $gitDir      = $gitDir.'/.git';
         }
 
-        $this->path   = $path;
+        if (!is_dir($gitDir)) {
+            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist', $gitDir));
+        }
+
+        if (null !== $workingDir && !is_dir($workingDir)) {
+            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist', $workingDir));
+        }
+
+        $this->gitDir     = $gitDir;
+        $this->workingDir = $workingDir;
+        $this->objects    = array();
     }
 
     public function isBare()
@@ -82,13 +92,89 @@ class Repository
     }
 
     /**
+     * @return Commit
+     */
+    public function getHeadCommit()
+    {
+        $head = $this->getHead();
+
+        if ($head instanceof Reference) {
+            $head = $head->getCommit();
+        }
+
+        return $head;
+    }
+
+    /**
+     * @return Reference|Commit
+     */
+    public function getHead()
+    {
+        if ($this->isBare()) {
+            throw new \LogicException("Can't get HEAD in a bare repository");
+        }
+
+        $file = $this->gitDir.'/HEAD';
+        if (!file_exists($file)) {
+            throw new \RuntimeException('Missing file HEAD');
+        }
+
+        $content = trim(file_get_contents($file));
+
+        if (preg_match('/^ref: (.+)$/', $content, $vars)) {
+            return $this->getReferences()->get($vars[1]);
+        } elseif (preg_match('/^[0-9a-f]{40}$/', $content)) {
+            return $this->getCommit($content);
+        }
+
+        throw new \RuntimeException(sprintf('Unexpected HEAD value : %s', $content));
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isHeadDetached()
+    {
+        return $this->getHead() instanceof Commit;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isHeadAttached()
+    {
+        return !$this->isHeadDetached();
+    }
+
+    /**
      * Returns the path to the Git repository.
      *
      * @return string A directory path
      */
     public function getPath()
     {
-        return $this->path;
+        return $this->workingDir === null ? $this->gitDir : $this->workingDir;
+    }
+
+    /**
+     * Returns the directory containing git files (git-dir).
+     *
+     * @return string
+     */
+    public function getGitDir()
+    {
+        return $this->gitDir;
+    }
+
+    /**
+     * Returns the working-tree directory. This may be null if repository is
+     * bare.
+     *
+     * @return string
+     */
+    public function getWorkingDir()
+    {
+        return $this->workingDir;
     }
 
     /**
@@ -173,7 +259,7 @@ class Repository
      */
     public function getSize()
     {
-        $process = ProcessBuilder::create(array('du', '-skc', $this->path))->getProcess();
+        $process = ProcessBuilder::create(array('du', '-skc', $this->gitDir))->getProcess();
 
         $process->run();
 
@@ -195,7 +281,7 @@ class Repository
      */
     public function shell($command, array $env = array())
     {
-        $argument = sprintf('%s \'%s\'', $command, $this->path);
+        $argument = sprintf('%s \'%s\'', $command, $this->gitDir);
 
         $prefix = '';
         foreach ($env as $name => $value) {
@@ -218,7 +304,7 @@ class Repository
     public function getProcess($command, $args = array(), $returnBuilder = false)
     {
         $builder = new ProcessBuilder(array_merge(array('git', $command), $args));
-        $builder->setWorkingDirectory($this->path);
+        $builder->setWorkingDirectory($this->workingDir ?: $this->gitDir);
 
         if ($returnBuilder) {
             return $builder;
@@ -242,5 +328,13 @@ class Repository
         }
 
         return $command->getOutput();
+    }
+
+    /**
+     * @return WorkingCopy
+     */
+    public function getWorkingCopy()
+    {
+        return new WorkingCopy($this);
     }
 }

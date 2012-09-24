@@ -61,19 +61,29 @@ class TestBase extends \PHPUnit_Framework_TestCase
     public function getLibRepository()
     {
         if (null === self::$libRepo) {
-            self::$libRepo = $this->getDirRepository(__DIR__.'/../../../../test-sandbox');
+            self::$libRepo = $this->getDirRepository($this->getLibDirectory());
         }
 
         return self::$libRepo;
     }
 
+    public function getLibDirectory()
+    {
+        return __DIR__.'/../../../../test-sandbox';
+    }
+
     public function getTestRepository()
     {
         if (null === self::$testRepo) {
-            self::$testRepo = $this->getDirRepository(__DIR__.'/../../../..');
+            self::$testRepo = $this->getDirRepository($this->getTestDirectory());
         }
 
         return self::$testRepo;
+    }
+
+    public function getTestDirectory()
+    {
+        return __DIR__.'/../../../..';
     }
 
     protected function getDirRepository($dir)

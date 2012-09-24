@@ -1,16 +1,6 @@
 Repository methods
 ==================
 
-.. code-block:: php
-
-    $repository = new Repository('/path/to/repository');
-
-    if ($repository->isBare()) {
-        echo "This repository is bare\n";
-    }
-
-    echo "Your repository size is ".$repository->getSize()."kb";
-
 Creating a *Repository* object is possible, providing a *path* argument to the
 constructor:
 
@@ -43,3 +33,18 @@ The returned size is in kilobytes:
 
     $size = $repository->getSize();
     echo "Your repository size is ".$size."KB";
+
+Access HEAD
+-----------
+
+``HEAD`` represents in git the version you are working on (in working tree).
+Your ``HEAD`` can be attached (using a reference) or detached (using a commit).
+
+.. code-block:: php
+
+    $head = $repository->getHead(); // Commit or Reference
+    $head = $repository->getHeadCommit(); // Commit
+
+    if ($repository->isHeadDetached()) {
+        echo "Sorry man\n";
+    }
