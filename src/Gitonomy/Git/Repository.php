@@ -64,8 +64,9 @@ class Repository
      */
     public function __construct($gitDir, $workingDir = null)
     {
+        $gitDir = realpath($gitDir);
         if (null === $workingDir && is_dir($gitDir.'/.git')) {
-            $workingDir = $gitDir;
+            $workingDir  = $gitDir;
             $gitDir      = $gitDir.'/.git';
         }
 
@@ -74,6 +75,8 @@ class Repository
         }
 
         if (null !== $workingDir && !is_dir($workingDir)) {
+            $workingDir = realpath($workingDir);
+
             throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist', $workingDir));
         }
 
@@ -167,7 +170,7 @@ class Repository
     }
 
     /**
-     * Returns the working-tree directory. This may be null if repository is
+     * Returns the work-tree directory. This may be null if repository is
      * bare.
      *
      * @return string
@@ -301,18 +304,17 @@ class Repository
         return new Hooks($this);
     }
 
-    public function getProcess($command, $args = array(), $returnBuilder = false)
-    {
-        $builder = new ProcessBuilder(array_merge(array('git', $command), $args));
-        $builder->setWorkingDirectory($this->workingDir ?: $this->gitDir);
-
-        if ($returnBuilder) {
-            return $builder;
-        }
-
-        return $builder->getProcess();
-    }
-
+    /**
+     * This command is a facility command. You can run any command
+     * directly on git repository.
+     *
+     * @param string $command Git command to run (checkout, branch, tag)
+     * @param array  $args    Arguments of git command
+     *
+     * @return string Output of a successful process
+     *
+     * @throws RuntimeException Error while executing git command
+     */
     public function run($command, $args = array())
     {
         if (is_string($command)) {
@@ -328,6 +330,22 @@ class Repository
         }
 
         return $command->getOutput();
+    }
+
+    /**
+     * @see self::run
+     */
+    public function getProcess($command, $args = array(), $returnBuilder = false)
+    {
+        $base = array('git', '--git-dir', $this->gitDir, '--work-tree', $this->workingDir, $command);
+
+        $builder = new ProcessBuilder(array_merge($base, $args));
+
+        if ($returnBuilder) {
+            return $builder;
+        }
+
+        return $builder->getProcess();
     }
 
     /**
