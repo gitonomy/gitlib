@@ -15,6 +15,8 @@ namespace Gitonomy\Git;
 use Symfony\Component\Process\ProcessBuilder;
 use Symfony\Component\Process\Process;
 
+use Gitonomy\Git\Exception\RuntimeException;
+
 /**
  * Git repository object.
  *
@@ -317,35 +319,13 @@ class Repository
      */
     public function run($command, $args = array())
     {
-        if (is_string($command)) {
-            $command = $this->getProcess($command, $args);
-        } elseif (!$command instanceof Process) {
-            throw new \InvalidArgumentException(sprintf('Expected a "string" or a "Process", "%s" given', gettype(variant)));
-        }
-
+        $command = $this->getProcess($command, $args);
         $command->run();
-
         if (!$command->isSuccessful()) {
-            throw new \RuntimeException('Error while running git command: '.$command->getErrorOutput());
+            throw new RuntimeException($command);
         }
 
         return $command->getOutput();
-    }
-
-    /**
-     * @see self::run
-     */
-    public function getProcess($command, $args = array(), $returnBuilder = false)
-    {
-        $base = array('git', '--git-dir', $this->gitDir, '--work-tree', $this->workingDir, $command);
-
-        $builder = new ProcessBuilder(array_merge($base, $args));
-
-        if ($returnBuilder) {
-            return $builder;
-        }
-
-        return $builder->getProcess();
     }
 
     /**
@@ -354,5 +334,16 @@ class Repository
     public function getWorkingCopy()
     {
         return new WorkingCopy($this);
+    }
+
+    /**
+     * @see self::run
+     */
+    protected function getProcess($command, $args = array())
+    {
+        $base = array('git', '--git-dir', $this->gitDir, '--work-tree', $this->workingDir, $command);
+        $builder = new ProcessBuilder(array_merge($base, $args));
+
+        return $builder->getProcess();
     }
 }

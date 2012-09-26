@@ -15,6 +15,7 @@ namespace Gitonomy\Git;
 use Symfony\Component\Process\Process;
 
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\RuntimeException;
 
 /**
  * Reference set associated to a repository.
@@ -255,18 +256,17 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         }
         $this->initialized = true;
 
-        $process = $this->repository->getProcess('show-ref', array('--tags', '--heads'));
-        $process->run();
-
-        $output = $process->getOutput();
-        $error  = $process->getErrorOutput();
-
-        if ($output === '' && $error !== '' || !$process->isSuccessFul() && $error !== '') {
-            throw new \RuntimeException('Error while getting list of references');
+        try {
+            $output = $this->repository->run('show-ref', array('--tags', '--heads'));
+            $parser = new Parser\ReferenceParser();
+            $parser->parse($output);
+        } catch (RuntimeException $e) {
+            $output = $e->getOutput();
+            $error  = $e->getErrorOutput();
+            if ($error !== '') {
+                throw new \RuntimeException('Error while getting list of references');
+            }
         }
-
-        $parser = new Parser\ReferenceParser();
-        $parser->parse($output);
 
         foreach ($parser->references as $row) {
             list($commitHash, $fullname) = $row;

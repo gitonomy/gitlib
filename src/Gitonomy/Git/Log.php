@@ -98,21 +98,20 @@ class Log implements \Countable, \IteratorAggregate
         $limit     = null !== $this->limit ? '-n '.((int) $this->limit) : '';
         $revisions = null !== $this->revisions ? $this->revisions : '--all';
 
-        $builder = $this->repository->getProcess('log', array('--format=format:%H'), true);
+        $args = array('--format=format:%H');
 
         if (null !== $this->offset) {
-            $builder->add('--skip='.((int) $this->offset));
+            $args[] = '--skip='.((int) $this->offset);
         }
 
         if (null !== $this->limit) {
-            $builder->add('-n');
-            $builder->add((int) $this->limit);
+            $args[] = '-n';
+            $args[] = (int) $this->limit;
         }
 
-        $builder->add(null === $this->revisions ? '--all' : $this->revisions);
-        $process = $builder->getProcess();
+        $args[] = null === $this->revisions ? '--all' : $this->revisions;
 
-        $exp = explode("\n", $this->repository->run($process));
+        $exp = explode("\n", $this->repository->run('log', $args));
 
         $result = array();
         foreach ($exp as $hash) {

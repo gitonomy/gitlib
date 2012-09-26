@@ -36,15 +36,9 @@ class Tree
             return;
         }
 
-        $process = $this->repository->getProcess('cat-file', array('-p', $this->hash));
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException('Error while getting content of a commit: '.$process->getErrorOutput());
-        }
-
+        $output = $this->repository->run('cat-file', array('-p', $this->hash));
         $parser = new Parser\TreeParser();
-        $parser->parse($process->getOutput());
+        $parser->parse($output);
 
         $this->entries = array();
 
