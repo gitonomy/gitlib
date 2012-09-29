@@ -242,9 +242,23 @@ class Repository
         return $this->objects[$hash];
     }
 
-    public function getLog($reference = null, $offset = null, $limit = null)
+    /**
+     * Returns log for a given set of revisions and paths.
+     *
+     * All those values can be null, meaning everything.
+     *
+     * @param array $revisions An array of revisions to show logs from. Can be
+     *                         any text value type
+     * @param array $paths     Restrict log to modifications occuring on given
+     *                         paths.
+     * @param int   $offset    Start from a given offset in results.
+     * @param int   $limit     Limit number of total results.
+     *
+     * @return Log
+     */
+    public function getLog($revisions = null, $paths = null, $offset = null, $limit = null)
     {
-        return new Log($this, $reference, $offset, $limit);
+        return new Log($this, $revisions, $paths, $offset, $limit);
     }
 
     /**

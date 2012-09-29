@@ -16,10 +16,21 @@ use Gitonomy\Git\Log;
 
 class LogTest extends TestBase
 {
+    public function testRevisionAndPath()
+    {
+        $repository = $this->getLibRepository();
+
+        $logReadme    = $repository->getLog(self::TRAVIS_COMMIT, 'README.md');
+        $logTravisYml = $repository->getLog(self::TRAVIS_COMMIT, '.travis.yml');
+
+        $this->assertEquals(3, count($logReadme));
+        $this->assertEquals(1, count($logTravisYml));
+    }
+
     public function testGetCommits()
     {
         $repository = $this->getLibRepository();
-        $log = $repository->getLog(self::TRAVIS_COMMIT, null, 3);
+        $log = $repository->getLog(self::TRAVIS_COMMIT, null, null, 3);
 
         $commits = $log->getCommits();
 
@@ -31,7 +42,7 @@ class LogTest extends TestBase
     public function testCountCommits()
     {
         $repository = $this->getLibRepository();
-        $log = $repository->getLog(self::TRAVIS_COMMIT, 2, 3);
+        $log = $repository->getLog(self::TRAVIS_COMMIT, null, 2, 3);
 
         $this->assertEquals(5, $log->countCommits(), "5 commits found in history");
     }
@@ -39,9 +50,9 @@ class LogTest extends TestBase
     public function testCountAllCommits()
     {
         $repository = $this->getLibRepository();
-        $log = $log = $repository->getLog(null);
+        $log = $log = $repository->getLog();
 
-        $this->assertGreaterThan(30, $log->countCommits(), "At least 10 commits");
+        $this->assertGreaterThan(30, $log->countCommits(), "At least 30 commits");
     }
 
     public function testIterable()
@@ -57,13 +68,5 @@ class LogTest extends TestBase
                 break;
             }
         }
-    }
-
-    public function testCountable()
-    {
-        $repository = $this->getLibRepository();
-        $log = $repository->getLog(self::TRAVIS_COMMIT, 2, 3);
-
-        $this->assertEquals(5, count($log), "Log is countable");
     }
 }

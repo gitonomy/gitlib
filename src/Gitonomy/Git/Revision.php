@@ -28,7 +28,7 @@ class Revision
     protected $name;
 
     /**
-     * @var string
+     * @var Commit
      */
     protected $resolved;
 
@@ -41,9 +41,9 @@ class Revision
     /**
      * @return Log
      */
-    public function getLog($offset = null, $limit = null)
+    public function getLog($paths = null, $offset = null, $limit = null)
     {
-        return new Log($this->repository, $this->getResolved()->getHash(), $offset, $limit);
+        return $this->repository->getLog($this->name, $paths, $offset, $limit);
     }
 
     /**

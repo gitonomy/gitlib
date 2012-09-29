@@ -35,13 +35,13 @@ class RevisionTest extends TestBase
     public function testGetLog()
     {
         $repository = $this->getLibRepository();
-        $revision = $repository->getRevision(self::TRAVIS_COMMIT.'^');
+        $revision = $repository->getRevision(self::TRAVIS_COMMIT);
 
-        $log = $revision->getLog(2, 3);
+        $log = $revision->getLog(null, 2, 3);
 
         $this->assertTrue($log instanceof Log, "Log type object");
         $this->assertEquals(2, $log->getOffset(), "Log offset is passed");
         $this->assertEquals(3, $log->getLimit(), "Log limit is passed");
-        $this->assertEquals(self::TRAVIS_PARENT_COMMIT, $log->getRevisions(), "Revision is passed");
+        $this->assertEquals(array(self::TRAVIS_COMMIT), $log->getRevisions(), "Revision is passed");
     }
 }

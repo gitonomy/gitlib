@@ -23,9 +23,14 @@ class Log implements \Countable, \IteratorAggregate
     protected $repository;
 
     /**
-     * @var string
+     * @var array
      */
     protected $revisions;
+
+    /**
+     * @var array
+     */
+    protected $paths;
 
     /**
      * @var integer
@@ -37,20 +42,29 @@ class Log implements \Countable, \IteratorAggregate
      */
     protected $limit;
 
-    public function __construct(Repository $repository, $revisions, $offset = null, $limit = null)
+    public function __construct(Repository $repository, $revisions, $paths, $offset = null, $limit = null)
     {
         $this->repository = $repository;
-        $this->revisions  = $revisions;
+        $this->revisions  = (array) $revisions;
+        $this->paths      = (array) $paths;
         $this->offset     = $offset;
         $this->limit      = $limit;
     }
 
     /**
-     * @return string
+     * @return array
      */
     public function getRevisions()
     {
         return $this->revisions;
+    }
+
+    /**
+     * @return array
+     */
+    public function getPaths()
+    {
+        return $this->paths;
     }
 
     /**
@@ -109,7 +123,15 @@ class Log implements \Countable, \IteratorAggregate
             $args[] = (int) $this->limit;
         }
 
-        $args[] = null === $this->revisions ? '--all' : $this->revisions;
+        if (count($this->revisions)) {
+            $args = array_merge($args, $this->revisions);
+        } else {
+            $args[] = '--all';
+        }
+
+        $args[] = '--';
+
+        $args = array_merge($args, $this->paths);
 
         $exp = explode("\n", $this->repository->run('log', $args));
 
@@ -147,10 +169,10 @@ class Log implements \Countable, \IteratorAggregate
      */
     public function countCommits()
     {
-        if (null === $this->revisions) {
-            $output = $this->repository->run('rev-list', array('--all'));
+        if (count($this->revisions)) {
+            $output = $this->repository->run('rev-list', array_merge($this->revisions, array('--'), $this->paths));
         } else {
-            $output = $this->repository->run('rev-list', array($this->revisions));
+            $output = $this->repository->run('rev-list', array_merge(array('--all', '--'), $this->paths));
         }
 
         return count(explode("\n", $output)) - 1;
