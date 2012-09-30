@@ -257,16 +257,16 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         $this->initialized = true;
 
         try {
-            $output = $this->repository->run('show-ref', array('--tags', '--heads'));
             $parser = new Parser\ReferenceParser();
-            $parser->parse($output);
-        } catch (RuntimeException $e) {
+            $output = $this->repository->run('show-ref', array('--tags', '--heads'));
+        } catch (\RuntimeException $e) {
             $output = $e->getOutput();
             $error  = $e->getErrorOutput();
             if ($error !== '') {
                 throw new \RuntimeException('Error while getting list of references');
             }
         }
+        $parser->parse($output);
 
         foreach ($parser->references as $row) {
             list($commitHash, $fullname) = $row;
