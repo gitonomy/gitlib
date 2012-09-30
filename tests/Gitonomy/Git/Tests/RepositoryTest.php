@@ -12,7 +12,11 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Repository;
 use Gitonomy\Git\Blob;
+use Gitonomy\Git\Event\Events;
+use Gitonomy\Git\Event\PreCommandEvent;
+use Gitonomy\Git\Event\PostCommandEvent;
 
 class RepositoryTest extends TestBase
 {
@@ -30,7 +34,7 @@ class RepositoryTest extends TestBase
         $repo = $this->getLibRepository();
 
         $size = $repo->getSize();
-        $this->assertGreaterThan(100, $size, "Repository is greater than 500KB");
+        $this->assertGreaterThan(100, $size, "Repository is greater than 100KB");
     }
 
     public function testIsBare()
@@ -42,5 +46,53 @@ class RepositoryTest extends TestBase
         // Test repository
         $repo = $this->getTestRepository();
         $this->assertFalse($repo->isBare(), "Working copy is not bare");
+    }
+
+    public function testEventDispatcher_Basis()
+    {
+        $repo = new Repository($this->getTestDirectory());
+
+        $test = $this;
+
+        $before = false;
+        $repo->addListener(Events::PRE_COMMAND, function ($event) use ($test, &$before) {
+            $test->assertTrue($event instanceof PreCommandEvent);
+            $test->assertEquals('remote', $event->getCommand(), "command is remote");
+            $test->assertEquals(array('-v'), $event->getArgs(), "args is -v");
+            $before = true;
+        });
+
+        $after = false;
+        $repo->addListener(Events::POST_COMMAND, function ($event) use ($test, &$after) {
+            $test->assertTrue($event instanceof PostCommandEvent);
+            $test->assertEquals('remote', $event->getCommand(), "command is remote");
+            $test->assertEquals(array('-v'), $event->getArgs(), "args is -v");
+            $after = true;
+        });
+
+        $repo->run('remote', array('-v'));
+
+        $this->assertTrue($before, "pre-command called");
+        $this->assertTrue($after,  "post-command called");
+    }
+
+    public function testEventDispatcher_Error()
+    {
+        $repo = $this->getLibRepository();
+
+        $test = $this;
+
+        $after = false;
+        $repo->addListener(Events::POST_COMMAND, function ($event) use ($test, &$after) {
+            $after = true;
+        });
+
+        try {
+            $repo->run('foobar');
+            $this->fail("expected exception on invalid command");
+        } catch (\RuntimeException $e) {
+        }
+
+        $this->assertTrue($after,  "post-command called");
     }
 }

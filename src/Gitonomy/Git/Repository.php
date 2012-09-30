@@ -12,9 +12,13 @@
 
 namespace Gitonomy\Git;
 
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Process\ProcessBuilder;
 use Symfony\Component\Process\Process;
 
+use Gitonomy\Git\Event\Events;
+use Gitonomy\Git\Event\PreCommandEvent;
+use Gitonomy\Git\Event\PostCommandEvent;
 use Gitonomy\Git\Exception\RuntimeException;
 
 /**
@@ -85,6 +89,8 @@ class Repository
         $this->gitDir     = $gitDir;
         $this->workingDir = $workingDir;
         $this->objects    = array();
+
+        $this->eventDispatcher = new EventDispatcher();
     }
 
     public function isBare()
@@ -333,13 +339,33 @@ class Repository
      */
     public function run($command, $args = array())
     {
-        $command = $this->getProcess($command, $args);
-        $command->run();
-        if (!$command->isSuccessful()) {
-            throw new RuntimeException($command);
+        $process = $this->getProcess($command, $args);
+
+        if ($this->eventDispatcher->hasListeners()) {
+            $event = new PreCommandEvent($process, $command, $args);
+            $this->eventDispatcher->dispatch(Events::PRE_COMMAND, $event);
         }
 
-        return $command->getOutput();
+        $before = microtime(true);
+        $process->run();
+        $duration = microtime(true) - $before;
+
+        if ($this->eventDispatcher->hasListeners()) {
+            $event = new PostCommandEvent($process, $command, $args);
+            $event->setDuration($duration);
+            $this->eventDispatcher->dispatch(Events::POST_COMMAND, $event);
+        }
+
+        if (!$process->isSuccessful()) {
+            throw new RuntimeException($process);
+        }
+
+        return $process->getOutput();
+    }
+
+    public function addListener($eventName, $listener, $priority = 0)
+    {
+        $this->eventDispatcher->addListener($eventName, $listener, $priority);
     }
 
     /**

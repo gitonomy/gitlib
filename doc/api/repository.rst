@@ -48,3 +48,18 @@ Your ``HEAD`` can be attached (using a reference) or detached (using a commit).
     if ($repository->isHeadDetached()) {
         echo "Sorry man\n";
     }
+
+Event dispatcher
+----------------
+
+Each repository has an event dispatcher. You can listen to ``pre_command`` and
+``post_command`` using method *addListener* on *Repository*:
+
+.. code-block:: php
+
+    $repository->addListener(Events::POST_COMMAND, function ($event) {
+        echo 'Command: '.$event->getCommand().' '.implode(' ', $event->getArgs())."\n";
+        echo 'Execution time: '.round($event->getDuration(), 2).'s';
+    });
+
+    $repository->getReferences()->getBranch('master')->getCommit()->getMessage();
