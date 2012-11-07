@@ -68,22 +68,17 @@ class Repository
      *
      * @throws InvalidArgumentException The folder does not exists
      */
-    public function __construct($gitDir, $workingDir = null)
+    public function __construct($dir, $workingDir = null)
     {
-        $gitDir = realpath($gitDir);
+        $gitDir = realpath($dir);
+
+        if (!is_dir($gitDir)) {
+            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist', $dir));
+        }
+
         if (null === $workingDir && is_dir($gitDir.'/.git')) {
             $workingDir  = $gitDir;
             $gitDir      = $gitDir.'/.git';
-        }
-
-        if (!is_dir($gitDir)) {
-            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist', $gitDir));
-        }
-
-        if (null !== $workingDir && !is_dir($workingDir)) {
-            $workingDir = realpath($workingDir);
-
-            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist', $workingDir));
         }
 
         $this->gitDir     = $gitDir;
