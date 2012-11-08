@@ -78,17 +78,22 @@ class PushReference
     /**
      * @return array
      */
-    public function getLog()
+    public function getLog($excludes = array())
     {
-        if ($this->isCreate()) {
-            return $this->repository->getLog($this->getAfter());
-        }
-
         if ($this->isDelete()) {
             throw new \LogicException('No log on deletion');
+        } elseif ($this->isCreate()) {
+            $revisions = array($this->getAfter());
+        } else {
+            $revisions = array($this->getBefore().'..'.$this->getAfter());
         }
 
-        return $this->repository->getLog($this->getBefore().'..'.$this->getAfter());
+        foreach ($excludes as $exclude) {
+            $revisions[] = '^'.$exclude;
+        }
+
+
+        return $this->repository->getLog($revisions);
     }
 
     /**

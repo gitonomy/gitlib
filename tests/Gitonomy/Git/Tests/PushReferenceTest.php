@@ -53,6 +53,15 @@ class PushReferenceTest extends TestBase
         $this->assertEquals('Travis-CI integration', $log[0]->getShortMessage(), "First commit is correct");
     }
 
+    public function testLogWithExclude()
+    {
+        $ref = $this->getReference('foo', PushReference::ZERO, self::TRAVIS_COMMIT);
+
+        $log = $ref->getLog(array(self::INITIAL_COMMIT))->getCommits();
+        $this->assertEquals(4, count($log), "4 commits in log");
+        $this->assertEquals('Travis-CI integration', $log[0]->getShortMessage(), "First commit is correct");
+    }
+
     protected function getReference($reference, $before, $after)
     {
         return new PushReference($this->getLibRepository(), $reference, $before, $after);
