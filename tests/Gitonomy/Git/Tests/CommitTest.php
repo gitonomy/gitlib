@@ -24,7 +24,7 @@ class CommitTest extends TestBase
         $diff = $commit->getDiff();
 
         $this->assertTrue($diff instanceof Diff, "getDiff() returns a Diff object");
-        $this->assertEquals($commit->getHash(), $diff->getRevision(), "getDiff() revision is correct");
+        $this->assertEquals(array($commit->getHash()), $diff->getRevisions(), "getDiff() revision is correct");
     }
 
     public function testGetHash()

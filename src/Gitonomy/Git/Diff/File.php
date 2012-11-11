@@ -141,6 +141,15 @@ class File
         return $this->newName;
     }
 
+    public function getName()
+    {
+        if (null === $this->newName) {
+            return $this->oldName;
+        }
+
+        return $this->newName;
+    }
+
     public function getOldMode()
     {
         return $this->oldMode;

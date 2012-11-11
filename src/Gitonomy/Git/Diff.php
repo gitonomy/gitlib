@@ -25,9 +25,9 @@ class Diff
     protected $repository;
 
     /**
-     * @var string
+     * @var array
      */
-    protected $revision;
+    protected $revisions;
 
     /**
      * @var array
@@ -35,28 +35,37 @@ class Diff
     protected $files;
 
     /**
+     * @var boolean
+     */
+    protected $isTree;
+
+    /**
      * Constructs a new diff for a given revision.
      *
      * @var Repository $repository
      * @var string     $revision   A string revision, passed to git diff command
+     * @var boolean    $isTree     Indicates if revisions are commit-trees to compare
      */
-    public function __construct(Repository $repository, $revision)
+    public function __construct(Repository $repository, $revisions, $isTree = true)
     {
         $this->repository = $repository;
-        $this->revision   = $revision;
+        $this->revisions  = (array) $revisions;
+        $this->isTree     = $isTree;
     }
 
     /**
-     * @return string
+     * @return array
      */
-    public function getRevision()
+    public function getRevisions()
     {
-        return $this->revision;
+        return $this->revisions;
     }
 
     protected function initialize()
     {
-        $result = $this->repository->run('diff-tree', array('-r', '-p', '-m', '-M', '--no-commit-id', $this->revision));
+        $args = array('-r', '-p', '-m', '-M', '--no-commit-id');
+        $args = array_merge($args, $this->revisions);
+        $result = $this->repository->run($this->isTree ? 'diff-tree' : 'diff', $args);
 
         $parser = new Parser\DiffParser();
         $parser->parse($result);

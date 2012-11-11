@@ -16,11 +16,11 @@ use Gitonomy\Git\Diff;
 
 class DiffTest extends TestBase
 {
-    public function testGetRevision()
+    public function testGetRevisions()
     {
         $diff = $this->getTravisDiff();
 
-        $this->assertEquals(self::TRAVIS_COMMIT, $diff->getRevision(), "Revision returns passed revision");
+        $this->assertEquals(array(self::TRAVIS_COMMIT), $diff->getRevisions(), "Revision returns passed revision");
     }
 
     public function testGetFiles_Addition()
@@ -77,11 +77,11 @@ class DiffTest extends TestBase
 
     private function getDocDiff()
     {
-        return $this->getLibRepository()->getDiff(self::DOC_COMMIT);
+        return $this->getLibRepository()->getCommit(self::DOC_COMMIT)->getDiff();
     }
 
     private function getTravisDiff()
     {
-        return $this->getLibRepository()->getDiff(self::TRAVIS_COMMIT);
+        return $this->getLibRepository()->getCommit(self::TRAVIS_COMMIT)->getDiff();
     }
 }

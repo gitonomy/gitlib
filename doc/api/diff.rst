@@ -15,7 +15,12 @@ you can call the *getDiff* method on the repository:
 
     $diff = $repository->getDiff('master@{2 days ago}..master');
 
-Starting from this object, you can now traverse it.
+You can also access it from a *Log* object:
+
+.. code-block:: php
+
+    $log  = $repository->getLog('master@{2 days ago}..master');
+    $diff = $log->getDiff();
 
 Iterating a diff
 ----------------

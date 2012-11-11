@@ -52,6 +52,14 @@ class Log implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @return Diff
+     */
+    public function getDiff()
+    {
+        return new Diff($this->repository, $this->revisions, false);
+    }
+
+    /**
      * @return array
      */
     public function getRevisions()

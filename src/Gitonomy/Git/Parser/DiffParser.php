@@ -88,7 +88,7 @@ class DiffParser extends ParserBase
 
             // 5. Diff
             while ($this->expects('@@ ')) {
-                $vars = $this->consumeRegexp('/-(\d+),(\d+) \+(\d+)(,(\d+))?/');
+                $vars = $this->consumeRegexp('/-(\d+)(,(\d+))? \+(\d+)(,(\d+))?/');
                 $rangeOldStart = $vars[1];
                 $rangeOldCount = $vars[2];
                 $rangeNewStart = $vars[3];
@@ -124,5 +124,3 @@ class DiffParser extends ParserBase
         }
     }
 }
-
-set_time_limit(4000);

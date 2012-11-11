@@ -1,20 +1,26 @@
-Administration methods
-======================
+Create git repositories
+=======================
 
-Create a new repository
+Initialize a repository
 -----------------------
 
-You can create a new repository like this:
+Bare repository
+:::::::::::::::
+
+You can create a bare repository using ``Admin::init``:
 
 .. code-block:: php
 
-    $repository = Gitonomy\Git\Admin::init('/path/to/folder');
-    // Folder /path/to/folder contains git repository files: objects, HEAD...
+    use Gitonomy\Git\Admin;
 
-By default, repository will be a bare repository. If you want to create a
-repository with a working directory, pass ``false`` as second argument:
+    $repository = Admin::init('/path/to/repository');
+
+Non-bare repository
+:::::::::::::::::::
+
+If you want to create a repository with a working directory, pass ``false`` as
+second argument:
 
 .. code-block:: php
 
     $repository = Gitonomy\Git\Admin::init('/path/to/folder', false);
-    // Folder /path/to/folder contains .git folder
