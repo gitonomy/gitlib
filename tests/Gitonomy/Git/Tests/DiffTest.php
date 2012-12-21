@@ -75,6 +75,19 @@ class DiffTest extends TestBase
         $this->assertEquals(2, count($files), "2 files modified");
     }
 
+    public function testDiffRangeParse()
+    {
+        $files = $this->getTravisDiff()->getFiles();
+
+        $changes = $files[0]->getChanges();
+
+        $this->assertEquals(0, $changes[0]->getRangeOldStart());
+        $this->assertEquals(0, $changes[0]->getRangeOldCount());
+
+        $this->assertEquals(1, $changes[0]->getRangeNewStart());
+        $this->assertEquals(7, $changes[0]->getRangeNewCount());
+    }
+
     private function getDocDiff()
     {
         return $this->getLibRepository()->getCommit(self::DOC_COMMIT)->getDiff();
