@@ -376,7 +376,14 @@ class Repository
      */
     protected function getProcess($command, $args = array())
     {
-        $base = array('git', '--git-dir', $this->gitDir, '--work-tree', $this->workingDir, $command);
+        $base = array('git', '--git-dir', $this->gitDir);
+
+        if ($this->workingDir) {
+            $base = array_merge($base, array('--work-tree', $this->workingDir));;
+        }
+
+        $base[] = $command;
+        
         $builder = new ProcessBuilder(array_merge($base, $args));
 
         return $builder->getProcess();
