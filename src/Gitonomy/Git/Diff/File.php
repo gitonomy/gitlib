@@ -12,11 +12,18 @@
 
 namespace Gitonomy\Git\Diff;
 
+use Gitonomy\Git\Repository;
+
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
 class File
 {
+    /**
+     * @var Repository
+     */
+    protected $repository;
+
     /**
      * @var string
      */
@@ -38,9 +45,14 @@ class File
     protected $newMode;
 
     /**
-     * @var array An array of FileChange objects
+     * @var string
      */
-    protected $changes;
+    protected $oldIndex;
+
+    /**
+     * @var string
+     */
+    protected $newIndex;
 
     /**
      * @var boolean
@@ -48,16 +60,30 @@ class File
     protected $isBinary;
 
     /**
+     * @var array An array of FileChange objects
+     */
+    protected $changes;
+
+    /**
      * Instanciates a new Diff File object.
      */
-    public function __construct($oldName, $newName, $oldMode, $newMode, $isBinary)
+    public function __construct(Repository $repository, $oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary)
     {
-        $this->oldName = $oldName;
-        $this->newName = $newName;
-        $this->oldMode = $oldMode;
-        $this->newMode = $newMode;
-        $this->changes = array();
+        $this->repository = $repository;
+        $this->oldName  = $oldName;
+        $this->newName  = $newName;
+        $this->oldMode  = $oldMode;
+        $this->newMode  = $newMode;
+        $this->oldIndex = $oldIndex;
+        $this->newIndex = $newIndex;
         $this->isBinary = $isBinary;
+
+        $this->changes = array();
+    }
+
+    public function addChange(FileChange $change)
+    {
+        $this->changes[] = $change;
     }
 
     /**
@@ -126,11 +152,6 @@ class File
         return $result;
     }
 
-    public function addChange(FileChange $change)
-    {
-        $this->changes[] = $change;
-    }
-
     public function getOldName()
     {
         return $this->oldName;
@@ -158,6 +179,34 @@ class File
     public function getNewMode()
     {
         return $this->newMode;
+    }
+
+    public function getOldIndex()
+    {
+        return $this->oldIndex;
+    }
+
+    public function getNewIndex()
+    {
+        return $this->newIndex;
+    }
+
+    public function getOldBlob()
+    {
+        if (null === $this->oldIndex) {
+            throw new \LogicException('Can\'t instanciate Blob: no old index');
+        }
+
+        return $this->repository->getBlob($this->oldIndex);
+    }
+
+    public function getNewBlob()
+    {
+        if (null === $this->newIndex) {
+            throw new \LogicException('Can\'t instanciate Blob: no old index');
+        }
+
+        return $this->repository->getBlob($this->newIndex);
     }
 
     public function getChanges()

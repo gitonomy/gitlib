@@ -63,11 +63,12 @@ class Diff
 
     protected function initialize()
     {
-        $args = array('-r', '-p', '-m', '-M', '--no-commit-id');
+        $args = array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index');
         $args = array_merge($args, $this->revisions);
         $result = $this->repository->run($this->isTree ? 'diff-tree' : 'diff', $args);
 
         $parser = new Parser\DiffParser();
+        $parser->setRepository($this->repository);
         $parser->parse($result);
 
         $this->files = $parser->files;

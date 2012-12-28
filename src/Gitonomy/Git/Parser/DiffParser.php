@@ -14,20 +14,35 @@ namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Diff\FileChange;
+use Gitonomy\Git\Repository;
 
 class DiffParser extends ParserBase
 {
     public $files;
+    protected $repository;
+
+    public function setRepository(Repository $repository)
+    {
+        $this->repository = $repository;
+    }
 
     protected function doParse()
     {
+        if (null === $this->repository) {
+            throw new \RuntimeException('Can\'t work without Repository');
+        }
+
         $this->files = array();
 
         while (!$this->isFinished()) {
             // 1. title
             $vars = $this->consumeRegexp('/diff --git (a\/.*) (b\/.*)\n/');
-            $oldName = $vars[1];
-            $newName = $vars[2];
+            $oldName  = $vars[1];
+            $newName  = $vars[2];
+            $oldIndex = null;
+            $newIndex = null;
+            $oldMode  = null;
+            $newMode  = null;
 
             // 2. mode
             if ($this->expects('new file mode ')) {
@@ -61,7 +76,9 @@ class DiffParser extends ParserBase
             // 4. File informations
             $isBinary = false;
             if ($this->expects('index ')) {
-                $this->consumeRegexp('/[A-Za-z0-9]{7,40}\.\.[A-Za-z0-9]{7,40}/');
+                list($oldIndex) = $this->consumeRegexp('/[A-Za-z0-9]{7,40}/');
+                $this->consume('..');
+                list($newIndex) = $this->consumeRegexp('/[A-Za-z0-9]{7,40}/');
                 if ($this->expects(' ')) {
                     $vars = $this->consumeRegexp('/\d{6}/');
                     $newMode = $oldMode = $vars[0];
@@ -82,9 +99,11 @@ class DiffParser extends ParserBase
                 }
             }
 
-            $oldName = $oldName === '/dev/null' ? null : substr($oldName, 2);
-            $newName = $newName === '/dev/null' ? null : substr($newName, 2);
-            $file = new File($oldName, $newName, $oldMode, $newMode, $isBinary);
+            $oldName  = $oldName === '/dev/null' ? null : substr($oldName, 2);
+            $newName  = $newName === '/dev/null' ? null : substr($newName, 2);
+            $oldIndex = preg_match('/^0+$/', $oldIndex) ? null : $oldIndex;
+            $newIndex = preg_match('/^0+$/', $newIndex) ? null : $newIndex;
+            $file = new File($this->repository, $oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary);
 
             // 5. Diff
             while ($this->expects('@@ ')) {

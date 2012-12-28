@@ -38,9 +38,16 @@ class DiffTest extends TestBase
 
         $this->assertEquals(7, $files[0]->getAdditions(), "10 lines added");
         $this->assertEquals(0, $files[0]->getDeletions(), "0 lines deleted");
+
+        try {
+            $files[0]->getOldBlob();
+            $this->fail("Should not be able to get old blob on addition");
+        } catch (\LogicException $e) {}
+
+        $this->assertContains("language: php", $files[0]->getNewBlob()->getContent());
     }
 
-    public function getGetFiles_Modification()
+    public function testGetFiles_Modification()
     {
         $files = $this->getTravisDiff()->getFiles();
 
@@ -55,6 +62,12 @@ class DiffTest extends TestBase
 
         $this->assertEquals(2, $files[1]->getAdditions(), "2 lines added");
         $this->assertEquals(0, $files[1]->getDeletions(), "0 lines deleted");
+
+        $oldBlob = $files[1]->getOldBlob();
+        $newBlob = $files[1]->getNewBlob();
+
+        $this->assertNotContains("Build Status", $oldBlob->getContent());
+        $this->assertContains("Build Status", $newBlob->getContent());
     }
 
     public function testGetFiles_Deletion()
@@ -66,6 +79,11 @@ class DiffTest extends TestBase
         $this->assertTrue($files[3]->isDeletion(), "4th file is a deletion");
         $this->assertEquals("doc/api/objects.rst", $files[3]->getOldName(), "4th file is doc/api/objects.rst");
         $this->assertEquals(28, $files[3]->getDeletions(), "4th file is doc/api/objects.rst");
+
+        try {
+            $files[3]->getNewBlob();
+            $this->fail("Should not be able to get new blob on deletion");
+        } catch (\LogicException $e) {}
     }
 
     public function testFileChanges()

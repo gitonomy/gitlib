@@ -59,7 +59,14 @@ Here is an exhaustive list of the *File* object:
 
     $file->isBinary(); // Binary files have no "lines"
 
-    $file->getChanges(); // See below
+    $file->getChanges(); // See next chapter
+
+On a *File* object, you can also access old and new contents with:
+
+.. code-block:: php
+
+    echo 'Old content: ', $file->getOldBlob()->getContent();
+    echo 'New content: ', $file->getNewBlob()->getContent();
 
 The FileChange object
 ---------------------

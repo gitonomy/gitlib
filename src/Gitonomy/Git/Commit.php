@@ -161,7 +161,7 @@ class Commit
 
     public function getDiff()
     {
-        return new Diff($this->repository, $this->hash, true);
+        return new Diff($this->repository, array($this->hash));
     }
 
     /**
