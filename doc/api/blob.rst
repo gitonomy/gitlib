@@ -23,3 +23,12 @@ To get content from a *Blob* object:
 .. code-block:: php
 
     echo $blob->getContent();
+
+Guess mimetype
+--------------
+
+To get mimetype of a *Blob* object using finfo extension:
+
+.. code-block:: php
+
+    echo $blob->getMimetype();

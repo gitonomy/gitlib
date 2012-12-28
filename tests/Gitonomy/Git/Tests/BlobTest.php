@@ -18,9 +18,7 @@ class BlobTest extends TestBase
 {
     public function testGetContent()
     {
-        $repo = $this->getLibRepository();
-
-        $blob = $repo->getBlob(self::README_BLOB);
+        $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
 
         $this->assertContains(self::README_FRAGMENT, $blob->getContent());
     }
@@ -28,12 +26,17 @@ class BlobTest extends TestBase
     /**
      * @expectedException RuntimeException
      */
-    public function testGetContentOnNotExisting()
+    public function testNotExisting()
     {
-        $repo = $this->getLibRepository();
-
-        $blob = $repo->getBlob("foobar");
+        $blob = $this->getLibRepository()->getBlob("foobar");
 
         $blob->getContent();
+    }
+
+    public function testGetMimetype()
+    {
+        $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
+
+        $this->assertRegexp('#text/plain#', $blob->getMimetype());
     }
 }

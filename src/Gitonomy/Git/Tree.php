@@ -12,6 +12,9 @@
 
 namespace Gitonomy\Git;
 
+/**
+ * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ */
 class Tree
 {
     protected $repository;

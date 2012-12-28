@@ -35,6 +35,11 @@ class Blob
     protected $content;
 
     /**
+     * @var string
+     */
+    protected $mimetype;
+
+    /**
      * @param Repository $repository Repository where the blob is located
      * @param string     $hash       Hash of the blob
      */
@@ -64,5 +69,20 @@ class Blob
         }
 
         return $this->content;
+    }
+
+    /**
+     * Determine the mimetype of the blob.
+     *
+     * @return string A mimetype
+     */
+    public function getMimetype()
+    {
+        if (null === $this->mimetype) {
+            $finfo = new \finfo(FILEINFO_MIME);
+            $this->mimetype = $finfo->buffer($this->getContent());
+        }
+
+        return $this->mimetype;
     }
 }
