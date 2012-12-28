@@ -55,10 +55,21 @@ abstract class ParserBase
         return true;
     }
 
+    protected function consumeShortHash()
+    {
+        if (!preg_match('/([A-Za-z0-9]{7,40})/A', $this->content, $vars, null, $this->cursor)) {
+            throw new \RuntimeException('No short hash found: '.substr($this->content, $this->cursor, 7));
+        }
+
+        $this->cursor += strlen($vars[1]);
+
+        return $vars[1];
+    }
+
     protected function consumeHash()
     {
         if (!preg_match('/([A-Za-z0-9]{40})/A', $this->content, $vars, null, $this->cursor)) {
-            throw new \RuntimeException('No hash found');
+            throw new \RuntimeException('No hash found: '.substr($this->content, $this->cursor, 40));
         }
 
         $this->cursor += 40;

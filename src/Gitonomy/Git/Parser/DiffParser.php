@@ -76,9 +76,9 @@ class DiffParser extends ParserBase
             // 4. File informations
             $isBinary = false;
             if ($this->expects('index ')) {
-                list($oldIndex) = $this->consumeRegexp('/[A-Za-z0-9]{7,40}/');
+                $oldIndex = $this->consumeHash();
                 $this->consume('..');
-                list($newIndex) = $this->consumeRegexp('/[A-Za-z0-9]{7,40}/');
+                $newIndex = $this->consumeHash();
                 if ($this->expects(' ')) {
                     $vars = $this->consumeRegexp('/\d{6}/');
                     $newMode = $oldMode = $vars[0];

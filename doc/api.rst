@@ -9,6 +9,7 @@ API documentation
    api/hooks
    api/workingcopy
    api/commit
+   api/blame
    api/blob
    api/tree
    api/log

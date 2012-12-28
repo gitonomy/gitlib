@@ -243,6 +243,11 @@ class Repository
         return $this->objects[$hash];
     }
 
+    public function getBlame($revision, $file, $lineRange = null)
+    {
+        return new Blame($this, $revision, $file, $lineRange);
+    }
+
     /**
      * Returns log for a given set of revisions and paths.
      *
