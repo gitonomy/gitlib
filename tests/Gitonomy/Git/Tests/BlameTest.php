@@ -26,4 +26,13 @@ class BlameTest extends TestBase
         $this->assertEquals('alexandresalome', $blame->getLine(5)->getCommit()->getAuthorName());
         $this->assertNotEquals(self::INITIAL_COMMIT, $blame->getLine(5)->getCommit()->getHash());
     }
+
+    public function testGroupedBlame()
+    {
+        $blame = $this->getLibRepository()->getBlame(self::DOC_COMMIT, 'README.md')->getGroupedLines();
+
+        $this->assertCount(4, $blame);
+
+        $this->assertEquals(self::INITIAL_COMMIT, $blame[0][0]->getHash());
+    }
 }

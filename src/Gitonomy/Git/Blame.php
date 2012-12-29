@@ -47,11 +47,36 @@ class Blame implements \Countable
 
         $lines = $this->getLines();
 
-        if (!isset($lines[$number - 1])) {
+        if (!isset($lines[$number])) {
             throw new \InvalidArgumentException('Line does not exist');
         }
 
-        return $lines[$number - 1];
+        return $lines[$number];
+    }
+
+    public function getGroupedLines()
+    {
+        $result  = array();
+        $commit    = null;
+        $current = array();
+
+        foreach ($this->getLines() as $lineNumber => $line) {
+            if ($commit !== $line->getCommit()) {
+                if (count($current)) {
+                    $result[] = array($commit, $current);
+                }
+                $commit = $line->getCommit();
+                $current = array();
+            }
+
+            $current[$lineNumber] = $line;
+        }
+
+        if (count($current)) {
+            $result[] = array($commit, $current);
+        }
+
+        return $result;
     }
 
     public function getLines()

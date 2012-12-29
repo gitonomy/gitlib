@@ -32,8 +32,8 @@ class BlameParser extends ParserBase
 
         $memory = array();
 
+        $line = 1;
         while (!$this->isFinished()) {
-
             $hash = $this->consumeHash();
             $this->consume(' ');
             $vars = $this->consumeRegexp('/(\d+) (\d+)( (\d+))?/A');
@@ -68,7 +68,8 @@ class BlameParser extends ParserBase
             $content = $this->consumeTo("\n"); // content of line
             $this->consumeNewLine();
 
-            $this->lines[] = new Line($memory[$hash], $sourceLine, $targetLine, $blockLine, $content);
+            $this->lines[$line] = new Line($memory[$hash], $sourceLine, $targetLine, $blockLine, $content);
+            $line++;
         }
     }
 }
