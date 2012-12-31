@@ -85,4 +85,24 @@ class Blob
 
         return $this->mimetype;
     }
+
+    /**
+     * Determines if file is binary.
+     *
+     * @return boolean
+     */
+    public function isBinary()
+    {
+        return !$this->isText();
+    }
+
+    /**
+     * Determines if file is text.
+     *
+     * @return boolean
+     */
+    public function isText()
+    {
+        return preg_match('#^text/|^application/xml#', $this->getMimetype());
+    }
 }

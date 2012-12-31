@@ -29,14 +29,24 @@ class BlobTest extends TestBase
     public function testNotExisting()
     {
         $blob = $this->getLibRepository()->getBlob("foobar");
-
         $blob->getContent();
     }
 
     public function testGetMimetype()
     {
         $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
-
         $this->assertRegexp('#text/plain#', $blob->getMimetype());
+    }
+
+    public function testIsText()
+    {
+        $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
+        $this->asserTrue($blob->isText());
+    }
+
+    public function testIsBinary()
+    {
+        $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
+        $this->asserFalse($blob->isBinary());
     }
 }

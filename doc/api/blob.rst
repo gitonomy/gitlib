@@ -24,11 +24,21 @@ To get content from a *Blob* object:
 
     echo $blob->getContent();
 
-Guess mimetype
---------------
+File informations
+-----------------
 
 To get mimetype of a *Blob* object using finfo extension:
 
 .. code-block:: php
 
     echo $blob->getMimetype();
+
+You can also test if *Blob* is a text of a binary file:
+
+.. code-block:: php
+
+    if ($blob->isText()) {
+        echo $blob->getContent(), "\n";
+    } elseif ($blob->isBinary()) {
+        echo "File is binary\n";
+    }
