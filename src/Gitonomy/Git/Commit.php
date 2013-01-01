@@ -191,6 +191,14 @@ class Commit
     }
 
     /**
+     * Returns a fixed-with short hash.
+     */
+    public function getFixedShortHash($length = 6)
+    {
+        return substr($this->hash, 0, $length);
+    }
+
+    /**
      * Returns parent hashes.
      *
      * @return array An array of SHA1 hashes
