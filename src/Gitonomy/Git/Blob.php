@@ -103,6 +103,6 @@ class Blob
      */
     public function isText()
     {
-        return preg_match('#^text/|^application/xml#', $this->getMimetype());
+        return (bool) preg_match('#^text/|^application/xml#', $this->getMimetype());
     }
 }

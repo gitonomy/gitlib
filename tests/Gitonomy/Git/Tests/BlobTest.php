@@ -41,12 +41,12 @@ class BlobTest extends TestBase
     public function testIsText()
     {
         $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
-        $this->asserTrue($blob->isText());
+        $this->assertTrue($blob->isText());
     }
 
     public function testIsBinary()
     {
         $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
-        $this->asserFalse($blob->isBinary());
+        $this->assertFalse($blob->isBinary());
     }
 }
