@@ -109,4 +109,30 @@ class ReferenceTest extends TestBase
         }
         $this->assertGreaterThanOrEqual(2, $i, "At least two references in repository");
     }
+
+    public function testCreateAndDeleteTag()
+    {
+        $references = $this->getLibRepository()->getReferences();
+        $tag        = $references->createTag('0.0', self::INITIAL_COMMIT);
+
+        $this->assertTrue($references->hasTag('0.0'), "Tag 0.0 created");
+        $this->assertEquals(self::INITIAL_COMMIT, $tag->getCommit()->getHash());
+        $this->assertSame($tag, $references->getTag('0.0'));
+
+        $tag->delete();
+        $this->assertFalse($references->hasTag('0.0'), "Tag 0.0 removed");
+    }
+
+    public function testCreateAndDeleteBranch()
+    {
+        $references = $this->getLibRepository()->getReferences();
+        $branch     = $references->createBranch('foobar', self::INITIAL_COMMIT);
+
+        $this->assertTrue($references->hasBranch('foobar'), "Branch foobar created");
+        $this->assertEquals(self::INITIAL_COMMIT, $branch->getCommit()->getHash());
+        $this->assertSame($branch, $references->getBranch('foobar'));
+
+        $branch->delete();
+        $this->assertFalse($references->hasBranch('foobar'), "Branch foobar removed");
+    }
 }

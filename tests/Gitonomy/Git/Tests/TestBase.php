@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Admin;
 use Gitonomy\Git\Repository;
 
 class TestBase extends \PHPUnit_Framework_TestCase
@@ -41,6 +42,11 @@ class TestBase extends \PHPUnit_Framework_TestCase
         mkdir($tmpDir);
 
         return $tmpDir;
+    }
+
+    public function createEmptyRepository()
+    {
+        return Admin::init($this->createTempDir());
     }
 
     public function deleteDir($dir)

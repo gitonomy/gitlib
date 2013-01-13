@@ -16,11 +16,14 @@ use Symfony\Component\Process\Process;
 
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Reference\Branch;
+use Gitonomy\Git\Reference\Tag;
 
 /**
  * Reference set associated to a repository.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ * @author Julien DIDIER <genzo.wm@gmail.com>
  */
 class ReferenceBag implements \Countable, \IteratorAggregate
 {
@@ -95,6 +98,38 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         $this->initialize();
 
         return isset($this->references[$fullname]);
+    }
+
+    public function update(Reference $reference)
+    {
+        $fullname = $reference->getFullname();
+
+        $this->repository->run('update-ref', array($fullname, $reference->getCommitHash()));
+
+        $this->references[$fullname] = $reference;
+
+        return $reference;
+    }
+
+    public function createBranch($name, $commitHash)
+    {
+        $branch = new Branch($this->repository, 'refs/heads/'.$name, $commitHash);
+
+        return $this->update($branch);
+    }
+
+    public function createTag($name, $commitHash)
+    {
+        $tag = new Tag($this->repository, 'refs/tags/'.$name, $commitHash);
+
+        return $this->update($tag);
+    }
+
+    public function delete($fullname)
+    {
+        $this->repository->run('update-ref', array('-d', $fullname));
+
+        unset($this->references[$fullname]);
     }
 
     public function hasBranches()

@@ -51,6 +51,25 @@ On each of those objects, you can access those informations:
     // Get the last modification
     $lastModification = $master->getLastModification();
 
+Create and delete reference
+---------------------------
+
+You can create new tags and branches on repository, using helper methods
+on ReferenceBag object:
+
+.. code-block:: php
+
+    // create a branch
+    $references = $repository->getReferences();
+    $branch     = $references->createBranch('foobar', 'a8b7e4...'); // commit to reference
+
+    // create a tag
+    $references = $repository->getReferences();
+    $tag        = $references->createTag('0.3', 'a8b7e4...'); // commit to reference
+
+    // delete a branch or a tag
+    $branch->delete();
+
 Resolution from a commit
 ------------------------
 

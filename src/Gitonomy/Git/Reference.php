@@ -16,6 +16,7 @@ namespace Gitonomy\Git;
  * Reference in a Git repository.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ * @author Julien DIDIER <genzo.wm@gmail.com>
  */
 abstract class Reference
 {
@@ -96,5 +97,10 @@ abstract class Reference
     public function getLastModification()
     {
         return $this->getCommit()->getAuthorDate();
+    }
+
+    public function delete()
+    {
+        $this->repository->getReferences()->delete($this->getFullname());
     }
 }
