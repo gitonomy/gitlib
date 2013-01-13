@@ -57,6 +57,13 @@ abstract class Reference
     }
 
     /**
+     * Returns the usual name of the reference.
+     *
+     * @return string
+     */
+    abstract public function getName();
+
+    /**
      * Returns the fullname of the reference.
      *
      * @return string

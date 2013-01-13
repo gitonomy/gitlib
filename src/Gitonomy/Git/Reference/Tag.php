@@ -22,9 +22,7 @@ use Gitonomy\Git\Reference;
 class Tag extends Reference
 {
     /**
-     * Returns the name of the tag.
-     *
-     * @return string
+     * {@inheritdoc}
      */
     public function getName()
     {

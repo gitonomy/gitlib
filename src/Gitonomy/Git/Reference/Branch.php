@@ -22,9 +22,7 @@ use Gitonomy\Git\Reference;
 class Branch extends Reference
 {
     /**
-     * Returns the name of the branch.
-     *
-     * @return string
+     * {@inheritdoc}
      */
     public function getName()
     {
