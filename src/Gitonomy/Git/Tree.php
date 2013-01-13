@@ -48,9 +48,9 @@ class Tree
         foreach ($parser->entries as $entry) {
             list($mode, $type, $hash, $name) = $entry;
             if ($type == 'blob') {
-                $this->entries[$name] = array($mode, $this->repository->getBlob($hash));
+                $this->entries[$name] = array($mode, $this->repository->getBlob($hash), $type);
             } else {
-                $this->entries[$name] = array($mode, $this->repository->getTree($hash));
+                $this->entries[$name] = array($mode, $this->repository->getTree($hash), $type);
             }
         }
 
