@@ -67,6 +67,18 @@ abstract class Reference
     }
 
     /**
+     * Returns the shortname of the reference.
+     *
+     * Removes refs/heads and refs/tags/ from fullname
+     *
+     * @return string
+     */
+    public function getShortname()
+    {
+        return str_replace(array('refs/heads/', 'refs/tags/'), array('', ''), $this->fullname);
+    }
+
+    /**
      * Returns the commit associated to the reference.
      *
      * @return Gitonomy\Git\Commit
