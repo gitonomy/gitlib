@@ -26,6 +26,13 @@
         "symfony/process": ">=2.1",
         "symfony/event-dispatcher": ">=2.1"
     },
+    "require-dev": {
+        "psr/log": "~1"
+    },
+
+    "suggest": {
+        "psr/log": "Add some log"
+    },
 
     "minimum-stability": "dev"
 }
