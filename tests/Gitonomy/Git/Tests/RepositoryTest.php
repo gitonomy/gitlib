@@ -95,4 +95,43 @@ class RepositoryTest extends TestBase
 
         $this->assertTrue($after,  "post-command called");
     }
+
+    public function testLoggerOk()
+    {
+        $logger = $this->getMock('Psr\Log\LoggerInterface');
+        $logger
+            ->expects($this->once())
+            ->method('info')
+        ;
+        $logger
+            ->expects($this->exactly(2))
+            ->method('debug')
+        ;
+
+        $repo = $this->getDirRepository($this->getLibDirectory());
+        $repo->setLogger($logger);
+
+        $this->assertTrue($repo->isBare(), "A working command log everything");
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testLoggerNOk()
+    {
+        $logger = $this->getMock('Psr\Log\LoggerInterface');
+        $logger
+            ->expects($this->once())
+            ->method('info')
+        ;
+        $logger
+            ->expects($this->exactly(3))
+            ->method('debug')
+        ;
+
+        $repo = $this->getDirRepository($this->getLibDirectory());
+        $repo->setLogger($logger);
+
+        $this->assertTrue($repo->run('not-work'), "A failing command log everything");
+    }
 }

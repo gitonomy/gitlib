@@ -15,6 +15,7 @@ namespace Gitonomy\Git;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Process\ProcessBuilder;
 use Symfony\Component\Process\Process;
+use Psr\Log\LoggerInterface;
 
 use Gitonomy\Git\Event\Events;
 use Gitonomy\Git\Event\PreCommandEvent;
@@ -64,11 +65,22 @@ class Repository
     protected $referenceBag;
 
     /**
+     * A logger
+     *
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
      * Constructor.
+     *
+     * @param string          $dir
+     * @param string          $workingDir
+     * @param LoggerInterface $logger
      *
      * @throws InvalidArgumentException The folder does not exists
      */
-    public function __construct($dir, $workingDir = null)
+    public function __construct($dir, $workingDir = null, LoggerInterface $logger = null)
     {
         $gitDir = realpath($dir);
 
@@ -84,6 +96,8 @@ class Repository
         $this->gitDir     = $gitDir;
         $this->workingDir = $workingDir;
         $this->objects    = array();
+
+        $this->logger     = $logger;
 
         $this->eventDispatcher = new EventDispatcher();
     }
@@ -346,6 +360,10 @@ class Repository
             $this->eventDispatcher->dispatch(Events::PRE_COMMAND, $event);
         }
 
+        if ($this->logger) {
+            $this->logger->info(sprintf('run command: "%", args: "%s"', $command, print_r($args, true)));
+        }
+
         $before = microtime(true);
         $process->run();
         $duration = microtime(true) - $before;
@@ -356,11 +374,22 @@ class Repository
             $this->eventDispatcher->dispatch(Events::POST_COMMAND, $event);
         }
 
+        $output = $process->getOutput();
+
+        if ($this->logger) {
+            $this->logger->debug(sprintf('last command ("%s") return code: "%s"', $command, $process->getExitCode()));
+            $this->logger->debug(sprintf('last command ("%s") output: "%s"', $command, $output));
+        }
+
         if (!$process->isSuccessful()) {
+            if ($this->logger) {
+                $this->logger->debug(sprintf('last command ("%s") error output: "%s"', $command, $process->getErrorOutput()));
+            }
+
             throw new RuntimeException($process);
         }
 
-        return $process->getOutput();
+        return $output;
     }
 
     public function addListener($eventName, $listener, $priority = 0)
@@ -377,6 +406,20 @@ class Repository
     }
 
     /**
+     * Set a logger
+     *
+     * @param LoggerInterface $logger A logger
+     *
+     * @return Repository The current repository
+     */
+    public function setLogger(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+
+        return $this;
+    }
+
+    /**
      * @see self::run
      */
     protected function getProcess($command, $args = array())
@@ -388,7 +431,7 @@ class Repository
         }
 
         $base[] = $command;
-        
+
         $builder = new ProcessBuilder(array_merge($base, $args));
 
         return $builder->getProcess();
