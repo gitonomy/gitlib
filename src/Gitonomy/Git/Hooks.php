@@ -105,7 +105,7 @@ class Hooks
     /**
      * Removes a hook from repository.
      *
-     * @param string $name    Name of the hook
+     * @param string $name Name of the hook
      *
      * @throws LogicException The hook is not present
      */
