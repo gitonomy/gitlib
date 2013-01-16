@@ -12,7 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
-class BlameTest extends TestBase
+class BlameTest extends AbtractTest
 {
     public function testBlame()
     {

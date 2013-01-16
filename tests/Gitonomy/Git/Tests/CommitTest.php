@@ -15,7 +15,7 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff;
 
-class CommitTest extends TestBase
+class CommitTest extends AbtractTest
 {
     public function testGetDiff()
     {

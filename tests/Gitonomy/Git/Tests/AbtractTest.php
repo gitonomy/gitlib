@@ -15,7 +15,7 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Admin;
 use Gitonomy\Git\Repository;
 
-class TestBase extends \PHPUnit_Framework_TestCase
+abstract class AbtractTest extends \PHPUnit_Framework_TestCase
 {
     private static $libRepo;
     private static $testRepo;

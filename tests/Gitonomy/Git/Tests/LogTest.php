@@ -14,7 +14,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Log;
 
-class LogTest extends TestBase
+class LogTest extends AbtractTest
 {
     public function testRevisionAndPath()
     {

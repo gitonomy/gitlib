@@ -18,7 +18,7 @@ use Gitonomy\Git\Event\Events;
 use Gitonomy\Git\Event\PreCommandEvent;
 use Gitonomy\Git\Event\PostCommandEvent;
 
-class RepositoryTest extends TestBase
+class RepositoryTest extends AbtractTest
 {
     public function testGetBlob_WithExisting_Works()
     {
