@@ -108,7 +108,7 @@ class RepositoryTest extends AbtractTest
             ->method('debug')
         ;
 
-        $repo = $this->getDirRepository($this->getLibDirectory());
+        $repo = $this->createRepositoryInstance($this->getLibDirectory());
         $repo->setLogger($logger);
 
         $this->assertTrue($repo->isBare(), "A working command log everything");
@@ -129,7 +129,7 @@ class RepositoryTest extends AbtractTest
             ->method('debug')
         ;
 
-        $repo = $this->getDirRepository($this->getLibDirectory());
+        $repo = $this->createRepositoryInstance($this->getLibDirectory());
         $repo->setLogger($logger);
 
         $this->assertTrue($repo->run('not-work'), "A failing command log everything");

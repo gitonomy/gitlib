@@ -67,7 +67,7 @@ abstract class AbtractTest extends \PHPUnit_Framework_TestCase
     public function getLibRepository()
     {
         if (null === self::$libRepo) {
-            self::$libRepo = $this->getDirRepository($this->getLibDirectory());
+            self::$libRepo = $this->createRepositoryInstance($this->getLibDirectory());
         }
 
         return self::$libRepo;
@@ -81,7 +81,7 @@ abstract class AbtractTest extends \PHPUnit_Framework_TestCase
     public function getTestRepository()
     {
         if (null === self::$testRepo) {
-            self::$testRepo = $this->getDirRepository($this->getTestDirectory());
+            self::$testRepo = $this->createRepositoryInstance($this->getTestDirectory());
         }
 
         return self::$testRepo;
@@ -92,7 +92,7 @@ abstract class AbtractTest extends \PHPUnit_Framework_TestCase
         return __DIR__.'/../../../..';
     }
 
-    protected function getDirRepository($dir)
+    protected function createRepositoryInstance($dir)
     {
         if (!is_dir($dir)) {
             $this->markTestSkipped("Test sandbox folder not present");
