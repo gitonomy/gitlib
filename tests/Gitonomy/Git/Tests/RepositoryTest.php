@@ -18,7 +18,7 @@ use Gitonomy\Git\Event\Events;
 use Gitonomy\Git\Event\PreCommandEvent;
 use Gitonomy\Git\Event\PostCommandEvent;
 
-class RepositoryTest extends TestBase
+class RepositoryTest extends AbtractTest
 {
     public function testGetBlob_WithExisting_Works()
     {
@@ -94,5 +94,48 @@ class RepositoryTest extends TestBase
         }
 
         $this->assertTrue($after,  "post-command called");
+    }
+
+    public function testLoggerOk()
+    {
+        $logger = $this->getMock('Psr\Log\LoggerInterface');
+        $logger
+            ->expects($this->once())
+            ->method('info')
+        ;
+        $logger
+            ->expects($this->exactly(2))
+            ->method('debug')
+        ;
+
+        $repo = $this->createRepositoryInstance($this->getLibDirectory());
+        $repo->setLogger($logger);
+
+        $this->assertTrue($repo->isBare(), "A working command log everything");
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testLoggerNOk()
+    {
+        $logger = $this->getMock('Psr\Log\LoggerInterface');
+        $logger
+            ->expects($this->once())
+            ->method('info')
+        ;
+        $logger
+            ->expects($this->exactly(2))
+            ->method('debug')
+        ;
+        $logger
+            ->expects($this->once())
+            ->method('error')
+        ;
+
+        $repo = $this->createRepositoryInstance($this->getLibDirectory());
+        $repo->setLogger($logger);
+
+        $this->assertTrue($repo->run('not-work'), "A failing command log everything");
     }
 }
