@@ -15,7 +15,7 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Admin;
 use Gitonomy\Git\Reference\Branch;
 
-class WorkingCopyTest extends TestBase
+class WorkingCopyTest extends AbtractTest
 {
     protected $tempDir;
     protected $repo;

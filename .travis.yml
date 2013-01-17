@@ -3,4 +3,4 @@ php:
     - 5.3
 script: ./test.sh
 before_script:
-    - composer install
+    - composer install --dev --prefere-source

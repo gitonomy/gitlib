@@ -14,7 +14,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\PushReference;
 
-class PushReferenceTest extends TestBase
+class PushReferenceTest extends AbtractTest
 {
     const CREATE = 1;
     const DELETE = 2;

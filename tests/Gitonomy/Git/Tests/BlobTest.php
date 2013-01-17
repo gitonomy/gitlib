@@ -14,7 +14,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
 
-class BlobTest extends TestBase
+class BlobTest extends AbtractTest
 {
     public function testGetContent()
     {

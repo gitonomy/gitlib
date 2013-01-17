@@ -12,8 +12,6 @@
 
 namespace Gitonomy\Git;
 
-use Symfony\Component\Process\Process;
-
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
@@ -170,8 +168,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
 
         $tags = array();
         foreach ($this->references as $k => $reference) {
-            if ($reference instanceof Reference\Tag && $reference->getCommitHash() === $hash)
-            {
+            if ($reference instanceof Reference\Tag && $reference->getCommitHash() === $hash) {
                 $tags[] = $reference;
             }
         }
@@ -192,8 +189,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
 
         $tags = array();
         foreach ($this->references as $k => $reference) {
-            if ($reference instanceof Reference\Branch && $reference->getCommitHash() === $hash)
-            {
+            if ($reference instanceof Reference\Branch && $reference->getCommitHash() === $hash) {
                 $tags[] = $reference;
             }
         }
@@ -214,8 +210,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
 
         $result = array();
         foreach ($this->references as $k => $reference) {
-            if ($reference->getCommitHash() === $hash)
-            {
+            if ($reference->getCommitHash() === $hash) {
                 $result[] = $reference;
             }
         }
