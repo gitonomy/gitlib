@@ -125,8 +125,12 @@ class RepositoryTest extends AbtractTest
             ->method('info')
         ;
         $logger
-            ->expects($this->exactly(3))
+            ->expects($this->exactly(2))
             ->method('debug')
+        ;
+        $logger
+            ->expects($this->once())
+            ->method('error')
         ;
 
         $repo = $this->createRepositoryInstance($this->getLibDirectory());

@@ -383,7 +383,7 @@ class Repository
 
         if (!$process->isSuccessful()) {
             if ($this->logger) {
-                $this->logger->debug(sprintf('last command ("%s") error output: "%s"', $command, $process->getErrorOutput()));
+                $this->logger->error(sprintf('last command ("%s") error output: "%s"', $command, $process->getErrorOutput()));
             }
 
             throw new RuntimeException($process);
