@@ -434,6 +434,8 @@ class Repository
 
         $builder = new ProcessBuilder(array_merge($base, $args));
 
+        $builder->setEnv('HOME', null);
+
         return $builder->getProcess();
     }
 }
