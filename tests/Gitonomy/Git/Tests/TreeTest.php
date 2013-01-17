@@ -14,7 +14,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
 
-class TreeTest extends AbtractTest
+class TreeTest extends AbstractTest
 {
     public function testCase()
     {

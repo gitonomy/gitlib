@@ -14,7 +14,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Diff;
 
-class DiffTest extends AbtractTest
+class DiffTest extends AbstractTest
 {
     public function testGetRevisions()
     {

@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\ProcessBuilder;
 
 /**
@@ -31,7 +32,7 @@ class Admin
      *
      * @throws RuntimeException Directory exists or not writable
      */
-    public static function init($path, $bare = true)
+    public static function init($path, $bare = true, LoggerInterface $logger = null)
     {
         $builder = ProcessBuilder::create(array('git', 'init', '-q'));
 
@@ -48,6 +49,6 @@ class Admin
             throw new \RuntimeException(sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
         }
 
-        return new Repository($path);
+        return new Repository($path, null, $logger);
     }
 }
