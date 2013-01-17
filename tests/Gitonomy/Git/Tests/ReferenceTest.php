@@ -15,7 +15,7 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Tag;
 
-class ReferenceTest extends AbtractTest
+class ReferenceTest extends AbstractTest
 {
     private $references;
 

@@ -14,7 +14,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
 
-class HooksTest extends AbtractTest
+class HooksTest extends AbstractTest
 {
     private $tmpDir;
     private $hooksDir;

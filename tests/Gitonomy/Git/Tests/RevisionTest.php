@@ -16,7 +16,7 @@ use Gitonomy\Git\Commit;
 use Gitonomy\Git\Log;
 use Gitonomy\Git\Revision;
 
-class RevisionTest extends AbtractTest
+class RevisionTest extends AbstractTest
 {
     public function testGetCommit()
     {
