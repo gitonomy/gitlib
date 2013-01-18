@@ -306,7 +306,7 @@ class Repository
             throw new \RuntimeException(sprintf('Unable to compute size: ', $process->getErrorOutput()));
         }
 
-        if (!preg_match('/(\d+)\s+total$/', $process->getOutput(), $vars)) {
+        if (!preg_match('/(\d+)\s+total$/', trim($process->getOutput()), $vars)) {
             throw new \RuntimeException('Unable to parse repository size output');
         }
 
