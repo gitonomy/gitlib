@@ -381,4 +381,35 @@ class Commit
 
         return $this->message;
     }
+
+    /**
+     * Returns the subject message (the first line)
+     *
+     * @return string The subject message
+     */
+    public function getSubjectMessage()
+    {
+        $message = $this->getMessage();
+
+        $lines = explode("\n", $message);
+
+        return reset($lines);
+    }
+
+    /**
+     * Return the body message
+     *
+     * @return string The body message
+     */
+    public function getBodyMessage()
+    {
+        $message = $this->getMessage();
+
+        $lines = explode("\n", $message);
+
+        array_shift($lines);
+        array_shift($lines);
+
+        return implode("\n", $lines);
+    }
 }

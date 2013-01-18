@@ -170,9 +170,40 @@ class CommitTest extends AbstractTest
      */
     public function testGetShortMessage($repository)
     {
-        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
+        $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
 
-        $this->assertEquals('add a long file', $commit->getShortMessage());
+        $this->assertEquals('Fixed perm...', $commit->getShortMessage(10));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetSubjectMessage($repository)
+    {
+        $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
+
+        $this->assertEquals('Fixed permissions of test.sh. Basically I just run bash command.', $commit->getSubjectMessage());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetBodyMessage($repository)
+    {
+        $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
+        $message = <<<EOL
+If you want to know everything,
+I ran something like `chmox +x test.sh`
+
+Hello and good bye.
+
+EOL;
+
+        $this->assertEquals($message, $commit->getBodyMessage());
+
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
+
+        $this->assertEquals('', $commit->getBodyMessage());
     }
 
     /**
