@@ -112,13 +112,6 @@ class Commit
     private $message;
 
     /**
-     * Short message of the commit.
-     *
-     * @var string
-     */
-    private $shortMessage;
-
-    /**
      * Constructor.
      *
      * @param Gitonomy\Git\Repository $repository Repository of the commit
@@ -266,36 +259,47 @@ class Commit
     }
 
     /**
-     * Returns the first line of the commit, and the first 80 characters.
+     * Returns the first line of the commit, and the first 50 characters.
+     *
+     * Ported from https://github.com/fabpot/Twig-extensions/blob/d67bc7e69788795d7905b52d31188bbc1d390e01/lib/Twig/Extensions/Extension/Text.php#L52-L109
+     *
+     * @param integer $length
+     * @param boolean $preserve
+     * @param string  $separator
      *
      * @return string
      */
-    public function getShortMessage($limit = 50)
+    public function getShortMessage($length = 50, $preserve = false, $separator = '...')
     {
         $this->initialize();
 
-        if (null !== $this->shortMessage) {
-            return $this->shortMessage;
-        }
+        $message = $this->getSubjectMessage();
 
-        $pos    = mb_strpos($this->message, "\n");
-        $length = mb_strlen($this->message);
+        if (function_exists('mb_substr')) {
+            if (mb_strlen($message) > $length) {
+                if ($preserve) {
+                    if (false !== ($breakpoint = mb_strpos($message, ' ', $length))) {
+                        $length = $breakpoint;
+                    }
+                }
 
-        if (false === $pos) {
-            if ($length < $limit) {
-                $shortMessage = $this->message;
-            } else {
-                $shortMessage = mb_substr($this->message, 0, $limit).'...';
+                return rtrim(mb_substr($message, 0, $length)) . $separator;
             }
+
+            return $message;
         } else {
-            if ($pos < $limit) {
-                $shortMessage = mb_substr($this->message, 0, $pos);
-            } else {
-                $shortMessage = mb_substr($this->message, 0, $limit).'...';
-            }
-        }
+            if (strlen($message) > $length) {
+                if ($preserve) {
+                    if (false !== ($breakpoint = strpos($message, ' ', $length))) {
+                        $length = $breakpoint;
+                    }
+                }
 
-        return $this->shortMessage = $shortMessage;
+                return rtrim(substr($message, 0, $length)) . $separator;
+            }
+
+            return $message;
+        }
     }
 
     /**

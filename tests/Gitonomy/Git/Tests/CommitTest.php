@@ -182,7 +182,8 @@ class CommitTest extends AbstractTest
     {
         $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
 
-        $this->assertEquals('Fixed permissions of test.sh. Basically I just run bash command.', $commit->getSubjectMessage());
+        $this->assertEquals('Fixed perm!!!', $commit->getShortMessage(10, false, '!!!'));
+        $this->assertEquals('Fixed permissions!!!', $commit->getShortMessage(10, true, '!!!'));
     }
 
     /**
