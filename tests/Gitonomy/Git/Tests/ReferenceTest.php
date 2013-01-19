@@ -113,7 +113,12 @@ class ReferenceTest extends AbstractTest
 
         $resolved = $repository->getReferences()->resolveBranches($master->getCommitHash());
 
-        $this->assertEquals(1, count($resolved), "1 revision resolved");
+        if ($repository->isBare()) {
+            $this->assertEquals(1, count($resolved), "1 revision resolved");
+        } else {
+            $this->assertEquals(2, count($resolved), "2 revision resolved");
+        }
+
         $this->assertTrue(reset($resolved) instanceof Branch, "Resolved object is a branch");
     }
 
