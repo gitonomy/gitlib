@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
+use Gitonomy\Git\Repository;
 
 class AdminTest extends AbstractTest
 {
@@ -25,45 +26,39 @@ class AdminTest extends AbstractTest
 
     public function tearDown()
     {
-        $this->deleteDir($this->tmpDir);
+        $this->deleteDir($this->createTempDir());
     }
 
-    public function testBare_WithInitialDirectory_Works()
+    public function testBare()
     {
-        Admin::init($this->tmpDir);
+        $repository = Admin::init($this->tmpDir);
 
         $objectDir = $this->tmpDir.'/objects';
+
+        $this->assertTrue($repository->isBare(), "Repository is bare");
         $this->assertTrue(is_dir($objectDir),     "objects/ folder is present");
+        $this->assertTrue($repository instanceof Repository, "Admin::init returns a repository");
+        $this->assertEquals($this->tmpDir, $repository->getGitDir(), "The folder passed as argument is git dir");
+        $this->assertNull($repository->getWorkingDir(), "No working dir in bare repository");
     }
 
-    public function testBare_WithoutInitialDirectory_StillWorks()
+    public function testNotBare()
     {
-        Admin::init($this->tmpDir.'/test');
-
-        $objectDir = $this->tmpDir.'/test/objects';
-        $this->assertTrue(is_dir($objectDir),     "objects/ folder is present");
-    }
-
-    public function testNotBare_WithInitialDirectory_Works()
-    {
-        Admin::init($this->tmpDir, false);
+        $repository = Admin::init($this->tmpDir, false);
 
         $objectDir = $this->tmpDir.'/.git/objects';
-        $this->assertTrue(is_dir($objectDir),     "objects/ folder is present");
-    }
 
-    public function testNotBare_WithoutInitialDirectory_StillWorks()
-    {
-        Admin::init($this->tmpDir.'/test', false);
-
-        $objectDir = $this->tmpDir.'/test/.git/objects';
-        $this->assertTrue(is_dir($objectDir),     "objects/ folder is present");
+        $this->assertFalse($repository->isBare(), "Repository is not bare");
+        $this->assertTrue(is_dir($objectDir), "objects/ folder is present");
+        $this->assertTrue($repository instanceof Repository, "Admin::init returns a repository");
+        $this->assertEquals($this->tmpDir.'/.git', $repository->getGitDir(), "git dir as subfolder of argument");
+        $this->assertEquals($this->tmpDir, $repository->getWorkingDir(), "working dir present in bare repository");
     }
 
     /**
      * @expectedException RuntimeException
      */
-    public function testFail()
+    public function testExistingFile()
     {
         $file = $this->tmpDir.'/test';
         touch($file);

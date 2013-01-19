@@ -98,6 +98,10 @@ class RepositoryTest extends AbstractTest
 
     public function testLoggerOk()
     {
+        if (!class_exists('Psr\Log\LoggerInterface')) {
+            $this->markTestSkipped();
+        }
+
         $logger = $this->getMock('Psr\Log\LoggerInterface');
         $logger
             ->expects($this->once())
@@ -119,6 +123,10 @@ class RepositoryTest extends AbstractTest
      */
     public function testLoggerNOk()
     {
+        if (!class_exists('Psr\Log\LoggerInterface')) {
+            $this->markTestSkipped();
+        }
+
         $logger = $this->getMock('Psr\Log\LoggerInterface');
         $logger
             ->expects($this->once())

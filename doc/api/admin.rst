@@ -1,22 +1,20 @@
-Create git repositories
-=======================
+Administration of git repositories
+==================================
 
-Initialize a repository
------------------------
+Initializing repositories
+:::::::::::::::::::::::::
 
-Bare repository
-:::::::::::::::
+Create a bare repository
+------------------------
 
 You can create a bare repository using ``Admin::init``:
 
 .. code-block:: php
 
-    use Gitonomy\Git\Admin;
+    $repository = Gitonomy\Git\Admin::init('/path/to/repository');
 
-    $repository = Admin::init('/path/to/repository');
-
-Non-bare repository
-:::::::::::::::::::
+Create a repository with a working copy
+---------------------------------------
 
 If you want to create a repository with a working directory, pass ``false`` as
 second argument:
@@ -24,3 +22,8 @@ second argument:
 .. code-block:: php
 
     $repository = Gitonomy\Git\Admin::init('/path/to/folder', false);
+
+References
+::::::::::
+
+- http://linux.die.net/man/1/git-init

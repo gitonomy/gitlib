@@ -28,7 +28,7 @@ If you want to access directly a line:
 Group reading by commit
 -----------------------
 
-If you plan to display it, you'll probably need a version where lines from same commit are merged.
+If you plan to display it, you'll probably need a version where lines from same commit are grouped.
 
 To do so, use the *getGroupedLines* method that will return an array like this:
 
