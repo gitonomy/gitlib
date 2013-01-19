@@ -120,6 +120,6 @@ class Hooks
 
     protected function getPath($name)
     {
-        return $this->repository->getPath().'/hooks/'.$name;
+        return $this->repository->getGitDir().'/hooks/'.$name;
     }
 }

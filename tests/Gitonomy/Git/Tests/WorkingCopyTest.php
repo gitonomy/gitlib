@@ -17,30 +17,12 @@ use Gitonomy\Git\Reference\Branch;
 
 class WorkingCopyTest extends AbstractTest
 {
-    protected $tempDir;
-    protected $repo;
-
-    public function setUp()
-    {
-        $this->tempDir = $this->createTempDir();
-
-        $path = $this->tempDir.'/foo';
-        $this->repo = Admin::init($path, false);
-        $this->repo->run('remote', array('add', 'origin', $this->getTestDirectory()));
-        $this->repo->run('fetch', array('origin'));
-    }
-
-    public function tearDown()
-    {
-        $this->deleteDir($this->tempDir);
-    }
-
     /**
      * @expectedException LogicException
      */
     public function testNoWorkingCopyInBare()
     {
-        $path = $this->tempDir.'/bare';
+        $path = self::createTempDir();
         $repo = Admin::init($path);
 
         $repo->getWorkingCopy();
@@ -48,12 +30,13 @@ class WorkingCopyTest extends AbstractTest
 
     public function testCheckout()
     {
-        $wc = $this->repo->getWorkingCopy();
-        $wc->checkout('origin/master', 'master');
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
+        $wc->checkout('origin/new-feature', 'new-feature');
 
-        $head = $this->repo->getHead();
+        $head = $repository->getHead();
         $this->assertTrue($head instanceof Branch, "HEAD is a branch");
-        $this->assertEquals("master", $head->getName(), "HEAD is branch master");
+        $this->assertEquals("new-feature", $head->getName(), "HEAD is branch new-feature");
     }
 
     /**
@@ -61,27 +44,28 @@ class WorkingCopyTest extends AbstractTest
      */
     public function testCheckoutUnexisting()
     {
-        $wc = $this->repo->getWorkingCopy();
-        $wc->checkout('foobar');
+        self::createFoobarRepository(false)->getWorkingCopy()->checkout('foobar');
     }
 
     public function testAttachedHead()
     {
-        $wc = $this->repo->getWorkingCopy();
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
         $wc->checkout('master');
 
-        $head = $this->repo->getHead();
-        $this->assertTrue($this->repo->isHeadAttached(), "HEAD is attached");
-        $this->assertFalse($this->repo->isHeadDetached(), "HEAD is not detached");
+        $head = $repository->getHead();
+        $this->assertTrue($repository->isHeadAttached(), "HEAD is attached");
+        $this->assertFalse($repository->isHeadDetached(), "HEAD is not detached");
     }
 
     public function testDetachedHead()
     {
-        $wc = $this->repo->getWorkingCopy();
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
         $wc->checkout('0.1');
 
-        $head = $this->repo->getHead();
-        $this->assertFalse($this->repo->isHeadAttached(), "HEAD is not attached");
-        $this->assertTrue($this->repo->isHeadDetached(), "HEAD is detached");
+        $head = $repository->getHead();
+        $this->assertFalse($repository->isHeadAttached(), "HEAD is not attached");
+        $this->assertTrue($repository->isHeadDetached(), "HEAD is detached");
     }
 }
