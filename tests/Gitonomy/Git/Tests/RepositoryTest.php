@@ -98,7 +98,7 @@ class RepositoryTest extends AbstractTest
 
     public function testLoggerOk()
     {
-        if (!class_exists('Psr\Log\LoggerInterface')) {
+        if (!interface_exists('Psr\Log\LoggerInterface')) {
             $this->markTestSkipped();
         }
 
@@ -115,7 +115,7 @@ class RepositoryTest extends AbstractTest
         $repo = $this->createRepositoryInstance($this->getLibDirectory());
         $repo->setLogger($logger);
 
-        $this->assertTrue($repo->isBare(), "A working command log everything");
+        $repo->run('remote');
     }
 
     /**
@@ -123,7 +123,7 @@ class RepositoryTest extends AbstractTest
      */
     public function testLoggerNOk()
     {
-        if (!class_exists('Psr\Log\LoggerInterface')) {
+        if (!interface_exists('Psr\Log\LoggerInterface')) {
             $this->markTestSkipped();
         }
 
@@ -144,6 +144,6 @@ class RepositoryTest extends AbstractTest
         $repo = $this->createRepositoryInstance($this->getLibDirectory());
         $repo->setLogger($logger);
 
-        $this->assertTrue($repo->run('not-work'), "A failing command log everything");
+        $repo->run('not-work');
     }
 }
