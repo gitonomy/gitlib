@@ -16,86 +16,92 @@ use Gitonomy\Git\Diff;
 
 class DiffTest extends AbstractTest
 {
-    public function testGetRevisions()
-    {
-        $diff = $this->getTravisDiff();
+    const DELETE_COMMIT = '519d5693c72c925cd59205d9f11e9fa1d550028b';
+    const CREATE_COMMIT = 'e6fa3c792facc06faa049a6938c84c411954deb5';
 
-        $this->assertEquals(array(self::TRAVIS_COMMIT), $diff->getRevisions(), "Revision returns passed revision");
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetRevisions($repository)
+    {
+        $diff = $repository->getCommit(self::LONGFILE_COMMIT)->getDiff();
+
+        $this->assertEquals(array(self::LONGFILE_COMMIT), $diff->getRevisions(), "Revision returns passed revision");
     }
 
-    public function testGetFiles_Addition()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetFiles_Addition($repository)
     {
-        $files = $this->getTravisDiff()->getFiles();
+        $files = $repository->getCommit(self::CREATE_COMMIT)->getDiff()->getFiles();
 
-        $this->assertEquals(2, count($files), "2 files in diff");
+        $this->assertEquals(2, count($files), "1 file in diff");
 
-        $this->assertTrue($files[0]->isCreation(), ".travis.yml created");
+        $this->assertTrue($files[0]->isCreation(), "script_A.php created");
 
-        $this->assertEquals(null,          $files[0]->getOldName(), "First file name is a new file");
-        $this->assertEquals('.travis.yml', $files[0]->getNewName(), "First file name is .travis.yml");
-        $this->assertEquals(null,          $files[0]->getOldMode(), "First file mode is a new file");
-        $this->assertEquals('100644',      $files[0]->getNewMode(), "First file mode is correct");
+        $this->assertEquals(null,           $files[0]->getOldName(), "First file name is a new file");
+        $this->assertEquals('script_A.php', $files[0]->getNewName(), "First file name is script_A.php");
+        $this->assertEquals(null,           $files[0]->getOldMode(), "First file mode is a new file");
+        $this->assertEquals('100644',       $files[0]->getNewMode(), "First file mode is correct");
 
-        $this->assertEquals(7, $files[0]->getAdditions(), "10 lines added");
-        $this->assertEquals(0, $files[0]->getDeletions(), "0 lines deleted");
+        $this->assertEquals(1, $files[0]->getAdditions(), "1 line added");
+        $this->assertEquals(0,  $files[0]->getDeletions(), "0 lines deleted");
 
         try {
             $files[0]->getOldBlob();
             $this->fail("Should not be able to get old blob on addition");
         } catch (\LogicException $e) {}
 
-        $this->assertContains("language: php", $files[0]->getNewBlob()->getContent());
+        $this->assertContains("php echo", $files[0]->getNewBlob()->getContent());
     }
 
-    public function testGetFiles_Modification()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetFiles_Modification($repository)
     {
-        $files = $this->getTravisDiff()->getFiles();
+        $files = $repository->getCommit(self::BEFORE_LONGFILE_COMMIT)->getDiff()->getFiles();
 
-        $this->assertEquals(2, count($files), "2 files in diff");
+        $this->assertEquals(1, count($files), "1 files in diff");
 
-        $this->assertTrue($files[1]->isModification(), "README.md modified");
+        $this->assertTrue($files[0]->isModification(), "image.jpg modified");
 
-        $this->assertEquals('README.md', $files[1]->getOldName(), "Second file name is a new file");
-        $this->assertEquals('README.md', $files[1]->getNewName(), "Second file name is .travis.yml");
-        $this->assertEquals('100644',    $files[1]->getOldMode(), "Second file mode is a new file");
-        $this->assertEquals('100644',    $files[1]->getNewMode(), "Second file mode is correct");
+        $this->assertEquals('image.jpg', $files[0]->getOldName(), "Second file name is image.jpg");
+        $this->assertEquals('image.jpg', $files[0]->getNewName(), "Second file name is image.jpg");
+        $this->assertEquals('100644',    $files[0]->getOldMode(), "Second file mode is a new file");
+        $this->assertEquals('100644',    $files[0]->getNewMode(), "Second file mode is correct");
 
-        $this->assertEquals(2, $files[1]->getAdditions(), "2 lines added");
-        $this->assertEquals(0, $files[1]->getDeletions(), "0 lines deleted");
-
-        $oldBlob = $files[1]->getOldBlob();
-        $newBlob = $files[1]->getNewBlob();
-
-        $this->assertNotContains("Build Status", $oldBlob->getContent());
-        $this->assertContains("Build Status", $newBlob->getContent());
+        $this->assertTrue($files[0]->isBinary(), "binary file");
+        $this->assertEquals(0, $files[0]->getAdditions(), "0 lines added");
+        $this->assertEquals(0, $files[0]->getDeletions(), "0 lines deleted");
     }
 
-    public function testGetFiles_Deletion()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetFiles_Deletion($repository)
     {
-        $files = $this->getDocDiff()->getFiles();
+        $files = $repository->getCommit(self::DELETE_COMMIT)->getDiff()->getFiles();
 
-        $this->assertEquals(7, count($files), "7 files modified");
+        $this->assertEquals(1, count($files), "1 files modified");
 
-        $this->assertTrue($files[3]->isDeletion(), "4th file is a deletion");
-        $this->assertEquals("doc/api/objects.rst", $files[3]->getOldName(), "4th file is doc/api/objects.rst");
-        $this->assertEquals(28, $files[3]->getDeletions(), "4th file is doc/api/objects.rst");
+        $this->assertTrue($files[0]->isDeletion(), "File deletion");
+        $this->assertEquals("script_B.php", $files[0]->getOldName(), "verify old filename");
+        $this->assertEquals(1, $files[0]->getDeletions(), "1 line deleted");
 
         try {
-            $files[3]->getNewBlob();
+            $files[0]->getNewBlob();
             $this->fail("Should not be able to get new blob on deletion");
         } catch (\LogicException $e) {}
     }
 
-    public function testFileChanges()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testDiffRangeParse($repository)
     {
-        $files = $this->getTravisDiff()->getFiles();
-
-        $this->assertEquals(2, count($files), "2 files modified");
-    }
-
-    public function testDiffRangeParse()
-    {
-        $files = $this->getTravisDiff()->getFiles();
+        $files = $repository->getCommit(self::CREATE_COMMIT)->getDiff()->getFiles();
 
         $changes = $files[0]->getChanges();
 
@@ -103,16 +109,6 @@ class DiffTest extends AbstractTest
         $this->assertEquals(0, $changes[0]->getRangeOldCount());
 
         $this->assertEquals(1, $changes[0]->getRangeNewStart());
-        $this->assertEquals(7, $changes[0]->getRangeNewCount());
-    }
-
-    private function getDocDiff()
-    {
-        return $this->getLibRepository()->getCommit(self::DOC_COMMIT)->getDiff();
-    }
-
-    private function getTravisDiff()
-    {
-        return $this->getLibRepository()->getCommit(self::TRAVIS_COMMIT)->getDiff();
+        $this->assertEquals(0, $changes[0]->getRangeNewCount());
     }
 }

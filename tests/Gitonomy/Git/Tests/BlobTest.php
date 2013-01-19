@@ -16,37 +16,57 @@ use Gitonomy\Git\Blob;
 
 class BlobTest extends AbstractTest
 {
-    public function testGetContent()
+    const README_FRAGMENT = 'Foo Bar project';
+
+    public function getReadmeBlob($repository)
     {
-        $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
+        return $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('README.md');
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetContent($repository)
+    {
+        $blob = $this->getReadmeBlob($repository);
 
         $this->assertContains(self::README_FRAGMENT, $blob->getContent());
     }
 
     /**
+     * @dataProvider provideFoobar
      * @expectedException RuntimeException
      */
-    public function testNotExisting()
+    public function testNotExisting($repository)
     {
-        $blob = $this->getLibRepository()->getBlob("foobar");
+        $blob = $repository->getBlob("foobar");
         $blob->getContent();
     }
 
-    public function testGetMimetype()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetMimetype($repository)
     {
-        $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
+        $blob = $this->getReadmeBlob($repository);
         $this->assertRegexp('#text/plain#', $blob->getMimetype());
     }
 
-    public function testIsText()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testIsText($repository)
     {
-        $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
+        $blob = $this->getReadmeBlob($repository);
         $this->assertTrue($blob->isText());
     }
 
-    public function testIsBinary()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testIsBinary($repository)
     {
-        $blob = $this->getLibRepository()->getBlob(self::README_BLOB);
+        $blob = $this->getReadmeBlob($repository);
         $this->assertFalse($blob->isBinary());
     }
 }
