@@ -21,9 +21,27 @@ second argument:
 
 .. code-block:: php
 
-    $repository = Gitonomy\Git\Admin::init('/path/to/folder', false);
+    $repository = Gitonomy\Git\Admin::init('/tmp/git_sandbox', false);
+
+Cloning repositories
+::::::::::::::::::::
+
+You can clone a repository from an URL by doing:
+
+.. code-block:: php
+
+    $repository = Gitonomy\Git\Admin::cloneTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git');
+
+You can pass ``false`` and third argument to get a repository with a working copy.
+
+If you already have a Repository instance and want to clone it, you can use this shortcut:
+
+.. code-block:: php
+
+    $new = $repository->cloneTo('/tmp/clone');
 
 References
 ::::::::::
 
-- http://linux.die.net/man/1/git-init
+* http://linux.die.net/man/1/git-init
+* http://linux.die.net/man/1/git-clone

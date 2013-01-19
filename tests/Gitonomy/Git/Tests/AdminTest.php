@@ -56,6 +56,28 @@ class AdminTest extends AbstractTest
     }
 
     /**
+     * @dataProvider provideFoobar
+     */
+    public function testClone($repository)
+    {
+        $newDir = self::createTempDir();
+        $new = $repository->cloneTo($newDir, $repository->isBare());
+        self::registerDeletion($new);
+
+        $oldRefs = $repository->getReferences()->getAll();
+        $newRefs = $new->getReferences()->getAll();
+
+        $this->assertEquals(array_keys($oldRefs), array_keys($newRefs), "same references in both repositories");
+
+        if ($repository->isBare()) {
+            $this->assertEquals($newDir, $new->getGitDir());
+        } else {
+            $this->assertEquals($newDir.'/.git', $new->getGitDir());
+            $this->assertEquals($newDir, $new->getWorkingDir());
+        }
+    }
+
+    /**
      * @expectedException RuntimeException
      */
     public function testExistingFile()

@@ -33,7 +33,6 @@ Missing features
 Some major features are still missing from gitlib:
 
 * Remotes
-* Clone
 * Submodules
 
 If you want to run git commands on repository, call method ``Repository::run`` with method and arguments.
