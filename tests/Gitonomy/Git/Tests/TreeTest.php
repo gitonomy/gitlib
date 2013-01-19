@@ -16,28 +16,34 @@ use Gitonomy\Git\Blob;
 
 class TreeTest extends AbstractTest
 {
-    public function testCase()
+    const PATH_RESOLVING_COMMIT = 'cc06ac171d884282202dff88c1ded499a1f89420';
+    /**
+     * @dataProvider provideFooBar
+     */
+    public function testCase($repository)
     {
-        $tree = $this->getLibRepository()->getCommit(self::TRAVIS_COMMIT)->getTree();
+        $tree = $repository->getCommit(self::LONGFILE_COMMIT)->getTree();
 
         $entries = $tree->getEntries();
 
-        $this->assertTrue(isset($entries['.gitignore']), ".gitignore is present");
-        $this->assertTrue($entries['.gitignore'][1] instanceof Blob, ".gitignore is a Blob");
+        $this->assertTrue(isset($entries['long.php']), "long.php is present");
+        $this->assertTrue($entries['long.php'][1] instanceof Blob, "long.php is a Blob");
 
         $this->assertTrue(isset($entries['README.md']), "README.md is present");
         $this->assertTrue($entries['README.md'][1] instanceof Blob, "README.md is a Blob");
-        $this->assertEquals(self::README_BLOB, $entries['README.md'][1]->getHash(), "README.md hash is correct");
     }
 
-    public function testResolvePath()
+    /**
+     * @dataProvider provideFooBar
+     */
+    public function testResolvePath($repository)
     {
-        $tree = $this->getLibRepository()->getCommit(self::TRAVIS_COMMIT)->getTree();
-        $path = 'src/Gitonomy/Git';
+        $tree = $repository->getCommit(self::PATH_RESOLVING_COMMIT)->getTree();
+        $path = 'test/a/b/c';
 
         $resolved = $tree->resolvePath($path);
         $entries = $resolved->getEntries();
 
-        $this->assertTrue(isset($entries['Admin.php']), "Successfully resolved source folder");
+        $this->assertTrue(isset($entries['d']), "Successfully resolved source folder");
     }
 }

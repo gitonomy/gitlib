@@ -16,75 +16,98 @@ use Gitonomy\Git\Admin;
 
 class HooksTest extends AbstractTest
 {
-    private $tmpDir;
-    private $hooksDir;
-    private $repository;
-    private $hooks;
-
-    public function setUp()
+    public function hookPath($repository, $hook)
     {
-        $this->tmpDir     = $this->createTempDir();
-        $this->repository = Admin::init($this->tmpDir);
-        $this->hooksDir   = $this->tmpDir.'/hooks';
-        $this->hooks      = $this->repository->getHooks();
+        return $repository->getGitDir().'/hooks/'.$hook;
     }
 
-    public function tearDown()
+    public function touchHook($repository, $hook, $content = '')
     {
-        $this->deleteDir($this->tmpDir);
+        $path = $this->hookPath($repository, $hook);
+        file_put_contents($path, $content);
+
+        return $path;
     }
 
-    public function testHas()
+    public function assertHasHook($repository, $hook)
     {
-        $this->assertFalse($this->hooks->has('foo'), "No foo hook present in repository");
-        touch($this->hooksDir.'/foo');
-        $this->assertTrue($this->hooks->has('foo'), "foo hook present in repository");
+        $file = $this->hookPath($repository, $hook);
+
+        $this->assertTrue($repository->getHooks()->has($hook), "hook $hook in repository");
+        $this->assertTrue(file_exists($file), "Hook $hook is present");
+    }
+
+    public function assertNoHook($repository, $hook)
+    {
+        $file = $this->hookPath($repository, $hook);
+
+        $this->assertFalse($repository->getHooks()->has($hook), "No hook $hook in repository");
+        $this->assertFalse(file_exists($file), "Hook $hook is not present");
     }
 
     /**
+     * @dataProvider provideFoobar
+     */
+    public function testHas($repository)
+    {
+        $this->assertNoHook($repository, 'foo');
+        $this->touchHook($repository, 'foo');
+        $this->assertHasHook($repository, 'foo');
+    }
+
+    /**
+     * @dataProvider provideFoobar
      * @expectedException InvalidArgumentException
      */
-    public function testGet_InvalidName_ThrowsException()
+    public function testGet_InvalidName_ThrowsException($repository)
     {
-        $this->hooks->get('foo');
-    }
-
-    public function testGet()
-    {
-        file_put_contents($this->hooksDir.'/foo', 'foobar');
-
-        $this->assertEquals('foobar', $this->hooks->get('foo'));
-    }
-
-    public function testSymlink()
-    {
-        $file = $this->hooksDir.'/target-symlink';
-        file_put_contents($file, 'foobar');
-
-        $this->hooks->setSymlink('foo', $file);
-
-        $this->assertTrue(is_link($this->hooksDir.'/foo'), "foo hook is a symlink");
-        $this->assertEquals($file, readlink($this->hooksDir.'/foo'), "target of symlink is correct");
+        $repository->getHooks()->get('foo');
     }
 
     /**
+     * @dataProvider provideFoobar
+     */
+    public function testGet($repository)
+    {
+        $this->touchHook($repository, 'foo', 'foobar');
+
+        $this->assertEquals('foobar', $repository->getHooks()->get('foo'));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testSymlink($repository)
+    {
+        $file = $this->touchHook($repository, 'bar', 'barbarbar');
+        $repository->getHooks()->setSymlink('foo', $file);
+
+        $this->assertTrue(is_link($this->hookPath($repository, 'foo')), "foo hook is a symlink");
+        $this->assertEquals($file, readlink($this->hookPath($repository, 'foo')), "target of symlink is correct");
+    }
+
+    /**
+     * @dataProvider provideFoobar
      * @expectedException LogicException
      */
-    public function testSymlink_WithExisting_ThrowsLogicException()
+    public function testSymlink_WithExisting_ThrowsLogicException($repository)
     {
-        $file    = $this->hooksDir.'/target-symlink';
-        $fooFile = $this->hooksDir.'/foo';
+        $file    = $this->hookPath($repository, 'target-symlink');
+        $fooFile = $this->hookPath($repository, 'foo');
 
         file_put_contents($file, 'foobar');
         touch($fooFile);
 
-        $this->hooks->setSymlink('foo', $file);
+        $repository->getHooks()->setSymlink('foo', $file);
     }
 
-    public function testSet()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testSet($repository)
     {
-        $file = $this->hooksDir.'/foo';
-        $this->hooks->set('foo', 'bar');
+        $file = $this->hookPath($repository, 'foo');
+        $repository->getHooks()->set('foo', 'bar');
 
         $this->assertEquals('bar', file_get_contents($file), 'Hook content is correct');
 
@@ -92,28 +115,35 @@ class HooksTest extends AbstractTest
         $this->assertEquals(0777, $perms & 0777, "Hook permissions are correct");
     }
 
-    public function testSet_Existing_ThrowsLogicException()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testSet_Existing_ThrowsLogicException($repository)
     {
-        $this->hooks->set('foo', 'bar');
+        $repository->getHooks()->set('foo', 'bar');
 
         $this->setExpectedException('LogicException');
-        $this->hooks->set('foo', 'bar');
+        $repository->getHooks()->set('foo', 'bar');
     }
 
-    public function testRemove()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testRemove($repository)
     {
-        $file = $this->hooksDir.'/foo';
+        $file = $this->hookPath($repository, 'foo');
         touch($file);
 
-        $this->hooks->remove('foo');
+        $repository->getHooks()->remove('foo');
         $this->assertFalse(file_exists($file));
     }
 
     /**
+     * @dataProvider provideFoobar
      * @expectedException LogicException
      */
-    public function testRemove_NotExisting_ThrowsLogicException()
+    public function testRemove_NotExisting_ThrowsLogicException($repository)
     {
-        $this->hooks->remove('foo');
+        $repository->getHooks()->remove('foo');
     }
 }

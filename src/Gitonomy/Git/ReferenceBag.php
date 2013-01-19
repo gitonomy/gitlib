@@ -102,6 +102,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     {
         $fullname = $reference->getFullname();
 
+        $this->initialize();
         $this->repository->run('update-ref', array($fullname, $reference->getCommitHash()));
 
         $this->references[$fullname] = $reference;

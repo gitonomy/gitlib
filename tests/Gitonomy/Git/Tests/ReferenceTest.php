@@ -19,100 +19,130 @@ class ReferenceTest extends AbstractTest
 {
     private $references;
 
-    public function setUp()
-    {
-        $this->references = $this->getLibRepository()->getReferences();
-    }
 
-    public function testGetBranch()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetBranch($repository)
     {
-        $branch = $this->references->getBranch('master');
+        $branch = $repository->getReferences()->getBranch('master');
 
         $this->assertTrue($branch instanceof Branch, "Branch object is correct type");
         $this->assertEquals($branch->getCommitHash(), $branch->getCommit()->getHash(), "Hash is correctly resolved");
     }
 
-    public function testHasBranch()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testHasBranch($repository)
     {
-        $this->assertTrue($this->references->hasBranch('master'), 'Branch master exists');
-        $this->assertFalse($this->references->hasBranch('foobar'), 'Branch foobar does not exists');
-    }
-
-    public function testHasTag()
-    {
-        $this->assertTrue($this->references->hasTag('0.1'), 'Tag master exists');
-        $this->assertFalse($this->references->hasTag('foobar'), 'Tag foobar does not exists');
+        $this->assertTrue($repository->getReferences()->hasBranch('master'), 'Branch master exists');
+        $this->assertFalse($repository->getReferences()->hasBranch('foobar'), 'Branch foobar does not exists');
     }
 
     /**
-     * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
+     * @dataProvider provideFoobar
      */
-    public function testGetBranch_NotExisting_Error()
+    public function testHasTag($repository)
     {
-        $branch = $this->references->getBranch('notexisting');
+        $this->assertTrue($repository->getReferences()->hasTag('0.1'), 'Tag 0.1 exists');
+        $this->assertFalse($repository->getReferences()->hasTag('foobar'), 'Tag foobar does not exists');
     }
 
-    public function testGetTag()
+    /**
+     * @dataProvider provideFoobar
+     * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
+     */
+    public function testGetBranch_NotExisting_Error($repository)
     {
-        $tag = $this->references->getTag('0.1');
+        $branch = $repository->getReferences()->getBranch('notexisting');
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetTag($repository)
+    {
+        $tag = $repository->getReferences()->getTag('0.1');
 
         $this->assertTrue($tag instanceof Tag, "Tag object is correct type");
 
-        $this->assertEquals(self::INITIAL_COMMIT, $tag->getCommitHash(), "Commit hash is correct");
-        $this->assertEquals(self::INITIAL_COMMIT, $tag->getCommit()->getHash(), "Commit hash is correct");
+        $this->assertEquals(self::LONGFILE_COMMIT, $tag->getCommitHash(), "Commit hash is correct");
+        $this->assertEquals(self::LONGFILE_COMMIT, $tag->getCommit()->getHash(), "Commit hash is correct");
     }
 
     /**
+     * @dataProvider provideFoobar
      * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
      */
-    public function testGetTag_NotExisting_Error()
+    public function testGetTag_NotExisting_Error($repository)
     {
-        $branch = $this->references->getTag('notexisting');
+        $branch = $repository->getReferences()->getTag('notexisting');
     }
 
-    public function testResolve()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testResolve($repository)
     {
-        $resolved = $this->references->resolve(self::INITIAL_COMMIT);
+        $commit = $repository->getReferences()->getTag('0.1')->getCommit();
+        $resolved = $repository->getReferences()->resolve($commit->getHash());
 
         $this->assertEquals(1, count($resolved), "1 revision resolved");
         $this->assertTrue($resolved[0] instanceof Tag, "Resolved object is a tag");
     }
 
-    public function testResolveTags()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testResolveTags($repository)
     {
-        $resolved = $this->references->resolveTags(self::INITIAL_COMMIT);
+        $commit = $repository->getReferences()->getTag('0.1')->getCommit();
+        $resolved = $repository->getReferences()->resolveTags($commit->getHash());
 
         $this->assertEquals(1, count($resolved), "1 revision resolved");
         $this->assertTrue($resolved[0] instanceof Tag, "Resolved object is a tag");
     }
 
-    public function testResolveBranches()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testResolveBranches($repository)
     {
-        $master = $this->references->getBranch('master');
+        $master = $repository->getReferences()->getBranch('master');
 
-        $resolved = $this->references->resolveBranches($master->getCommitHash());
+        $resolved = $repository->getReferences()->resolveBranches($master->getCommitHash());
 
         $this->assertEquals(1, count($resolved), "1 revision resolved");
         $this->assertTrue($resolved[0] instanceof Branch, "Resolved object is a branch");
     }
 
-    public function testCountable()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testCountable($repository)
     {
-        $this->assertGreaterThanOrEqual(2, count($this->references), "At least two references in repository");
+        $this->assertGreaterThanOrEqual(2, count($repository->getReferences()), "At least two references in repository");
     }
 
-    public function testIterable()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testIterable($repository)
     {
         $i = 0;
-        foreach ($this->references as $ref) {
+        foreach ($repository->getReferences() as $ref) {
             $i++;
         }
         $this->assertGreaterThanOrEqual(2, $i, "At least two references in repository");
     }
 
-    public function testCreateAndDeleteTag()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testCreateAndDeleteTag($repository)
     {
-        $references = $this->getLibRepository()->getReferences();
+        $references = $repository->getReferences();
         $tag        = $references->createTag('0.0', self::INITIAL_COMMIT);
 
         $this->assertTrue($references->hasTag('0.0'), "Tag 0.0 created");
@@ -123,9 +153,12 @@ class ReferenceTest extends AbstractTest
         $this->assertFalse($references->hasTag('0.0'), "Tag 0.0 removed");
     }
 
-    public function testCreateAndDeleteBranch()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testCreateAndDeleteBranch($repository)
     {
-        $references = $this->getLibRepository()->getReferences();
+        $references = $repository->getReferences();
         $branch     = $references->createBranch('foobar', self::INITIAL_COMMIT);
 
         $this->assertTrue($references->hasBranch('foobar'), "Branch foobar created");

@@ -17,25 +17,78 @@ use Gitonomy\Git\Repository;
 
 abstract class AbstractTest extends \PHPUnit_Framework_TestCase
 {
-    private static $libRepo;
-    private static $testRepo;
+    const REPOSITORY_URL = 'git://github.com/gitonomy/foobar.git';
 
-    // Initial commit is the first commit of the repository
-    const INITIAL_COMMIT       = '1040d331549232a7d64907ec75d71d31da2e43f4';
-    const INITIAL_TREE         = '8bfd3135e80ee17c0d12d4b0f0f2297469aafdb7';
+    const LONGFILE_COMMIT        = '4f17752acc9b7c54ba679291bf24cb7d354f0f4f';
+    const BEFORE_LONGFILE_COMMIT = 'e0ec50e2af75fa35485513f60b2e658e245227e9';
+    const INITIAL_COMMIT         = '74acd054c8ec873ae6be044041d3a85a4f890ba5';
 
-    // Travis commit is the commit integrating Travis-CI to the project
-    const TRAVIS_COMMIT        = '6964dfd6bdc1b4449f8de2d687e4609f08219cf2';
-    const TRAVIS_PARENT_COMMIT = '922b7419044ddab753f66e163bbdd8c236f4d21e';
+    /**
+     * Local clone of remote URL. Avoids network call on each test.
+     */
+    private static $localRepository;
 
-    // Doc & Test commit (new file, deleted file, modified files)
-    const DOC_COMMIT           = 'f3c32f1e23d46391380c84a8cb388d1b86de9dfc';
+    /**
+     * Creates an empty git repository and returns instance.
+     *
+     * @return Repository
+     */
+    public static function createEmptyRepository($bare = true)
+    {
+        $dir = self::createTempDir();
+        $repository = Admin::init($dir, $bare);
+        self::registerDeletion($repository);
 
-    // References a blob in project: the README file
-    const README_BLOB     = 'e43530af24200d2ba946db7e6a069899287ec772';
-    const README_FRAGMENT = 'methods to access Git repository';
+        return $repository;
+    }
 
-    public function createTempDir()
+    /**
+     * Can be used as data provider to get bare/not-bare repositories.
+     */
+    public static function provideFoobar()
+    {
+        return array(
+            array(self::createFoobarRepository()),
+            array(self::createFoobarRepository(false))
+        );
+    }
+
+    /**
+     * Creates a fixture test repository.
+     *
+     * @return Repository
+     */
+    public static function createFoobarRepository($bare = true)
+    {
+        if (null === self::$localRepository) {
+            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL);
+            self::registerDeletion(self::$localRepository);
+        }
+
+        $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare);
+        self::registerDeletion($repository);
+
+        return $repository;
+    }
+
+    public static function registerDeletion(Repository $repository)
+    {
+        register_shutdown_function(function () use ($repository) {
+            if ($repository->getWorkingDir()) {
+                $dir = $repository->getWorkingDir();
+            } else {
+                $dir = $repository->getGitDir();
+            }
+            AbstractTest::deleteDir($dir);
+        });
+    }
+
+    /**
+     * Created an empty directory and return path to it.
+     *
+     * @return string a fullpath
+     */
+    public static function createTempDir()
     {
         $tmpDir = tempnam(sys_get_temp_dir(), 'gitlib_');
         unlink($tmpDir);
@@ -44,12 +97,12 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
         return $tmpDir;
     }
 
-    public function createEmptyRepository()
-    {
-        return Admin::init($this->createTempDir());
-    }
-
-    public function deleteDir($dir)
+    /**
+     * Deletes a directory recursively.
+     *
+     * @param string $dir directory to delete
+     */
+    public static function deleteDir($dir)
     {
         $iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS);
         $iterator = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::CHILD_FIRST);
@@ -62,42 +115,5 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
         }
 
         rmdir($dir);
-    }
-
-    public function getLibRepository()
-    {
-        if (null === self::$libRepo) {
-            self::$libRepo = $this->createRepositoryInstance($this->getLibDirectory());
-        }
-
-        return self::$libRepo;
-    }
-
-    public function getLibDirectory()
-    {
-        return __DIR__.'/../../../../test-sandbox';
-    }
-
-    public function getTestRepository()
-    {
-        if (null === self::$testRepo) {
-            self::$testRepo = $this->createRepositoryInstance($this->getTestDirectory());
-        }
-
-        return self::$testRepo;
-    }
-
-    public function getTestDirectory()
-    {
-        return __DIR__.'/../../../..';
-    }
-
-    protected function createRepositoryInstance($dir)
-    {
-        if (!is_dir($dir)) {
-            $this->markTestSkipped("Test sandbox folder not present");
-        }
-
-        return new Repository($dir);
     }
 }

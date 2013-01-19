@@ -20,42 +20,44 @@ use Gitonomy\Git\Event\PostCommandEvent;
 
 class RepositoryTest extends AbstractTest
 {
-    public function testGetBlob_WithExisting_Works()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetBlob_WithExisting_Works($repository)
     {
-        $repo = $this->getLibRepository();
+        $blob = $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('README.md');
 
-        $blob = $repo->getBlob(self::README_BLOB);
         $this->assertTrue($blob instanceof Blob, "getBlob() returns a Blob object");
-        $this->assertEquals(self::README_BLOB, $blob->getHash(), "getHash() returns passed hash");
+        $this->assertContains('Foo Bar project', $blob->getContent(), "file is correct");
     }
 
-    public function testGetSize()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetSize($repository)
     {
-        $repo = $this->getLibRepository();
-
-        $size = $repo->getSize();
+        $size = $repository->getSize();
         $this->assertGreaterThan(100, $size, "Repository is greater than 100KB");
     }
 
     public function testIsBare()
     {
-        // Lib repository
-        $repo = $this->getLibRepository();
-        $this->assertTrue($repo->isBare(), "Lib repository is bare");
+        $bare = self::createFoobarRepository(true);
+        $this->assertTrue($bare->isBare(), "Lib repository is bare");
 
-        // Test repository
-        $repo = $this->getTestRepository();
-        $this->assertFalse($repo->isBare(), "Working copy is not bare");
+        $notBare = self::createFoobarRepository(false);
+        $this->assertFalse($notBare->isBare(), "Working copy is not bare");
     }
 
-    public function testEventDispatcher_Basis()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testEventDispatcher_Basis($repository)
     {
-        $repo = new Repository($this->getTestDirectory());
-
         $test = $this;
 
         $before = false;
-        $repo->addListener(Events::PRE_COMMAND, function ($event) use ($test, &$before) {
+        $repository->addListener(Events::PRE_COMMAND, function ($event) use ($test, &$before) {
             $test->assertTrue($event instanceof PreCommandEvent);
             $test->assertEquals('remote', $event->getCommand(), "command is remote");
             $test->assertEquals(array('-v'), $event->getArgs(), "args is -v");
@@ -63,32 +65,33 @@ class RepositoryTest extends AbstractTest
         });
 
         $after = false;
-        $repo->addListener(Events::POST_COMMAND, function ($event) use ($test, &$after) {
+        $repository->addListener(Events::POST_COMMAND, function ($event) use ($test, &$after) {
             $test->assertTrue($event instanceof PostCommandEvent);
             $test->assertEquals('remote', $event->getCommand(), "command is remote");
             $test->assertEquals(array('-v'), $event->getArgs(), "args is -v");
             $after = true;
         });
 
-        $repo->run('remote', array('-v'));
+        $repository->run('remote', array('-v'));
 
         $this->assertTrue($before, "pre-command called");
         $this->assertTrue($after,  "post-command called");
     }
 
-    public function testEventDispatcher_Error()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testEventDispatcher_Error($repository)
     {
-        $repo = $this->getLibRepository();
-
         $test = $this;
 
         $after = false;
-        $repo->addListener(Events::POST_COMMAND, function ($event) use ($test, &$after) {
+        $repository->addListener(Events::POST_COMMAND, function ($event) use ($test, &$after) {
             $after = true;
         });
 
         try {
-            $repo->run('foobar');
+            $repository->run('foobar');
             $this->fail("expected exception on invalid command");
         } catch (\RuntimeException $e) {
         }
@@ -96,7 +99,10 @@ class RepositoryTest extends AbstractTest
         $this->assertTrue($after,  "post-command called");
     }
 
-    public function testLoggerOk()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testLoggerOk($repository)
     {
         if (!interface_exists('Psr\Log\LoggerInterface')) {
             $this->markTestSkipped();
@@ -112,16 +118,16 @@ class RepositoryTest extends AbstractTest
             ->method('debug')
         ;
 
-        $repo = $this->createRepositoryInstance($this->getLibDirectory());
-        $repo->setLogger($logger);
+        $repository->setLogger($logger);
 
-        $repo->run('remote');
+        $repository->run('remote');
     }
 
     /**
+     * @dataProvider provideFoobar
      * @expectedException RuntimeException
      */
-    public function testLoggerNOk()
+    public function testLoggerNOk($repository)
     {
         if (!interface_exists('Psr\Log\LoggerInterface')) {
             $this->markTestSkipped();
@@ -141,9 +147,8 @@ class RepositoryTest extends AbstractTest
             ->method('error')
         ;
 
-        $repo = $this->createRepositoryInstance($this->getLibDirectory());
-        $repo->setLogger($logger);
+        $repository->setLogger($logger);
 
-        $repo->run('not-work');
+        $repository->run('not-work');
     }
 }

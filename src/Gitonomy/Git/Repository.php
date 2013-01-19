@@ -419,6 +419,11 @@ class Repository
         return $this;
     }
 
+    public function cloneTo($path, $bare = true)
+    {
+        return Admin::cloneTo($path, $this->gitDir, $bare);
+    }
+
     /**
      * @see self::run
      */

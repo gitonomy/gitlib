@@ -17,9 +17,12 @@ use Gitonomy\Git\Diff;
 
 class CommitTest extends AbstractTest
 {
-    public function testGetDiff()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetDiff($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $diff = $commit->getDiff();
 
@@ -27,126 +30,161 @@ class CommitTest extends AbstractTest
         $this->assertEquals(array($commit->getHash()), $diff->getRevisions(), "getDiff() revision is correct");
     }
 
-    public function testGetHash()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetHash($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals(self::INITIAL_COMMIT, $commit->getHash());
+        $this->assertEquals(self::LONGFILE_COMMIT, $commit->getHash());
     }
 
-    public function testGetShortHash()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetShortHash($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('1040d33', $commit->getShortHash(), "Short hash");
+        $this->assertEquals('4f17752', $commit->getShortHash(), "Short hash");
     }
 
-    public function testGetParentHashes_WithNoParent()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetParentHashes_WithNoParent($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
         $this->assertEquals(0, count($commit->getParentHashes()), "No parent on initial commit");
     }
 
-    public function testGetParentHashes_WithOneParent()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetParentHashes_WithOneParent($repository)
     {
-        $commit  = $this->getTravisCommit();
+        $commit  = $repository->getCommit(self::LONGFILE_COMMIT);
         $parents = $commit->getParentHashes();
 
         $this->assertEquals(1, count($parents), "One parent found");
-        $this->assertEquals(self::TRAVIS_PARENT_COMMIT, $parents[0], "Parent hash is correct");
+        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $parents[0], "Parent hash is correct");
     }
 
-    public function testGetParents_WithOneParent()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetParents_WithOneParent($repository)
     {
-        $commit  = $this->getTravisCommit();
+        $commit  = $repository->getCommit(self::LONGFILE_COMMIT);
         $parents = $commit->getParents();
 
         $this->assertEquals(1, count($parents), "One parent found");
         $this->assertTrue($parents[0] instanceof Commit, "First parent is a Commit object");
-        $this->assertEquals(self::TRAVIS_PARENT_COMMIT, $parents[0]->getHash(), "First parents's hash is correct");
+        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $parents[0]->getHash(), "First parents's hash is correct");
     }
 
-    public function testGetTree()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetTree($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals(self::INITIAL_TREE, $commit->getTreeHash(), "Tree hash is correct");
+        $this->assertEquals('b06890c7b10904979d2f69613c2ccda30aafe262', $commit->getTreeHash(), "Tree hash is correct");
     }
 
-    public function testGetAuthorName()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetAuthorName($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('alexandresalome', $commit->getAuthorName(), "Author name");
+        $this->assertEquals('alice', $commit->getAuthorName(), "Author name");
     }
 
-    public function testGetAuthorEmail()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetAuthorEmail($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('alexandre.salome@gmail.com', $commit->getAuthorEmail(), "Author email");
+        $this->assertEquals('alice@example.org', $commit->getAuthorEmail(), "Author email");
     }
 
-    public function testGetAuthorDate()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetAuthorDate($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('2012-09-06 22:30:04', $commit->getAuthorDate()->format('Y-m-d H:i:s'), 'Author date');
+        $this->assertEquals('2012-12-31 14:21:03', $commit->getAuthorDate()->format('Y-m-d H:i:s'), 'Author date');
     }
 
-    public function testGetCommitterName()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetCommitterName($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('alexandresalome', $commit->getCommitterName(), "Committer name");
+        $this->assertEquals('alice', $commit->getCommitterName(), "Committer name");
     }
 
-    public function testGetCommitterEmail()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetCommitterEmail($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('alexandre.salome@gmail.com', $commit->getCommitterEmail(), "Committer email");
+        $this->assertEquals('alice@example.org', $commit->getCommitterEmail(), "Committer email");
     }
 
-    public function testGetCommitterDate()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetCommitterDate($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('2012-09-06 22:30:04', $commit->getCommitterDate()->format('Y-m-d H:i:s'), 'Committer date');
+        $this->assertEquals('2012-12-31 14:21:03', $commit->getCommitterDate()->format('Y-m-d H:i:s'), 'Committer date');
     }
 
-    public function testGetMessage()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetMessage($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('Initial commit'."\n", $commit->getMessage());
+        $this->assertEquals('add a long file'."\n", $commit->getMessage());
     }
 
-    public function testGetShortMessage()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetShortMessage($repository)
     {
-        $commit = $this->getInitialCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('Initial commit', $commit->getShortMessage());
+        $this->assertEquals('add a long file', $commit->getShortMessage());
     }
 
-    public function testGetLastModification()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetLastModification($repository)
     {
-        $commit = $this->getTravisCommit();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $lastModification = $commit->getLastModification('LICENSE');
+        $lastModification = $commit->getLastModification('image.jpg');
 
         $this->assertTrue($lastModification instanceof Commit, "Last modification is a Commit object");
-        $this->assertEquals(self::INITIAL_COMMIT, $lastModification->getHash(), "Last modification on LICENCE was initial commit");
-    }
-
-    private function getInitialCommit()
-    {
-        return $this->getLibRepository()->getCommit(self::INITIAL_COMMIT);
-    }
-
-    private function getTravisCommit()
-    {
-        return $this->getLibRepository()->getCommit(self::TRAVIS_COMMIT);
+        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $lastModification->getHash(), "Last modification is current commit");
     }
 }

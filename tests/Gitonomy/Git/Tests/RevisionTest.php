@@ -18,10 +18,12 @@ use Gitonomy\Git\Revision;
 
 class RevisionTest extends AbstractTest
 {
-    public function testGetCommit()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetCommit($repository)
     {
-        $repository = $this->getLibRepository();
-        $revision = $repository->getRevision(self::TRAVIS_COMMIT.'^');
+        $revision = $repository->getRevision(self::LONGFILE_COMMIT.'^');
 
         $this->assertTrue($revision instanceof Revision, "Revision object type");
 
@@ -29,19 +31,21 @@ class RevisionTest extends AbstractTest
 
         $this->assertTrue($commit instanceof Commit, "getResolved returns a Commit");
 
-        $this->assertEquals(self::TRAVIS_PARENT_COMMIT, $commit->getHash(), "Resolution is correct");
+        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commit->getHash(), "Resolution is correct");
     }
 
-    public function testGetLog()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetLog($repository)
     {
-        $repository = $this->getLibRepository();
-        $revision = $repository->getRevision(self::TRAVIS_COMMIT);
+        $revision = $repository->getRevision(self::LONGFILE_COMMIT);
 
         $log = $revision->getLog(null, 2, 3);
 
         $this->assertTrue($log instanceof Log, "Log type object");
         $this->assertEquals(2, $log->getOffset(), "Log offset is passed");
         $this->assertEquals(3, $log->getLimit(), "Log limit is passed");
-        $this->assertEquals(array(self::TRAVIS_COMMIT), $log->getRevisions(), "Revision is passed");
+        $this->assertEquals(array(self::LONGFILE_COMMIT), $log->getRevisions(), "Revision is passed");
     }
 }

@@ -25,10 +25,10 @@ class PushReferenceTest extends AbstractTest
     {
         // mask: force fastforward create delete
         return array(
-            array('foo', PushReference::ZERO,        self::TRAVIS_COMMIT,        self::CREATE),
-            array('foo', self::TRAVIS_COMMIT,        PushReference::ZERO,        self::DELETE),
-            array('foo', self::TRAVIS_COMMIT,        self::TRAVIS_PARENT_COMMIT, self::FORCE),
-            array('foo', self::TRAVIS_PARENT_COMMIT, self::TRAVIS_COMMIT,        self::FAST_FORWARD),
+            array('foo', PushReference::ZERO,          self::LONGFILE_COMMIT,        self::CREATE),
+            array('foo', self::LONGFILE_COMMIT,        PushReference::ZERO,          self::DELETE),
+            array('foo', self::LONGFILE_COMMIT,        self::BEFORE_LONGFILE_COMMIT, self::FORCE),
+            array('foo', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT,        self::FAST_FORWARD),
         );
     }
 
@@ -37,33 +37,34 @@ class PushReferenceTest extends AbstractTest
      */
     public function testIsers($reference, $before, $after, $mask)
     {
-        $reference = new PushReference($this->getLibRepository(), $reference, $before, $after);
+        $reference = new PushReference(self::createFoobarRepository(), $reference, $before, $after);
         $this->assertEquals($mask & self::CREATE,        $reference->isCreate(),       'Create value is correct.');
         $this->assertEquals($mask & self::DELETE,        $reference->isDelete(),       'Delete value is correct.');
         $this->assertEquals($mask & self::FORCE,         $reference->isForce(),        'Force value is correct.');
         $this->assertEquals($mask & self::FAST_FORWARD,  $reference->isFastForward(),  'FastForward value is correct.');
     }
 
-    public function testLog()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testLog($repository)
     {
-        $ref = $this->getReference('foo', self::INITIAL_COMMIT, self::TRAVIS_COMMIT);
+        $ref = new PushReference($repository, 'foo', self::INITIAL_COMMIT, self::LONGFILE_COMMIT);
 
         $log = $ref->getLog()->getCommits();
-        $this->assertEquals(4, count($log), "4 commits in log");
-        $this->assertEquals('Travis-CI integration', $log[0]->getShortMessage(), "First commit is correct");
+        $this->assertEquals(7, count($log), "7 commits in log");
+        $this->assertEquals('add a long file', $log[0]->getShortMessage(), "First commit is correct");
     }
 
-    public function testLogWithExclude()
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testLogWithExclude($repository)
     {
-        $ref = $this->getReference('foo', PushReference::ZERO, self::TRAVIS_COMMIT);
+        $ref = new PushReference($repository, 'foo', PushReference::ZERO, self::LONGFILE_COMMIT);
 
         $log = $ref->getLog(array(self::INITIAL_COMMIT))->getCommits();
-        $this->assertEquals(4, count($log), "4 commits in log");
-        $this->assertEquals('Travis-CI integration', $log[0]->getShortMessage(), "First commit is correct");
-    }
-
-    protected function getReference($reference, $before, $after)
-    {
-        return new PushReference($this->getLibRepository(), $reference, $before, $after);
+        $this->assertEquals(7, count($log), "7 commits in log");
+        $this->assertEquals('add a long file', $log[0]->getShortMessage(), "First commit is correct");
     }
 }
