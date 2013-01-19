@@ -168,7 +168,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         }
 
         $tags = array();
-        foreach ($this->references as $k => $reference) {
+        foreach ($this->references as $reference) {
             if ($reference instanceof Reference\Tag && $reference->getCommitHash() === $hash) {
                 $tags[] = $reference;
             }
@@ -188,14 +188,14 @@ class ReferenceBag implements \Countable, \IteratorAggregate
             $hash = $hash->getHash();
         }
 
-        $tags = array();
-        foreach ($this->references as $k => $reference) {
+        $branches = array();
+        foreach ($this->references as $reference) {
             if ($reference instanceof Reference\Branch && $reference->getCommitHash() === $hash) {
-                $tags[] = $reference;
+                $branches[] = $reference;
             }
         }
 
-        return $tags;
+        return $branches;
     }
 
     /**
