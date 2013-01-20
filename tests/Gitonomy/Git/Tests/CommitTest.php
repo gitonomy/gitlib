@@ -170,9 +170,69 @@ class CommitTest extends AbstractTest
      */
     public function testGetShortMessage($repository)
     {
-        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
+        $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
 
-        $this->assertEquals('add a long file', $commit->getShortMessage());
+        $this->assertEquals('Fixed perm...', $commit->getShortMessage(10));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetSubjectMessage($repository)
+    {
+        $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
+
+        $this->assertEquals('Fixed perm!!!', $commit->getShortMessage(10, false, '!!!'));
+        $this->assertEquals('Fixed permissions!!!', $commit->getShortMessage(10, true, '!!!'));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetBodyMessage($repository)
+    {
+        $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
+        $message = <<<EOL
+If you want to know everything,
+I ran something like `chmox +x test.sh`
+
+Hello and good bye.
+
+EOL;
+
+        $this->assertEquals($message, $commit->getBodyMessage());
+
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
+
+        $this->assertEquals('', $commit->getBodyMessage());
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     * @dataProvider provideFoobar
+     */
+    public function testGetIncludingBranchesException($repository)
+    {
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
+
+        $commit->getIncludingBranches(false, false);
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetIncludingBranches($repository)
+    {
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
+
+        $branches = $commit->getIncludingBranches(true, false);
+        $this->assertCount(count($repository->getReferences()->getLocalBranches()), $branches);
+
+        $branches = $commit->getIncludingBranches(true, true);
+        $this->assertCount(count($repository->getReferences()->getBranches()), $branches);
+
+        $branches = $commit->getIncludingBranches(false, true);
+        $this->assertCount(count($repository->getReferences()->getRemoteBranches()), $branches);
     }
 
     /**

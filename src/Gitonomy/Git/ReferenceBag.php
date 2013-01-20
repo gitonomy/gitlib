@@ -143,6 +143,11 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->has('refs/heads/'.$name);
     }
 
+    public function hasRemoteBranch($name)
+    {
+        return $this->has('refs/remotes/'.$name);
+    }
+
     public function hasTag($name)
     {
         return $this->has('refs/tags/'.$name);
@@ -168,7 +173,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         }
 
         $tags = array();
-        foreach ($this->references as $k => $reference) {
+        foreach ($this->references as $reference) {
             if ($reference instanceof Reference\Tag && $reference->getCommitHash() === $hash) {
                 $tags[] = $reference;
             }
@@ -188,14 +193,14 @@ class ReferenceBag implements \Countable, \IteratorAggregate
             $hash = $hash->getHash();
         }
 
-        $tags = array();
-        foreach ($this->references as $k => $reference) {
+        $branches = array();
+        foreach ($this->references as $reference) {
             if ($reference instanceof Reference\Branch && $reference->getCommitHash() === $hash) {
-                $tags[] = $reference;
+                $branches[] = $reference;
             }
         }
 
-        return $tags;
+        return $branches;
     }
 
     /**
@@ -251,6 +256,40 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * Returns all locales branches.
+     *
+     * @return array
+     */
+    public function getLocalBranches()
+    {
+        $result = array();
+        foreach ($this->getBranches() as $branch) {
+            if ($branch->isLocal()) {
+                $result[] = $branch;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns all remote branches.
+     *
+     * @return array
+     */
+    public function getRemoteBranches()
+    {
+        $result = array();
+        foreach ($this->getBranches() as $branch) {
+            if ($branch->isRemote()) {
+                $result[] = $branch;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * @return array An associative array with fullname as key (refs/heads/master, refs/tags/0.1)
      */
     public function getAll()
@@ -280,6 +319,16 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->get('refs/heads/'.$name);
     }
 
+    /**
+     * @return Branch
+     */
+    public function getRemoteBranch($name)
+    {
+        $this->initialize();
+
+        return $this->get('refs/remotes/'.$name);
+    }
+
     protected function initialize()
     {
         if (true === $this->initialized) {
@@ -289,7 +338,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
 
         try {
             $parser = new Parser\ReferenceParser();
-            $output = $this->repository->run('show-ref', array('--tags', '--heads'));
+            $output = $this->repository->run('show-ref');
         } catch (\RuntimeException $e) {
             $output = $e->getOutput();
             $error  = $e->getErrorOutput();
@@ -302,11 +351,14 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         foreach ($parser->references as $row) {
             list($commitHash, $fullname) = $row;
 
-            if (preg_match('#^refs/heads/(.*)$#', $fullname, $vars)) {
+            if (preg_match('#^refs/(heads|remotes)/(.*)$#', $fullname)) {
+                if (preg_match('#.*HEAD$#', $fullname)) {
+                    continue;
+                }
                 $reference = new Reference\Branch($this->repository, $fullname, $commitHash);
                 $this->references[$fullname] = $reference;
                 $this->branches[] = $reference;
-            } elseif (preg_match('#^refs/tags/(.*)$#', $fullname, $vars)) {
+            } elseif (preg_match('#^refs/tags/(.*)$#', $fullname)) {
                 $reference = new Reference\Tag($this->repository, $fullname, $commitHash);
                 $this->references[$fullname] = $reference;
                 $this->tags[] = $reference;

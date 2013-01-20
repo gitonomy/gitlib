@@ -19,7 +19,6 @@ class ReferenceTest extends AbstractTest
 {
     private $references;
 
-
     /**
      * @dataProvider provideFoobar
      */
@@ -89,7 +88,7 @@ class ReferenceTest extends AbstractTest
         $resolved = $repository->getReferences()->resolve($commit->getHash());
 
         $this->assertEquals(1, count($resolved), "1 revision resolved");
-        $this->assertTrue($resolved[0] instanceof Tag, "Resolved object is a tag");
+        $this->assertTrue(reset($resolved) instanceof Tag, "Resolved object is a tag");
     }
 
     /**
@@ -101,7 +100,7 @@ class ReferenceTest extends AbstractTest
         $resolved = $repository->getReferences()->resolveTags($commit->getHash());
 
         $this->assertEquals(1, count($resolved), "1 revision resolved");
-        $this->assertTrue($resolved[0] instanceof Tag, "Resolved object is a tag");
+        $this->assertTrue(reset($resolved) instanceof Tag, "Resolved object is a tag");
     }
 
     /**
@@ -113,8 +112,13 @@ class ReferenceTest extends AbstractTest
 
         $resolved = $repository->getReferences()->resolveBranches($master->getCommitHash());
 
-        $this->assertEquals(1, count($resolved), "1 revision resolved");
-        $this->assertTrue($resolved[0] instanceof Branch, "Resolved object is a branch");
+        if ($repository->isBare()) {
+            $this->assertEquals(1, count($resolved), "1 revision resolved");
+        } else {
+            $this->assertEquals(2, count($resolved), "2 revision resolved");
+        }
+
+        $this->assertTrue(reset($resolved) instanceof Branch, "Resolved object is a branch");
     }
 
     /**

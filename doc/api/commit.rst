@@ -94,11 +94,32 @@ To access the message, you can use the *getMessage* method:
     $commit->getMessage();
 
 For your convenience, this library provides a shortcut method to keep only the
-first line or first 80 characters if the first line is too long:
+first line or first 50 characters if the first line is too long:
 
 .. code-block:: php
 
     $commit->getShortMessage();
+
+You can customize it like this:
+
+.. code-block:: php
+
+    $commit->getShortMessage(45, true, '.');
+
+* The first parameter is the max length of the message.
+* The second parameter determine if the last word should be cut or preserved
+* The third parameter is the separator
+
+There are also two other methods for your convenience:
+
+.. code-block:: php
+
+    // The first line
+    $commit->getSubjectMessage();
+
+    // The body (rest of the message)
+    $commit->getBodyMessage();
+
 
 Diff of a commit
 ----------------
@@ -137,3 +158,12 @@ Here is a very straightforward example:
     echo"  Author: ".$last->getAuthorName()."\n";
     echo"    Date: ".$last->getAuthorDate()->format('d/m/Y')."\n";
     echo" Message: ".$last->getMessage();
+
+Find every branches containing a commit
+---------------------------------------
+
+.. code-block:: php
+
+    $branches       = $commit->getIncludingBranches($includeLocalBranches, $includeRemoteBranches);
+    $localBranches  = $commit->getIncludingBranches(true, false);
+    $remoteBranches = $commit->getIncludingBranches(false, true);

@@ -21,15 +21,42 @@ use Gitonomy\Git\Reference;
  */
 class Branch extends Reference
 {
+    private $local = null;
+
     /**
      * {@inheritdoc}
      */
     public function getName()
     {
-        if (!preg_match('#^refs/heads/(.*)$#', $this->fullname, $vars)) {
-            throw new \RuntimeException(sprintf('Cannot extract branch name from "%s"', $this->fullname));
+        if (preg_match('#^refs/heads/(?<name>.*)$#', $this->fullname, $vars)) {
+            return $vars['name'];
         }
 
-        return $vars[1];
+        if (preg_match('#^refs/remotes/(?<remote>[^/]*)/(?<name>.*)$#', $this->fullname, $vars)) {
+            return $vars['remote'].'/'.$vars['name'];
+        }
+
+        throw new \RuntimeException(sprintf('Cannot extract branch name from "%s"', $this->fullname));
+    }
+
+    public function isRemote()
+    {
+        $this->detectBranchType();
+
+        return !$this->local;
+    }
+
+    public function isLocal()
+    {
+        $this->detectBranchType();
+
+        return $this->local;
+    }
+
+    private function detectBranchType()
+    {
+        if (null === $this->local) {
+            $this->local = !preg_match('#^refs/remotes/(?<remote>[^/]*)/(?<name>.*)$#', $this->fullname);
+        }
     }
 }

@@ -16,6 +16,6 @@ class ReferenceNotFoundException extends \InvalidArgumentException implements Gi
 {
     public function __construct($reference)
     {
-        parent::__construct(sprintf('Reference not found'));
+        parent::__construct(sprintf('Reference not found: "%s"', $reference));
     }
 }
