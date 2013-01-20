@@ -11,6 +11,7 @@ API documentation
    api/commit
    api/blame
    api/blob
+   api/branch
    api/tree
    api/log
    api/diff

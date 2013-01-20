@@ -112,13 +112,6 @@ class Commit
     private $message;
 
     /**
-     * Short message of the commit.
-     *
-     * @var string
-     */
-    private $shortMessage;
-
-    /**
      * Constructor.
      *
      * @param Gitonomy\Git\Repository $repository Repository of the commit
@@ -266,36 +259,97 @@ class Commit
     }
 
     /**
-     * Returns the first line of the commit, and the first 80 characters.
+     * Returns the first line of the commit, and the first 50 characters.
+     *
+     * Ported from https://github.com/fabpot/Twig-extensions/blob/d67bc7e69788795d7905b52d31188bbc1d390e01/lib/Twig/Extensions/Extension/Text.php#L52-L109
+     *
+     * @param integer $length
+     * @param boolean $preserve
+     * @param string  $separator
      *
      * @return string
      */
-    public function getShortMessage($limit = 50)
+    public function getShortMessage($length = 50, $preserve = false, $separator = '...')
     {
         $this->initialize();
 
-        if (null !== $this->shortMessage) {
-            return $this->shortMessage;
-        }
+        $message = $this->getSubjectMessage();
 
-        $pos    = mb_strpos($this->message, "\n");
-        $length = mb_strlen($this->message);
+        if (function_exists('mb_substr')) {
+            if (mb_strlen($message) > $length) {
+                if ($preserve) {
+                    if (false !== ($breakpoint = mb_strpos($message, ' ', $length))) {
+                        $length = $breakpoint;
+                    }
+                }
 
-        if (false === $pos) {
-            if ($length < $limit) {
-                $shortMessage = $this->message;
-            } else {
-                $shortMessage = mb_substr($this->message, 0, $limit).'...';
+                return rtrim(mb_substr($message, 0, $length)) . $separator;
             }
+
+            return $message;
         } else {
-            if ($pos < $limit) {
-                $shortMessage = mb_substr($this->message, 0, $pos);
+            if (strlen($message) > $length) {
+                if ($preserve) {
+                    if (false !== ($breakpoint = strpos($message, ' ', $length))) {
+                        $length = $breakpoint;
+                    }
+                }
+
+                return rtrim(substr($message, 0, $length)) . $separator;
+            }
+
+            return $message;
+        }
+    }
+
+    /**
+     * Find branch containing the commit
+     *
+     * @param boolean $local  set true to try to locate a commit on local repository
+     * @param boolean $remote set true to try to locate a commit on remote repository
+     *
+     * @return array An array of Reference\Branch
+     */
+    public function getIncludingBranches($local = true, $remote = true)
+    {
+        $arguments = array('--contains', $this->hash);
+
+        if ($local && $remote) {
+            $arguments[] = '-a';
+        } elseif (!$local && $remote) {
+            $arguments[] = '-r';
+        } elseif (!$local && !$remote) {
+            throw new \InvalidArgumentException('You should a least set one argument to true');
+        }
+
+        try {
+            $result = $this->repository->run('branch', $arguments);
+        } catch (\Exception $e) {
+            return array();
+        }
+
+        if (!$result) {
+            return array();
+        }
+
+        $branchesName = explode("\n", trim(str_replace('*', '', $result)));
+        $branchesName = array_filter($branchesName, function($v) { return false === strpos($v, '->');});
+        $branchesName = array_map('trim', $branchesName);
+
+        $references = $this->repository->getReferences();
+
+        $branches = array();
+        foreach ($branchesName as $branchName) {
+            if (false === $local) {
+                $branches[] = $references->getRemoteBranch($branchName);
+            } elseif (0 === strrpos($branchName, 'remotes/')) {
+                $branches[] = $references->getRemoteBranch(str_replace('remotes/', '', $branchName));
             } else {
-                $shortMessage = mb_substr($this->message, 0, $limit).'...';
+                $branches[] = $references->getBranch($branchName);
             }
         }
 
-        return $this->shortMessage = $shortMessage;
+        return $branches;
     }
 
     /**
@@ -380,5 +434,36 @@ class Commit
         $this->initialize();
 
         return $this->message;
+    }
+
+    /**
+     * Returns the subject message (the first line)
+     *
+     * @return string The subject message
+     */
+    public function getSubjectMessage()
+    {
+        $message = $this->getMessage();
+
+        $lines = explode("\n", $message);
+
+        return reset($lines);
+    }
+
+    /**
+     * Return the body message
+     *
+     * @return string The body message
+     */
+    public function getBodyMessage()
+    {
+        $message = $this->getMessage();
+
+        $lines = explode("\n", $message);
+
+        array_shift($lines);
+        array_shift($lines);
+
+        return implode("\n", $lines);
     }
 }

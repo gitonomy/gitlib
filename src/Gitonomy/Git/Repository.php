@@ -418,6 +418,8 @@ class Repository
 
         $builder = new ProcessBuilder(array_merge($base, $args));
 
+        $builder->inheritEnvironmentVariables(false);
+
         return $builder->getProcess();
     }
 }

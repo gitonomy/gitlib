@@ -21,6 +21,7 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
 
     const LONGFILE_COMMIT        = '4f17752acc9b7c54ba679291bf24cb7d354f0f4f';
     const BEFORE_LONGFILE_COMMIT = 'e0ec50e2af75fa35485513f60b2e658e245227e9';
+    const LONGMESSAGE_COMMIT     = '3febd664b6886344a9b32d70657687ea4b1b4fab';
     const INITIAL_COMMIT         = '74acd054c8ec873ae6be044041d3a85a4f890ba5';
 
     /**
