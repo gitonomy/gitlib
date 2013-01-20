@@ -381,4 +381,81 @@ class Commit
 
         return $this->message;
     }
+
+    public function toJson()
+    {
+        $this->initialize();
+
+        return json_encode(array(
+            'authorDate'     => $this->authorDate,
+            'authorEmail'    => $this->authorEmail,
+            'authorName'     => $this->authorName,
+            'committerDate'  => $this->committerDate,
+            'committerEmail' => $this->committerEmail,
+            'committerName'  => $this->committerName,
+            'hash'           => $this->hash,
+            'message'        => $this->message,
+        ));
+    }
+
+    public function fromJson($json)
+    {
+        $datas = json_decode($json, true);
+
+        $this->initialized = true;
+
+        $this->authorDate     = new \DateTime($datas['authorDate']['date'], new \DateTimeZone($datas['authorDate']['timezone']));
+        $this->authorEmail    = $datas['authorEmail'];
+        $this->authorName     = $datas['authorName'];
+        $this->committerDate  = new \DateTime($datas['committerDate']['date'], new \DateTimeZone($datas['committerDate']['timezone']));
+        $this->committerEmail = $datas['committerEmail'];
+        $this->committerName  = $datas['committerName'];
+        $this->hash           = $datas['hash'];
+        $this->message        = $datas['message'];
+    }
+
+    public static function createInstanceFrom($json)
+    {
+        $datas = json_decode($json, true);
+
+        $commit = new static(new FakeRepository, $datas['hash']);
+
+        $commit->fromJson($json);
+
+        return $commit;
+    }
+}
+
+class FakeRepository extends Repository
+{
+    public function __construct() {}
+
+    public function addListener($eventName, $listener, $priority = 0) { $this->warn(); }
+    public function cloneTo($path, $bare = true) { $this->warn(); }
+    public function getBlame($revision, $file, $lineRange = null) { $this->warn(); }
+    public function getBlob($hash) { $this->warn(); }
+    public function getCommit($hash) { $this->warn(); }
+    public function getDiff($revision) { $this->warn(); }
+    public function getGitDir() { $this->warn(); }
+    public function getHead() { $this->warn(); }
+    public function getHeadCommit() { $this->warn(); }
+    public function getHooks() { $this->warn(); }
+    public function getLog($revisions = null, $paths = null, $offset = null, $limit = null) { $this->warn(); }
+    public function getPath() { $this->warn(); }
+    public function getReferences() { $this->warn(); }
+    public function getRevision($name) { $this->warn(); }
+    public function getSize() { $this->warn(); }
+    public function getTree($hash) { $this->warn(); }
+    public function getWorkingCopy() { $this->warn(); }
+    public function getWorkingDir() { $this->warn(); }
+    public function isBare() { $this->warn(); }
+    public function isHeadAttached() { $this->warn(); }
+    public function isHeadDetached() { $this->warn(); }
+    public function run($command, $args = array()) { $this->warn(); }
+    public function shell($command, array $env = array()) { $this->warn(); }
+
+    private function warn()
+    {
+        throw new \Exception('You can use repository when load a commit from json');
+    }
 }
