@@ -187,4 +187,16 @@ class CommitTest extends AbstractTest
         $this->assertTrue($lastModification instanceof Commit, "Last modification is a Commit object");
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $lastModification->getHash(), "Last modification is current commit");
     }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testToJson($repository)
+    {
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
+
+        $commit2 = Commit::createInstanceFrom($commit->toJson());
+
+        $this->assertEquals($commit->getAuthorDate(), $commit2->getAuthorDate());
+    }
 }
