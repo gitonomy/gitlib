@@ -19,7 +19,6 @@ class ReferenceTest extends AbstractTest
 {
     private $references;
 
-
     /**
      * @dataProvider provideFoobar
      */

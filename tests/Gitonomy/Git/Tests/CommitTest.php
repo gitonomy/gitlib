@@ -208,6 +208,34 @@ EOL;
     }
 
     /**
+     * @expectedException InvalidArgumentException
+     * @dataProvider provideFoobar
+     */
+    public function testGetIncludingBranchesException($repository)
+    {
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
+
+        $commit->getIncludingBranches(false, false);
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetIncludingBranches($repository)
+    {
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
+
+        $branches = $commit->getIncludingBranches(true, false);
+        $this->assertCount(count($repository->getReferences()->getLocalBranches()), $branches);
+
+        $branches = $commit->getIncludingBranches(true, true);
+        $this->assertCount(count($repository->getReferences()->getBranches()), $branches);
+
+        $branches = $commit->getIncludingBranches(false, true);
+        $this->assertCount(count($repository->getReferences()->getRemoteBranches()), $branches);
+    }
+
+    /**
      * @dataProvider provideFoobar
      */
     public function testGetLastModification($repository)

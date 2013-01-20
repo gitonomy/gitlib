@@ -303,6 +303,56 @@ class Commit
     }
 
     /**
+     * Find branch containing the commit
+     *
+     * @param boolean $local  set true to try to locate a commit on local repository
+     * @param boolean $remote set true to try to locate a commit on remote repository
+     *
+     * @return array An array of Reference\Branch
+     */
+    public function getIncludingBranches($local = true, $remote = true)
+    {
+        $arguments = array('--contains', $this->hash);
+
+        if ($local && $remote) {
+            $arguments[] = '-a';
+        } elseif (!$local && $remote) {
+            $arguments[] = '-r';
+        } elseif (!$local && !$remote) {
+            throw new \InvalidArgumentException('You should a least set one argument to true');
+        }
+
+        try {
+            $result = $this->repository->run('branch', $arguments);
+        } catch (\Exception $e) {
+            return array();
+        }
+
+        if (!$result) {
+            return array();
+        }
+
+        $branchesName = explode("\n", trim(str_replace('*', '', $result)));
+        $branchesName = array_filter($branchesName, function($v) { return false === strpos($v, '->');});
+        $branchesName = array_map('trim', $branchesName);
+
+        $references = $this->repository->getReferences();
+
+        $branches = array();
+        foreach ($branchesName as $branchName) {
+            if (false === $local) {
+                $branches[] = $references->getRemoteBranch($branchName);
+            } elseif (0 === strrpos($branchName, 'remotes/')) {
+                $branches[] = $references->getRemoteBranch(str_replace('remotes/', '', $branchName));
+            } else {
+                $branches[] = $references->getBranch($branchName);
+            }
+        }
+
+        return $branches;
+    }
+
+    /**
      * Returns the author name.
      *
      * @return string A name

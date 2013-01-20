@@ -12,8 +12,6 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Admin;
-
 class HooksTest extends AbstractTest
 {
     public function hookPath($repository, $hook)
