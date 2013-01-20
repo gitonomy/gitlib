@@ -64,13 +64,14 @@ class AdminTest extends AbstractTest
         $new = $repository->cloneTo($newDir, $repository->isBare());
         self::registerDeletion($new);
 
-        $oldRefs = $repository->getReferences()->getAll();
-        $newRefs = $new->getReferences()->getAll();
+        $newRefs = array_keys($new->getReferences()->getAll());
 
-        $this->assertEquals(array_keys($oldRefs), array_keys($newRefs), "same references in both repositories");
+        $this->assertTrue(in_array('refs/heads/master', $newRefs));
+        $this->assertTrue(in_array('refs/tags/0.1', $newRefs));
 
         if ($repository->isBare()) {
             $this->assertEquals($newDir, $new->getGitDir());
+        $this->assertTrue(in_array('refs/heads/new-feature', $newRefs));
         } else {
             $this->assertEquals($newDir.'/.git', $new->getGitDir());
             $this->assertEquals($newDir, $new->getWorkingDir());
