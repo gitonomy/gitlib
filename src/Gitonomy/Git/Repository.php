@@ -12,14 +12,10 @@
 
 namespace Gitonomy\Git;
 
-use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Process\ProcessBuilder;
 use Symfony\Component\Process\Process;
 use Psr\Log\LoggerInterface;
 
-use Gitonomy\Git\Event\Events;
-use Gitonomy\Git\Event\PreCommandEvent;
-use Gitonomy\Git\Event\PostCommandEvent;
 use Gitonomy\Git\Exception\RuntimeException;
 
 /**
@@ -98,8 +94,6 @@ class Repository
         $this->objects    = array();
 
         $this->logger     = $logger;
-
-        $this->eventDispatcher = new EventDispatcher();
     }
 
     public function isBare()
@@ -355,46 +349,31 @@ class Repository
     {
         $process = $this->getProcess($command, $args);
 
-        if ($this->eventDispatcher->hasListeners()) {
-            $event = new PreCommandEvent($process, $command, $args);
-            $this->eventDispatcher->dispatch(Events::PRE_COMMAND, $event);
-        }
-
         if ($this->logger) {
-            $this->logger->info(sprintf('run command: "%", args: "%s"', $command, print_r($args, true)));
+            $this->logger->info(sprintf('run command: %s "%s" ', $command, implode('", "', $args)));
         }
 
         $before = microtime(true);
         $process->run();
         $duration = microtime(true) - $before;
 
-        if ($this->eventDispatcher->hasListeners()) {
-            $event = new PostCommandEvent($process, $command, $args);
-            $event->setDuration($duration);
-            $this->eventDispatcher->dispatch(Events::POST_COMMAND, $event);
-        }
-
         $output = $process->getOutput();
 
         if ($this->logger) {
-            $this->logger->debug(sprintf('last command ("%s") return code: "%s"', $command, $process->getExitCode()));
-            $this->logger->debug(sprintf('last command ("%s") output: "%s"', $command, $output));
+            $this->logger->debug(sprintf('last command (%s) duration: %sms', $command, sprintf('%.2f', $duration*1000)));
+            $this->logger->debug(sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
+            $this->logger->debug(sprintf('last command (%s) output: %s', $command, $output));
         }
 
         if (!$process->isSuccessful()) {
             if ($this->logger) {
-                $this->logger->error(sprintf('last command ("%s") error output: "%s"', $command, $process->getErrorOutput()));
+                $this->logger->error(sprintf('last command (%s) error output: "%s"', $command, $process->getErrorOutput()));
             }
 
             throw new RuntimeException($process);
         }
 
         return $output;
-    }
-
-    public function addListener($eventName, $listener, $priority = 0)
-    {
-        $this->eventDispatcher->addListener($eventName, $listener, $priority);
     }
 
     /**

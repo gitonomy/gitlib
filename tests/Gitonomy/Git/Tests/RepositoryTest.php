@@ -14,9 +14,6 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Repository;
 use Gitonomy\Git\Blob;
-use Gitonomy\Git\Event\Events;
-use Gitonomy\Git\Event\PreCommandEvent;
-use Gitonomy\Git\Event\PostCommandEvent;
 
 class RepositoryTest extends AbstractTest
 {
@@ -52,56 +49,6 @@ class RepositoryTest extends AbstractTest
     /**
      * @dataProvider provideFoobar
      */
-    public function testEventDispatcher_Basis($repository)
-    {
-        $test = $this;
-
-        $before = false;
-        $repository->addListener(Events::PRE_COMMAND, function ($event) use ($test, &$before) {
-            $test->assertTrue($event instanceof PreCommandEvent);
-            $test->assertEquals('remote', $event->getCommand(), "command is remote");
-            $test->assertEquals(array('-v'), $event->getArgs(), "args is -v");
-            $before = true;
-        });
-
-        $after = false;
-        $repository->addListener(Events::POST_COMMAND, function ($event) use ($test, &$after) {
-            $test->assertTrue($event instanceof PostCommandEvent);
-            $test->assertEquals('remote', $event->getCommand(), "command is remote");
-            $test->assertEquals(array('-v'), $event->getArgs(), "args is -v");
-            $after = true;
-        });
-
-        $repository->run('remote', array('-v'));
-
-        $this->assertTrue($before, "pre-command called");
-        $this->assertTrue($after,  "post-command called");
-    }
-
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testEventDispatcher_Error($repository)
-    {
-        $test = $this;
-
-        $after = false;
-        $repository->addListener(Events::POST_COMMAND, function ($event) use ($test, &$after) {
-            $after = true;
-        });
-
-        try {
-            $repository->run('foobar');
-            $this->fail("expected exception on invalid command");
-        } catch (\RuntimeException $e) {
-        }
-
-        $this->assertTrue($after,  "post-command called");
-    }
-
-    /**
-     * @dataProvider provideFoobar
-     */
     public function testLoggerOk($repository)
     {
         if (!interface_exists('Psr\Log\LoggerInterface')) {
@@ -114,7 +61,7 @@ class RepositoryTest extends AbstractTest
             ->method('info')
         ;
         $logger
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(3)) // duration, return code and output
             ->method('debug')
         ;
 
@@ -139,7 +86,7 @@ class RepositoryTest extends AbstractTest
             ->method('info')
         ;
         $logger
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(3)) // duration, return code and output
             ->method('debug')
         ;
         $logger

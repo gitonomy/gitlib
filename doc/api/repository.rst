@@ -49,17 +49,25 @@ Your ``HEAD`` can be attached (using a reference) or detached (using a commit).
         echo "Sorry man\n";
     }
 
-Event dispatcher
-----------------
+Logger
+------
 
-Each repository has an event dispatcher. You can listen to ``pre_command`` and
-``post_command`` using method *addListener* on *Repository*:
+If you are developing, you may appreciate to have a logger inside repository, telling
+you every executed command.
+
+To do so, inject a logger inside the Repository:
 
 .. code-block:: php
 
-    $repository->addListener(Events::POST_COMMAND, function ($event) {
-        echo 'Command: '.$event->getCommand().' '.implode(' ', $event->getArgs())."\n";
-        echo 'Execution time: '.round($event->getDuration(), 2).'s';
-    });
+    $repository->setLogger(new Monolog\Logger('repository'));
 
-    $repository->getReferences()->getBranch('master')->getCommit()->getMessage();
+    $repository->run('fetch', array('--all'));
+
+This will output:
+
+.. code-block:: text
+
+    info run command: fetch "--all"
+    debug last command (fetch) duration: 23.24ms
+    debug last command (fetch) return code: 0
+    debug last command (fetch) output: Fetching origin

@@ -23,8 +23,7 @@
     },
 
     "require": {
-        "symfony/process": "<3",
-        "symfony/event-dispatcher": "<3"
+        "symfony/process": "<3"
     },
     "require-dev": {
         "psr/log": "~1"

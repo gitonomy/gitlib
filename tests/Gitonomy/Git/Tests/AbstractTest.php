@@ -61,8 +61,11 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
     public static function createFoobarRepository($bare = true)
     {
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL);
-            self::registerDeletion(self::$localRepository);
+            if (is_dir('/tmp/foobar_test')) {
+                self::$localRepository = new Repository('/tmp/foobar_test');
+            } else {
+                self::$localRepository = Admin::cloneTo('/tmp/foobar_test', self::REPOSITORY_URL);
+            }
         }
 
         $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare);
