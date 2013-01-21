@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Util\StringHelper;
+
 /**
  * Representation of a Git commit.
  *
@@ -275,31 +277,15 @@ class Commit
 
         $message = $this->getSubjectMessage();
 
-        if (function_exists('mb_substr')) {
-            if (mb_strlen($message) > $length) {
-                if ($preserve) {
-                    if (false !== ($breakpoint = mb_strpos($message, ' ', $length))) {
-                        $length = $breakpoint;
-                    }
-                }
-
-                return rtrim(mb_substr($message, 0, $length)) . $separator;
+        if (StringHelper::strlen($message) > $length) {
+            if ($preserve && false !== ($breakpoint = StringHelper::strpos($message, ' ', $length))) {
+                $length = $breakpoint;
             }
 
-            return $message;
-        } else {
-            if (strlen($message) > $length) {
-                if ($preserve) {
-                    if (false !== ($breakpoint = strpos($message, ' ', $length))) {
-                        $length = $breakpoint;
-                    }
-                }
-
-                return rtrim(substr($message, 0, $length)) . $separator;
-            }
-
-            return $message;
+            return rtrim(StringHelper::substr($message, 0, $length)).$separator;
         }
+
+        return $message;
     }
 
     /**

@@ -170,20 +170,20 @@ class CommitTest extends AbstractTest
      */
     public function testGetShortMessage($repository)
     {
+        // tests with a multi-line message
         $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
 
         $this->assertEquals('Fixed perm...', $commit->getShortMessage(10));
-    }
-
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetSubjectMessage($repository)
-    {
-        $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
-
         $this->assertEquals('Fixed perm!!!', $commit->getShortMessage(10, false, '!!!'));
         $this->assertEquals('Fixed permissions!!!', $commit->getShortMessage(10, true, '!!!'));
+
+        // tests with a single-line message
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
+
+        $this->assertEquals('Add README', $commit->getShortMessage(20));
+        $this->assertEquals('A', $commit->getShortMessage(1, false, ''));
+        $this->assertEquals('Add!!!', $commit->getShortMessage(1, true, '!!!'));
+
     }
 
     /**
