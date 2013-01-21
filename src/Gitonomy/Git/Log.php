@@ -120,7 +120,7 @@ class Log implements \Countable, \IteratorAggregate
         $limit     = null !== $this->limit ? '-n '.((int) $this->limit) : '';
         $revisions = null !== $this->revisions ? $this->revisions : '--all';
 
-        $args = array('--format=format:%H');
+        $args = array('--encoding=UTF-8', '--format=format:%H');
 
         if (null !== $this->offset) {
             $args[] = '--skip='.((int) $this->offset);
