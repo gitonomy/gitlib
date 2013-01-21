@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git\Parser;
 
+use Gitonomy\Git\Util\StringHelper;
+
 class CommitParser extends ParserBase
 {
     public $tree;
@@ -56,7 +58,7 @@ class CommitParser extends ParserBase
             throw new \RuntimeException('Unable to parse name, email and date');
         }
 
-        $this->cursor += mb_strlen($vars[1]);
+        $this->cursor += StringHelper::strlen($vars[1]);
 
         return array($vars[2], $vars[3], $vars[4]);
     }

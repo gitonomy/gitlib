@@ -190,7 +190,7 @@ class Commit
      */
     public function getFixedShortHash($length = 6)
     {
-        return substr($this->hash, 0, $length);
+        return StringHelper::substr($this->hash, 0, $length);
     }
 
     /**
@@ -252,7 +252,7 @@ class Commit
     public function getLastModification($path, $lastHash = null)
     {
         if (preg_match('#^/#', $path)) {
-            $path = substr($path, 1);
+            $path = StringHelper::substr($path, 1);
         }
 
         $result = $this->repository->run('log', array('--format=%H', '-n', 1, $this->hash, '--', $path));
@@ -319,7 +319,7 @@ class Commit
         }
 
         $branchesName = explode("\n", trim(str_replace('*', '', $result)));
-        $branchesName = array_filter($branchesName, function($v) { return false === strpos($v, '->');});
+        $branchesName = array_filter($branchesName, function($v) { return false === StringHelper::strpos($v, '->');});
         $branchesName = array_map('trim', $branchesName);
 
         $references = $this->repository->getReferences();
@@ -328,7 +328,7 @@ class Commit
         foreach ($branchesName as $branchName) {
             if (false === $local) {
                 $branches[] = $references->getRemoteBranch($branchName);
-            } elseif (0 === strrpos($branchName, 'remotes/')) {
+            } elseif (0 === StringHelper::strrpos($branchName, 'remotes/')) {
                 $branches[] = $references->getRemoteBranch(str_replace('remotes/', '', $branchName));
             } else {
                 $branches[] = $references->getBranch($branchName);

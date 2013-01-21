@@ -31,8 +31,12 @@ class StringHelper
         return function_exists('mb_strlen') ? mb_strlen($string, self::$encoding) : strlen($string);
     }
 
-    public static function substr($string, $start, $length = null)
+    public static function substr($string, $start, $length = false)
     {
+        if (false === $length) {
+            $length = self::strlen($string);
+        }
+
         return function_exists('mb_substr') ? mb_substr($string, $start, $length, self::$encoding) : substr($string, $start, $length);
     }
 
