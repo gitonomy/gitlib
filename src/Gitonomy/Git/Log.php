@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Util\StringHelper;
+
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -120,7 +122,7 @@ class Log implements \Countable, \IteratorAggregate
         $limit     = null !== $this->limit ? '-n '.((int) $this->limit) : '';
         $revisions = null !== $this->revisions ? $this->revisions : '--all';
 
-        $args = array('--format=format:%H');
+        $args = array('--encoding='.StringHelper::getEncoding(), '--format=format:%H');
 
         if (null !== $this->offset) {
             $args[] = '--skip='.((int) $this->offset);

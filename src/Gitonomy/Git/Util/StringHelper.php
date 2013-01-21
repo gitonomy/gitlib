@@ -21,6 +21,11 @@ class StringHelper
 {
     private static $encoding = 'utf-8';
 
+    public static function getEncoding()
+    {
+        return self::$encoding;
+    }
+
     public static function setEncoding($encoding)
     {
         self::$encoding = $encoding;
