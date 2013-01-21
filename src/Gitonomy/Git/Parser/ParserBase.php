@@ -109,7 +109,7 @@ abstract class ParserBase
         $length = StringHelper::strlen($expected);
         $actual = StringHelper::substr($this->content, $this->cursor, $length);
         if ($actual !== $expected) {
-            throw new \RuntimeException(sprintf('Expected "%s", but got "%s"', $expected, $actual));
+            throw new \RuntimeException(sprintf('Expected "%s", but got "%s" (%s)', $expected, $actual, substr($this->content, $this->cursor, 10)));
         }
         $this->cursor += $length;
 

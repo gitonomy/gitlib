@@ -23,6 +23,8 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
     const BEFORE_LONGFILE_COMMIT = 'e0ec50e2af75fa35485513f60b2e658e245227e9';
     const LONGMESSAGE_COMMIT     = '3febd664b6886344a9b32d70657687ea4b1b4fab';
     const INITIAL_COMMIT         = '74acd054c8ec873ae6be044041d3a85a4f890ba5';
+    const MERGE_COMMIT           = '2f5b9d0a4e6e7173d7816e417805709c708674f8';
+    const ENCODING_COMMIT        = '779420b9b936f18a0b6579e1499a85b14270802e';
 
     /**
      * Local clone of remote URL. Avoids network call on each test.
@@ -62,11 +64,7 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
     public static function createFoobarRepository($bare = true)
     {
         if (null === self::$localRepository) {
-            if (is_dir('/tmp/foobar_test')) {
-                self::$localRepository = new Repository('/tmp/foobar_test');
-            } else {
-                self::$localRepository = Admin::cloneTo('/tmp/foobar_test', self::REPOSITORY_URL);
-            }
+            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL);
         }
 
         $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare);

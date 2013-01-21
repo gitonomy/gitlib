@@ -247,4 +247,24 @@ EOL;
         $this->assertTrue($lastModification instanceof Commit, "Last modification is a Commit object");
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $lastModification->getHash(), "Last modification is current commit");
     }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testMergeCommit($repository)
+    {
+        $commit = $repository->getCommit(self::MERGE_COMMIT);
+
+        $this->assertEquals("Merge branch 'authors'", $commit->getSubjectMessage());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testEncoding($repository)
+    {
+        $commit = $repository->getCommit(self::ENCODING_COMMIT);
+
+        $this->assertEquals("contribute to AUTHORS file", $commit->getSubjectMessage());
+    }
 }
