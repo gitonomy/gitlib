@@ -278,12 +278,12 @@ class Commit
         if (function_exists('mb_substr')) {
             if (mb_strlen($message) > $length) {
                 if ($preserve) {
-                    if (false !== ($breakpoint = mb_strpos($message, ' ', $length))) {
+                    if (false !== ($breakpoint = mb_strpos($message, ' ', $length, 'utf-8'))) {
                         $length = $breakpoint;
                     }
                 }
 
-                return rtrim(mb_substr($message, 0, $length)) . $separator;
+                return rtrim(mb_substr($message, 0, $length, 'utf-8')) . $separator;
             }
 
             return $message;
