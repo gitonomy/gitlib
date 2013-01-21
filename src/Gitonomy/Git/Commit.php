@@ -452,4 +452,12 @@ class Commit
 
         return implode("\n", $lines);
     }
+
+    /**
+     * @return Repository
+     */
+    public function getRepository()
+    {
+        return $this->repository;
+    }
 }
