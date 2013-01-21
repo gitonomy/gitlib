@@ -26,7 +26,7 @@ abstract class ParserBase
     {
         $this->cursor  = 0;
         $this->content = $content;
-        $this->length  = StringHelper::strlen($this->content);
+        $this->length  = strlen($this->content);
 
         $this->doParse();
     }
@@ -38,16 +38,16 @@ abstract class ParserBase
 
     protected function consumeAll()
     {
-        $rest = StringHelper::substr($this->content, $this->cursor);
-        $this->cursor += StringHelper::strlen($rest);
+        $rest = substr($this->content, $this->cursor);
+        $this->cursor += strlen($rest);
 
         return $rest;
     }
 
     protected function expects($expected)
     {
-        $length = StringHelper::strlen($expected);
-        $actual = StringHelper::substr($this->content, $this->cursor, $length);
+        $length = strlen($expected);
+        $actual = substr($this->content, $this->cursor, $length);
         if ($actual !== $expected) {
             return false;
         }
@@ -60,10 +60,10 @@ abstract class ParserBase
     protected function consumeShortHash()
     {
         if (!preg_match('/([A-Za-z0-9]{7,40})/A', $this->content, $vars, null, $this->cursor)) {
-            throw new \RuntimeException('No short hash found: '.StringHelper::substr($this->content, $this->cursor, 7));
+            throw new \RuntimeException('No short hash found: '.substr($this->content, $this->cursor, 7));
         }
 
-        $this->cursor += StringHelper::strlen($vars[1]);
+        $this->cursor += strlen($vars[1]);
 
         return $vars[1];
     }
@@ -71,7 +71,7 @@ abstract class ParserBase
     protected function consumeHash()
     {
         if (!preg_match('/([A-Za-z0-9]{40})/A', $this->content, $vars, null, $this->cursor)) {
-            throw new \RuntimeException('No hash found: '.StringHelper::substr($this->content, $this->cursor, 40));
+            throw new \RuntimeException('No hash found: '.substr($this->content, $this->cursor, 40));
         }
 
         $this->cursor += 40;
@@ -85,20 +85,20 @@ abstract class ParserBase
             throw new \RuntimeException('No match for regexp '.$regexp);
         }
 
-        $this->cursor += StringHelper::strlen($vars[0]);
+        $this->cursor += strlen($vars[0]);
 
         return $vars;
     }
 
     protected function consumeTo($text)
     {
-        $pos = StringHelper::strpos($this->content, $text, $this->cursor);
+        $pos = strpos($this->content, $text, $this->cursor);
 
         if (false === $pos) {
             throw new \RuntimeException(sprintf('Unable to find "%s"', $text));
         }
 
-        $result = StringHelper::substr($this->content, $this->cursor, $pos - $this->cursor);
+        $result = substr($this->content, $this->cursor, $pos - $this->cursor);
         $this->cursor = $pos;
 
         return $result;
@@ -106,8 +106,8 @@ abstract class ParserBase
 
     protected function consume($expected)
     {
-        $length = StringHelper::strlen($expected);
-        $actual = StringHelper::substr($this->content, $this->cursor, $length);
+        $length = strlen($expected);
+        $actual = substr($this->content, $this->cursor, $length);
         if ($actual !== $expected) {
             throw new \RuntimeException(sprintf('Expected "%s", but got "%s" (%s)', $expected, $actual, substr($this->content, $this->cursor, 10)));
         }

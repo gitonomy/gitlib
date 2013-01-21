@@ -14,7 +14,6 @@ namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Diff\FileChange;
-use Gitonomy\Git\Util\StringHelper;
 use Gitonomy\Git\Repository;
 
 class DiffParser extends ParserBase
@@ -100,8 +99,8 @@ class DiffParser extends ParserBase
                 }
             }
 
-            $oldName  = $oldName === '/dev/null' ? null : StringHelper::substr($oldName, 2);
-            $newName  = $newName === '/dev/null' ? null : StringHelper::substr($newName, 2);
+            $oldName  = $oldName === '/dev/null' ? null : substr($oldName, 2);
+            $newName  = $newName === '/dev/null' ? null : substr($newName, 2);
             $oldIndex = preg_match('/^0+$/', $oldIndex) ? null : $oldIndex;
             $newIndex = preg_match('/^0+$/', $newIndex) ? null : $newIndex;
             $file = new File($this->repository, $oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary);
