@@ -42,7 +42,7 @@ class Log implements \Countable, \IteratorAggregate
      */
     protected $limit;
 
-    public function __construct(Repository $repository, $revisions, $paths, $offset = null, $limit = null)
+    public function __construct(Repository $repository, $revisions, $paths, $offset = 0, $limit = null)
     {
         $this->repository = $repository;
         $this->revisions  = (array) $revisions;

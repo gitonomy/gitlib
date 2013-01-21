@@ -14,6 +14,7 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Reference\Stash;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Tag;
 
@@ -355,13 +356,16 @@ class ReferenceBag implements \Countable, \IteratorAggregate
                 if (preg_match('#.*HEAD$#', $fullname)) {
                     continue;
                 }
-                $reference = new Reference\Branch($this->repository, $fullname, $commitHash);
+                $reference = new Branch($this->repository, $fullname, $commitHash);
                 $this->references[$fullname] = $reference;
                 $this->branches[] = $reference;
             } elseif (preg_match('#^refs/tags/(.*)$#', $fullname)) {
-                $reference = new Reference\Tag($this->repository, $fullname, $commitHash);
+                $reference = new Tag($this->repository, $fullname, $commitHash);
                 $this->references[$fullname] = $reference;
                 $this->tags[] = $reference;
+            } elseif ($fullname === 'refs/stash') {
+                $reference = new Stash($this->repository, $fullname, $commitHash);
+                $this->references[$fullname] = $reference;
             } else {
                 throw new \RuntimeException(sprintf('Unable to parse "%s"', $fullname));
             }
