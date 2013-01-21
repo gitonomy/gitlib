@@ -19,19 +19,9 @@ use Gitonomy\Git\Repository;
 class DiffParser extends ParserBase
 {
     public $files;
-    protected $repository;
-
-    public function setRepository(Repository $repository)
-    {
-        $this->repository = $repository;
-    }
 
     protected function doParse()
     {
-        if (null === $this->repository) {
-            throw new \RuntimeException('Can\'t work without Repository');
-        }
-
         $this->files = array();
 
         while (!$this->isFinished()) {
@@ -103,7 +93,7 @@ class DiffParser extends ParserBase
             $newName  = $newName === '/dev/null' ? null : substr($newName, 2);
             $oldIndex = preg_match('/^0+$/', $oldIndex) ? null : $oldIndex;
             $newIndex = preg_match('/^0+$/', $newIndex) ? null : $newIndex;
-            $file = new File($this->repository, $oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary);
+            $file = new File($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary);
 
             // 5. Diff
             while ($this->expects('@@ ')) {

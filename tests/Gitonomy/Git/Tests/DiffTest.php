@@ -12,7 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Diff;
+use Gitonomy\Git\Diff\Diff;
 
 class DiffTest extends AbstractTest
 {
@@ -22,11 +22,12 @@ class DiffTest extends AbstractTest
     /**
      * @dataProvider provideFoobar
      */
-    public function testGetRevisions($repository)
+    public function testSerialization($repository)
     {
-        $diff = $repository->getCommit(self::LONGFILE_COMMIT)->getDiff();
+        $data = $repository->getCommit(self::CREATE_COMMIT)->getDiff()->toArray();
+        $diff = Diff::fromArray($data);
 
-        $this->assertEquals(array(self::LONGFILE_COMMIT), $diff->getRevisions(), "Revision returns passed revision");
+        $this->verifyCreateCommitDiff($diff);
     }
 
     /**
@@ -34,7 +35,13 @@ class DiffTest extends AbstractTest
      */
     public function testGetFiles_Addition($repository)
     {
-        $files = $repository->getCommit(self::CREATE_COMMIT)->getDiff()->getFiles();
+        $diff = $repository->getCommit(self::CREATE_COMMIT)->getDiff();
+        $this->verifyCreateCommitDiff($diff);
+    }
+
+    protected function verifyCreateCommitDiff(Diff $diff)
+    {
+        $files = $diff->getFiles();
 
         $this->assertEquals(2, count($files), "1 file in diff");
 
@@ -47,13 +54,6 @@ class DiffTest extends AbstractTest
 
         $this->assertEquals(1, $files[0]->getAdditions(), "1 line added");
         $this->assertEquals(0,  $files[0]->getDeletions(), "0 lines deleted");
-
-        try {
-            $files[0]->getOldBlob();
-            $this->fail("Should not be able to get old blob on addition");
-        } catch (\LogicException $e) {}
-
-        $this->assertContains("php echo", $files[0]->getNewBlob()->getContent());
     }
 
     /**
@@ -89,11 +89,6 @@ class DiffTest extends AbstractTest
         $this->assertTrue($files[0]->isDeletion(), "File deletion");
         $this->assertEquals("script_B.php", $files[0]->getOldName(), "verify old filename");
         $this->assertEquals(1, $files[0]->getDeletions(), "1 line deleted");
-
-        try {
-            $files[0]->getNewBlob();
-            $this->fail("Should not be able to get new blob on deletion");
-        } catch (\LogicException $e) {}
     }
 
     /**

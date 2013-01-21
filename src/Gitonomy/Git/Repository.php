@@ -17,6 +17,7 @@ use Symfony\Component\Process\Process;
 use Psr\Log\LoggerInterface;
 
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Diff\Diff;
 
 /**
  * Git repository object.
@@ -280,7 +281,9 @@ class Repository
      */
     public function getDiff($revision)
     {
-        return new Diff($this, $revision);
+        $args = array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index', $revision);
+
+        return new Diff($this->run('diff', $args));
     }
 
     /**

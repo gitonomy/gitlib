@@ -13,7 +13,7 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
-use Gitonomy\Git\Diff;
+use Gitonomy\Git\Diff\Diff;
 
 class CommitTest extends AbstractTest
 {
@@ -27,7 +27,6 @@ class CommitTest extends AbstractTest
         $diff = $commit->getDiff();
 
         $this->assertTrue($diff instanceof Diff, "getDiff() returns a Diff object");
-        $this->assertEquals(array($commit->getHash()), $diff->getRevisions(), "getDiff() revision is correct");
     }
 
     /**

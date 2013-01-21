@@ -20,11 +20,6 @@ use Gitonomy\Git\Repository;
 class File
 {
     /**
-     * @var Repository
-     */
-    protected $repository;
-
-    /**
      * @var string
      */
     protected $oldName;
@@ -67,9 +62,8 @@ class File
     /**
      * Instanciates a new Diff File object.
      */
-    public function __construct(Repository $repository, $oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary)
+    public function __construct($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary)
     {
-        $this->repository = $repository;
         $this->oldName  = $oldName;
         $this->newName  = $newName;
         $this->oldMode  = $oldMode;
@@ -191,22 +185,9 @@ class File
         return $this->newIndex;
     }
 
-    public function getOldBlob()
+    public function isBinary()
     {
-        if (null === $this->oldIndex) {
-            throw new \LogicException('Can\'t instanciate Blob: no old index');
-        }
-
-        return $this->repository->getBlob($this->oldIndex);
-    }
-
-    public function getNewBlob()
-    {
-        if (null === $this->newIndex) {
-            throw new \LogicException('Can\'t instanciate Blob: no old index');
-        }
-
-        return $this->repository->getBlob($this->newIndex);
+        return $this->isBinary;
     }
 
     public function getChanges()
@@ -214,9 +195,30 @@ class File
         return $this->changes;
     }
 
-    public function isBinary()
+    public function toArray()
     {
-        return $this->isBinary;
+        return array(
+            'old_name' => $this->oldName,
+            'new_name' => $this->newName,
+            'old_mode' => $this->oldMode,
+            'new_mode' => $this->newMode,
+            'old_index' => $this->oldIndex,
+            'new_index' => $this->newIndex,
+            'is_binary' => $this->isBinary,
+            'changes' => array_map(function (FileChange $change) {
+                return $change->toArray();
+            }, $this->changes)
+        );
     }
 
+    public static function fromArray(array $array)
+    {
+        $file = new File($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary']);
+
+        foreach ($array['changes'] as $change) {
+            $file->addChange(FileChange::fromArray($change));
+        }
+
+        return $file;
+    }
 }

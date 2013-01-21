@@ -13,6 +13,7 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Util\StringHelper;
+use Gitonomy\Git\Diff\Diff;
 
 /**
  * Representation of a Git commit.
@@ -156,7 +157,9 @@ class Commit
 
     public function getDiff()
     {
-        return new Diff($this->repository, array($this->hash));
+        $args = array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index', $this->hash);
+
+        return Diff::parse($this->repository->run('diff-tree', $args));
     }
 
     /**

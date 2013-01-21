@@ -120,7 +120,6 @@ There are also two other methods for your convenience:
     // The body (rest of the message)
     $commit->getBodyMessage();
 
-
 Diff of a commit
 ----------------
 

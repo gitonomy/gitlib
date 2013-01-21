@@ -10,7 +10,9 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Gitonomy\Git;
+namespace Gitonomy\Git\Diff;
+
+use Gitonomy\Git\Parser\DiffParser;
 
 /**
  * Representation of a diff.
@@ -20,24 +22,9 @@ namespace Gitonomy\Git;
 class Diff
 {
     /**
-     * @var Repository
-     */
-    protected $repository;
-
-    /**
-     * @var array
-     */
-    protected $revisions;
-
-    /**
      * @var array
      */
     protected $files;
-
-    /**
-     * @var boolean
-     */
-    protected $isTree;
 
     /**
      * @var string
@@ -51,11 +38,20 @@ class Diff
      * @var string     $revision   A string revision, passed to git diff command
      * @var boolean    $isTree     Indicates if revisions are commit-trees to compare
      */
-    public function __construct(Repository $repository, $revisions, $isTree = true)
+    public function __construct(array $files)
     {
-        $this->repository = $repository;
-        $this->revisions  = (array) $revisions;
-        $this->isTree     = $isTree;
+        $this->files = $files;
+    }
+
+    /**
+     * @return Diff
+     */
+    static public function parse($rawDiff)
+    {
+        $parser = new DiffParser();
+        $parser->parse($rawDiff);
+
+        return new Diff($parser->files);
     }
 
     /**
@@ -66,19 +62,6 @@ class Diff
         return $this->revisions;
     }
 
-    protected function initialize()
-    {
-        $args = array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index');
-        $args = array_merge($args, $this->revisions);
-        $this->rawDiff = $this->repository->run($this->isTree ? 'diff-tree' : 'diff', $args);
-
-        $parser = new Parser\DiffParser();
-        $parser->setRepository($this->repository);
-        $parser->parse($this->rawDiff);
-
-        $this->files = $parser->files;
-    }
-
     /**
      * Get list of files modified in the diff's revision.
      *
@@ -86,8 +69,6 @@ class Diff
      */
     public function getFiles()
     {
-        $this->initialize();
-
         return $this->files;
     }
 
@@ -98,8 +79,20 @@ class Diff
      */
     public function getRawDiff()
     {
-        $this->initialize();
-
         return $this->rawDiff;
+    }
+
+    public function toArray()
+    {
+        return array_map(function (File $file) {
+            return $file->toArray();
+        }, $this->files);
+    }
+
+    public static function fromArray(array $array)
+    {
+        return new Diff(array_map(function ($array) {
+            return File::fromArray($array);
+        }, $array));
     }
 }
