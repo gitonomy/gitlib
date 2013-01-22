@@ -71,10 +71,32 @@ class AdminTest extends AbstractTest
 
         if ($repository->isBare()) {
             $this->assertEquals($newDir, $new->getGitDir());
-        $this->assertTrue(in_array('refs/heads/new-feature', $newRefs));
+            $this->assertTrue(in_array('refs/heads/new-feature', $newRefs));
         } else {
             $this->assertEquals($newDir.'/.git', $new->getGitDir());
             $this->assertEquals($newDir, $new->getWorkingDir());
+        }
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testMirror($repository)
+    {
+        $newDir = self::createTempDir();
+        $new = Admin::mirrorTo($newDir, $repository->getGitDir());
+        self::registerDeletion($new);
+
+        $newRefs = array_keys($new->getReferences()->getAll());
+
+        $this->assertTrue(in_array('refs/heads/master', $newRefs));
+        $this->assertTrue(in_array('refs/tags/0.1', $newRefs));
+        $this->assertEquals($newDir, $new->getGitDir());
+
+        if ($repository->isBare()) {
+            $this->assertTrue(in_array('refs/heads/new-feature', $newRefs));
+        } else {
+            $this->assertTrue(in_array('refs/remotes/origin/new-feature', $newRefs));
         }
     }
 

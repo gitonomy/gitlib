@@ -54,10 +54,26 @@ class Admin
 
     public static function cloneTo($path, $url, $bare = true, LoggerInterface $logger = null)
     {
-        $builder = ProcessBuilder::create(array('git', 'clone', '-q'));
+        $options = array();
 
         if ($bare) {
-            $builder->add('--bare');
+            $options[] = '--bare';
+        }
+
+        return static::cloneRepository($path, $url, $options, $logger);
+    }
+
+    public static function mirrorTo($path, $url, LoggerInterface $logger = null)
+    {
+        return static::cloneRepository($path, $url, array('--mirror'), $logger);
+    }
+
+    private static function cloneRepository($path, $url, array $options = array(), LoggerInterface $logger = null)
+    {
+        $builder = ProcessBuilder::create(array('git', 'clone', '-q'));
+
+        foreach ($options as $value) {
+            $builder->add($value);
         }
 
         $builder->add($url);
