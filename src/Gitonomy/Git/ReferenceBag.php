@@ -366,6 +366,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
             } elseif ($fullname === 'refs/stash') {
                 $reference = new Stash($this->repository, $fullname, $commitHash);
                 $this->references[$fullname] = $reference;
+            } elseif (preg_match('#^refs/pull/(.*)$#', $fullname)) {
+                // Do nothing here
             } else {
                 throw new \RuntimeException(sprintf('Unable to parse "%s"', $fullname));
             }
