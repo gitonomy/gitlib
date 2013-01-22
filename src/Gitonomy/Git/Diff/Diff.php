@@ -27,11 +27,6 @@ class Diff
     protected $files;
 
     /**
-     * @var string
-     */
-    protected $rawDiff;
-
-    /**
      * Constructs a new diff for a given revision.
      *
      * @var Repository $repository
@@ -70,16 +65,6 @@ class Diff
     public function getFiles()
     {
         return $this->files;
-    }
-
-    /**
-     * Get raw diff
-     *
-     * @return string The raw diff
-     */
-    public function getRawDiff()
-    {
-        return $this->rawDiff;
     }
 
     public function toArray()
