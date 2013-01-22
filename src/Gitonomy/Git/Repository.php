@@ -266,8 +266,9 @@ class Repository
      *                         any text value type
      * @param array $paths     Restrict log to modifications occuring on given
      *                         paths.
-     * @param int   $offset    Start from a given offset in results.
-     * @param int   $limit     Limit number of total results.
+     *
+     * @param int $offset Start from a given offset in results.
+     * @param int $limit  Limit number of total results.
      *
      * @return Log
      */
@@ -283,7 +284,7 @@ class Repository
     {
         $args = array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index', $revision);
 
-        return new Diff($this->run('diff', $args));
+        return Diff::parse($this->run('diff', $args));
     }
 
     /**

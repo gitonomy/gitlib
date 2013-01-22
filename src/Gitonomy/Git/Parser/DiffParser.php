@@ -14,7 +14,6 @@ namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Diff\FileChange;
-use Gitonomy\Git\Repository;
 
 class DiffParser extends ParserBase
 {

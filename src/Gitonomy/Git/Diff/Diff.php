@@ -34,24 +34,24 @@ class Diff
     /**
      * Constructs a new diff for a given revision.
      *
-     * @var Repository $repository
-     * @var string     $revision   A string revision, passed to git diff command
-     * @var boolean    $isTree     Indicates if revisions are commit-trees to compare
+     * @param array  $files   The files
+     * @param string $rawDiff The raw diff
      */
-    public function __construct(array $files)
+    public function __construct(array $files, $rawDiff)
     {
         $this->files = $files;
+        $this->rawDiff = $rawDiff;
     }
 
     /**
      * @return Diff
      */
-    static public function parse($rawDiff)
+    public static function parse($rawDiff)
     {
         $parser = new DiffParser();
         $parser->parse($rawDiff);
 
-        return new Diff($parser->files);
+        return new Diff($parser->files, $rawDiff);
     }
 
     /**
@@ -73,7 +73,7 @@ class Diff
     }
 
     /**
-     * Get raw diff
+     * Returns the raw diff
      *
      * @return string The raw diff
      */
@@ -82,17 +82,39 @@ class Diff
         return $this->rawDiff;
     }
 
+    /**
+     * Export a diff as array
+     *
+     * @return array The array
+     */
     public function toArray()
     {
-        return array_map(function (File $file) {
-            return $file->toArray();
-        }, $this->files);
+        return array(
+            'rawDiff' => $this->rawDiff,
+            'files'   => array_map(
+                function (File $file) {
+                    return $file->toArray();
+                }, $this->files
+            ),
+        );
     }
 
+    /**
+     * Create a new instance of Diff from an array
+     *
+     * @param array $array The array
+     *
+     * @return Diff The new instance
+     */
     public static function fromArray(array $array)
     {
-        return new Diff(array_map(function ($array) {
-            return File::fromArray($array);
-        }, $array));
+        return new static(
+            array_map(
+                function ($array) {
+                    return File::fromArray($array);
+                }, $array['files']
+            ),
+            $array['rawDiff']
+        );
     }
 }
