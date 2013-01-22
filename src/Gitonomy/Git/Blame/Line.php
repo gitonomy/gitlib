@@ -29,7 +29,7 @@ class Line
     protected $content;
 
     /**
-     * Instanciates a new Diff File object.
+     * Instanciates a new Line object.
      */
     public function __construct(Commit $commit, $sourceLine, $targetLine, $blockLine, $content)
     {
