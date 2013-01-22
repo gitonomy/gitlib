@@ -12,8 +12,6 @@
 
 namespace Gitonomy\Git\Diff;
 
-use Gitonomy\Git\Repository;
-
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -60,7 +58,7 @@ class File
     protected $changes;
 
     /**
-     * Instanciates a new Diff File object.
+     * Instanciates a new File object.
      */
     public function __construct($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary)
     {
