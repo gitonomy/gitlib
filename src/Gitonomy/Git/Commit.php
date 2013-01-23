@@ -292,6 +292,16 @@ class Commit
     }
 
     /**
+     * Resolves all references associated to this commit.
+     *
+     * @return array An array of references (Branch, Tag, Squash)
+     */
+    public function resolveReferences()
+    {
+        return $this->repository->getReferences()->resolve($this);
+    }
+
+    /**
      * Find branch containing the commit
      *
      * @param boolean $local  set true to try to locate a commit on local repository

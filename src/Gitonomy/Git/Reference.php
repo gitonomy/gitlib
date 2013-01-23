@@ -103,4 +103,20 @@ abstract class Reference
     {
         $this->repository->getReferences()->delete($this->getFullname());
     }
+
+    /**
+     * @return Repository
+     */
+    public function getRepository()
+    {
+        return $this->repository;
+    }
+
+    /**
+     * @return Log
+     */
+    public function getLog()
+    {
+        return new Log($this->repository, $this->getFullname());
+    }
 }
