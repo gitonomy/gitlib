@@ -344,7 +344,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
             $output = $e->getOutput();
             $error  = $e->getErrorOutput();
             if ($error !== '') {
-                throw new \RuntimeException('Error while getting list of references');
+                throw new \RuntimeException('Error while getting list of references: '.$error);
             }
         }
         $parser->parse($output);
