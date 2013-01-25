@@ -28,6 +28,7 @@ use Gitonomy\Git\Diff\Diff;
  */
 class Repository
 {
+    const DEFAULT_DESCRIPTION = "Unnamed repository; edit this file 'description' to name the repository.\n";
     /**
      * @var string
      */
@@ -346,10 +347,15 @@ class Repository
     public function getDescription()
     {
         if (!is_file($this->gitDir.'/description')) {
-            return 'Unnamed repository; edit this file \'description\' to name the repository.';
+            return static::DEFAULT_DESCRIPTION;
         }
 
         return file_get_contents($this->gitDir.'/description');
+    }
+
+    public function hasDescription()
+    {
+        return static::DEFAULT_DESCRIPTION !== $this->getDescription();
     }
 
     /**
