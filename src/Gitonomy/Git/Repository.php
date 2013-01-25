@@ -339,6 +339,20 @@ class Repository
     }
 
     /**
+     * Return the description
+     *
+     * @return string The description
+     */
+    public function getDescription()
+    {
+        if (!is_file($this->gitDir.'/description')) {
+            return 'Unnamed repository; edit this file \'description\' to name the repository.';
+        }
+
+        return file_get_contents($this->gitDir.'/description');
+    }
+
+    /**
      * This command is a facility command. You can run any command
      * directly on git repository.
      *

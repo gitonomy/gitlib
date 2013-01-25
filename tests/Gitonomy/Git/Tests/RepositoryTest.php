@@ -49,6 +49,14 @@ class RepositoryTest extends AbstractTest
     /**
      * @dataProvider provideFoobar
      */
+    public function testGetDescription($repository)
+    {
+        $this->assertSame("Unnamed repository; edit this file 'description' to name the repository.\n", $repository->getDescription());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
     public function testLoggerOk($repository)
     {
         if (!interface_exists('Psr\Log\LoggerInterface')) {
