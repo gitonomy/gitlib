@@ -17,6 +17,26 @@ to fetch informations from repository.
     $repository->run('fetch', array('--all'));
 
 
+Reference
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   api/create_repository
+   api/hooks
+   api/workingcopy
+   api/commit
+   api/blame
+   api/blob
+   api/branch
+   api/tree
+   api/log
+   api/diff
+   api/references
+   api/revision
+
+
 Documentation
 -------------
 
@@ -24,7 +44,7 @@ Documentation
    :maxdepth: 2
 
    installation
-   api
+   debug
    development
 
 Missing features

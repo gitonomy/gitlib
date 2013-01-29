@@ -29,25 +29,23 @@ use Gitonomy\Git\Diff\Diff;
 class Repository
 {
     const DEFAULT_DESCRIPTION = "Unnamed repository; edit this file 'description' to name the repository.\n";
+
     /**
+     * Directory containing git files.
+     *
      * @var string
      */
     protected $gitDir;
 
     /**
+     * Working directory.
+     *
      * @var string
      */
     protected $workingDir;
 
     /**
-     * Boolean indicating if repository is a bare repository
-     *
-     * @var boolean
-     */
-    protected $isBare;
-
-    /**
-     * Cache containing all objets of the repository.
+     * Cache containing all objects of the repository.
      *
      * Associative array, indexed by object hash
      *
@@ -63,11 +61,18 @@ class Repository
     protected $referenceBag;
 
     /**
-     * A logger
+     * Logger (can be null)
      *
      * @var LoggerInterface
      */
-    private $logger;
+    protected $logger;
+
+    /**
+     * Debug flag, indicating if errors should be thrown.
+     *
+     * @var boolean
+     */
+    protected $debug;
 
     /**
      * Constructor.
@@ -78,64 +83,82 @@ class Repository
      *
      * @throws InvalidArgumentException The folder does not exists
      */
-    public function __construct($dir, $workingDir = null, LoggerInterface $logger = null)
+    public function __construct($dir, $debug = true, LoggerInterface $logger = null)
     {
-        $gitDir = realpath($dir);
+        $gitDir     = realpath($dir);
+        $workingDir = null;
 
-        if (!is_dir($gitDir)) {
-            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist', $dir));
-        }
-
-        if (null === $workingDir && is_dir($gitDir.'/.git')) {
+        if (is_dir($gitDir.'/.git')) {
             $workingDir  = $gitDir;
             $gitDir      = $gitDir.'/.git';
+        } elseif (!is_dir($gitDir)) {
+            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $dir));
         }
 
         $this->gitDir     = $gitDir;
         $this->workingDir = $workingDir;
-        $this->objects    = array();
 
-        $this->logger     = $logger;
-    }
+        $this->objects = array();
+        $this->debug   = (bool) $debug;
+        $this->logger  = $logger;
 
-    public function isBare()
-    {
-        if (null === $this->isBare) {
-            $this->isBare = trim($this->run('config', array('core.bare'))) == 'true';
+        if (true === $this->debug && null !== $this->logger) {
+            $logger->debug('Repository created (git dir: %s, working dir: %s)', $this->gitDir, $this->workingDir ? : 'none');
         }
-
-        return $this->isBare;
     }
 
     /**
-     * @return Commit
+     * Tests if repository is a bare repository.
+     *
+     * @return boolean
+     */
+    public function isBare()
+    {
+        return null === $this->workingDir;
+    }
+
+    /**
+     * Returns the HEAD resolved as a commit.
+     *
+     * @return Commit|null a Commit object or null if debug-mode disabled and HEAD not found.
      */
     public function getHeadCommit()
     {
         $head = $this->getHead();
 
         if ($head instanceof Reference) {
-            $head = $head->getCommit();
+            return $head->getCommit();
         }
 
         return $head;
     }
 
     /**
-     * @return Reference|Commit
+     * @throws RuntimeException Unable to find file HEAD (debug-mode only)
+     *
+     * @return Reference|Commit|null current HEAD object or null if error occurs
      */
     public function getHead()
     {
-        if ($this->isBare()) {
-            throw new \LogicException("Can't get HEAD in a bare repository");
-        }
-
         $file = $this->gitDir.'/HEAD';
+
         if (!file_exists($file)) {
-            throw new \RuntimeException('Missing file HEAD');
+            $message = sprintf('Unable to find HEAD file ("%s")', $file);
+
+            if (null !== $this->logger) {
+                $this->logger->error($message);
+            }
+
+            if (true === $this->debug) {
+                throw new \RuntimeException($message);
+            }
         }
 
         $content = trim(file_get_contents($file));
+
+        if (null !== $this->logger) {
+            $this->logger->debug('HEAD file read: '.$content);
+        }
 
         if (preg_match('/^ref: (.+)$/', $content, $vars)) {
             return $this->getReferences()->get($vars[1]);
@@ -143,7 +166,15 @@ class Repository
             return $this->getCommit($content);
         }
 
-        throw new \RuntimeException(sprintf('Unexpected HEAD value : %s', $content));
+        $message = sprintf('Unexpected HEAD file content (file: %s). Content of file: %s', $file, $content);
+
+        if (null !== $this->logger) {
+            $this->logger->error($message);
+        }
+
+        if (true === $this->debug) {
+            throw new \RuntimeException($message);
+        }
     }
 
     /**
@@ -151,7 +182,9 @@ class Repository
      */
     public function isHeadDetached()
     {
-        return $this->getHead() instanceof Commit;
+        $head = $this->getHead();
+
+        return null === $head || $head instanceof Commit;
     }
 
     /**
@@ -159,11 +192,13 @@ class Repository
      */
     public function isHeadAttached()
     {
-        return !$this->isHeadDetached();
+        $head = $this->getHead();
+
+        return $head instanceof Reference;
     }
 
     /**
-     * Returns the path to the Git repository.
+     * Returns the path to the git repository.
      *
      * @return string A directory path
      */
@@ -186,7 +221,7 @@ class Repository
      * Returns the work-tree directory. This may be null if repository is
      * bare.
      *
-     * @return string
+     * @return string path to repository or null if repository is bare
      */
     public function getWorkingDir()
     {
@@ -203,6 +238,14 @@ class Repository
     public function getRevision($name)
     {
         return new Revision($this, $name);
+    }
+
+    /**
+     * @return WorkingCopy
+     */
+    public function getWorkingCopy()
+    {
+        return new WorkingCopy($this);
     }
 
     /**
@@ -235,6 +278,13 @@ class Repository
         return $this->objects[$hash];
     }
 
+    /**
+     * Instanciates a tree object or fetches one from the cache.
+     *
+     * @param string $hash A tree hash, with a length of 40
+     *
+     * @return Tree
+     */
     public function getTree($hash)
     {
         if (! isset($this->objects[$hash])) {
@@ -244,6 +294,13 @@ class Repository
         return $this->objects[$hash];
     }
 
+    /**
+     * Instanciates a blob object or fetches one from the cache.
+     *
+     * @param string $hash A blob hash, with a length of 40
+     *
+     * @return Blob
+     */
     public function getBlob($hash)
     {
         if (! isset($this->objects[$hash])) {
@@ -301,12 +358,18 @@ class Repository
 
         $process->run();
 
-        if (!$process->isSuccessful()) {
-            throw new \RuntimeException(sprintf('Unable to compute size: ', $process->getErrorOutput()));
-        }
-
         if (!preg_match('/(\d+)\s+total$/', trim($process->getOutput()), $vars)) {
-            throw new \RuntimeException('Unable to parse repository size output');
+            $message = sprintf("Unable to parse process output\ncommand: %s\noutput: %s", $process->getCommandLine(), $process->getOutput());
+
+            if (null !== $this->logger) {
+                $this->logger->error($message);
+            }
+
+            if (true === $this->debug) {
+                throw new \RuntimeException('unable to parse repository size output');
+            }
+
+            return null;
         }
 
         return $vars[1];
@@ -340,22 +403,55 @@ class Repository
     }
 
     /**
-     * Return the description
+     * Returns description of repository from description file in git directory.
      *
      * @return string The description
      */
     public function getDescription()
     {
-        if (!is_file($this->gitDir.'/description')) {
+        $file   = $this->gitDir.'/description';
+        $exists = is_file($file);
+
+        if (null !== $this->logger && true === $this->debug) {
+            if (false === $exists) {
+                $this->logger->debug(sprintf('no description file in repository ("%s")', $file));
+            } else {
+                $this->logger->debug(sprintf('reading description file in repository ("%s")', $file));
+            }
+        }
+
+        if (false === $exists) {
             return static::DEFAULT_DESCRIPTION;
         }
 
         return file_get_contents($this->gitDir.'/description');
     }
 
+    /**
+     * Tests if repository has a custom set description.
+     *
+     * @return boolean
+     */
     public function hasDescription()
     {
         return static::DEFAULT_DESCRIPTION !== $this->getDescription();
+    }
+
+    /**
+     * Changes the repository description (file description in git-directory).
+     *
+     * @return Repository the current repository
+     */
+    public function setDescription($description)
+    {
+        $file = $this->gitDir.'/description';
+
+        if (null !== $this->logger && true === $this->debug) {
+            $this->logger->debug(sprintf('change description file content to "%s" (file: %s)', $description, $file));
+        }
+        file_put_contents($file, $description);
+
+        return $this;
     }
 
     /**
@@ -365,51 +461,49 @@ class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @return string Output of a successful process
+     * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
      *
-     * @throws RuntimeException Error while executing git command
+     * @throws RuntimeException Error while executing git command (debug-mode only)
      */
     public function run($command, $args = array())
     {
         $process = $this->getProcess($command, $args);
 
-        if ($this->logger) {
+        if (null !== $this->logger) {
             $this->logger->info(sprintf('run command: %s "%s" ', $command, implode('", "', $args)));
+            $before = microtime(true);
         }
 
-        $before = microtime(true);
         $process->run();
-        $duration = microtime(true) - $before;
 
         $output = $process->getOutput();
 
-        if ($this->logger) {
+        if (null !== $this->logger && true === $this->debug) {
+            $duration = microtime(true) - $before;
             $this->logger->debug(sprintf('last command (%s) duration: %sms', $command, sprintf('%.2f', $duration*1000)));
             $this->logger->debug(sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
             $this->logger->debug(sprintf('last command (%s) output: %s', $command, $output));
         }
 
         if (!$process->isSuccessful()) {
-            if ($this->logger) {
-                $this->logger->error(sprintf('last command (%s) error output: "%s"', $command, $process->getErrorOutput()));
+            $error = sprintf("error while running %s\n output: \"%s\"", $command, $process->getErrorOutput());
+
+            if (null !== $this->logger) {
+                $this->logger->error($error);
             }
 
-            throw new RuntimeException($process);
+            if (true === $this->debug) {
+                throw new RuntimeException($process);
+            }
+
+            return null;
         }
 
         return $output;
     }
 
     /**
-     * @return WorkingCopy
-     */
-    public function getWorkingCopy()
-    {
-        return new WorkingCopy($this);
-    }
-
-    /**
-     * Set a logger
+     * Set repository logger.
      *
      * @param LoggerInterface $logger A logger
      *
@@ -422,15 +516,30 @@ class Repository
         return $this;
     }
 
-    public function cloneTo($path, $bare = true)
+    /**
+     * Clones the current repository to a new directory and return instance of new repository.
+     *
+     * @param string          $path   path to the new repository in which current repository will be cloned
+     * @param boolean         $bare   flag indicating if repository is bare or has a working-copy
+     * @param boolean         $debug  flag indicating if new repository should have debug-mode enabled
+     * @param LoggerInterface $logger a logger to send messages about execution.
+     *
+     * @return Repository the newly created repository
+     */
+    public function cloneTo($path, $bare = true, $debug = true, LoggerInterface $logger = null)
     {
-        return Admin::cloneTo($path, $this->gitDir, $bare);
+        return Admin::cloneTo($path, $this->gitDir, $bare, $debug, $logger);
     }
 
     /**
+     * This internal method is used to create a process object.
+     *
+     * Made private to be sure that process creation is handled through the run method.
+     * run method ensures logging and debug.
+     *
      * @see self::run
      */
-    protected function getProcess($command, $args = array())
+    private function getProcess($command, $args = array())
     {
         $base = array('git', '--git-dir', $this->gitDir);
 
@@ -441,7 +550,6 @@ class Repository
         $base[] = $command;
 
         $builder = new ProcessBuilder(array_merge($base, $args));
-
         $builder->inheritEnvironmentVariables(false);
 
         return $builder->getProcess();

@@ -1,44 +1,74 @@
-Administration of git repositories
+Create and access git repositories
 ==================================
 
-Initializing repositories
-:::::::::::::::::::::::::
+gitlib provides methods to initialize new repositories.
 
-Create a bare repository
-------------------------
+Create a repository
+-------------------
 
-You can create a bare repository using ``Admin::init``:
+To initialize a new repository, use method ``Admin::init``.
 
 .. code-block:: php
 
+    // Initialize a bare repository
     $repository = Gitonomy\Git\Admin::init('/path/to/repository');
 
-Create a repository with a working copy
----------------------------------------
+    // Initialize a non-bare repository
+    $repository = Gitonomy\Git\Admin::init('/path/to/repository', false);
 
-If you want to create a repository with a working directory, pass ``false`` as
-second argument:
-
-.. code-block:: php
-
-    $repository = Gitonomy\Git\Admin::init('/tmp/git_sandbox', false);
+Default behavior is to create a bare repository. If you want to initialize a
+repository with a working copy,pass ``false`` as third argument of Repository
+constructor.
 
 Cloning repositories
-::::::::::::::::::::
+--------------------
 
 You can clone a repository from an URL by doing:
 
 .. code-block:: php
 
+    // Clone to a bare repository
     $repository = Gitonomy\Git\Admin::cloneTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git');
 
-You can pass ``false`` and third argument to get a repository with a working copy.
+    // Clone to a non-bare repository
+    $repository = Gitonomy\Git\Admin::cloneTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', false);
+
+Default behavior is to clone in a bare repository.
+
+Clone a Repository object
+-------------------------
 
 If you already have a Repository instance and want to clone it, you can use this shortcut:
 
 .. code-block:: php
 
     $new = $repository->cloneTo('/tmp/clone');
+
+Mirror a repository
+-------------------
+
+If you want to mirror fully a repository and all references, use the ``mirrorTo`` method. This method
+takes only two arguments, where to mirror and what to mirror:
+
+.. code-block:: php
+
+    // Mirror to a bare repository
+    $mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitonomy/gitlib.git');
+
+    // Mirror to a non-bare repository
+    $mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitonomy/gitlib.git', false);
+
+Execution logs
+--------------
+
+All methods seen above take an additional parameters after ``$debug``. This parameter is used to report
+everything happening in repository: ``$logger``.
+
+If you want a report of execution, inject logger via constructor or repository-creation methods:
+
+.. code-block:: php
+
+    $logger = new 
 
 References
 ::::::::::

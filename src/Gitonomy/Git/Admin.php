@@ -25,14 +25,16 @@ class Admin
     /**
      * Initializes a repository and returns the instance.
      *
-     * @param string  $path Path to the repository
-     * @param boolean $bare Indicate to create a bare repository
+     * @param string          $path   path to the repository
+     * @param boolean         $bare   indicate to create a bare repository
+     * @param boolean         $debug  flag indicating if errors should be thrown
+     * @param LoggerInterface $logger logger for debug purposes
      *
      * @return Repository
      *
-     * @throws RuntimeException Directory exists or not writable
+     * @throws RuntimeException Directory exists or not writable (only if debug=true)
      */
-    public static function init($path, $bare = true, LoggerInterface $logger = null)
+    public static function init($path, $bare = true, $debug = true, LoggerInterface $logger = null)
     {
         $builder = ProcessBuilder::create(array('git', 'init', '-q'));
 
@@ -46,13 +48,32 @@ class Admin
         $process->run();
 
         if (!$process->isSuccessFul()) {
-            throw new \RuntimeException(sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
+            $message = sprintf("Error on repository initialization, command wasn't successful (%s). Error output:\n%s", $process->getCommandLine(), $process->getErrorOutput());
+
+            if (null !== $logger) {
+                $logger->error($message);
+            }
+
+            if (true === $debug) {
+                throw new \RuntimeException($message);
+            }
         }
 
-        return new Repository($path, null, $logger);
+        return new Repository($path, $debug, $logger);
     }
 
-    public static function cloneTo($path, $url, $bare = true, LoggerInterface $logger = null)
+    /**
+     * Clone a repository to a local path.
+     *
+     * @param string          $path   indicates where to clone repository
+     * @param string          $url    url of repository to clone
+     * @param boolean         $bare   indicates if repository should be bare or have a working copy
+     * @param boolean         $debug  flag indicating if errors should be thrown
+     * @param LoggerInterface $logger logger for debug purpopses
+     *
+     * @return Repository
+     */
+    public static function cloneTo($path, $url, $bare = true, $debug = true, LoggerInterface $logger = null)
     {
         $options = array();
 
@@ -60,15 +81,36 @@ class Admin
             $options[] = '--bare';
         }
 
-        return static::cloneRepository($path, $url, $options, $logger);
+        return static::cloneRepository($path, $url, $options, $debug, $logger);
     }
 
-    public static function mirrorTo($path, $url, LoggerInterface $logger = null)
+    /**
+     * Mirrors a repository (fetch all revisions, not only branches).
+     *
+     * @param string          $path   indicates where to clone repository
+     * @param string          $url    url of repository to clone
+     * @param boolean         $debug  flag indicating if errors should be thrown
+     * @param LoggerInterface $logger logger for debug purpopses
+     *
+     * @return Repository
+     */
+    public static function mirrorTo($path, $url, $debug = true, LoggerInterface $logger = null)
     {
         return static::cloneRepository($path, $url, array('--mirror'), $logger);
     }
 
-    private static function cloneRepository($path, $url, array $options = array(), LoggerInterface $logger = null)
+    /**
+     * Internal method to launch effective ``git clone`` command.
+     *
+     * @param string          $path    indicates where to clone repository
+     * @param string          $url     url of repository to clone
+     * @param array           $options arguments to be added to the command-line
+     * @param boolean         $debug   flag indicating if errors should be thrown
+     * @param LoggerInterface $logger  logger for debug purpopses
+     *
+     * @return Repository
+     */
+    private static function cloneRepository($path, $url, array $options = array(), $debug = true, LoggerInterface $logger = null)
     {
         $builder = ProcessBuilder::create(array('git', 'clone', '-q'));
 
@@ -86,6 +128,6 @@ class Admin
             throw new \RuntimeException(sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
         }
 
-        return new Repository($path, null, $logger);
+        return new Repository($path, $debug, $logger);
     }
 }
