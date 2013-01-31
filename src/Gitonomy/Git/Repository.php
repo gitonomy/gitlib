@@ -75,20 +75,43 @@ class Repository
     protected $debug;
 
     /**
-     * Constructor.
+     * Environment variables that should be set for every running process.
      *
-     * @param string          $dir
-     * @param string          $workingDir
-     * @param LoggerInterface $logger
+     * @var array
+     */
+    protected $environmentVariables;
+
+    /**
+     * Constructs a new repository.
+     *
+     * Available options are:
+     *
+     * * working_dir : specify where working copy is located (option --work-tree)
+     *
+     * * debug : (default: true) enable/disable minimize errors and reduce log level
+     *
+     * * logger : a logger to use for logging actions
+     *
+     * * environment_variables : define environment variables for every ran process
+     *
+     * @param string $dir     path to git repository
+     * @param array  $options array of options values
      *
      * @throws InvalidArgumentException The folder does not exists
      */
-    public function __construct($dir, $debug = true, LoggerInterface $logger = null)
+    public function __construct($dir, $options = array())
     {
-        $gitDir     = realpath($dir);
-        $workingDir = null;
+        $options = array_merge(array(
+            'working_dir'           => null,
+            'debug'                 => true,
+            'logger'                => null,
+            'environment_variables' => array()
+        ), $options);
 
-        if (is_dir($gitDir.'/.git')) {
+        $gitDir     = realpath($dir);
+        $workingDir = $options['working_dir'];
+
+        if (null === $workingDir && is_dir($gitDir.'/.git')) {
             $workingDir  = $gitDir;
             $gitDir      = $gitDir.'/.git';
         } elseif (!is_dir($gitDir)) {
@@ -99,8 +122,13 @@ class Repository
         $this->workingDir = $workingDir;
 
         $this->objects = array();
-        $this->debug   = (bool) $debug;
-        $this->logger  = $logger;
+        $this->debug   = (bool) $options['debug'];
+        $this->environmentVariables = $options['environment_variables'];
+
+        if (null !== $options['logger'] && ! $options['logger'] instanceof LoggerInterface) {
+            throw new \InvalidArgumentException(sprintf('Argument "logger" passed to Repository should be a LoggerInterface. A %s was provided', is_object($options['logger']) ? get_class($options['logger']) : gettype($options['logger'])));
+        }
+        $this->logger  = $options['logger'];
 
         if (true === $this->debug && null !== $this->logger) {
             $logger->debug('Repository created (git dir: %s, working dir: %s)', $this->gitDir, $this->workingDir ? : 'none');
@@ -521,14 +549,12 @@ class Repository
      *
      * @param string          $path   path to the new repository in which current repository will be cloned
      * @param boolean         $bare   flag indicating if repository is bare or has a working-copy
-     * @param boolean         $debug  flag indicating if new repository should have debug-mode enabled
-     * @param LoggerInterface $logger a logger to send messages about execution.
      *
      * @return Repository the newly created repository
      */
-    public function cloneTo($path, $bare = true, $debug = true, LoggerInterface $logger = null)
+    public function cloneTo($path, $bare = true, array $options = array())
     {
-        return Admin::cloneTo($path, $this->gitDir, $bare, $debug, $logger);
+        return Admin::cloneTo($path, $this->gitDir, $bare, $options);
     }
 
     /**
@@ -551,7 +577,9 @@ class Repository
 
         $builder = new ProcessBuilder(array_merge($base, $args));
         $builder->inheritEnvironmentVariables(false);
+        $process = $builder->getProcess();
+        $process->setEnv($this->environmentVariables);
 
-        return $builder->getProcess();
+        return $process;
     }
 }

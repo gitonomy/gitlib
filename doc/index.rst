@@ -23,7 +23,8 @@ Reference
 .. toctree::
    :maxdepth: 1
 
-   api/create_repository
+   api/admin
+   api/repository
    api/hooks
    api/workingcopy
    api/commit

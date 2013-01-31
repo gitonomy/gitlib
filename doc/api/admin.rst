@@ -58,17 +58,6 @@ takes only two arguments, where to mirror and what to mirror:
     // Mirror to a non-bare repository
     $mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitonomy/gitlib.git', false);
 
-Execution logs
---------------
-
-All methods seen above take an additional parameters after ``$debug``. This parameter is used to report
-everything happening in repository: ``$logger``.
-
-If you want a report of execution, inject logger via constructor or repository-creation methods:
-
-.. code-block:: php
-
-    $logger = new 
 
 References
 ::::::::::
