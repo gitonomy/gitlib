@@ -68,6 +68,11 @@ class Repository
     protected $logger;
 
     /**
+     * Path to git command
+     */
+    protected $command;
+
+    /**
      * Debug flag, indicating if errors should be thrown.
      *
      * @var boolean
@@ -90,7 +95,7 @@ class Repository
      *
      * * debug : (default: true) enable/disable minimize errors and reduce log level
      *
-     * * logger : a logger to use for logging actions
+     * * logger : a logger to use for logging actions (Psr\Log\LoggerInterface)
      *
      * * environment_variables : define environment variables for every ran process
      *
@@ -105,11 +110,36 @@ class Repository
             'working_dir'           => null,
             'debug'                 => true,
             'logger'                => null,
-            'environment_variables' => array()
+            'environment_variables' => array(),
+            'command'               => 'git'
         ), $options);
 
-        $gitDir     = realpath($dir);
-        $workingDir = $options['working_dir'];
+        if (null !== $options['logger'] && ! $options['logger'] instanceof LoggerInterface) {
+            throw new \InvalidArgumentException(sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', is_object($options['logger']) ? get_class($options['logger']) : gettype($options['logger'])));
+        }
+
+        $this->logger  = $options['logger'];
+        $this->initDir($dir, $options['working_dir']);
+
+        $this->objects              = array();
+        $this->debug                = (bool) $options['debug'];
+        $this->environmentVariables = $options['environment_variables'];
+        $this->command              = $options['command'];
+
+        if (true === $this->debug && null !== $this->logger) {
+            $logger->debug('Repository created (git dir: %s, working dir: %s)', $this->gitDir, $this->workingDir ? : 'none');
+        }
+    }
+
+    /**
+     * Initializes directory attributes on repository:
+     *
+     * @param string $gitDir     directory of a working copy with files checked out
+     * @param string $workingDir directory containing git files (objects, config...)
+     */
+    private function initDir($gitDir, $workingDir = null)
+    {
+        $gitDir = realpath($gitDir);
 
         if (null === $workingDir && is_dir($gitDir.'/.git')) {
             $workingDir  = $gitDir;
@@ -120,19 +150,6 @@ class Repository
 
         $this->gitDir     = $gitDir;
         $this->workingDir = $workingDir;
-
-        $this->objects = array();
-        $this->debug   = (bool) $options['debug'];
-        $this->environmentVariables = $options['environment_variables'];
-
-        if (null !== $options['logger'] && ! $options['logger'] instanceof LoggerInterface) {
-            throw new \InvalidArgumentException(sprintf('Argument "logger" passed to Repository should be a LoggerInterface. A %s was provided', is_object($options['logger']) ? get_class($options['logger']) : gettype($options['logger'])));
-        }
-        $this->logger  = $options['logger'];
-
-        if (true === $this->debug && null !== $this->logger) {
-            $logger->debug('Repository created (git dir: %s, working dir: %s)', $this->gitDir, $this->workingDir ? : 'none');
-        }
     }
 
     /**
@@ -567,7 +584,7 @@ class Repository
      */
     private function getProcess($command, $args = array())
     {
-        $base = array('git', '--git-dir', $this->gitDir);
+        $base = array($this->command, '--git-dir', $this->gitDir);
 
         if ($this->workingDir) {
             $base = array_merge($base, array('--work-tree', $this->workingDir));;

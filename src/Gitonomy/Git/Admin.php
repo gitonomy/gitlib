@@ -35,19 +35,22 @@ class Admin
      */
     public static function init($path, $bare = true, array $options = array())
     {
-        $builder = ProcessBuilder::create(array('git', 'init', '-q'));
+        $command = isset($options['command']) ? $options['command'] : 'git';
 
+        // command-line
+        $builder = ProcessBuilder::create(array('git', 'init', '-q'));
         if ($bare) {
             $builder->add('--bare');
         }
-
         $builder->add($path);
 
+        // environment
         $builder->inheritEnvironmentVariables(false);
         $process = $builder->getProcess();
         if (isset($options['environment_variables'])) {
             $process->setEnv($options['environment_variables']);
         }
+
         $process->run();
 
         if (!$process->isSuccessFul()) {
@@ -100,7 +103,8 @@ class Admin
      */
     private static function cloneRepository($path, $url, array $args = array(), array $options = array())
     {
-        $builder = ProcessBuilder::create(array('git', 'clone', '-q'));
+        $command = isset($options['command']) ? $options['command'] : 'git';
+        $builder = ProcessBuilder::create(array($command, 'clone', '-q'));
         foreach ($args as $value) {
             $builder->add($value);
         }
