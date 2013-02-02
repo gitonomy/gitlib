@@ -39,7 +39,7 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
     public static function createEmptyRepository($bare = true)
     {
         $dir = self::createTempDir();
-        $repository = Admin::init($dir, $bare);
+        $repository = Admin::init($dir, $bare, self::getOptions());
         self::registerDeletion($repository);
 
         return $repository;
@@ -64,10 +64,10 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
     public static function createFoobarRepository($bare = true)
     {
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL);
+            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, self::getOptions());
         }
 
-        $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare);
+        $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare, self::getOptions());
         self::registerDeletion($repository);
 
         return $repository;
@@ -117,5 +117,14 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
         }
 
         rmdir($dir);
+    }
+
+    private static function getOptions()
+    {
+        $command = isset($_SERVER['GIT_COMMAND']) ? $_SERVER['GIT_COMMAND'] : 'git';
+
+        return array(
+            'command' => $command
+        );
     }
 }
