@@ -127,7 +127,7 @@ class Repository
         $this->command              = $options['command'];
 
         if (true === $this->debug && null !== $this->logger) {
-            $logger->debug('Repository created (git dir: %s, working dir: %s)', $this->gitDir, $this->workingDir ? : 'none');
+            $this->logger->debug(sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ? : 'none'));
         }
     }
 
