@@ -258,7 +258,7 @@ class Commit
     /**
      * @return Commit
      */
-    public function getLastModification($path, $lastHash = null)
+    public function getLastModification($path)
     {
         if (preg_match('#^/#', $path)) {
             $path = StringHelper::substr($path, 1);
