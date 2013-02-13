@@ -260,10 +260,11 @@ class Commit
      */
     public function getLastModification($path)
     {
-        if (preg_match('#^/#', $path)) {
+        if (0 === strpos($path, '/')) {
             $path = StringHelper::substr($path, 1);
         }
 
+        $path = $this->repository->getWorkingDir().'/'.$path;
         $result = $this->repository->run('log', array('--format=%H', '-n', 1, $this->hash, '--', $path));
 
         return $this->repository->getCommit(trim($result));
