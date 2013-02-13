@@ -264,7 +264,10 @@ class Commit
             $path = StringHelper::substr($path, 1);
         }
 
-        $path = $this->repository->getWorkingDir().'/'.$path;
+        if ($getWorkingDir = $this->repository->getWorkingDir()) {
+            $path = $getWorkingDir.'/'.$path;
+        }
+
         $result = $this->repository->run('log', array('--format=%H', '-n', 1, $this->hash, '--', $path));
 
         return $this->repository->getCommit(trim($result));
