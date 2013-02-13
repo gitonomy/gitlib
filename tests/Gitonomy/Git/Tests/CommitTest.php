@@ -41,6 +41,19 @@ class CommitTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
+     *
+     * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
+     * @expectedExceptionMessage Can not find reference "that-hash-doest-not-exists"
+     */
+    public function testInvalideHashThrowException($repository)
+    {
+        $commit = new Commit($repository, 'that-hash-doest-not-exists');
+
+        $commit->getTreeHash();
+    }
+
+    /**
+     * @dataProvider provideFoobar
      */
     public function testGetShortHash($repository)
     {

@@ -514,8 +514,8 @@ class Repository
     {
         $process = $this->getProcess($command, $args);
 
-        if (null !== $this->logger) {
-            $this->logger->info(sprintf('run command: %s "%s" ', $command, implode('", "', $args)));
+        if ($this->logger) {
+            $this->logger->info(sprintf('run command: %s "%s" ', $command, implode(' ', $args)));
             $before = microtime(true);
         }
 
@@ -523,7 +523,7 @@ class Repository
 
         $output = $process->getOutput();
 
-        if (null !== $this->logger && true === $this->debug) {
+        if ($this->logger && $this->debug) {
             $duration = microtime(true) - $before;
             $this->logger->debug(sprintf('last command (%s) duration: %sms', $command, sprintf('%.2f', $duration*1000)));
             $this->logger->debug(sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
@@ -533,11 +533,11 @@ class Repository
         if (!$process->isSuccessful()) {
             $error = sprintf("error while running %s\n output: \"%s\"", $command, $process->getErrorOutput());
 
-            if (null !== $this->logger) {
+            if ($this->logger) {
                 $this->logger->error($error);
             }
 
-            if (true === $this->debug) {
+            if ($this->debug) {
                 throw new RuntimeException($process);
             }
 
