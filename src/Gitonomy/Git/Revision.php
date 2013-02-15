@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
+
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -57,7 +59,11 @@ class Revision
             return $this->resolved;
         }
 
-        $result = $this->repository->run('rev-parse', array('--verify', $this->name));
+        try {
+            $result = $this->repository->run('rev-parse', array('--verify', $this->name));
+        } catch (\RuntimeException $e) {
+            throw new ReferenceNotFoundException(sprintf('Can not find reference "%s"', $this->name));
+        }
 
         return $this->resolved = $this->repository->getCommit(trim($result));
     }

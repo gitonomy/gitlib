@@ -36,6 +36,16 @@ class RevisionTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
+     * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
+     * @expectedExceptionMessage Can not find reference "non-existent-commit"
+     */
+    public function testGetFailingReference($repository)
+    {
+        $revision = $repository->getRevision('non-existent-commit')->getResolved();
+    }
+
+    /**
+     * @dataProvider provideFoobar
      */
     public function testGetLog($repository)
     {

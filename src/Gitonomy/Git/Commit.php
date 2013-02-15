@@ -14,6 +14,7 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Util\StringHelper;
 use Gitonomy\Git\Diff\Diff;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 
 /**
  * Representation of a Git commit.
@@ -139,7 +140,12 @@ class Commit
         }
 
         $parser = new Parser\CommitParser();
-        $result = $this->repository->run('cat-file', array('commit', $this->hash));
+        try {
+            $result = $this->repository->run('cat-file', array('commit', $this->hash));
+        } catch (\RuntimeException $e) {
+            throw new ReferenceNotFoundException(sprintf('Can not find reference "%s"', $this->hash));
+        }
+
         $parser->parse($result);
 
         $this->treeHash       = $parser->tree;
@@ -252,10 +258,14 @@ class Commit
     /**
      * @return Commit
      */
-    public function getLastModification($path, $lastHash = null)
+    public function getLastModification($path)
     {
-        if (preg_match('#^/#', $path)) {
+        if (0 === strpos($path, '/')) {
             $path = StringHelper::substr($path, 1);
+        }
+
+        if ($getWorkingDir = $this->repository->getWorkingDir()) {
+            $path = $getWorkingDir.'/'.$path;
         }
 
         $result = $this->repository->run('log', array('--format=%H', '-n', 1, $this->hash, '--', $path));
