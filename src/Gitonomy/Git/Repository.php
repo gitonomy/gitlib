@@ -145,7 +145,7 @@ class Repository
             $workingDir  = $gitDir;
             $gitDir      = $gitDir.'/.git';
         } elseif (!is_dir($gitDir)) {
-            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $dir));
+            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
         }
 
         $this->gitDir     = $gitDir;
