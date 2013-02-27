@@ -39,6 +39,37 @@ class WorkingCopyTest extends AbstractTest
         $this->assertEquals("new-feature", $head->getName(), "HEAD is branch new-feature");
     }
 
+    public function testDiffStaged()
+    {
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
+
+        $diffStaged = $wc->getDiffStaged();
+        $this->assertCount(0, $diffStaged->getFiles());
+
+        $file = $repository->getWorkingDir().'/foobar-test';
+        file_put_contents($file, 'test');
+        $repository->run('add', array($file));
+
+        $diffStaged = $wc->getDiffStaged();
+        $this->assertCount(1, $diffStaged->getFiles());
+    }
+
+    public function testDiffPending()
+    {
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
+
+        $diffPending = $wc->getDiffPending();
+        $this->assertCount(0, $diffPending->getFiles());
+
+        $file = $repository->getWorkingDir().'/test.sh';
+        file_put_contents($file, 'test');
+
+        $diffPending = $wc->getDiffPending();
+        $this->assertCount(1, $diffPending->getFiles());
+    }
+
     /**
      * @expectedException RuntimeException
      */

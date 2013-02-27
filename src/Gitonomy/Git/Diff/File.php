@@ -219,4 +219,9 @@ class File
 
         return $file;
     }
+
+    public function getAnchor()
+    {
+        return substr($this->newIndex, 0, 12);
+    }
 }

@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Diff\Diff;
+
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -29,6 +31,26 @@ class WorkingCopy
         if ($this->repository->isBare()) {
             throw new \LogicException('Can\'t create a working copy on a bare repository');
         }
+    }
+
+    public function getStatus()
+    {
+        return WorkingStatus::parseOutput();
+    }
+
+    public function getUntrackedFiles()
+    {
+        return array();
+    }
+
+    public function getDiffPending()
+    {
+        return Diff::parse($this->run('diff', array('-r', '-p', '-m', '-M', '--full-index')));
+    }
+
+    public function getDiffStaged()
+    {
+        return Diff::parse($this->run('diff', array('-r', '-p', '-m', '-M', '--full-index', '--staged')));
     }
 
     /**
