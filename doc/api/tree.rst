@@ -49,6 +49,6 @@ An example:
 
 .. code-block:: php
 
-    $source = $tree->getPath('src/Gitonomy/Git');
+    $source = $tree->resolvePath('src/Gitonomy/Git');
 
     $source instanceof Tree;
