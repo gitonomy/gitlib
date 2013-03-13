@@ -60,7 +60,7 @@ class Blob
     /**
      * Returns content of the blob.
      *
-     * @throws RuntimeException Error occurred while getting content of blob
+     * @throws ProcessException Error occurred while getting content of blob
      */
     public function getContent()
     {

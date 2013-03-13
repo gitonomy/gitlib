@@ -12,12 +12,14 @@
 
 namespace Gitonomy\Git;
 
-use Symfony\Component\Process\ProcessBuilder;
-use Symfony\Component\Process\Process;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\ProcessBuilder;
 
-use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Diff\Diff;
+use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Exception\InvalidArgumentException;
 
 /**
  * Git repository object.
@@ -115,7 +117,7 @@ class Repository
         ), $options);
 
         if (null !== $options['logger'] && ! $options['logger'] instanceof LoggerInterface) {
-            throw new \InvalidArgumentException(sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', is_object($options['logger']) ? get_class($options['logger']) : gettype($options['logger'])));
+            throw new InvalidArgumentException(sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', is_object($options['logger']) ? get_class($options['logger']) : gettype($options['logger'])));
         }
 
         $this->logger  = $options['logger'];
@@ -145,7 +147,7 @@ class Repository
             $workingDir  = $gitDir;
             $gitDir      = $gitDir.'/.git';
         } elseif (!is_dir($gitDir)) {
-            throw new \InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
+            throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
         }
 
         $this->gitDir     = $gitDir;
@@ -195,7 +197,7 @@ class Repository
             }
 
             if (true === $this->debug) {
-                throw new \RuntimeException($message);
+                throw new RuntimeException($message);
             }
         }
 
@@ -218,7 +220,7 @@ class Repository
         }
 
         if (true === $this->debug) {
-            throw new \RuntimeException($message);
+            throw new RuntimeException($message);
         }
     }
 
@@ -367,7 +369,7 @@ class Repository
      *
      * @param array $revisions An array of revisions to show logs from. Can be
      *                         any text value type
-     * @param array $paths     Restrict log to modifications occuring on given
+     * @param array $paths Restrict log to modifications occuring on given
      *                         paths.
      *
      * @param int $offset Start from a given offset in results.
@@ -411,7 +413,7 @@ class Repository
             }
 
             if (true === $this->debug) {
-                throw new \RuntimeException('unable to parse repository size output');
+                throw new RuntimeException('unable to parse repository size output');
             }
 
             return null;
@@ -538,7 +540,7 @@ class Repository
             }
 
             if ($this->debug) {
-                throw new RuntimeException($process);
+                throw new ProcessException($process);
             }
 
             return null;
@@ -564,8 +566,8 @@ class Repository
     /**
      * Clones the current repository to a new directory and return instance of new repository.
      *
-     * @param string          $path   path to the new repository in which current repository will be cloned
-     * @param boolean         $bare   flag indicating if repository is bare or has a working-copy
+     * @param string  $path path to the new repository in which current repository will be cloned
+     * @param boolean $bare flag indicating if repository is bare or has a working-copy
      *
      * @return Repository the newly created repository
      */

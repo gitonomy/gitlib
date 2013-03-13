@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Reference;
 
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference;
 
 /**
@@ -36,7 +37,7 @@ class Branch extends Reference
             return $vars['remote'].'/'.$vars['name'];
         }
 
-        throw new \RuntimeException(sprintf('Cannot extract branch name from "%s"', $this->fullname));
+        throw new RuntimeException(sprintf('Cannot extract branch name from "%s"', $this->fullname));
     }
 
     public function isRemote()

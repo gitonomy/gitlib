@@ -340,11 +340,11 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         try {
             $parser = new Parser\ReferenceParser();
             $output = $this->repository->run('show-ref');
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             $output = $e->getOutput();
             $error  = $e->getErrorOutput();
             if ($error !== '') {
-                throw new \RuntimeException('Error while getting list of references: '.$error);
+                throw new RuntimeException('Error while getting list of references: '.$error);
             }
         }
         $parser->parse($output);
@@ -369,7 +369,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
             } elseif (preg_match('#^refs/pull/(.*)$#', $fullname)) {
                 // Do nothing here
             } else {
-                throw new \RuntimeException(sprintf('Unable to parse "%s"', $fullname));
+                throw new RuntimeException(sprintf('Unable to parse "%s"', $fullname));
             }
         }
     }

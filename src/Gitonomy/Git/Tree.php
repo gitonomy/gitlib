@@ -12,6 +12,9 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\UnexpectedValueException;
+
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -72,7 +75,7 @@ class Tree
         $this->initialize();
 
         if (!isset($this->entries[$name])) {
-            throw new \InvalidArgumentException('No entry '.$name);
+            throw new InvalidArgumentException('No entry '.$name);
         }
 
         return $this->entries[$name][1];
@@ -92,9 +95,9 @@ class Tree
             if ($element instanceof Tree) {
                 $element = $element->getEntry($segment);
             } elseif ($entry instanceof Blob) {
-                throw new \InvalidArgumentException('Unresolvable path');
+                throw new InvalidArgumentException('Unresolvable path');
             } else {
-                throw new \RuntimeException('Unknow type of element');
+                throw new UnexpectedValueException('Unknow type of element');
             }
         }
 

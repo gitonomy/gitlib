@@ -12,7 +12,7 @@
 
 namespace Gitonomy\Git\Parser;
 
-use Gitonomy\Git\Util\StringHelper;
+use Gitonomy\Git\Exception\RuntimeException;
 
 abstract class ParserBase
 {
@@ -60,7 +60,7 @@ abstract class ParserBase
     protected function consumeShortHash()
     {
         if (!preg_match('/([A-Za-z0-9]{7,40})/A', $this->content, $vars, null, $this->cursor)) {
-            throw new \RuntimeException('No short hash found: '.substr($this->content, $this->cursor, 7));
+            throw new RuntimeException('No short hash found: '.substr($this->content, $this->cursor, 7));
         }
 
         $this->cursor += strlen($vars[1]);
@@ -71,7 +71,7 @@ abstract class ParserBase
     protected function consumeHash()
     {
         if (!preg_match('/([A-Za-z0-9]{40})/A', $this->content, $vars, null, $this->cursor)) {
-            throw new \RuntimeException('No hash found: '.substr($this->content, $this->cursor, 40));
+            throw new RuntimeException('No hash found: '.substr($this->content, $this->cursor, 40));
         }
 
         $this->cursor += 40;
@@ -82,7 +82,7 @@ abstract class ParserBase
     protected function consumeRegexp($regexp)
     {
         if (!preg_match($regexp.'A', $this->content, $vars, null, $this->cursor)) {
-            throw new \RuntimeException('No match for regexp '.$regexp.' Upcoming: '.substr($this->content, $this->cursor, 30));
+            throw new RuntimeException('No match for regexp '.$regexp.' Upcoming: '.substr($this->content, $this->cursor, 30));
         }
 
         $this->cursor += strlen($vars[0]);
@@ -95,7 +95,7 @@ abstract class ParserBase
         $pos = strpos($this->content, $text, $this->cursor);
 
         if (false === $pos) {
-            throw new \RuntimeException(sprintf('Unable to find "%s"', $text));
+            throw new RuntimeException(sprintf('Unable to find "%s"', $text));
         }
 
         $result = substr($this->content, $this->cursor, $pos - $this->cursor);
@@ -109,7 +109,7 @@ abstract class ParserBase
         $length = strlen($expected);
         $actual = substr($this->content, $this->cursor, $length);
         if ($actual !== $expected) {
-            throw new \RuntimeException(sprintf('Expected "%s", but got "%s" (%s)', $expected, $actual, substr($this->content, $this->cursor, 10)));
+            throw new RuntimeException(sprintf('Expected "%s", but got "%s" (%s)', $expected, $actual, substr($this->content, $this->cursor, 10)));
         }
         $this->cursor += $length;
 
