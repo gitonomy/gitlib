@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\LogicException;
+
 /**
  * Push reference contains a commit interval. This object aggregates methods
  * for this interval.
@@ -99,7 +101,7 @@ class PushReference
     public function getRevision()
     {
         if ($this->isDelete()) {
-            throw new \LogicException('No log on deletion');
+            throw new LogicException('No log on deletion');
         }
 
         if ($this->isCreate()) {

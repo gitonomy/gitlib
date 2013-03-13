@@ -12,7 +12,7 @@
 
 namespace Gitonomy\Git;
 
-use Psr\Log\LoggerInterface;
+use Gitonomy\Git\Exception\RuntimeException;
 use Symfony\Component\Process\ProcessBuilder;
 
 /**
@@ -54,7 +54,7 @@ class Admin
         $process->run();
 
         if (!$process->isSuccessFul()) {
-            throw new \RuntimeException(sprintf("Error on repository initialization, command wasn't successful (%s). Error output:\n%s", $process->getCommandLine(), $process->getErrorOutput()));
+            throw new RuntimeException(sprintf("Error on repository initialization, command wasn't successful (%s). Error output:\n%s", $process->getCommandLine(), $process->getErrorOutput()));
         }
 
         return new Repository($path, $options);
@@ -63,9 +63,9 @@ class Admin
     /**
      * Clone a repository to a local path.
      *
-     * @param string  $path   indicates where to clone repository
-     * @param string  $url    url of repository to clone
-     * @param boolean $bare   indicates if repository should be bare or have a working copy
+     * @param string  $path    indicates where to clone repository
+     * @param string  $url     url of repository to clone
+     * @param boolean $bare    indicates if repository should be bare or have a working copy
      * @param array   $options options for Repository creation
      *
      * @return Repository
@@ -80,9 +80,9 @@ class Admin
     /**
      * Mirrors a repository (fetch all revisions, not only branches).
      *
-     * @param string  $path   indicates where to clone repository
-     * @param string  $url    url of repository to clone
-     * @param array   $options options for Repository creation
+     * @param string $path    indicates where to clone repository
+     * @param string $url     url of repository to clone
+     * @param array  $options options for Repository creation
      *
      * @return Repository
      */
@@ -94,10 +94,10 @@ class Admin
     /**
      * Internal method to launch effective ``git clone`` command.
      *
-     * @param string  $path    indicates where to clone repository
-     * @param string  $url     url of repository to clone
-     * @param array   $args    arguments to be added to the command-line
-     * @param array   $options options for Repository creation
+     * @param string $path    indicates where to clone repository
+     * @param string $url     url of repository to clone
+     * @param array  $args    arguments to be added to the command-line
+     * @param array  $options options for Repository creation
      *
      * @return Repository
      */
@@ -120,7 +120,7 @@ class Admin
         $process->run();
 
         if (!$process->isSuccessFul()) {
-            throw new \RuntimeException(sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
+            throw new RuntimeException(sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
         }
 
         return new Repository($path, $options);

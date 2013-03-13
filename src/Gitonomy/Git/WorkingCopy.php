@@ -14,6 +14,9 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
 
+use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -29,7 +32,7 @@ class WorkingCopy
         $this->repository = $repository;
 
         if ($this->repository->isBare()) {
-            throw new \LogicException('Can\'t create a working copy on a bare repository');
+            throw new LogicException('Can\'t create a working copy on a bare repository');
         }
     }
 
@@ -66,7 +69,7 @@ class WorkingCopy
         } elseif (is_string($revision)) {
             $args[] = $revision;
         } else {
-            throw new \InvalidArgumentException(sprintf('Unknown type "%s"', gettype($revision)));
+            throw new InvalidArgumentException(sprintf('Unknown type "%s"', gettype($revision)));
         }
 
         if (null !== $branch) {

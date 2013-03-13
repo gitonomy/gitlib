@@ -13,6 +13,7 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\ProcessException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -61,7 +62,7 @@ class Revision
 
         try {
             $result = $this->repository->run('rev-parse', array('--verify', $this->name));
-        } catch (\RuntimeException $e) {
+        } catch (ProcessException $e) {
             throw new ReferenceNotFoundException(sprintf('Can not find reference "%s"', $this->name));
         }
 

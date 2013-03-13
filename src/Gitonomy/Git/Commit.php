@@ -15,6 +15,8 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Util\StringHelper;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
 
 /**
  * Representation of a Git commit.
@@ -131,7 +133,7 @@ class Commit
     /**
      * Initializes the commit, which means read data about it and fill object.
      *
-     * @throws RuntimeException An error occurred during read of data.
+     * @throws ReferenceNotFoundException An error occurred during read of data.
      */
     private function initialize()
     {
@@ -142,7 +144,7 @@ class Commit
         $parser = new Parser\CommitParser();
         try {
             $result = $this->repository->run('cat-file', array('commit', $this->hash));
-        } catch (\RuntimeException $e) {
+        } catch (ProcessException $e) {
             throw new ReferenceNotFoundException(sprintf('Can not find reference "%s"', $this->hash));
         }
 
@@ -328,12 +330,12 @@ class Commit
         } elseif (!$local && $remote) {
             $arguments[] = '-r';
         } elseif (!$local && !$remote) {
-            throw new \InvalidArgumentException('You should a least set one argument to true');
+            throw new InvalidArgumentException('You should a least set one argument to true');
         }
 
         try {
             $result = $this->repository->run('branch', $arguments);
-        } catch (\Exception $e) {
+        } catch (ProcessException $e) {
             return array();
         }
 
