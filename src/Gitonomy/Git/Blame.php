@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Parser\BlameParser;
 
 /**
@@ -42,13 +43,13 @@ class Blame implements \Countable
     public function getLine($number)
     {
         if ($number < 1) {
-            throw new \InvalidArgumentException('Line number should be at least 1');
+            throw new InvalidArgumentException('Line number should be at least 1');
         }
 
         $lines = $this->getLines();
 
         if (!isset($lines[$number])) {
-            throw new \InvalidArgumentException('Line does not exist');
+            throw new InvalidArgumentException('Line does not exist');
         }
 
         return $lines[$number];

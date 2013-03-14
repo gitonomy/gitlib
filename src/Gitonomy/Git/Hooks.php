@@ -12,6 +12,9 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\LogicException;
+
 /**
  * Hooks collection, aggregated by repository.
  *
@@ -56,7 +59,7 @@ class Hooks
     public function get($name)
     {
         if (!$this->has($name)) {
-            throw new \InvalidArgumentException(sprintf('Hook named "%s" is not present', $name));
+            throw new InvalidArgumentException(sprintf('Hook named "%s" is not present', $name));
         }
 
         return file_get_contents($this->getPath($name));
@@ -74,12 +77,12 @@ class Hooks
     public function setSymlink($name, $file)
     {
         if ($this->has($name)) {
-            throw new \LogicException(sprintf('A hook "%s" is already defined', $name));
+            throw new LogicException(sprintf('A hook "%s" is already defined', $name));
         }
 
         $path = $this->getPath($name);
         if (false === symlink($file, $path)) {
-            throw new \RuntimeException(sprintf('Unable to create hook "%s"', $name, $path));
+            throw new RuntimeException(sprintf('Unable to create hook "%s"', $name, $path));
         }
     }
 
@@ -94,7 +97,7 @@ class Hooks
     public function set($name, $content)
     {
         if ($this->has($name)) {
-            throw new \LogicException(sprintf('A hook "%s" is already defined', $name));
+            throw new LogicException(sprintf('A hook "%s" is already defined', $name));
         }
 
         $path = $this->getPath($name);
@@ -112,7 +115,7 @@ class Hooks
     public function remove($name)
     {
         if (!$this->has($name)) {
-            throw new \LogicException(sprintf('The hook "%s" was not found', $name));
+            throw new LogicException(sprintf('The hook "%s" was not found', $name));
         }
 
         unlink($this->getPath($name));

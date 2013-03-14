@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git\Parser;
 
+use Gitonomy\Git\Exception\RuntimeException;
+
 class CommitParser extends ParserBase
 {
     public $tree;
@@ -53,7 +55,7 @@ class CommitParser extends ParserBase
     protected function consumeNameEmailDate()
     {
         if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+ [+-]\d{4}))/A', $this->content, $vars, 0, $this->cursor)) {
-            throw new \RuntimeException('Unable to parse name, email and date');
+            throw new RuntimeException('Unable to parse name, email and date');
         }
 
         $this->cursor += strlen($vars[1]);
@@ -66,7 +68,7 @@ class CommitParser extends ParserBase
         $date = \DateTime::createFromFormat('U e O', $text.' UTC');
 
         if (!$date instanceof \DateTime) {
-            throw new \RuntimeException(sprintf('Unable to convert "%s" to datetime', $text));
+            throw new RuntimeException(sprintf('Unable to convert "%s" to datetime', $text));
         }
 
         return $date;

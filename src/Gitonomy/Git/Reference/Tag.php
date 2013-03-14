@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Reference;
 
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference;
 
 /**
@@ -27,7 +28,7 @@ class Tag extends Reference
     public function getName()
     {
         if (!preg_match('#^refs/tags/(.*)$#', $this->fullname, $vars)) {
-            throw new \RuntimeException(sprintf('Cannot extract tag name from "%s"', $this->fullname));
+            throw new RuntimeException(sprintf('Cannot extract tag name from "%s"', $this->fullname));
         }
 
         return $vars[1];
