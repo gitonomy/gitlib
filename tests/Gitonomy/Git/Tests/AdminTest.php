@@ -31,7 +31,7 @@ class AdminTest extends AbstractTest
 
     public function testBare()
     {
-        $repository = Admin::init($this->tmpDir);
+        $repository = Admin::init($this->tmpDir, true, self::getOptions());
 
         $objectDir = $this->tmpDir.'/objects';
 
@@ -44,7 +44,7 @@ class AdminTest extends AbstractTest
 
     public function testNotBare()
     {
-        $repository = Admin::init($this->tmpDir, false);
+        $repository = Admin::init($this->tmpDir, false, self::getOptions());
 
         $objectDir = $this->tmpDir.'/.git/objects';
 
@@ -61,7 +61,7 @@ class AdminTest extends AbstractTest
     public function testClone($repository)
     {
         $newDir = self::createTempDir();
-        $new = $repository->cloneTo($newDir, $repository->isBare());
+        $new = $repository->cloneTo($newDir, $repository->isBare(), self::getOptions());
         self::registerDeletion($new);
 
         $newRefs = array_keys($new->getReferences()->getAll());
@@ -84,7 +84,7 @@ class AdminTest extends AbstractTest
     public function testMirror($repository)
     {
         $newDir = self::createTempDir();
-        $new = Admin::mirrorTo($newDir, $repository->getGitDir());
+        $new = Admin::mirrorTo($newDir, $repository->getGitDir(), self::getOptions());
         self::registerDeletion($new);
 
         $newRefs = array_keys($new->getReferences()->getAll());
@@ -108,6 +108,6 @@ class AdminTest extends AbstractTest
         $file = $this->tmpDir.'/test';
         touch($file);
 
-        Admin::init($file);
+        Admin::init($file, true, self::getOptions());
     }
 }

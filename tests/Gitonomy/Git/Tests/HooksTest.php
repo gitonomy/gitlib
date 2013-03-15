@@ -14,6 +14,23 @@ namespace Gitonomy\Git\Tests;
 
 class HooksTest extends AbstractTest
 {
+    private static $symlinkOnWindows = null;
+
+    public static function setUpBeforeClass()
+    {
+        if (defined('PHP_WINDOWS_VERSION_MAJOR')) {
+            self::$symlinkOnWindows = true;
+            $originDir = tempnam(sys_get_temp_dir(), 'sl');
+            $targetDir = tempnam(sys_get_temp_dir(), 'sl');
+            if (true !== @symlink($originDir, $targetDir)) {
+                $report = error_get_last();
+                if (is_array($report) && false !== strpos($report['message'], 'error code(1314)')) {
+                    self::$symlinkOnWindows = false;
+                }
+            }
+        }
+    }
+
     public function hookPath($repository, $hook)
     {
         return $repository->getGitDir().'/hooks/'.$hook;
@@ -77,6 +94,8 @@ class HooksTest extends AbstractTest
      */
     public function testSymlink($repository)
     {
+        $this->markAsSkippedIfSymlinkIsMissing();
+
         $file = $this->touchHook($repository, 'bar', 'barbarbar');
         $repository->getHooks()->setSymlink('foo', $file);
 
@@ -90,6 +109,8 @@ class HooksTest extends AbstractTest
      */
     public function testSymlink_WithExisting_ThrowsLogicException($repository)
     {
+        $this->markAsSkippedIfSymlinkIsMissing();
+
         $file    = $this->hookPath($repository, 'target-symlink');
         $fooFile = $this->hookPath($repository, 'foo');
 
@@ -143,5 +164,16 @@ class HooksTest extends AbstractTest
     public function testRemove_NotExisting_ThrowsLogicException($repository)
     {
         $repository->getHooks()->remove('foo');
+    }
+
+    private function markAsSkippedIfSymlinkIsMissing()
+    {
+        if (!function_exists('symlink')) {
+            $this->markTestSkipped('symlink is not supported');
+        }
+
+        if (defined('PHP_WINDOWS_VERSION_MAJOR') && false === self::$symlinkOnWindows) {
+            $this->markTestSkipped('symlink requires "Create symbolic links" privilege on windows');
+        }
     }
 }
