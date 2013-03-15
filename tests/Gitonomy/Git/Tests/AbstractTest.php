@@ -17,7 +17,7 @@ use Gitonomy\Git\Repository;
 
 abstract class AbstractTest extends \PHPUnit_Framework_TestCase
 {
-    const REPOSITORY_URL = 'git://github.com/gitonomy/foobar.git';
+    const REPOSITORY_URL = 'http://github.com/gitonomy/foobar.git';
 
     const LONGFILE_COMMIT        = '4f17752acc9b7c54ba679291bf24cb7d354f0f4f';
     const BEFORE_LONGFILE_COMMIT = 'e0ec50e2af75fa35485513f60b2e658e245227e9';
@@ -64,7 +64,7 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
     public static function createFoobarRepository($bare = true)
     {
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, self::getOptions());
+            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, self::getOptions());
         }
 
         $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare, self::getOptions());
@@ -119,12 +119,14 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
         rmdir($dir);
     }
 
-    private static function getOptions()
+    protected static function getOptions()
     {
         $command = isset($_SERVER['GIT_COMMAND']) ? $_SERVER['GIT_COMMAND'] : 'git';
+        $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : array();
 
         return array(
-            'command' => $command
+            'command' => $command,
+            'environment_variables' => $envs,
         );
     }
 }

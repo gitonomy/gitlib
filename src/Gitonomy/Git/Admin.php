@@ -38,7 +38,7 @@ class Admin
         $command = isset($options['command']) ? $options['command'] : 'git';
 
         // command-line
-        $builder = ProcessBuilder::create(array('git', 'init', '-q'));
+        $builder = ProcessBuilder::create(array($command, 'init', '-q'));
         if ($bare) {
             $builder->add('--bare');
         }
@@ -112,11 +112,11 @@ class Admin
         $builder->add($path);
 
         $builder->inheritEnvironmentVariables(false);
+        $process = $builder->getProcess();
         if (isset($options['environment_variables'])) {
-            $builder->setEnv($options['environment_variables']);
+            $process->setEnv($options['environment_variables']);
         }
 
-        $process = $builder->getProcess();
         $process->run();
 
         if (!$process->isSuccessFul()) {

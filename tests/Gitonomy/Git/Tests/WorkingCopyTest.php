@@ -23,7 +23,7 @@ class WorkingCopyTest extends AbstractTest
     public function testNoWorkingCopyInBare()
     {
         $path = self::createTempDir();
-        $repo = Admin::init($path);
+        $repo = Admin::init($path, true, self::getOptions());
 
         $repo->getWorkingCopy();
     }
