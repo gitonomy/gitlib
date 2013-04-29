@@ -61,6 +61,30 @@ class Admin
     }
 
     /**
+     * Checks the validity of a git repository url without cloning it.
+     *
+     * This will use the `ls-remote` command of git against the given url.
+     * Usually, this command returns 0 when successful, and 128 when the
+     * repository is not found.
+     *
+     * @param string $url     url of repository to check
+     * @param array  $options options for Repository creation
+     *
+     * @return boolean true if url is valid
+     */
+    public static function isValidRepository($url, array $options = array())
+    {
+        $command = isset($options['command']) ? $options['command'] : 'git';
+        $builder = ProcessBuilder::create(array($command, 'ls-remote'));
+        $builder->add($url);
+
+        $process = $builder->getProcess();
+        $process->run();
+
+        return $process->isSuccessFul();
+    }
+
+    /**
      * Clone a repository to a local path.
      *
      * @param string  $path    indicates where to clone repository
