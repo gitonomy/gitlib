@@ -101,6 +101,23 @@ class AdminTest extends AbstractTest
     }
 
     /**
+     * @dataProvider provideFoobar
+     */
+    public function testCheckValidRepository($repository)
+    {
+        $url = $repository->getGitDir();
+        $this->assertTrue(Admin::isValidRepository($url));
+    }
+
+    public function testCheckInvalidRepository()
+    {
+        $url = $this->tmpDir.'/invalid.git';
+        mkdir($url);
+
+        $this->assertFalse(Admin::isValidRepository($url));
+    }
+
+    /**
      * @expectedException RuntimeException
      */
     public function testExistingFile()
