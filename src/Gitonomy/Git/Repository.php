@@ -387,7 +387,7 @@ class Repository
      */
     public function getDiff($revision)
     {
-        $args = array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index', $revision);
+        $args = array_merge(array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index'), (array) $revision);
 
         return Diff::parse($this->run('diff', $args));
     }
