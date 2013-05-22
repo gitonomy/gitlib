@@ -18,105 +18,15 @@ namespace Gitonomy\Git;
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  * @author Julien DIDIER <genzo.wm@gmail.com>
  */
-abstract class Reference
+abstract class Reference extends Revision
 {
-    /**
-     * Current repository.
-     *
-     * @var Gitonomy\Git\Repository
-     */
-    protected $repository;
-
-    /**
-     * Fullname reference.
-     *
-     * @var string
-     */
-    protected $fullname;
-
-    /**
-     * Hash of the commit.
-     *
-     * @var string
-     */
-    protected $commitHash;
-
-    /**
-     * Constructor.
-     *
-     * @param Gitonomy\Git\Repository $repository A repository object
-     *
-     * @param string $fullname Fullname of the reference
-     *
-     * @param string $commitHash The commit hash
-     */
-    public function __construct(Repository $repository, $fullname, $commitHash)
-    {
-        $this->repository = $repository;
-        $this->fullname   = $fullname;
-        $this->commitHash = $commitHash;
-    }
-
-    /**
-     * Returns the usual name of the reference.
-     *
-     * @return string
-     */
-    abstract public function getName();
-
-    /**
-     * Returns the fullname of the reference.
-     *
-     * @return string
-     */
     public function getFullname()
     {
-        return $this->fullname;
-    }
-
-    /**
-     * Returns the commit associated to the reference.
-     *
-     * @return Gitonomy\Git\Commit
-     */
-    public function getCommit()
-    {
-        return $this->repository->getCommit($this->commitHash);
-    }
-
-    public function getCommitHash()
-    {
-        return $this->commitHash;
-    }
-
-    /**
-     * Returns the last modification date of the reference.
-     *
-     * @return DateTime
-     */
-    public function getLastModification()
-    {
-        return $this->getCommit()->getAuthorDate();
+        return $this->revision;
     }
 
     public function delete()
     {
         $this->repository->getReferences()->delete($this->getFullname());
-    }
-
-    /**
-     * @return Repository
-     */
-    public function getRepository()
-    {
-        return $this->repository;
-    }
-
-    /**
-     * @return Log
-     */
-    public function getLog()
-    {
-        return new Log($this->repository, $this->getFullname());
     }
 }

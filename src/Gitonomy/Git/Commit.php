@@ -12,26 +12,19 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Util\StringHelper;
 use Gitonomy\Git\Diff\Diff;
-use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Util\StringHelper;
 
 /**
  * Representation of a Git commit.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Commit
+class Commit extends Revision
 {
-    /**
-     * The repository associated to the commit.
-     *
-     * @var Gitonomy\Git\Repository
-     */
-    private $repository;
-
     /**
      * Hash of the commit.
      *
@@ -126,8 +119,12 @@ class Commit
      */
     public function __construct(Repository $repository, $hash)
     {
-        $this->repository = $repository;
+        if (!preg_match('/^[a-f0-9]{40}$/', $hash)) {
+            throw new ReferenceNotFoundException($hash);
+        }
+
         $this->hash = $hash;
+        parent::__construct($repository, $hash, $hash);
     }
 
     /**
@@ -476,13 +473,5 @@ class Commit
         array_shift($lines);
 
         return implode("\n", $lines);
-    }
-
-    /**
-     * @return Repository
-     */
-    public function getRepository()
-    {
-        return $this->repository;
     }
 }

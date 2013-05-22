@@ -22,9 +22,6 @@ use Gitonomy\Git\Reference;
  */
 class Tag extends Reference
 {
-    /**
-     * {@inheritdoc}
-     */
     public function getName()
     {
         if (!preg_match('#^refs/tags/(.*)$#', $this->fullname, $vars)) {

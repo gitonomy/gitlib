@@ -24,20 +24,19 @@ class Branch extends Reference
 {
     private $local = null;
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName()
     {
-        if (preg_match('#^refs/heads/(?<name>.*)$#', $this->fullname, $vars)) {
+        $fullname = $this->getFullname();
+
+        if (preg_match('#^refs/heads/(?<name>.*)$#', $fullname, $vars)) {
             return $vars['name'];
         }
 
-        if (preg_match('#^refs/remotes/(?<remote>[^/]*)/(?<name>.*)$#', $this->fullname, $vars)) {
+        if (preg_match('#^refs/remotes/(?<remote>[^/]*)/(?<name>.*)$#', $fullname, $vars)) {
             return $vars['remote'].'/'.$vars['name'];
         }
 
-        throw new RuntimeException(sprintf('Cannot extract branch name from "%s"', $this->fullname));
+        throw new RuntimeException(sprintf('Cannot extract branch name from "%s"', $fullname));
     }
 
     public function isRemote()
@@ -57,7 +56,7 @@ class Branch extends Reference
     private function detectBranchType()
     {
         if (null === $this->local) {
-            $this->local = !preg_match('#^refs/remotes/(?<remote>[^/]*)/(?<name>.*)$#', $this->fullname);
+            $this->local = !preg_match('#^refs/remotes/(?<remote>[^/]*)/(?<name>.*)$#', $this->getFullname());
         }
     }
 }

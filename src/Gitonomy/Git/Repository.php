@@ -564,6 +564,16 @@ class Repository
     }
 
     /**
+     * Returns repository logger.
+     *
+     * @return LoggerInterface the logger or null
+     */
+    public function getLogger()
+    {
+        return $this->logger;
+    }
+
+    /**
      * Clones the current repository to a new directory and return instance of new repository.
      *
      * @param string  $path path to the new repository in which current repository will be cloned

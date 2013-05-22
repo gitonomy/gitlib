@@ -25,4 +25,4 @@ To resolve a revision to a commit:
 
 .. code-block:: php
 
-    $commit = $revision->getResolved();
+    $commit = $revision->getCommit();

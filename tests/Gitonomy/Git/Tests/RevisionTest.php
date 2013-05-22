@@ -27,9 +27,9 @@ class RevisionTest extends AbstractTest
 
         $this->assertTrue($revision instanceof Revision, "Revision object type");
 
-        $commit = $revision->getResolved();
+        $commit = $revision->getCommit();
 
-        $this->assertTrue($commit instanceof Commit, "getResolved returns a Commit");
+        $this->assertTrue($commit instanceof Commit, "getCommit returns a Commit");
 
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commit->getHash(), "Resolution is correct");
     }
@@ -37,11 +37,11 @@ class RevisionTest extends AbstractTest
     /**
      * @dataProvider provideFoobar
      * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
-     * @expectedExceptionMessage Can not find reference "non-existent-commit"
+     * @expectedExceptionMessage Can not find revision "non-existent-commit"
      */
     public function testGetFailingReference($repository)
     {
-        $revision = $repository->getRevision('non-existent-commit')->getResolved();
+        $revision = $repository->getRevision('non-existent-commit')->getCommit();
     }
 
     /**

@@ -13,6 +13,7 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 
 /**
@@ -28,17 +29,18 @@ class Revision
     /**
      * @var string
      */
-    protected $name;
+    protected $revision;
 
     /**
      * @var Commit
      */
-    protected $resolved;
+    protected $commitHash;
 
-    public function __construct(Repository $repository, $name)
+    public function __construct(Repository $repository, $revision, $commitHash = null)
     {
         $this->repository = $repository;
-        $this->name       = $name;
+        $this->revision   = $revision;
+        $this->commitHash = $commitHash;
     }
 
     /**
@@ -46,26 +48,57 @@ class Revision
      */
     public function getLog($paths = null, $offset = null, $limit = null)
     {
-        return $this->repository->getLog($this->name, $paths, $offset, $limit);
+        return $this->repository->getLog($this->revision, $paths, $offset, $limit);
     }
 
     /**
-     * Resolves the revision to a commit hash.
+     * Returns the commit associated to the reference.
      *
-     * @return Commit
+     * @return Gitonomy\Git\Commit
      */
-    public function getResolved()
+    public function getCommit()
     {
-        if (null !== $this->resolved) {
-            return $this->resolved;
+        return $this->repository->getCommit($this->getCommitHash());
+    }
+
+    public function getCommitHash()
+    {
+        if (null !== $this->commitHash) {
+            return $this->commitHash;
         }
 
         try {
-            $result = $this->repository->run('rev-parse', array('--verify', $this->name));
+            $result = $this->repository->run('rev-parse', array('--verify', $this->revision));
         } catch (ProcessException $e) {
-            throw new ReferenceNotFoundException(sprintf('Can not find reference "%s"', $this->name));
+            throw new ReferenceNotFoundException(sprintf('Can not find revision "%s"', $this->revision));
         }
 
-        return $this->resolved = $this->repository->getCommit(trim($result));
+        return $this->commitHash = trim($result);
+    }
+
+    /**
+     * Returns the last modification date of the reference.
+     *
+     * @return DateTime
+     */
+    public function getLastModification()
+    {
+        return $this->getCommit()->getAuthorDate();
+    }
+
+    /**
+     * @return string
+     */
+    public function getRevision()
+    {
+        return $this->revision;
+    }
+
+    /**
+     * @return Repository
+     */
+    public function getRepository()
+    {
+        return $this->repository;
     }
 }

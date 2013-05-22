@@ -19,11 +19,4 @@ use Gitonomy\Git\Reference;
  */
 class Stash extends Reference
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function getName()
-    {
-        return 'stash';
-    }
 }
