@@ -25,6 +25,19 @@ If you want to access directly a line:
 
     $line = $blame->getLine(32);
 
+The Line object
+---------------
+
+LineObject represents an item of the blame file. It is composed of those informations:
+
+.. code-block:: php
+
+    $line->getCommit();  // returns a Commit
+    $line->getContent(); // returns text
+
+    // you can access author from commmit:
+    $author = $line->getCommit()->getAuthorName();
+
 Group reading by commit
 -----------------------
 
