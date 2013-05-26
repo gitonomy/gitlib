@@ -14,17 +14,36 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Parser\BlameParser;
+use Gitonomy\Git\Blame\Line;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
 class Blame implements \Countable
 {
+    /**
+     * @var Repository
+     */
     protected $repository;
+
+    /**
+     * @var Revision
+     */
     protected $revision;
+
+    /**
+     * @var string
+     */
     protected $file;
+
+    /**
+     * @var string|null
+     */
     protected $lineRange;
 
+    /**
+     * @var array|null
+     */
     protected $lines;
 
     /**
@@ -32,7 +51,7 @@ class Blame implements \Countable
      *                          Can be a line range (40,60 or 40,+21)
      *                          or a regexp ('/^function$/')
      */
-    public function __construct(Repository $repository, $revision, $file, $lineRange = null)
+    public function __construct(Repository $repository, Revision $revision, $file, $lineRange = null)
     {
         $this->repository = $repository;
         $this->revision   = $revision;
@@ -40,6 +59,9 @@ class Blame implements \Countable
         $this->file       = $file;
     }
 
+    /**
+     * @return Line
+     */
     public function getLine($number)
     {
         if ($number < 1) {
@@ -55,6 +77,11 @@ class Blame implements \Countable
         return $lines[$number];
     }
 
+    /**
+     * Returns lines grouped by commit.
+     *
+     * @return array a list of two-elements array (commit, lines)
+     */
     public function getGroupedLines()
     {
         $result  = array();
@@ -80,6 +107,11 @@ class Blame implements \Countable
         return $result;
     }
 
+    /**
+     * Returns all lines of the blame.
+     *
+     * @return array
+     */
     public function getLines()
     {
         if (null !== $this->lines) {
@@ -93,7 +125,7 @@ class Blame implements \Countable
             $args[] = $this->lineRange;
         }
 
-        $args[] = $this->revision;
+        $args[] = $this->revision->getRevision();
         $args[] = '--';
         $args[] = $this->file;
 
@@ -104,6 +136,9 @@ class Blame implements \Countable
         return $this->lines;
     }
 
+    /**
+     * @return int
+     */
     public function count()
     {
         return count($this->getLines());

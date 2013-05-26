@@ -48,7 +48,7 @@ class Revision
      */
     public function getLog($paths = null, $offset = null, $limit = null)
     {
-        return $this->repository->getLog($this->revision, $paths, $offset, $limit);
+        return $this->repository->getLog($this, $paths, $offset, $limit);
     }
 
     /**

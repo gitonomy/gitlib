@@ -101,7 +101,7 @@ class PushReference
     public function getRevision()
     {
         if ($this->isDelete()) {
-            throw new LogicException('No log on deletion');
+            throw new LogicException('No revision for deletion');
         }
 
         if ($this->isCreate()) {

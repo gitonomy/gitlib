@@ -167,7 +167,7 @@ class Repository
     /**
      * Returns the HEAD resolved as a commit.
      *
-     * @return Commit|null a Commit object or null if debug-mode disabled and HEAD not found.
+     * @return Revision|null returns a Commit, Branch, or ``null`` if repository is empty
      */
     public function getHeadCommit()
     {
@@ -229,9 +229,7 @@ class Repository
      */
     public function isHeadDetached()
     {
-        $head = $this->getHead();
-
-        return null === $head || $head instanceof Commit;
+        return !$this->isHeadAttached();
     }
 
     /**
@@ -239,9 +237,7 @@ class Repository
      */
     public function isHeadAttached()
     {
-        $head = $this->getHead();
-
-        return $head instanceof Reference;
+        return $this->getHead() instanceof Reference;
     }
 
     /**
@@ -359,6 +355,10 @@ class Repository
 
     public function getBlame($revision, $file, $lineRange = null)
     {
+        if (is_string($revision)) {
+            $revision = $this->getRevision($revision);
+        }
+
         return new Blame($this, $revision, $file, $lineRange);
     }
 
