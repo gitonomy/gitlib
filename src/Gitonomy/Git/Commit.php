@@ -257,7 +257,7 @@ class Commit extends Revision
     /**
      * @return Commit
      */
-    public function getLastModification($path)
+    public function getLastModification($path = null)
     {
         if (0 === strpos($path, '/')) {
             $path = StringHelper::substr($path, 1);
