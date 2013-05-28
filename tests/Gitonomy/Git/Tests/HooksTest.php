@@ -131,7 +131,7 @@ class HooksTest extends AbstractTest
         $this->assertEquals('bar', file_get_contents($file), 'Hook content is correct');
 
         $perms = fileperms($file);
-        $this->assertEquals(0777, $perms & 0777, "Hook permissions are correct");
+        $this->assertEquals(defined('PHP_WINDOWS_VERSION_BUILD') ? 0666 : 0777, $perms & 0777, "Hook permissions are correct");
     }
 
     /**
