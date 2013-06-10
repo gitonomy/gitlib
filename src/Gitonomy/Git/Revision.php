@@ -81,7 +81,7 @@ class Revision
      *
      * @return DateTime
      */
-    public function getLastModification()
+    public function getLastModification($path = null)
     {
         return $this->getCommit()->getAuthorDate();
     }
