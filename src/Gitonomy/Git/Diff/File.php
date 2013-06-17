@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git\Diff;
 
+use Gitonomy\Git\Repository;
+
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -56,6 +58,11 @@ class File
      * @var array An array of FileChange objects
      */
     protected $changes;
+
+    /**
+     * @var Repository
+     */
+    protected $repository;
 
     /**
      * Instanciates a new File object.
@@ -223,5 +230,41 @@ class File
     public function getAnchor()
     {
         return substr($this->newIndex, 0, 12);
+    }
+
+    public function getRepository()
+    {
+        return $this->repository;
+    }
+
+    public function setRepository(Repository $repository)
+    {
+        $this->repository = $repository;
+    }
+
+    public function getOldBlob()
+    {
+        if (null === $this->repository) {
+            throw new \RuntimeException('Repository is missing to return Blob object.');
+        }
+
+        if ($this->isCreation()) {
+            throw new \LogicException('Can\'t return old Blob on a creation');
+        }
+
+        return $this->repository->getBlob($this->oldIndex);
+    }
+
+    public function getNewBlob()
+    {
+        if (null === $this->repository) {
+            throw new \RuntimeException('Repository is missing to return Blob object.');
+        }
+
+        if ($this->isDeletion()) {
+            throw new \LogicException('Can\'t return new Blob on a deletion');
+        }
+
+        return $this->repository->getBlob($this->newIndex);
     }
 }

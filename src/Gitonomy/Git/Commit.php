@@ -164,7 +164,10 @@ class Commit extends Revision
     {
         $args = array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index', $this->hash);
 
-        return Diff::parse($this->repository->run('diff-tree', $args));
+        $diff = Diff::parse($this->repository->run('diff-tree', $args));
+        $diff->setRepository($this->repository);
+
+        return $diff;
     }
 
     /**
@@ -473,5 +476,13 @@ class Commit extends Revision
         array_shift($lines);
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getCommit()
+    {
+        return $this;
     }
 }

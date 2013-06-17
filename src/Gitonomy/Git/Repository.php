@@ -385,11 +385,18 @@ class Repository
     /**
      * @return Diff
      */
-    public function getDiff($revision)
+    public function getDiff($revisions)
     {
-        $args = array_merge(array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index'), (array) $revision);
+        if (null !== $revisions && !$revisions instanceof RevisionList) {
+            $revisions = new RevisionList($repository, $revisions);
+        }
 
-        return Diff::parse($this->run('diff', $args));
+        $args = array_merge(array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index'), $revisions->getAsTextArray());
+
+        $diff = Diff::parse($this->run('diff', $args));
+        $diff->setRepository($this);
+
+        return $diff;
     }
 
     /**

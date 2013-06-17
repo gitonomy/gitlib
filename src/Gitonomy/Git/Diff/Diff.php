@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Diff;
 
 use Gitonomy\Git\Parser\DiffParser;
+use Gitonomy\Git\Repository;
 
 /**
  * Representation of a diff.
@@ -52,6 +53,13 @@ class Diff
         $parser->parse($rawDiff);
 
         return new Diff($parser->files, $rawDiff);
+    }
+
+    public function setRepository(Repository $repository)
+    {
+        foreach ($this->files as $file) {
+            $file->setRepository($repository);
+        }
     }
 
     /**
