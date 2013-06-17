@@ -51,7 +51,7 @@ class WorkingCopy
         $diff = Diff::parse($this->run('diff', array('-r', '-p', '-m', '-M', '--full-index')));
         $diff->setRepository($this->repository);
 
-        return $this;
+        return $diff;
     }
 
     public function getDiffStaged()
@@ -59,7 +59,7 @@ class WorkingCopy
         $diff = Diff::parse($this->run('diff', array('-r', '-p', '-m', '-M', '--full-index', '--staged')));
         $diff->setRepository($this->repository);
 
-        return $this;
+        return $diff;
     }
 
     /**

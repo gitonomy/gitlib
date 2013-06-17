@@ -83,7 +83,7 @@ class Revision
      */
     public function getLastModification($path = null)
     {
-        return $this->getCommit()->getAuthorDate();
+        return $this->getCommit()->getLastModification($path);
     }
 
     /**
