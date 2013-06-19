@@ -24,8 +24,8 @@ class Tag extends Reference
 {
     public function getName()
     {
-        if (!preg_match('#^refs/tags/(.*)$#', $this->fullname, $vars)) {
-            throw new RuntimeException(sprintf('Cannot extract tag name from "%s"', $this->fullname));
+        if (!preg_match('#^refs/tags/(.*)$#', $this->revision, $vars)) {
+            throw new RuntimeException(sprintf('Cannot extract tag name from "%s"', $this->revision));
         }
 
         return $vars[1];
