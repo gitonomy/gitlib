@@ -31,16 +31,10 @@ class Revision
      */
     protected $revision;
 
-    /**
-     * @var Commit
-     */
-    protected $commitHash;
-
-    public function __construct(Repository $repository, $revision, $commitHash = null)
+    public function __construct(Repository $repository, $revision)
     {
         $this->repository = $repository;
         $this->revision   = $revision;
-        $this->commitHash = $commitHash;
     }
 
     /**
@@ -52,38 +46,13 @@ class Revision
     }
 
     /**
-     * Returns the commit associated to the reference.
+     * Returns the last modification date of the reference.
      *
-     * @return Gitonomy\Git\Commit
+     * @return Commit
      */
     public function getCommit()
     {
-        return $this->repository->getCommit($this->getCommitHash());
-    }
-
-    public function getCommitHash()
-    {
-        if (null !== $this->commitHash) {
-            return $this->commitHash;
-        }
-
-        try {
-            $result = $this->repository->run('rev-parse', array('--verify', $this->revision));
-        } catch (ProcessException $e) {
-            throw new ReferenceNotFoundException(sprintf('Can not find revision "%s"', $this->revision));
-        }
-
-        return $this->commitHash = trim($result);
-    }
-
-    /**
-     * Returns the last modification date of the reference.
-     *
-     * @return DateTime
-     */
-    public function getLastModification($path = null)
-    {
-        return $this->getCommit()->getLastModification($path);
+        return $this->getLog()->getSingleCommit();
     }
 
     /**

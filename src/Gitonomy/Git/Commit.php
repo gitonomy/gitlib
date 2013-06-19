@@ -124,7 +124,8 @@ class Commit extends Revision
         }
 
         $this->hash = $hash;
-        parent::__construct($repository, $hash, $hash);
+
+        parent::__construct($repository, $hash);
     }
 
     /**
@@ -160,6 +161,9 @@ class Commit extends Revision
         $this->initialized = true;
     }
 
+    /**
+     * @return Diff
+     */
     public function getDiff()
     {
         $args = array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index', $this->hash);

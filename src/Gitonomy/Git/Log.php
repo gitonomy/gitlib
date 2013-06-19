@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Util\StringHelper;
 
 /**
@@ -134,6 +136,20 @@ class Log implements \Countable, \IteratorAggregate
         return $this;
     }
 
+    public function getSingleCommit()
+    {
+        $limit = $this->limit;
+        $this->limit = 1;
+        $commits = $this->getCommits();
+        $this->setLimit($limit);
+
+        if (count($commits) === 0) {
+            throw new ReferenceNotFoundException('The log is empty');
+        }
+
+        return array_pop($commits);
+    }
+
     /**
      * @return array
      */
@@ -160,7 +176,11 @@ class Log implements \Countable, \IteratorAggregate
 
         $args = array_merge($args, $this->paths);
 
-        $exp = explode("\n", $this->repository->run('log', $args));
+        try {
+            $exp = explode("\n", $this->repository->run('log', $args));
+        } catch (ProcessException $e) {
+            throw new ReferenceNotFoundException(sprintf('Can not find revision "%s"', implode(' ', $this->revisions->getAsTextArray())), null, $e);
+        }
 
         $result = array();
         foreach ($exp as $hash) {
