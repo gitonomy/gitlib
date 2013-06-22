@@ -16,8 +16,10 @@ use Gitonomy\Git\Diff\Diff;
 
 class DiffTest extends AbstractTest
 {
-    const DELETE_COMMIT = '519d5693c72c925cd59205d9f11e9fa1d550028b';
-    const CREATE_COMMIT = 'e6fa3c792facc06faa049a6938c84c411954deb5';
+    const DELETE_COMMIT     = '519d5693c72c925cd59205d9f11e9fa1d550028b';
+    const CREATE_COMMIT     = 'e6fa3c792facc06faa049a6938c84c411954deb5';
+    const RENAME_COMMIT     = '6640e0ef31518054847a1876328e26ee64083e0a';
+    const CHANGEMODE_COMMIT = '93da965f58170f13017477b9a608657e87e23230';
 
     /**
      * @dataProvider provideFoobar
@@ -89,6 +91,38 @@ class DiffTest extends AbstractTest
         $this->assertTrue($files[0]->isDeletion(), "File deletion");
         $this->assertEquals("script_B.php", $files[0]->getOldName(), "verify old filename");
         $this->assertEquals(1, $files[0]->getDeletions(), "1 line deleted");
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetFiles_Rename($repository)
+    {
+        $files = $repository->getCommit(self::RENAME_COMMIT)->getDiff()->getFiles();
+
+        $this->assertEquals(1, count($files), "1 files modified");
+
+        $this->assertTrue($files[0]->isModification());
+        $this->assertTrue($files[0]->isRename());
+        $this->assertFalse($files[0]->isDeletion());
+        $this->assertFalse($files[0]->isCreation());
+        $this->assertFalse($files[0]->isChangeMode());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetFiles_Changemode($repository)
+    {
+        $files = $repository->getCommit(self::CHANGEMODE_COMMIT)->getDiff()->getFiles();
+
+        $this->assertEquals(1, count($files), "1 files modified");
+
+        $this->assertTrue($files[0]->isModification());
+        $this->assertTrue($files[0]->isChangeMode());
+        $this->assertFalse($files[0]->isDeletion());
+        $this->assertFalse($files[0]->isCreation());
+        $this->assertFalse($files[0]->isRename());
     }
 
     /**

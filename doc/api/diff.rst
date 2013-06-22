@@ -42,7 +42,7 @@ modifications for a single file.
 The File object
 ---------------
 
-Here is an exhaustive list of the *File* object:
+Here is an exhaustive list of the *File* class methods:
 
 .. code-block:: php
 
@@ -51,8 +51,12 @@ Here is an exhaustive list of the *File* object:
     $file->getOldDiff();
     $file->getNewDiff();
 
-    $file->isNew(); // Indicates file was created
-    $file->isDelete(); // Indicates file was deleted
+    $file->isCreation();
+    $file->isDeletion();
+    $file->isModification();
+
+    $file->isRename();
+    $file->isChangeMode();
 
     $file->getAdditions(); // Number of added lines
     $file->getDeletions(); // Number of deleted lines

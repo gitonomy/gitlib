@@ -106,6 +106,26 @@ class File
     }
 
     /**
+     * Indicates if it's a rename.
+     *
+     * A rename can only occurs if it's a modification (not a creation or a deletion).
+     *
+     * @return boolean
+     */
+    public function isRename()
+    {
+        return $this->isModification() && $this->oldName !== $this->newName;
+    }
+
+    /**
+     * Indicates if the file mode has changed.
+     */
+    public function isChangeMode()
+    {
+        return $this->isModification() && $this->oldMode !== $this->newMode;
+    }
+
+    /**
      * Indicates if this diff file is a deletion.
      *
      * @return boolean
