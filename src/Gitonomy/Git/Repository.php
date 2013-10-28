@@ -388,7 +388,7 @@ class Repository
     public function getDiff($revisions)
     {
         if (null !== $revisions && !$revisions instanceof RevisionList) {
-            $revisions = new RevisionList($repository, $revisions);
+            $revisions = new RevisionList($this, $revisions);
         }
 
         $args = array_merge(array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index'), $revisions->getAsTextArray());
