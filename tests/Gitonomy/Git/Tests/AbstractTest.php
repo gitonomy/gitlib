@@ -109,7 +109,9 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
         $iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS);
         $iterator = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $file) {
-            chmod($file, 0777);
+            if (!is_link($file)) {
+                chmod($file, 0777);
+            }
             if (is_dir($file)) {
                 rmdir($file);
             } else {
