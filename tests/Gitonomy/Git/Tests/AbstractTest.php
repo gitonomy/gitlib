@@ -17,8 +17,6 @@ use Gitonomy\Git\Repository;
 
 abstract class AbstractTest extends \PHPUnit_Framework_TestCase
 {
-    const REPOSITORY_URL = 'http://github.com/gitonomy/foobar.git';
-
     const LONGFILE_COMMIT        = '4f17752acc9b7c54ba679291bf24cb7d354f0f4f';
     const BEFORE_LONGFILE_COMMIT = 'e0ec50e2af75fa35485513f60b2e658e245227e9';
     const LONGMESSAGE_COMMIT     = '3febd664b6886344a9b32d70657687ea4b1b4fab';
@@ -64,7 +62,7 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
     public static function createFoobarRepository($bare = true)
     {
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, self::getOptions());
+            self::$localRepository = Admin::cloneTo(self::createTempDir(), __DIR__ . '/../../../fixtures/foobar.bare.git', $bare, self::getOptions());
         }
 
         $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare, self::getOptions());
