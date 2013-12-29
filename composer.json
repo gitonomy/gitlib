@@ -31,7 +31,5 @@
 
     "suggest": {
         "psr/log": "Add some log"
-    },
-
-    "minimum-stability": "dev"
+    }
 }
