@@ -47,11 +47,11 @@ class StringHelper
 
     public static function strpos($haystack, $needle, $offset = 0)
     {
-        return function_exists('mb_strpos') ? mb_strpos($haystack, $needle, $offset, self::$encoding) : strpos($haystace, $needle, $offset);
+        return function_exists('mb_strpos') ? mb_strpos($haystack, $needle, $offset, self::$encoding) : strpos($haystack, $needle, $offset);
     }
 
     public static function strrpos($haystack, $needle, $offset = 0)
     {
-        return function_exists('mb_strrpos') ? mb_strrpos($haystack, $needle, $offset, self::$encoding) : strrpos($haystace, $needle, $offset);
+        return function_exists('mb_strrpos') ? mb_strrpos($haystack, $needle, $offset, self::$encoding) : strrpos($haystack, $needle, $offset);
     }
 }
