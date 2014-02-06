@@ -131,6 +131,7 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
         return array(
             'command' => $command,
             'environment_variables' => $envs,
+            'process_timeout' => 60
         );
     }
 }

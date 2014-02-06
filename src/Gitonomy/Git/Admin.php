@@ -35,21 +35,7 @@ class Admin
      */
     public static function init($path, $bare = true, array $options = array())
     {
-        $command = isset($options['command']) ? $options['command'] : 'git';
-
-        // command-line
-        $builder = ProcessBuilder::create(array($command, 'init', '-q'));
-        if ($bare) {
-            $builder->add('--bare');
-        }
-        $builder->add($path);
-
-        // environment
-        $builder->inheritEnvironmentVariables(false);
-        $process = $builder->getProcess();
-        if (isset($options['environment_variables'])) {
-            $process->setEnv($options['environment_variables']);
-        }
+        $process = static::getProcess('init', array_merge(array('-q'), $bare ? array('--bare') : array(), array($path)), $options);
 
         $process->run();
 
@@ -74,11 +60,8 @@ class Admin
      */
     public static function isValidRepository($url, array $options = array())
     {
-        $command = isset($options['command']) ? $options['command'] : 'git';
-        $builder = ProcessBuilder::create(array($command, 'ls-remote'));
-        $builder->add($url);
+        $process = static::getProcess('ls-remote', array($url), $options);
 
-        $process = $builder->getProcess();
         $process->run();
 
         return $process->isSuccessFul();
@@ -127,19 +110,7 @@ class Admin
      */
     private static function cloneRepository($path, $url, array $args = array(), array $options = array())
     {
-        $command = isset($options['command']) ? $options['command'] : 'git';
-        $builder = ProcessBuilder::create(array($command, 'clone', '-q'));
-        foreach ($args as $value) {
-            $builder->add($value);
-        }
-        $builder->add($url);
-        $builder->add($path);
-
-        $builder->inheritEnvironmentVariables(false);
-        $process = $builder->getProcess();
-        if (isset($options['environment_variables'])) {
-            $process->setEnv($options['environment_variables']);
-        }
+        $process = static::getProcess('clone', array_merge(array('-q'), $args, array($url, $path)), $options);
 
         $process->run();
 
@@ -149,4 +120,27 @@ class Admin
 
         return new Repository($path, $options);
     }
+
+    /**
+     * This internal method is used to create a process object.
+     */
+    private static function getProcess($command, array $args = array(), array $options = array())
+    {
+        $options = array_merge(array(
+            'environment_variables' => array(),
+            'command'               => 'git',
+            'process_timeout'       => 3600
+        ), $options);
+
+        $builder = ProcessBuilder::create(array_merge(array($options['command'], $command), $args));
+        $builder->inheritEnvironmentVariables(false);
+
+        $process = $builder->getProcess();
+        $process->setEnv($options['environment_variables']);
+        $process->setTimeout($options['process_timeout']);
+        $process->setIdleTimeout($options['process_timeout']);
+
+        return $process;
+    }
+
 }

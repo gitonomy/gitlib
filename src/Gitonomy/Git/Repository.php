@@ -89,6 +89,13 @@ class Repository
     protected $environmentVariables;
 
     /**
+     * Timeout that should be set for every running process.
+     *
+     * @var int
+     */
+    protected $processTimeout;
+
+    /**
      * Constructs a new repository.
      *
      * Available options are:
@@ -113,7 +120,8 @@ class Repository
             'debug'                 => true,
             'logger'                => null,
             'environment_variables' => array(),
-            'command'               => 'git'
+            'command'               => 'git',
+            'process_timeout'       => 3600
         ), $options);
 
         if (null !== $options['logger'] && ! $options['logger'] instanceof LoggerInterface) {
@@ -126,6 +134,7 @@ class Repository
         $this->objects              = array();
         $this->debug                = (bool) $options['debug'];
         $this->environmentVariables = $options['environment_variables'];
+        $this->processTimeout       = $options['process_timeout'];
         $this->command              = $options['command'];
 
         if (true === $this->debug && null !== $this->logger) {
@@ -615,6 +624,8 @@ class Repository
         $builder->inheritEnvironmentVariables(false);
         $process = $builder->getProcess();
         $process->setEnv($this->environmentVariables);
+        $process->setTimeout($this->processTimeout);
+        $process->setIdleTimeout($this->processTimeout);
 
         return $process;
     }
