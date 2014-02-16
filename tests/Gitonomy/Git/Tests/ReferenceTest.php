@@ -20,6 +20,15 @@ class ReferenceTest extends AbstractTest
     private $references;
 
     /**
+     * @dataProvider provideEmpty
+     */
+    public function testEmptyRepository($repository)
+    {
+        $this->assertCount(0, $repository->getReferences());
+        $this->assertEquals(array(), $repository->getReferences()->getAll());
+    }
+
+    /**
      * @dataProvider provideFoobar
      */
     public function testGetBranch($repository)

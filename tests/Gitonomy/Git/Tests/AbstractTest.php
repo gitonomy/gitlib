@@ -57,6 +57,17 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * Can be used as data provider to get bare/not-bare repositories.
+     */
+    public static function provideEmpty()
+    {
+        return array(
+            array(self::createEmptyRepository()),
+            array(self::createEmptyRepository(false))
+        );
+    }
+
+    /**
      * Creates a fixture test repository.
      *
      * @return Repository
