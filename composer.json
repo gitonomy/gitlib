@@ -23,7 +23,7 @@
     },
 
     "require": {
-        "symfony/process": "<3"
+        "symfony/process": "2.4.*"
     },
     "require-dev": {
         "psr/log": "~1"
