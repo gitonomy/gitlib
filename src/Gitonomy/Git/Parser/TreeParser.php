@@ -23,7 +23,7 @@ class TreeParser extends ParserBase
             $mode = $vars[0];
             $this->consume(' ');
 
-            $vars = $this->consumeRegexp('/(blob|tree)/A');
+            $vars = $this->consumeRegexp('/(blob|tree|commit)/A');
             $type = $vars[0];
             $this->consume(' ');
 

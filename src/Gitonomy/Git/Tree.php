@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\CommitReference;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\UnexpectedValueException;
 
@@ -52,8 +53,10 @@ class Tree
             list($mode, $type, $hash, $name) = $entry;
             if ($type == 'blob') {
                 $this->entries[$name] = array($mode, $this->repository->getBlob($hash));
-            } else {
+            } elseif ($type == 'tree') {
                 $this->entries[$name] = array($mode, $this->repository->getTree($hash));
+            } else {
+                $this->entries[$name] = array($mode, new CommitReference($hash));
             }
         }
 
