@@ -223,11 +223,11 @@ class Log implements \Countable, \IteratorAggregate
     public function countCommits()
     {
         if (count($this->revisions)) {
-            $output = $this->repository->run('rev-list', array_merge($this->revisions->getAsTextArray(), array('--'), $this->paths));
+            $output = $this->repository->run('rev-list', array_merge(array('--count'), $this->revisions->getAsTextArray(), array('--'), $this->paths));
         } else {
-            $output = $this->repository->run('rev-list', array_merge(array('--all', '--'), $this->paths));
+            $output = $this->repository->run('rev-list', array_merge(array('--count', '--all', '--'), $this->paths));
         }
 
-        return count(explode("\n", $output)) - 1;
+        return (int) $output;
     }
 }
