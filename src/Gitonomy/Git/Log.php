@@ -155,7 +155,7 @@ class Log implements \Countable, \IteratorAggregate
      */
     public function getCommits()
     {
-        $args = array('--encoding='.StringHelper::getEncoding(), '--format=format:%H');
+        $args = array('--encoding='.StringHelper::getEncoding(), '--format=raw');
 
         if (null !== $this->offset) {
             $args[] = '--skip='.((int) $this->offset);
@@ -177,17 +177,23 @@ class Log implements \Countable, \IteratorAggregate
         $args = array_merge($args, $this->paths);
 
         try {
-            $exp = explode("\n", $this->repository->run('log', $args));
+            $output = $this->repository->run('log', $args);
         } catch (ProcessException $e) {
             throw new ReferenceNotFoundException(sprintf('Can not find revision "%s"', implode(' ', $this->revisions->getAsTextArray())), null, $e);
         }
 
+        $parser = new Parser\LogParser();
+        $parser->parse($output);
+
         $result = array();
-        foreach ($exp as $hash) {
-            if ($hash == '') {
-                continue;
-            }
-            $result[] = $this->repository->getCommit($hash);
+        foreach ($parser->log as $commitData) {
+            $hash = $commitData['id'];
+            unset($commitData['id']);
+
+            $commit = $this->repository->getCommit($hash);
+            $commit->setData($commitData);
+
+            $result[] = $commit;
         }
 
         return $result;
@@ -217,11 +223,11 @@ class Log implements \Countable, \IteratorAggregate
     public function countCommits()
     {
         if (count($this->revisions)) {
-            $output = $this->repository->run('rev-list', array_merge($this->revisions->getAsTextArray(), array('--'), $this->paths));
+            $output = $this->repository->run('rev-list', array_merge(array('--count'), $this->revisions->getAsTextArray(), array('--'), $this->paths));
         } else {
-            $output = $this->repository->run('rev-list', array_merge(array('--all', '--'), $this->paths));
+            $output = $this->repository->run('rev-list', array_merge(array('--count', '--all', '--'), $this->paths));
         }
 
-        return count(explode("\n", $output)) - 1;
+        return (int) $output;
     }
 }
