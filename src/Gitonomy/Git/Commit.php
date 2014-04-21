@@ -47,7 +47,14 @@ class Commit extends Revision
 
         parent::__construct($repository, $hash);
 
-        $this->data = $data;
+        $this->setData($data);
+    }
+
+    public function setData(array $data)
+    {
+        foreach ($data as $name => $value) {
+            $this->data[$name] = $value;
+        }
     }
 
     /**
