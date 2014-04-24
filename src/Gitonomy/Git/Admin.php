@@ -85,6 +85,27 @@ class Admin
     }
 
     /**
+     * Clone a repository branch to a local path.
+     *
+     * @param string  $path    indicates where to clone repository
+     * @param string  $url     url of repository to clone
+     * @param string  $branch  branch to clone
+     * @param boolean $bare    indicates if repository should be bare or have a working copy
+     * @param array   $options options for Repository creation
+     *
+     * @return Repository
+     */
+    public static function cloneBranchTo($path, $url, $branch, $bare = true, $options = array())
+    {
+        $args = array('--branch', $branch);
+        if ($bare) {
+            $args[] = '--bare';
+        }
+
+        return static::cloneRepository($path, $url, $args, $options);
+    }
+
+    /**
      * Mirrors a repository (fetch all revisions, not only branches).
      *
      * @param string $path    indicates where to clone repository
