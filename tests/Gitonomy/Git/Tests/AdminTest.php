@@ -14,6 +14,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
 use Gitonomy\Git\Repository;
+use Gitonomy\Git\Reference\Branch;
 
 class AdminTest extends AbstractTest
 {
@@ -76,6 +77,36 @@ class AdminTest extends AbstractTest
             $this->assertEquals($newDir.'/.git', $new->getGitDir());
             $this->assertEquals($newDir, $new->getWorkingDir());
         }
+    }
+
+    public function testCloneBranchBare()
+    {
+        //we can't use AbstractText::createFoobarRepository()
+        //because it does not clone other branches than "master"
+        //so we test it directly against the remote repository
+
+        $newDir = self::createTempDir();
+        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature');
+        self::registerDeletion($new);
+
+        $head = $new->getHead();
+        $this->assertTrue($head instanceof Branch, "HEAD is a branch");
+        $this->assertEquals("new-feature", $head->getName(), "HEAD is branch new-feature");
+    }
+
+    public function testCloneBranchNotBare()
+    {
+        //we can't use AbstractText::createFoobarRepository()
+        //because it does not clone other branches than "master"
+        //so we test it directly against remote repository
+
+        $newDir = self::createTempDir();
+        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature', false);
+        self::registerDeletion($new);
+
+        $head = $new->getHead();
+        $this->assertTrue($head instanceof Branch, "HEAD is a branch");
+        $this->assertEquals("new-feature", $head->getName(), "HEAD is branch new-feature");
     }
 
     /**

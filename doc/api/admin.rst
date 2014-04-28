@@ -35,6 +35,16 @@ You can clone a repository from an URL by doing:
 
 Default behavior is to clone in a bare repository.
 
+You can also clone a repository and point it to a specific branch. In a non-bare repository, this branch will be checked out:
+
+.. code-block:: php
+
+    // Clone to a bare repository
+    $repository = Gitonomy\Git\Admin::cloneBranchTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', 'a-branch');
+
+    // Clone to a non-bare repository
+    $repository = Gitonomy\Git\Admin::cloneBranchTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', 'a-branch' false);
+
 Clone a Repository object
 -------------------------
 
