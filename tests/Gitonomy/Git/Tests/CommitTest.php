@@ -98,11 +98,22 @@ class CommitTest extends AbstractTest
     /**
      * @dataProvider provideFoobar
      */
-    public function testGetTree($repository)
+    public function testGetTreeHash($repository)
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('b06890c7b10904979d2f69613c2ccda30aafe262', $commit->getTreeHash(), "Tree hash is correct");
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testGetTree($repository)
+    {
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
+
+        $this->assertInstanceOf('Gitonomy\Git\Tree', $commit->getTree(), "Tree is a tree");
+        $this->assertEquals('b06890c7b10904979d2f69613c2ccda30aafe262', $commit->getTree()->getHash(), "Tree hash is correct");
     }
 
     /**
