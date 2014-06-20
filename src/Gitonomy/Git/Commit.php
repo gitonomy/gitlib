@@ -115,6 +115,7 @@ class Commit extends Revision
      */
     public function getParents()
     {
+        $result = array();
         foreach ($this->getData('parentHashes') as $parentHash) {
             $result[] = $this->repository->getCommit($parentHash);
         }
