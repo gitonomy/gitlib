@@ -23,11 +23,11 @@ If you want to access all branches or all tags:
 
 .. code-block:: php
 
-    $branches       = $repository->getBranches();
-    $localBranches  = $repository->getLocalBranches();
-    $remoteBranches = $repository->getRemoteBranches();
-    $tags           = $repository->getTags();
-    $all            = $repository->getAll();
+    $branches       = $references->getBranches();
+    $localBranches  = $references->getLocalBranches();
+    $remoteBranches = $references->getRemoteBranches();
+    $tags           = $references->getTags();
+    $all            = $references->getAll();
 
 To get a given branch or tag, call *getBranch* or *getTag* on the
 *ReferenceBag*. Those methods return *Branch* and *Tag* objects:
