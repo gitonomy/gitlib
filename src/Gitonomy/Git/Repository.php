@@ -115,11 +115,12 @@ class Repository
      */
     public function __construct($dir, $options = array())
     {
+        $is_windows = defined( 'PHP_WINDOWS_VERSION_BUILD' );
         $options = array_merge(array(
             'working_dir'           => null,
             'debug'                 => true,
             'logger'                => null,
-            'environment_variables' => array(),
+            'environment_variables' => $is_windows ? array( 'PATH' => $_SERVER['PATH'] ) : array(),
             'command'               => 'git',
             'process_timeout'       => 3600
         ), $options);
