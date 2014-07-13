@@ -29,7 +29,7 @@ class LogParser extends CommitParser
             $this->consumeNewLine();
 
             $this->consume('tree ');
-            $commit['tree'] = $this->consumeHash();
+            $commit['treeHash'] = $this->consumeHash();
             $this->consumeNewLine();
 
             $commit['parentHashes'] = array();
