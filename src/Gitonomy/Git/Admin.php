@@ -129,7 +129,7 @@ class Admin
      *
      * @return Repository
      */
-    private static function cloneRepository($path, $url, array $args = array(), array $options = array())
+    public static function cloneRepository($path, $url, array $args = array(), array $options = array())
     {
         $process = static::getProcess('clone', array_merge(array('-q'), $args, array($url, $path)), $options);
 

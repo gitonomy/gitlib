@@ -158,4 +158,21 @@ class AdminTest extends AbstractTest
 
         Admin::init($file, true, self::getOptions());
     }
+
+    public function testCloneRepository()
+    {
+        $newDir = self::createTempDir();
+        $args = array();
+
+        $new = Admin::cloneRepository($newDir, self::REPOSITORY_URL, $args, self::getOptions());
+        self::registerDeletion($new);
+
+        $newRefs = array_keys($new->getReferences()->getAll());
+
+        $this->assertTrue(in_array('refs/heads/master', $newRefs));
+        $this->assertTrue(in_array('refs/tags/0.1', $newRefs));
+
+        $this->assertEquals($newDir.'/.git', $new->getGitDir());
+        $this->assertEquals($newDir, $new->getWorkingDir());
+    }
 }
