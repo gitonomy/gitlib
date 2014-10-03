@@ -43,7 +43,10 @@ class WorkingCopy
 
     public function getUntrackedFiles()
     {
-        return array();
+        $lines = explode("\0", $this->run('status', array('--porcelain', '--untracked-files=all', '-z')));
+        $lines = array_filter($lines, function($l) { return substr($l, 0, 3) === '?? '; });
+        $lines = array_map(function($l) { return substr($l, 3); }, $lines);
+        return $lines;
     }
 
     public function getDiffPending()
