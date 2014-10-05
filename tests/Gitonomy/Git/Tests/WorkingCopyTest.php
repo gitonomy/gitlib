@@ -99,4 +99,15 @@ class WorkingCopyTest extends AbstractTest
         $this->assertFalse($repository->isHeadAttached(), "HEAD is not attached");
         $this->assertTrue($repository->isHeadDetached(), "HEAD is detached");
     }
+
+    public function testGetUntracked()
+    {
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
+
+        $file = $repository->getWorkingDir() . '/untracked.txt';
+        file_put_contents($file, 'foo');
+
+        $this->assertContains('untracked.txt', $wc->getUntrackedFiles());
+    }
 }
