@@ -12,8 +12,6 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Util\StringHelper;
-
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */

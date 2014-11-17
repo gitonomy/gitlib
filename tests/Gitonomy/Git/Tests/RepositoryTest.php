@@ -12,8 +12,8 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Repository;
 use Gitonomy\Git\Blob;
+use Gitonomy\Git\Repository;
 
 class RepositoryTest extends AbstractTest
 {

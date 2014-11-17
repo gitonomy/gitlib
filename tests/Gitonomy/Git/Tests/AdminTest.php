@@ -13,8 +13,8 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
-use Gitonomy\Git\Repository;
 use Gitonomy\Git\Reference\Branch;
+use Gitonomy\Git\Repository;
 
 class AdminTest extends AbstractTest
 {

@@ -12,9 +12,9 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Parser\BlameParser;
-use Gitonomy\Git\Blame\Line;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>

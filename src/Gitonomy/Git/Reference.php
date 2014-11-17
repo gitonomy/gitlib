@@ -39,7 +39,6 @@ abstract class Reference extends Revision
         $this->repository->getReferences()->delete($this->getFullname());
     }
 
-
     public function getCommitHash()
     {
         if (null !== $this->commitHash) {
