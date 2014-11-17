@@ -204,7 +204,6 @@ class CommitTest extends AbstractTest
         $this->assertEquals('Add README', $commit->getShortMessage(20));
         $this->assertEquals('A', $commit->getShortMessage(1, false, ''));
         $this->assertEquals('Add!!!', $commit->getShortMessage(1, true, '!!!'));
-
     }
 
     /**

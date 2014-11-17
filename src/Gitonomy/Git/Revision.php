@@ -12,10 +12,6 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Exception\ReferenceNotFoundException;
-use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\ProcessException;
-
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */

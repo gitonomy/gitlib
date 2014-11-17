@@ -12,14 +12,13 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Diff\Diff;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\ProcessBuilder;
-
-use Gitonomy\Git\Diff\Diff;
-use Gitonomy\Git\Exception\ProcessException;
-use Gitonomy\Git\Exception\RuntimeException;
-use Gitonomy\Git\Exception\InvalidArgumentException;
 
 /**
  * Git repository object.
@@ -115,7 +114,7 @@ class Repository
      */
     public function __construct($dir, $options = array())
     {
-        $is_windows = defined( 'PHP_WINDOWS_VERSION_BUILD' );
+        $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
         $options = array_merge(array(
             'working_dir'           => null,
             'debug'                 => true,
@@ -139,7 +138,7 @@ class Repository
         $this->command              = $options['command'];
 
         if (true === $this->debug && null !== $this->logger) {
-            $this->logger->debug(sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ? : 'none'));
+            $this->logger->debug(sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ?: 'none'));
         }
     }
 
@@ -379,7 +378,7 @@ class Repository
      *
      * @param array $revisions An array of revisions to show logs from. Can be
      *                         any text value type
-     * @param array $paths Restrict log to modifications occuring on given
+     * @param array $paths     Restrict log to modifications occuring on given
      *                         paths.
      *
      * @param int $offset Start from a given offset in results.
@@ -616,7 +615,7 @@ class Repository
         $base = array($this->command, '--git-dir', $this->gitDir);
 
         if ($this->workingDir) {
-            $base = array_merge($base, array('--work-tree', $this->workingDir));;
+            $base = array_merge($base, array('--work-tree', $this->workingDir));
         }
 
         $base[] = $command;

@@ -12,8 +12,6 @@
 
 namespace Gitonomy\Git\Parser;
 
-use Gitonomy\Git\Exception\RuntimeException;
-
 class LogParser extends CommitParser
 {
     public $log = array();
