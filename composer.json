@@ -22,7 +22,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Gitonomy\\Git\\Tests\": "tests/Gitonomy/Git/Tests/"
+            "Gitonomy\\Git\\Tests\\": "tests/Gitonomy/Git/Tests/"
         }
     },
     "require": {
