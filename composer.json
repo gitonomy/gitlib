@@ -1,7 +1,6 @@
 {
     "name": "gitonomy/gitlib",
     "description": "Library for accessing git",
-
     "license": "MIT",
     "authors": [
         {
@@ -16,19 +15,22 @@
         }
     ],
     "homepage": "http://gitonomy.com",
-
-
     "autoload": {
-        "psr-0": { "Gitonomy\\Git": ["src/", "tests/"] }
+        "psr-4": {
+            "Gitonomy\\Git\\": "src/Gitonomy/Git/"
+        }
     },
-
+    "autoload-dev": {
+        "psr-4": {
+            "Gitonomy\\Git\\Tests\": "tests/Gitonomy/Git/Tests/"
+        }
+    },
     "require": {
         "symfony/process": "~2.4"
     },
     "require-dev": {
-        "psr/log": "~1"
+        "psr/log": "~1.0"
     },
-
     "suggest": {
         "psr/log": "Add some log"
     }
