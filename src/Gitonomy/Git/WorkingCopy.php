@@ -44,8 +44,8 @@ class WorkingCopy
     public function getUntrackedFiles()
     {
         $lines = explode("\0", $this->run('status', array('--porcelain', '--untracked-files=all', '-z')));
-        $lines = array_filter($lines, function($l) { return substr($l, 0, 3) === '?? '; });
-        $lines = array_map(function($l) { return substr($l, 3); }, $lines);
+        $lines = array_filter($lines, function ($l) { return substr($l, 0, 3) === '?? '; });
+        $lines = array_map(function ($l) { return substr($l, 3); }, $lines);
         return $lines;
     }
 

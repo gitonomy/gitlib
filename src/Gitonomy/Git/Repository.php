@@ -115,7 +115,7 @@ class Repository
      */
     public function __construct($dir, $options = array())
     {
-        $is_windows = defined( 'PHP_WINDOWS_VERSION_BUILD' );
+        $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
         $options = array_merge(array(
             'working_dir'           => null,
             'debug'                 => true,
@@ -616,7 +616,7 @@ class Repository
         $base = array($this->command, '--git-dir', $this->gitDir);
 
         if ($this->workingDir) {
-            $base = array_merge($base, array('--work-tree', $this->workingDir));;
+            $base = array_merge($base, array('--work-tree', $this->workingDir));
         }
 
         $base[] = $command;
