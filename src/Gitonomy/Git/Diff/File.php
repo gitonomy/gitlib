@@ -96,7 +96,7 @@ class File
     }
 
     /**
-     * Indicates if this diff file is a creation.
+     * Indicates if this diff file is a modification.
      *
      * @return boolean
      */
