@@ -14,8 +14,8 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
-use Gitonomy\Git\Reference\Stash;
 use Gitonomy\Git\Reference\Branch;
+use Gitonomy\Git\Reference\Stash;
 use Gitonomy\Git\Reference\Tag;
 
 /**

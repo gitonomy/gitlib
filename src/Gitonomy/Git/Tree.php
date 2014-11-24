@@ -12,7 +12,6 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\CommitReference;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\UnexpectedValueException;
 

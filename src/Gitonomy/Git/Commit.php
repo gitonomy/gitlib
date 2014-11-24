@@ -14,8 +14,8 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Util\StringHelper;
 
 /**
@@ -223,7 +223,7 @@ class Commit extends Revision
         }
 
         $branchesName = explode("\n", trim(str_replace('*', '', $result)));
-        $branchesName = array_filter($branchesName, function($v) { return false === StringHelper::strpos($v, '->');});
+        $branchesName = array_filter($branchesName, function ($v) { return false === StringHelper::strpos($v, '->');});
         $branchesName = array_map('trim', $branchesName);
 
         $references = $this->repository->getReferences();
