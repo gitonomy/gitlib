@@ -15,6 +15,6 @@ Edit your ``composer.json`` file and add ``gitonomy/gitlib`` in section ``requir
 
     {
         "require": {
-            "gitonomy/gitlib": "dev-master"
+            "gitonomy/gitlib": "~0"
         }
     }
