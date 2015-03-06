@@ -331,19 +331,62 @@ class Repository
     }
 
     /**
-     * Instanciates a tree object or fetches one from the cache.
+     * Fetches a Tree from repository.
      *
-     * @param string $hash A tree hash, with a length of 40
+     * @param string      $hash A tree hash, with a length of 40
+     * @param string|null $path A path for the tree
      *
      * @return Tree
      */
-    public function getTree($hash)
+    public function getTree($hash, $path = null)
+    {
+        if ($path === null) {
+            return $this->getTreeObject($hash);
+        }
+
+        if (! isset($this->objects[$hash.':'.$path])) {
+            $this->objects[$hash.':'.$path] = new Tree($this->getTreeObject($hash), $path);
+        }
+
+        return $this->objects[$hash.':'.$path];
+    }
+
+    /**
+     * Instanciates a tree object or fetches one from the cache.
+     *
+     * @param string      $hash A tree hash, with a length of 40
+     * @param string|null $path A path for the tree
+     *
+     * @return TreeObject
+     */
+    public function getTreeObject($hash)
     {
         if (! isset($this->objects[$hash])) {
-            $this->objects[$hash] = new Tree($this, $hash);
+            $this->objects[$hash] = new TreeObject($this, $hash);
         }
 
         return $this->objects[$hash];
+    }
+
+    /**
+     * Fetches a Blob from repository.
+     *
+     * @param string      $hash A blob hash, with a length of 40
+     * @param string|null $path A path for the blob
+     *
+     * @return Blob
+     */
+    public function getBlob($hash, $path = null)
+    {
+        if ($path === null) {
+            return $this->getBlobObject($hash);
+        }
+
+        if (! isset($this->objects[$hash.':'.$path])) {
+            $this->objects[$hash.':'.$path] = new Blob($this->getBlobObject($hash), $path);
+        }
+
+        return $this->objects[$hash.':'.$path];
     }
 
     /**
@@ -353,13 +396,29 @@ class Repository
      *
      * @return Blob
      */
-    public function getBlob($hash)
+    public function getBlobObject($hash, $path = null)
     {
         if (! isset($this->objects[$hash])) {
-            $this->objects[$hash] = new Blob($this, $hash);
+            $this->objects[$hash] = new BlobObject($this, $hash);
         }
 
         return $this->objects[$hash];
+    }
+
+
+    public function getResolved($entry, $path)
+    {
+        if ($entry instanceof BlobObject) {
+            return $this->getBlob($entry->getHash(), $path);
+        } elseif ($entry instanceof TreeObject) {
+            return $this->getTree($entry->getHash(), $path);
+        }
+
+        throw new \RuntimeException(sprintf(
+            'Unable to resolve object of type "%s" (path: %s).',
+            get_class($entry),
+            $path
+        ));
     }
 
     public function getBlame($revision, $file, $lineRange = null)

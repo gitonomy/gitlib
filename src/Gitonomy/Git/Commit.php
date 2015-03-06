@@ -353,7 +353,7 @@ class Commit extends Revision
         }
 
         if ($name === 'tree') {
-            $this->data['tree'] = $this->repository->getTree($this->getData('treeHash'));
+            $this->data['tree'] = $this->repository->getTree($this->getData('treeHash'), '');
 
             return $this->data['tree'];
         }

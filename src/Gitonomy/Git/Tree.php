@@ -13,96 +13,94 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\UnexpectedValueException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
 class Tree
 {
-    protected $repository;
-    protected $hash;
-    protected $isInitialized = false;
+    /**
+     * @var TreeObject
+     */
+    protected $object;
+
+    /**
+     * @var string
+     */
+    protected $path;
+
+    /**
+     * @var array
+     */
     protected $entries;
 
-    public function __construct(Repository $repository, $hash)
+    public function __construct(TreeObject $object, $path)
     {
-        $this->repository = $repository;
-        $this->hash = $hash;
-    }
-
-    public function getHash()
-    {
-        return $this->hash;
-    }
-
-    protected function initialize()
-    {
-        if (true === $this->isInitialized) {
-            return;
-        }
-
-        $output = $this->repository->run('cat-file', array('-p', $this->hash));
-        $parser = new Parser\TreeParser();
-        $parser->parse($output);
-
-        $this->entries = array();
-
-        foreach ($parser->entries as $entry) {
-            list($mode, $type, $hash, $name) = $entry;
-            if ($type == 'blob') {
-                $this->entries[$name] = array($mode, $this->repository->getBlob($hash));
-            } elseif ($type == 'tree') {
-                $this->entries[$name] = array($mode, $this->repository->getTree($hash));
-            } else {
-                $this->entries[$name] = array($mode, new CommitReference($hash));
-            }
-        }
-
-        $this->isInitialized = true;
+        $this->object = $object;
+        $this->path   = $path;
     }
 
     /**
-     * @return array An associative array name => $object
+     * Returns path to this tree entry.
+     *
+     * @return string
+     */
+    public function getPath()
+    {
+        return $this->path;
+    }
+
+    /**
+     * @see Tree:getHash
+     */
+    public function getHash()
+    {
+        return $this->object->getHash();
+    }
+
+    /**
+     * @see Tree::getEntries
      */
     public function getEntries()
     {
-        $this->initialize();
+        if ($this->entries !== null) {
+            return $this->entries;
+        }
+
+        $entries = $this->object->getEntries();
+        $this->entries = array();
+
+        foreach ($entries as $name => $entry) {
+            $this->entries[$name] = array(
+                $entry[0],
+                $this->object->getRepository()->getResolved($entry[1], $this->path.'/'.$name)
+            );
+        }
 
         return $this->entries;
     }
 
+    /**
+     * @see Tree::getEntry
+     */
     public function getEntry($name)
     {
-        $this->initialize();
+        $entries = $this->getEntries();
 
-        if (!isset($this->entries[$name])) {
+        if (!isset($entries[$name])) {
             throw new InvalidArgumentException('No entry '.$name);
         }
 
-        return $this->entries[$name][1];
+        return $entries[$name][1];
     }
 
+    /**
+     * @see Tree::resolvePath($path)
+     */
     public function resolvePath($path)
     {
-        if ($path == '') {
-            return $this;
-        }
+        $object = $this->object->resolvePath($path);
 
-        $path = preg_replace('#^/#', '', $path);
-
-        $segments = explode('/', $path);
-        $element = $this;
-        foreach ($segments as $segment) {
-            if ($element instanceof Tree) {
-                $element = $element->getEntry($segment);
-            } elseif ($entry instanceof Blob) {
-                throw new InvalidArgumentException('Unresolvable path');
-            } else {
-                throw new UnexpectedValueException('Unknow type of element');
-            }
-        }
-
-        return $element;
+        return $this->object->getRepository()->getResolved($object, $this->path.'/'.$path);
     }
 }

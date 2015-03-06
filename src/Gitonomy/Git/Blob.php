@@ -20,89 +20,72 @@ namespace Gitonomy\Git;
 class Blob
 {
     /**
-     * @var Repository
+     * @var BlobObject
      */
-    protected $repository;
+    protected $object;
 
     /**
      * @var string
      */
-    protected $hash;
-
-    /**
-     * @var string
-     */
-    protected $content;
-
-    /**
-     * @var string
-     */
-    protected $mimetype;
+    protected $path;
 
     /**
      * @param Repository $repository Repository where the blob is located
-     * @param string     $hash       Hash of the blob
+     * @param string     $path       Path of the blob
      */
-    public function __construct(Repository $repository, $hash)
+    public function __construct(BlobObject $object, $path)
     {
-        $this->repository = $repository;
-        $this->hash = $hash;
+        $this->object = $object;
+        $this->path   = $path;
     }
 
     /**
+     * Returns path to the blob.
+     *
      * @return string
+     */
+    public function getPath()
+    {
+        return $this->path;
+    }
+
+    /**
+     * @see Blob::getHash
      */
     public function getHash()
     {
-        return $this->hash;
+        return $this->object->getHash();
     }
 
     /**
-     * Returns content of the blob.
-     *
-     * @throws ProcessException Error occurred while getting content of blob
+     * @see Blob::getContent
      */
     public function getContent()
     {
-        if (null === $this->content) {
-            $this->content = $this->repository->run('cat-file', array('-p', $this->hash));
-        }
-
-        return $this->content;
+        return $this->object->getContent();
     }
 
     /**
-     * Determine the mimetype of the blob.
-     *
-     * @return string A mimetype
+     * @see Blob::getMimetype
      */
     public function getMimetype()
     {
-        if (null === $this->mimetype) {
-            $finfo = new \finfo(FILEINFO_MIME);
-            $this->mimetype = $finfo->buffer($this->getContent());
-        }
-
-        return $this->mimetype;
+        return $this->object->getMimetype();
     }
 
     /**
-     * Determines if file is binary.
-     *
-     * @return boolean
+     * @see Blob::isBinary
      */
     public function isBinary()
     {
-        return !$this->isText();
+        return $this->object->isBinary();
     }
 
     /**
-     * Determines if file is text.
-     *
-     * @return boolean
+     * @see Blob::isText
      */
     public function isText()
     {
-        return (bool) preg_match('#^text/|^application/xml#', $this->getMimetype());
+        return $this->object->isText();
     }
 }
