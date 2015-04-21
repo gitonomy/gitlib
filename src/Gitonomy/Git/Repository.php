@@ -119,7 +119,7 @@ class Repository
             'working_dir'           => null,
             'debug'                 => true,
             'logger'                => null,
-            'environment_variables' => $is_windows ? array( 'PATH' => $_SERVER['PATH'] ) : array(),
+            'environment_variables' => $is_windows ? array( 'PATH' => getenv('PATH') ) : array(),
             'command'               => 'git',
             'process_timeout'       => 3600
         ), $options);
