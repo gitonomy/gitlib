@@ -11,6 +11,8 @@
  */
 namespace Gitonomy\Git\Parser;
 
+use Gitonomy\Git\Exception\RuntimeException;
+
 class LogParser extends CommitParser
 {
     public $log = array();
@@ -43,22 +45,57 @@ class LogParser extends CommitParser
             $this->consume('committer ');
             list($commit['committerName'], $commit['committerEmail'], $commit['committerDate']) = $this->consumeNameEmailDate();
             $commit['committerDate'] = $this->parseDate($commit['committerDate']);
-            $this->consumeNewLine();
-            $this->consumeNewLine();
 
             $message = '';
-            while ($this->expects('    ')) {
-                $message .= $this->consumeTo("\n")."\n";
-                $this->consumeNewLine();
+            $files = [];
+
+            //Is there a body?
+            $this->expects("\n"); //Last commit may not have trailing linebreaks
+            $this->expects("\n");
+
+            if($this->expects('    ')){
+                $message = $this->consumeMessage();
             }
 
-            if (!$this->isFinished()) {
-                $this->consumeNewLine();
+            $this->expects("\n");
+
+            if($this->lookAheadRegexp('/\w\t/')){
+                $files = $this->consumeFiles();
             }
+
+            $this->expects("\n");
 
             $commit['message'] = $message;
+            $commit['files'] = $files;
 
             $this->log[] = $commit;
         }
+    }
+
+    private function consumeMessage(){
+        $message = '';
+
+        do {
+            $message .= $this->consumeTo("\n") . "\n";
+            $this->consumeNewLine();
+        }while($this->expects('    '));
+
+        return $message;
+    }
+
+    private function consumeFiles(){
+        $files = [];
+
+        do{
+            $row = $this->consumeRegexp("/(.*?)(?:\n|$)/")[1];
+            if(!trim($row))
+                break;
+            if(strpos($row, "\t") === false)
+                throw new RuntimeException("Error in files: $row");
+            list($op, $file) = explode("\t", $row, 2);
+            $files[$file] = $op;
+        }while(true);
+
+        return $files;
     }
 }
