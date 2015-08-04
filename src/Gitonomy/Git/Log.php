@@ -92,7 +92,7 @@ class Log implements \Countable, \IteratorAggregate
     }
 
     public function setNameStatus(){
-        $this->addAdditionalArgs(['--name-status']);
+        $this->addAdditionalArgs(array('--name-status'));
     }
 
     /**
