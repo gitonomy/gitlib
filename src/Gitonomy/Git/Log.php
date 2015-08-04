@@ -47,6 +47,11 @@ class Log implements \Countable, \IteratorAggregate
     protected $limit;
 
     /**
+     * @var array
+     */
+    protected $additional_args;
+
+    /**
      * Instanciates a git log object.
      *
      * @param Repository   $repository the repository where log occurs
@@ -55,7 +60,7 @@ class Log implements \Countable, \IteratorAggregate
      * @param int|null     $offset     start list from a given position
      * @param int|null     $limit      limit number of fetched elements
      */
-    public function __construct(Repository $repository, $revisions = null, $paths = null, $offset = null, $limit = null)
+    public function __construct(Repository $repository, $revisions = null, $paths = null, $offset = null, $limit = null, array $additional_args = null)
     {
         if (null !== $revisions && !$revisions instanceof RevisionList) {
             $revisions = new RevisionList($repository, $revisions);
@@ -74,6 +79,21 @@ class Log implements \Countable, \IteratorAggregate
         $this->paths      = $paths;
         $this->offset     = $offset;
         $this->limit      = $limit;
+        $this->additional_args = $additional_args;
+    }
+
+    public function setAdditionalArgs(array $additional_args){
+        $this->additional_args = $additional_args;
+    }
+
+    public function addAdditionalArgs(array $additional_args){
+        if(!isset($this->additional_args))
+            $this->additional_args = [];
+        $this->additional_args += $additional_args;
+    }
+
+    public function setNameStatus(){
+        $this->addAdditionalArgs(['--name-status']);
     }
 
     /**
@@ -156,6 +176,8 @@ class Log implements \Countable, \IteratorAggregate
     public function getCommits()
     {
         $args = array('--encoding='.StringHelper::getEncoding(), '--format=raw');
+        if($this->additional_args)
+            $args = array_merge($args, $this->additional_args);
 
         if (null !== $this->offset) {
             $args[] = '--skip='.((int) $this->offset);
