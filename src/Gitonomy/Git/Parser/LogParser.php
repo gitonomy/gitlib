@@ -87,7 +87,8 @@ class LogParser extends CommitParser
         $files = array();
 
         do{
-            $row = $this->consumeRegexp("/(.*?)(?:\n|$)/")[1];
+        	$matches = $this->consumeRegexp("/(.*?)(?:\n|$)/");
+            $row = $matches[1];
             if(!trim($row))
                 break;
             if(strpos($row, "\t") === false)
