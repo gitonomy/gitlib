@@ -87,7 +87,7 @@ class Log implements \Countable, \IteratorAggregate
 
     public function addAdditionalArgs(array $additional_args){
         if(!isset($this->additional_args))
-            $this->additional_args = [];
+            $this->additional_args = array();
         $this->additional_args += $additional_args;
     }
 
