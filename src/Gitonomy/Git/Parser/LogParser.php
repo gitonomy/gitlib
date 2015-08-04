@@ -48,7 +48,7 @@ class LogParser extends CommitParser
             $commit['committerDate'] = $this->parseDate($commit['committerDate']);
 
             $message = '';
-            $files = [];
+            $files = array();
 
             //Is there a body?
             $this->expects("\n"); //Last commit may not have trailing linebreaks
@@ -85,7 +85,7 @@ class LogParser extends CommitParser
     }
 
     private function consumeFiles(){
-        $files = [];
+        $files = array();
 
         do{
             $row = $this->consumeRegexp("/(.*?)(?:\n|$)/")[1];
