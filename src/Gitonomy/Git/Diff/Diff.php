@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Diff;
 
 use Gitonomy\Git\Parser\DiffParser;
@@ -52,7 +51,7 @@ class Diff
         $parser = new DiffParser();
         $parser->parse($rawDiff);
 
-        return new Diff($parser->files, $rawDiff);
+        return new self($parser->files, $rawDiff);
     }
 
     public function setRepository(Repository $repository)
@@ -81,7 +80,7 @@ class Diff
     }
 
     /**
-     * Returns the raw diff
+     * Returns the raw diff.
      *
      * @return string The raw diff
      */
@@ -91,7 +90,7 @@ class Diff
     }
 
     /**
-     * Export a diff as array
+     * Export a diff as array.
      *
      * @return array The array
      */
@@ -99,7 +98,7 @@ class Diff
     {
         return array(
             'rawDiff' => $this->rawDiff,
-            'files'   => array_map(
+            'files' => array_map(
                 function (File $file) {
                     return $file->toArray();
                 }, $this->files
@@ -108,7 +107,7 @@ class Diff
     }
 
     /**
-     * Create a new instance of Diff from an array
+     * Create a new instance of Diff from an array.
      *
      * @param array $array The array
      *

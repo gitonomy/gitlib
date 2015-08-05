@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
@@ -25,13 +24,13 @@ class RevisionTest extends AbstractTest
     {
         $revision = $repository->getRevision(self::LONGFILE_COMMIT.'^');
 
-        $this->assertTrue($revision instanceof Revision, "Revision object type");
+        $this->assertTrue($revision instanceof Revision, 'Revision object type');
 
         $commit = $revision->getCommit();
 
-        $this->assertTrue($commit instanceof Commit, "getCommit returns a Commit");
+        $this->assertTrue($commit instanceof Commit, 'getCommit returns a Commit');
 
-        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commit->getHash(), "Resolution is correct");
+        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commit->getHash(), 'Resolution is correct');
     }
 
     /**
@@ -53,9 +52,9 @@ class RevisionTest extends AbstractTest
 
         $log = $revision->getLog(null, 2, 3);
 
-        $this->assertTrue($log instanceof Log, "Log type object");
-        $this->assertEquals(2, $log->getOffset(), "Log offset is passed");
-        $this->assertEquals(3, $log->getLimit(), "Log limit is passed");
-        $this->assertEquals(array($revision), $log->getRevisions()->getAll(), "Revision is passed");
+        $this->assertTrue($log instanceof Log, 'Log type object');
+        $this->assertEquals(2, $log->getOffset(), 'Log offset is passed');
+        $this->assertEquals(3, $log->getLimit(), 'Log limit is passed');
+        $this->assertEquals(array($revision), $log->getRevisions()->getAll(), 'Revision is passed');
     }
 }

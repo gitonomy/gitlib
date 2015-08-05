@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Blame;
 
 use Gitonomy\Git\Commit;
@@ -33,11 +32,11 @@ class Line
      */
     public function __construct(Commit $commit, $sourceLine, $targetLine, $blockLine, $content)
     {
-        $this->commit     = $commit;
+        $this->commit = $commit;
         $this->sourceLine = $sourceLine;
         $this->targetLine = $targetLine;
-        $this->blockLine  = $blockLine;
-        $this->content    = $content;
+        $this->blockLine = $blockLine;
+        $this->content = $content;
     }
 
     public function getContent()

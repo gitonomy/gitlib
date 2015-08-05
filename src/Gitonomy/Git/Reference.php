@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 /**
@@ -25,7 +24,7 @@ abstract class Reference extends Revision
     public function __construct(Repository $repository, $revision, $commitHash = null)
     {
         $this->repository = $repository;
-        $this->revision   = $revision;
+        $this->revision = $revision;
         $this->commitHash = $commitHash;
     }
 

@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
@@ -62,21 +61,21 @@ class Repository
     protected $referenceBag;
 
     /**
-     * Logger (can be null)
+     * Logger (can be null).
      *
      * @var LoggerInterface
      */
     protected $logger;
 
     /**
-     * Path to git command
+     * Path to git command.
      */
     protected $command;
 
     /**
      * Debug flag, indicating if errors should be thrown.
      *
-     * @var boolean
+     * @var bool
      */
     protected $debug;
 
@@ -116,26 +115,26 @@ class Repository
     {
         $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
         $options = array_merge(array(
-            'working_dir'           => null,
-            'debug'                 => true,
-            'logger'                => null,
-            'environment_variables' => $is_windows ? array( 'PATH' => $_SERVER['PATH'] ) : array(),
-            'command'               => 'git',
-            'process_timeout'       => 3600
+            'working_dir' => null,
+            'debug' => true,
+            'logger' => null,
+            'environment_variables' => $is_windows ? array('PATH' => $_SERVER['PATH']) : array(),
+            'command' => 'git',
+            'process_timeout' => 3600,
         ), $options);
 
-        if (null !== $options['logger'] && ! $options['logger'] instanceof LoggerInterface) {
+        if (null !== $options['logger'] && !$options['logger'] instanceof LoggerInterface) {
             throw new InvalidArgumentException(sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', is_object($options['logger']) ? get_class($options['logger']) : gettype($options['logger'])));
         }
 
-        $this->logger  = $options['logger'];
+        $this->logger = $options['logger'];
         $this->initDir($dir, $options['working_dir']);
 
-        $this->objects              = array();
-        $this->debug                = (bool) $options['debug'];
+        $this->objects = array();
+        $this->debug = (bool) $options['debug'];
         $this->environmentVariables = $options['environment_variables'];
-        $this->processTimeout       = $options['process_timeout'];
-        $this->command              = $options['command'];
+        $this->processTimeout = $options['process_timeout'];
+        $this->command = $options['command'];
 
         if (true === $this->debug && null !== $this->logger) {
             $this->logger->debug(sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ?: 'none'));
@@ -143,7 +142,7 @@ class Repository
     }
 
     /**
-     * Initializes directory attributes on repository:
+     * Initializes directory attributes on repository:.
      *
      * @param string $gitDir     directory of a working copy with files checked out
      * @param string $workingDir directory containing git files (objects, config...)
@@ -153,20 +152,20 @@ class Repository
         $gitDir = realpath($gitDir);
 
         if (null === $workingDir && is_dir($gitDir.'/.git')) {
-            $workingDir  = $gitDir;
-            $gitDir      = $gitDir.'/.git';
+            $workingDir = $gitDir;
+            $gitDir = $gitDir.'/.git';
         } elseif (!is_dir($gitDir)) {
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
         }
 
-        $this->gitDir     = $gitDir;
+        $this->gitDir = $gitDir;
         $this->workingDir = $workingDir;
     }
 
     /**
      * Tests if repository is a bare repository.
      *
-     * @return boolean
+     * @return bool
      */
     public function isBare()
     {
@@ -234,7 +233,7 @@ class Repository
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isHeadDetached()
     {
@@ -242,7 +241,7 @@ class Repository
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isHeadAttached()
     {
@@ -323,7 +322,7 @@ class Repository
      */
     public function getCommit($hash)
     {
-        if (! isset($this->objects[$hash])) {
+        if (!isset($this->objects[$hash])) {
             $this->objects[$hash] = new Commit($this, $hash);
         }
 
@@ -339,7 +338,7 @@ class Repository
      */
     public function getTree($hash)
     {
-        if (! isset($this->objects[$hash])) {
+        if (!isset($this->objects[$hash])) {
             $this->objects[$hash] = new Tree($this, $hash);
         }
 
@@ -355,7 +354,7 @@ class Repository
      */
     public function getBlob($hash)
     {
-        if (! isset($this->objects[$hash])) {
+        if (!isset($this->objects[$hash])) {
             $this->objects[$hash] = new Blob($this, $hash);
         }
 
@@ -380,9 +379,8 @@ class Repository
      *                         any text value type
      * @param array $paths     Restrict log to modifications occuring on given
      *                         paths.
-     *
-     * @param int $offset Start from a given offset in results.
-     * @param int $limit  Limit number of total results.
+     * @param int   $offset    Start from a given offset in results.
+     * @param int   $limit     Limit number of total results.
      *
      * @return Log
      */
@@ -432,7 +430,7 @@ class Repository
                 throw new RuntimeException('unable to parse repository size output');
             }
 
-            return null;
+            return;
         }
 
         return $vars[1];
@@ -472,7 +470,7 @@ class Repository
      */
     public function getDescription()
     {
-        $file   = $this->gitDir.'/description';
+        $file = $this->gitDir.'/description';
         $exists = is_file($file);
 
         if (null !== $this->logger && true === $this->debug) {
@@ -493,7 +491,7 @@ class Repository
     /**
      * Tests if repository has a custom set description.
      *
-     * @return boolean
+     * @return bool
      */
     public function hasDescription()
     {
@@ -543,7 +541,7 @@ class Repository
 
         if ($this->logger && $this->debug) {
             $duration = microtime(true) - $before;
-            $this->logger->debug(sprintf('last command (%s) duration: %sms', $command, sprintf('%.2f', $duration*1000)));
+            $this->logger->debug(sprintf('last command (%s) duration: %sms', $command, sprintf('%.2f', $duration * 1000)));
             $this->logger->debug(sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
             $this->logger->debug(sprintf('last command (%s) output: %s', $command, $output));
         }
@@ -559,7 +557,7 @@ class Repository
                 throw new ProcessException($process);
             }
 
-            return null;
+            return;
         }
 
         return $output;
@@ -592,8 +590,8 @@ class Repository
     /**
      * Clones the current repository to a new directory and return instance of new repository.
      *
-     * @param string  $path path to the new repository in which current repository will be cloned
-     * @param boolean $bare flag indicating if repository is bare or has a working-copy
+     * @param string $path path to the new repository in which current repository will be cloned
+     * @param bool   $bare flag indicating if repository is bare or has a working-copy
      *
      * @return Repository the newly created repository
      */

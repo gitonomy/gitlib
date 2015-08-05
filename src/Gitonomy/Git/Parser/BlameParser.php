@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Blame\Line;
@@ -39,14 +38,14 @@ class BlameParser extends ParserBase
             $vars = $this->consumeRegexp('/(\d+) (\d+)( (\d+))?/A');
             $sourceLine = $vars[1];
             $targetLine = $vars[2];
-            $blockLine  = isset($vars[4]) ? $vars[4] : null;
+            $blockLine = isset($vars[4]) ? $vars[4] : null;
             $this->consumeTo("\n");
             $this->consumeNewLine();
 
             if (!isset($memory[$hash])) {
                 foreach (array('author', 'author-mail', 'author-time', 'author-tz',
                     'committer', 'committer-mail', 'committer-time', 'committer-tz',
-                    'summary') as $key) {
+                    'summary', ) as $key) {
                     $this->consume($key);
                     $this->consumeTo("\n");
                     $this->consumeNewLine();
@@ -69,7 +68,7 @@ class BlameParser extends ParserBase
             $this->consumeNewLine();
 
             $this->lines[$line] = new Line($memory[$hash], $sourceLine, $targetLine, $blockLine, $content);
-            $line++;
+            ++$line;
         }
     }
 }

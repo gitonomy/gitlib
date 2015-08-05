@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Tests;
 
 class HooksTest extends AbstractTest
@@ -99,8 +98,8 @@ class HooksTest extends AbstractTest
         $file = $this->touchHook($repository, 'bar', 'barbarbar');
         $repository->getHooks()->setSymlink('foo', $file);
 
-        $this->assertTrue(is_link($this->hookPath($repository, 'foo')), "foo hook is a symlink");
-        $this->assertEquals($file, readlink($this->hookPath($repository, 'foo')), "target of symlink is correct");
+        $this->assertTrue(is_link($this->hookPath($repository, 'foo')), 'foo hook is a symlink');
+        $this->assertEquals($file, readlink($this->hookPath($repository, 'foo')), 'target of symlink is correct');
     }
 
     /**
@@ -111,7 +110,7 @@ class HooksTest extends AbstractTest
     {
         $this->markAsSkippedIfSymlinkIsMissing();
 
-        $file    = $this->hookPath($repository, 'target-symlink');
+        $file = $this->hookPath($repository, 'target-symlink');
         $fooFile = $this->hookPath($repository, 'foo');
 
         file_put_contents($file, 'foobar');
@@ -131,7 +130,7 @@ class HooksTest extends AbstractTest
         $this->assertEquals('bar', file_get_contents($file), 'Hook content is correct');
 
         $perms = fileperms($file);
-        $this->assertEquals(defined('PHP_WINDOWS_VERSION_BUILD') ? 0666 : 0777, $perms & 0777, "Hook permissions are correct");
+        $this->assertEquals(defined('PHP_WINDOWS_VERSION_BUILD') ? 0666 : 0777, $perms & 0777, 'Hook permissions are correct');
     }
 
     /**

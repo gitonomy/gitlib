@@ -1,4 +1,5 @@
 <?php
+
 require __DIR__.'/../vendor/autoload.php';
 
 if (defined('PHP_WINDOWS_VERSION_BUILD')) {

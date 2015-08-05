@@ -9,10 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Tests;
-
-use Gitonomy\Git\Blob;
 
 class BlobTest extends AbstractTest
 {
@@ -39,7 +36,7 @@ class BlobTest extends AbstractTest
      */
     public function testNotExisting($repository)
     {
-        $blob = $repository->getBlob("foobar");
+        $blob = $repository->getBlob('foobar');
         $blob->getContent();
     }
 

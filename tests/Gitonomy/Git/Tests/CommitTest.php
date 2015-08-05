@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
@@ -26,7 +25,7 @@ class CommitTest extends AbstractTest
 
         $diff = $commit->getDiff();
 
-        $this->assertTrue($diff instanceof Diff, "getDiff() returns a Diff object");
+        $this->assertTrue($diff instanceof Diff, 'getDiff() returns a Diff object');
     }
 
     /**
@@ -57,7 +56,7 @@ class CommitTest extends AbstractTest
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('4f17752', $commit->getShortHash(), "Short hash");
+        $this->assertEquals('4f17752', $commit->getShortHash(), 'Short hash');
     }
 
     /**
@@ -67,7 +66,7 @@ class CommitTest extends AbstractTest
     {
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
-        $this->assertEquals(0, count($commit->getParentHashes()), "No parent on initial commit");
+        $this->assertEquals(0, count($commit->getParentHashes()), 'No parent on initial commit');
     }
 
     /**
@@ -75,11 +74,11 @@ class CommitTest extends AbstractTest
      */
     public function testGetParentHashes_WithOneParent($repository)
     {
-        $commit  = $repository->getCommit(self::LONGFILE_COMMIT);
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
         $parents = $commit->getParentHashes();
 
-        $this->assertEquals(1, count($parents), "One parent found");
-        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $parents[0], "Parent hash is correct");
+        $this->assertEquals(1, count($parents), 'One parent found');
+        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $parents[0], 'Parent hash is correct');
     }
 
     /**
@@ -87,11 +86,11 @@ class CommitTest extends AbstractTest
      */
     public function testGetParents_WithOneParent($repository)
     {
-        $commit  = $repository->getCommit(self::LONGFILE_COMMIT);
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
         $parents = $commit->getParents();
 
-        $this->assertEquals(1, count($parents), "One parent found");
-        $this->assertTrue($parents[0] instanceof Commit, "First parent is a Commit object");
+        $this->assertEquals(1, count($parents), 'One parent found');
+        $this->assertTrue($parents[0] instanceof Commit, 'First parent is a Commit object');
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $parents[0]->getHash(), "First parents's hash is correct");
     }
 
@@ -102,7 +101,7 @@ class CommitTest extends AbstractTest
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('b06890c7b10904979d2f69613c2ccda30aafe262', $commit->getTreeHash(), "Tree hash is correct");
+        $this->assertEquals('b06890c7b10904979d2f69613c2ccda30aafe262', $commit->getTreeHash(), 'Tree hash is correct');
     }
 
     /**
@@ -112,8 +111,8 @@ class CommitTest extends AbstractTest
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertInstanceOf('Gitonomy\Git\Tree', $commit->getTree(), "Tree is a tree");
-        $this->assertEquals('b06890c7b10904979d2f69613c2ccda30aafe262', $commit->getTree()->getHash(), "Tree hash is correct");
+        $this->assertInstanceOf('Gitonomy\Git\Tree', $commit->getTree(), 'Tree is a tree');
+        $this->assertEquals('b06890c7b10904979d2f69613c2ccda30aafe262', $commit->getTree()->getHash(), 'Tree hash is correct');
     }
 
     /**
@@ -123,7 +122,7 @@ class CommitTest extends AbstractTest
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('alice', $commit->getAuthorName(), "Author name");
+        $this->assertEquals('alice', $commit->getAuthorName(), 'Author name');
     }
 
     /**
@@ -133,7 +132,7 @@ class CommitTest extends AbstractTest
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('alice@example.org', $commit->getAuthorEmail(), "Author email");
+        $this->assertEquals('alice@example.org', $commit->getAuthorEmail(), 'Author email');
     }
 
     /**
@@ -153,7 +152,7 @@ class CommitTest extends AbstractTest
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('alice', $commit->getCommitterName(), "Committer name");
+        $this->assertEquals('alice', $commit->getCommitterName(), 'Committer name');
     }
 
     /**
@@ -163,7 +162,7 @@ class CommitTest extends AbstractTest
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertEquals('alice@example.org', $commit->getCommitterEmail(), "Committer email");
+        $this->assertEquals('alice@example.org', $commit->getCommitterEmail(), 'Committer email');
     }
 
     /**
@@ -264,8 +263,8 @@ EOL;
 
         $lastModification = $commit->getLastModification('image.jpg');
 
-        $this->assertTrue($lastModification instanceof Commit, "Last modification is a Commit object");
-        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $lastModification->getHash(), "Last modification is current commit");
+        $this->assertTrue($lastModification instanceof Commit, 'Last modification is a Commit object');
+        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $lastModification->getHash(), 'Last modification is current commit');
     }
 
     /**
@@ -285,6 +284,6 @@ EOL;
     {
         $commit = $repository->getCommit(self::ENCODING_COMMIT);
 
-        $this->assertEquals("contribute to AUTHORS file", $commit->getSubjectMessage());
+        $this->assertEquals('contribute to AUTHORS file', $commit->getSubjectMessage());
     }
 }

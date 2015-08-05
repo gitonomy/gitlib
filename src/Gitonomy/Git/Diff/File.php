@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Diff;
 
 use Gitonomy\Git\Repository;
@@ -50,7 +49,7 @@ class File
     protected $newIndex;
 
     /**
-     * @var boolean
+     * @var bool
      */
     protected $isBinary;
 
@@ -69,10 +68,10 @@ class File
      */
     public function __construct($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary)
     {
-        $this->oldName  = $oldName;
-        $this->newName  = $newName;
-        $this->oldMode  = $oldMode;
-        $this->newMode  = $newMode;
+        $this->oldName = $oldName;
+        $this->newName = $newName;
+        $this->oldMode = $oldMode;
+        $this->newMode = $newMode;
         $this->oldIndex = $oldIndex;
         $this->newIndex = $newIndex;
         $this->isBinary = $isBinary;
@@ -88,7 +87,7 @@ class File
     /**
      * Indicates if this diff file is a creation.
      *
-     * @return boolean
+     * @return bool
      */
     public function isCreation()
     {
@@ -98,7 +97,7 @@ class File
     /**
      * Indicates if this diff file is a modification.
      *
-     * @return boolean
+     * @return bool
      */
     public function isModification()
     {
@@ -110,7 +109,7 @@ class File
      *
      * A rename can only occurs if it's a modification (not a creation or a deletion).
      *
-     * @return boolean
+     * @return bool
      */
     public function isRename()
     {
@@ -128,7 +127,7 @@ class File
     /**
      * Indicates if this diff file is a deletion.
      *
-     * @return boolean
+     * @return bool
      */
     public function isDeletion()
     {
@@ -138,7 +137,7 @@ class File
     /**
      * Indicates if this diff file is a deletion.
      *
-     * @return boolean
+     * @return bool
      */
     public function isDelete()
     {
@@ -232,13 +231,13 @@ class File
             'is_binary' => $this->isBinary,
             'changes' => array_map(function (FileChange $change) {
                 return $change->toArray();
-            }, $this->changes)
+            }, $this->changes),
         );
     }
 
     public static function fromArray(array $array)
     {
-        $file = new File($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary']);
+        $file = new self($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary']);
 
         foreach ($array['changes'] as $change) {
             $file->addChange(FileChange::fromArray($change));
