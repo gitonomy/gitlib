@@ -147,8 +147,9 @@ class Admin
      */
     private static function getProcess($command, array $args = array(), array $options = array())
     {
+        $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
         $options = array_merge(array(
-            'environment_variables' => array(),
+            'environment_variables' => $is_windows ? array( 'PATH' => getenv('PATH') ) : array(),
             'command'               => 'git',
             'process_timeout'       => 3600
         ), $options);
