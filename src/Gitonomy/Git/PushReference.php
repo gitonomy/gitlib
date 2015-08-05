@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\LogicException;
@@ -22,7 +21,7 @@ use Gitonomy\Git\Exception\LogicException;
  */
 class PushReference
 {
-    const ZERO = "0000000000000000000000000000000000000000";
+    const ZERO = '0000000000000000000000000000000000000000';
 
     /**
      * @var string
@@ -40,17 +39,17 @@ class PushReference
     protected $after;
 
     /**
-     * @var boolean
+     * @var bool
      */
     protected $isForce;
 
     public function __construct(Repository $repository, $reference, $before, $after)
     {
         $this->repository = $repository;
-        $this->reference  = $reference;
-        $this->before     = $before;
-        $this->after      = $after;
-        $this->isForce    = $this->getForce();
+        $this->reference = $reference;
+        $this->before = $before;
+        $this->after = $after;
+        $this->isForce = $this->getForce();
     }
 
     /**
@@ -112,7 +111,7 @@ class PushReference
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isCreate()
     {
@@ -120,7 +119,7 @@ class PushReference
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isDelete()
     {
@@ -128,7 +127,7 @@ class PushReference
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isForce()
     {
@@ -136,7 +135,7 @@ class PushReference
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     public function isFastForward()
     {
@@ -144,7 +143,7 @@ class PushReference
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     protected function isZero($reference)
     {
@@ -152,7 +151,7 @@ class PushReference
     }
 
     /**
-     * @return boolean
+     * @return bool
      */
     protected function getForce()
     {
@@ -162,7 +161,7 @@ class PushReference
 
         $result = $this->repository->run('merge-base', array(
             $this->before,
-            $this->after
+            $this->after,
         ));
 
         return $this->before !== trim($result);

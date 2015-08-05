@@ -9,14 +9,13 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Diff;
 
 class FileChange
 {
     const LINE_CONTEXT = 0;
-    const LINE_REMOVE  = -1;
-    const LINE_ADD     = 1;
+    const LINE_REMOVE = -1;
+    const LINE_ADD = 1;
 
     protected $rangeOldStart;
     protected $rangeOldCount;
@@ -38,7 +37,7 @@ class FileChange
         $result = 0;
         foreach ($this->lines as $line) {
             if ($line[0] === $type) {
-                $result++;
+                ++$result;
             }
         }
 
@@ -83,6 +82,6 @@ class FileChange
 
     public static function fromArray(array $array)
     {
-        return new FileChange($array['range_old_start'], $array['range_old_count'], $array['range_new_start'], $array['range_new_count'], $array['lines']);
+        return new self($array['range_old_start'], $array['range_old_count'], $array['range_new_start'], $array['range_new_count'], $array['lines']);
     }
 }

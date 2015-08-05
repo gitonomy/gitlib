@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Blame\Line;
@@ -54,9 +53,9 @@ class Blame implements \Countable
     public function __construct(Repository $repository, Revision $revision, $file, $lineRange = null)
     {
         $this->repository = $repository;
-        $this->revision   = $revision;
-        $this->lineRange  = $lineRange;
-        $this->file       = $file;
+        $this->revision = $revision;
+        $this->lineRange = $lineRange;
+        $this->file = $file;
     }
 
     /**
@@ -84,8 +83,8 @@ class Blame implements \Countable
      */
     public function getGroupedLines()
     {
-        $result  = array();
-        $commit    = null;
+        $result = array();
+        $commit = null;
         $current = array();
 
         foreach ($this->getLines() as $lineNumber => $line) {

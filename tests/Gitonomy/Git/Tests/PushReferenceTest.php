@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\PushReference;
@@ -18,8 +17,8 @@ class PushReferenceTest extends AbstractTest
 {
     const CREATE = 1;
     const DELETE = 2;
-    const FORCE  = 4;
-    const FAST_FORWARD  = 8;
+    const FORCE = 4;
+    const FAST_FORWARD = 8;
 
     public function provideIsers()
     {
@@ -52,8 +51,8 @@ class PushReferenceTest extends AbstractTest
         $ref = new PushReference($repository, 'foo', self::INITIAL_COMMIT, self::LONGFILE_COMMIT);
 
         $log = $ref->getLog()->getCommits();
-        $this->assertEquals(7, count($log), "7 commits in log");
-        $this->assertEquals('add a long file', $log[0]->getShortMessage(), "First commit is correct");
+        $this->assertEquals(7, count($log), '7 commits in log');
+        $this->assertEquals('add a long file', $log[0]->getShortMessage(), 'First commit is correct');
     }
 
     /**
@@ -64,7 +63,7 @@ class PushReferenceTest extends AbstractTest
         $ref = new PushReference($repository, 'foo', PushReference::ZERO, self::LONGFILE_COMMIT);
 
         $log = $ref->getLog(array(self::INITIAL_COMMIT))->getCommits();
-        $this->assertEquals(7, count($log), "7 commits in log");
-        $this->assertEquals('add a long file', $log[0]->getShortMessage(), "First commit is correct");
+        $this->assertEquals(7, count($log), '7 commits in log');
+        $this->assertEquals('add a long file', $log[0]->getShortMessage(), 'First commit is correct');
     }
 }

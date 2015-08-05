@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\ProcessException;
@@ -37,12 +36,12 @@ class Log implements \Countable, \IteratorAggregate
     protected $paths;
 
     /**
-     * @var integer
+     * @var int
      */
     protected $offset;
 
     /**
-     * @var integer
+     * @var int
      */
     protected $limit;
 
@@ -70,10 +69,10 @@ class Log implements \Countable, \IteratorAggregate
         }
 
         $this->repository = $repository;
-        $this->revisions  = $revisions;
-        $this->paths      = $paths;
-        $this->offset     = $offset;
-        $this->limit      = $limit;
+        $this->revisions = $revisions;
+        $this->paths = $paths;
+        $this->offset = $offset;
+        $this->limit = $limit;
     }
 
     /**

@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Diff\File;
@@ -26,12 +25,12 @@ class DiffParser extends ParserBase
         while (!$this->isFinished()) {
             // 1. title
             $vars = $this->consumeRegexp('/diff --git (a\/.*) (b\/.*)\n/');
-            $oldName  = $vars[1];
-            $newName  = $vars[2];
+            $oldName = $vars[1];
+            $newName = $vars[2];
             $oldIndex = null;
             $newIndex = null;
-            $oldMode  = null;
-            $newMode  = null;
+            $oldMode = null;
+            $newMode = null;
 
             // 2. mode
             if ($this->expects('new file mode ')) {
@@ -88,8 +87,8 @@ class DiffParser extends ParserBase
                 }
             }
 
-            $oldName  = $oldName === '/dev/null' ? null : substr($oldName, 2);
-            $newName  = $newName === '/dev/null' ? null : substr($newName, 2);
+            $oldName = $oldName === '/dev/null' ? null : substr($oldName, 2);
+            $newName = $newName === '/dev/null' ? null : substr($newName, 2);
             $oldIndex = preg_match('/^0+$/', $oldIndex) ? null : $oldIndex;
             $newIndex = preg_match('/^0+$/', $newIndex) ? null : $newIndex;
             $file = new File($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary);
@@ -101,18 +100,18 @@ class DiffParser extends ParserBase
                 $rangeOldCount = $vars[2];
                 $rangeNewStart = $vars[3];
                 $rangeNewCount = isset($vars[4]) ? $vars[4] : $vars[2]; // @todo Ici, t'as pris un gros raccourci mon loulou
-                $this->consume(" @@");
+                $this->consume(' @@');
                 $this->consumeTo("\n");
                 $this->consumeNewLine();
 
                 // 6. Lines
                 $lines = array();
                 while (true) {
-                    if ($this->expects(" ")) {
+                    if ($this->expects(' ')) {
                         $lines[] = array(FileChange::LINE_CONTEXT, $this->consumeTo("\n"));
-                    } elseif ($this->expects("+")) {
+                    } elseif ($this->expects('+')) {
                         $lines[] = array(FileChange::LINE_ADD, $this->consumeTo("\n"));
-                    } elseif ($this->expects("-")) {
+                    } elseif ($this->expects('-')) {
                         $lines[] = array(FileChange::LINE_REMOVE, $this->consumeTo("\n"));
                     } elseif ($this->expects("\ No newline at end of file")) {
                         // Ignore this case...

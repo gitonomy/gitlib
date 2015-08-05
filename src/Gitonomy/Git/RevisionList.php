@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 /**
@@ -35,7 +34,7 @@ class RevisionList implements \IteratorAggregate, \Countable
         }
 
         if (count($revisions) == 0) {
-            throw new \InvalidArgumentException(sprintf("Empty revision list not allowed"));
+            throw new \InvalidArgumentException(sprintf('Empty revision list not allowed'));
         }
 
         foreach ($revisions as $i => $revision) {

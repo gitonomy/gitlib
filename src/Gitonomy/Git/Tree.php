@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
@@ -94,7 +93,7 @@ class Tree
         $segments = explode('/', $path);
         $element = $this;
         foreach ($segments as $segment) {
-            if ($element instanceof Tree) {
+            if ($element instanceof self) {
                 $element = $element->getEntry($segment);
             } elseif ($entry instanceof Blob) {
                 throw new InvalidArgumentException('Unresolvable path');

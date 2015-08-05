@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
@@ -24,8 +23,8 @@ class RepositoryTest extends AbstractTest
     {
         $blob = $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('README.md');
 
-        $this->assertTrue($blob instanceof Blob, "getBlob() returns a Blob object");
-        $this->assertContains('Foo Bar project', $blob->getContent(), "file is correct");
+        $this->assertTrue($blob instanceof Blob, 'getBlob() returns a Blob object');
+        $this->assertContains('Foo Bar project', $blob->getContent(), 'file is correct');
     }
 
     /**
@@ -34,16 +33,16 @@ class RepositoryTest extends AbstractTest
     public function testGetSize($repository)
     {
         $size = $repository->getSize();
-        $this->assertGreaterThan(70, $size, "Repository is greater than 70KB");
+        $this->assertGreaterThan(70, $size, 'Repository is greater than 70KB');
     }
 
     public function testIsBare()
     {
         $bare = self::createFoobarRepository(true);
-        $this->assertTrue($bare->isBare(), "Lib repository is bare");
+        $this->assertTrue($bare->isBare(), 'Lib repository is bare');
 
         $notBare = self::createFoobarRepository(false);
-        $this->assertFalse($notBare->isBare(), "Working copy is not bare");
+        $this->assertFalse($notBare->isBare(), 'Working copy is not bare');
     }
 
     /**

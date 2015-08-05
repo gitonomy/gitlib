@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
@@ -41,14 +40,14 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     protected $references;
 
     /**
-     * List with all tags
+     * List with all tags.
      *
      * @var array
      */
     protected $tags;
 
     /**
-     * List with all branches
+     * List with all branches.
      *
      * @var array
      */
@@ -57,7 +56,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * A boolean indicating if the bag is already initialized.
      *
-     * @var boolean
+     * @var bool
      */
     protected $initialized = false;
 
@@ -68,10 +67,10 @@ class ReferenceBag implements \Countable, \IteratorAggregate
      */
     public function __construct($repository)
     {
-        $this->repository  = $repository;
-        $this->references  = array();
-        $this->tags        = array();
-        $this->branches    = array();
+        $this->repository = $repository;
+        $this->references = array();
+        $this->tags = array();
+        $this->branches = array();
     }
 
     /**
@@ -342,7 +341,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
             $output = $this->repository->run('show-ref');
         } catch (RuntimeException $e) {
             $output = $e->getOutput();
-            $error  = $e->getErrorOutput();
+            $error = $e->getErrorOutput();
             if ($error) {
                 throw new RuntimeException('Error while getting list of references: '.$error);
             }

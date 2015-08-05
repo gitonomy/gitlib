@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Log;
@@ -22,7 +21,7 @@ class LogTest extends AbstractTest
     public function testRevisionAndPath($repository)
     {
         $logReadme = $repository->getLog(self::LONGFILE_COMMIT, 'README');
-        $logImage  = $repository->getLog(self::LONGFILE_COMMIT, 'image.jpg');
+        $logImage = $repository->getLog(self::LONGFILE_COMMIT, 'image.jpg');
 
         $this->assertEquals(3, count($logReadme));
         $this->assertEquals(2, count($logImage));
@@ -37,8 +36,8 @@ class LogTest extends AbstractTest
 
         $commits = $log->getCommits();
 
-        $this->assertEquals(3, count($commits), "3 commits in log");
-        $this->assertEquals(self::LONGFILE_COMMIT, $commits[0]->getHash(), "First is requested one");
+        $this->assertEquals(3, count($commits), '3 commits in log');
+        $this->assertEquals(self::LONGFILE_COMMIT, $commits[0]->getHash(), 'First is requested one');
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commits[1]->getHash(), "Second is longfile parent\'s");
     }
 
@@ -49,7 +48,7 @@ class LogTest extends AbstractTest
     {
         $log = $repository->getLog(self::LONGFILE_COMMIT, null, 2, 3);
 
-        $this->assertEquals(8, $log->countCommits(), "8 commits found in history");
+        $this->assertEquals(8, $log->countCommits(), '8 commits found in history');
     }
 
     /**
@@ -59,7 +58,7 @@ class LogTest extends AbstractTest
     {
         $log = $log = $repository->getLog();
 
-        $this->assertGreaterThan(100, $log->countCommits(), "Returns all commits from all branches");
+        $this->assertGreaterThan(100, $log->countCommits(), 'Returns all commits from all branches');
     }
 
     /**

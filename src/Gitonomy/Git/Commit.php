@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
@@ -36,8 +35,7 @@ class Commit extends Revision
      * Constructor.
      *
      * @param Gitonomy\Git\Repository $repository Repository of the commit
-     *
-     * @param string $hash Hash of the commit
+     * @param string                  $hash       Hash of the commit
      */
     public function __construct(Repository $repository, $hash, array $data = array())
     {
@@ -161,9 +159,9 @@ class Commit extends Revision
      *
      * Ported from https://github.com/fabpot/Twig-extensions/blob/d67bc7e69788795d7905b52d31188bbc1d390e01/lib/Twig/Extensions/Extension/Text.php#L52-L109
      *
-     * @param integer $length
-     * @param boolean $preserve
-     * @param string  $separator
+     * @param int    $length
+     * @param bool   $preserve
+     * @param string $separator
      *
      * @return string
      */
@@ -193,10 +191,10 @@ class Commit extends Revision
     }
 
     /**
-     * Find branch containing the commit
+     * Find branch containing the commit.
      *
-     * @param boolean $local  set true to try to locate a commit on local repository
-     * @param boolean $remote set true to try to locate a commit on remote repository
+     * @param bool $local  set true to try to locate a commit on local repository
+     * @param bool $remote set true to try to locate a commit on remote repository
      *
      * @return array An array of Reference\Branch
      */
@@ -313,7 +311,7 @@ class Commit extends Revision
     }
 
     /**
-     * Returns the subject message (the first line)
+     * Returns the subject message (the first line).
      *
      * @return string The subject message
      */
@@ -323,7 +321,7 @@ class Commit extends Revision
     }
 
     /**
-     * Return the body message
+     * Return the body message.
      *
      * @return string The body message
      */
@@ -387,15 +385,15 @@ class Commit extends Revision
 
         $parser->parse($result);
 
-        $this->data['treeHash']       = $parser->tree;
-        $this->data['parentHashes']   = $parser->parents;
-        $this->data['authorName']     = $parser->authorName;
-        $this->data['authorEmail']    = $parser->authorEmail;
-        $this->data['authorDate']     = $parser->authorDate;
-        $this->data['committerName']  = $parser->committerName;
+        $this->data['treeHash'] = $parser->tree;
+        $this->data['parentHashes'] = $parser->parents;
+        $this->data['authorName'] = $parser->authorName;
+        $this->data['authorEmail'] = $parser->authorEmail;
+        $this->data['authorDate'] = $parser->authorDate;
+        $this->data['committerName'] = $parser->committerName;
         $this->data['committerEmail'] = $parser->committerEmail;
-        $this->data['committerDate']  = $parser->committerDate;
-        $this->data['message']        = $parser->message;
+        $this->data['committerDate'] = $parser->committerDate;
+        $this->data['message'] = $parser->message;
 
         if (!isset($this->data[$name])) {
             throw new \InvalidArgumentException(sprintf('No data named "%s" in Commit.', $name));

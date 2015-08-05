@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
@@ -35,8 +34,8 @@ class WorkingCopyTest extends AbstractTest
         $wc->checkout('origin/new-feature', 'new-feature');
 
         $head = $repository->getHead();
-        $this->assertTrue($head instanceof Branch, "HEAD is a branch");
-        $this->assertEquals("new-feature", $head->getName(), "HEAD is branch new-feature");
+        $this->assertTrue($head instanceof Branch, 'HEAD is a branch');
+        $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
     }
 
     public function testDiffStaged()
@@ -85,8 +84,8 @@ class WorkingCopyTest extends AbstractTest
         $wc->checkout('master');
 
         $head = $repository->getHead();
-        $this->assertTrue($repository->isHeadAttached(), "HEAD is attached");
-        $this->assertFalse($repository->isHeadDetached(), "HEAD is not detached");
+        $this->assertTrue($repository->isHeadAttached(), 'HEAD is attached');
+        $this->assertFalse($repository->isHeadDetached(), 'HEAD is not detached');
     }
 
     public function testDetachedHead()
@@ -96,8 +95,8 @@ class WorkingCopyTest extends AbstractTest
         $wc->checkout('0.1');
 
         $head = $repository->getHead();
-        $this->assertFalse($repository->isHeadAttached(), "HEAD is not attached");
-        $this->assertTrue($repository->isHeadDetached(), "HEAD is detached");
+        $this->assertFalse($repository->isHeadAttached(), 'HEAD is not attached');
+        $this->assertTrue($repository->isHeadDetached(), 'HEAD is detached');
     }
 
     public function testGetUntracked()
@@ -105,7 +104,7 @@ class WorkingCopyTest extends AbstractTest
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();
 
-        $file = $repository->getWorkingDir() . '/untracked.txt';
+        $file = $repository->getWorkingDir().'/untracked.txt';
         file_put_contents($file, 'foo');
 
         $this->assertContains('untracked.txt', $wc->getUntrackedFiles());

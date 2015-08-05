@@ -9,7 +9,6 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\RuntimeException;
@@ -25,9 +24,9 @@ class Admin
     /**
      * Initializes a repository and returns the instance.
      *
-     * @param string  $path    path to the repository
-     * @param boolean $bare    indicate to create a bare repository
-     * @param array   $options options for Repository creation
+     * @param string $path    path to the repository
+     * @param bool   $bare    indicate to create a bare repository
+     * @param array  $options options for Repository creation
      *
      * @return Repository
      *
@@ -56,7 +55,7 @@ class Admin
      * @param string $url     url of repository to check
      * @param array  $options options for Repository creation
      *
-     * @return boolean true if url is valid
+     * @return bool true if url is valid
      */
     public static function isValidRepository($url, array $options = array())
     {
@@ -70,10 +69,10 @@ class Admin
     /**
      * Clone a repository to a local path.
      *
-     * @param string  $path    indicates where to clone repository
-     * @param string  $url     url of repository to clone
-     * @param boolean $bare    indicates if repository should be bare or have a working copy
-     * @param array   $options options for Repository creation
+     * @param string $path    indicates where to clone repository
+     * @param string $url     url of repository to clone
+     * @param bool   $bare    indicates if repository should be bare or have a working copy
+     * @param array  $options options for Repository creation
      *
      * @return Repository
      */
@@ -87,11 +86,11 @@ class Admin
     /**
      * Clone a repository branch to a local path.
      *
-     * @param string  $path    indicates where to clone repository
-     * @param string  $url     url of repository to clone
-     * @param string  $branch  branch to clone
-     * @param boolean $bare    indicates if repository should be bare or have a working copy
-     * @param array   $options options for Repository creation
+     * @param string $path    indicates where to clone repository
+     * @param string $url     url of repository to clone
+     * @param string $branch  branch to clone
+     * @param bool   $bare    indicates if repository should be bare or have a working copy
+     * @param array  $options options for Repository creation
      *
      * @return Repository
      */
@@ -149,9 +148,9 @@ class Admin
     {
         $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
         $options = array_merge(array(
-            'environment_variables' => $is_windows ? array( 'PATH' => getenv('PATH') ) : array(),
-            'command'               => 'git',
-            'process_timeout'       => 3600
+            'environment_variables' => $is_windows ? array('PATH' => getenv('PATH')) : array(),
+            'command' => 'git',
+            'process_timeout' => 3600,
         ), $options);
 
         $builder = ProcessBuilder::create(array_merge(array($options['command'], $command), $args));
