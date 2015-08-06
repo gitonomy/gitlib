@@ -339,7 +339,7 @@ class Commit extends Revision
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function getCommit()
     {
