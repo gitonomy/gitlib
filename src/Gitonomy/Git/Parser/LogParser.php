@@ -53,13 +53,13 @@ class LogParser extends CommitParser
             $this->expects("\n"); //Last commit may not have trailing linebreaks
             $this->expects("\n");
 
-            if($this->expects('    ')){
+            if($this->expects('    ')) {
                 $message = $this->consumeMessage();
             }
 
             $this->expects("\n");
 
-            if($this->lookAheadRegexp('/\w\t/')){
+            if($this->lookAheadRegexp('/\w\t/')) {
                 $files = $this->consumeFiles();
             }
 
@@ -72,30 +72,34 @@ class LogParser extends CommitParser
         }
     }
 
-    private function consumeMessage(){
+    private function consumeMessage()
+    {
         $message = '';
 
         do {
             $message .= $this->consumeTo("\n") . "\n";
             $this->consumeNewLine();
-        }while($this->expects('    '));
+        } while($this->expects('    '));
 
         return $message;
     }
 
-    private function consumeFiles(){
+    private function consumeFiles()
+    {
         $files = array();
 
-        do{
+        do {
         	$matches = $this->consumeRegexp("/(.*?)(?:\n|$)/");
             $row = $matches[1];
-            if(!trim($row))
+            if(!trim($row)) {
                 break;
-            if(strpos($row, "\t") === false)
+            }
+            if(strpos($row, "\t") === false) {
                 throw new RuntimeException("Error in files: $row");
+            }
             list($op, $file) = explode("\t", $row, 2);
             $files[$file] = $op;
-        }while(true);
+        } while(true);
 
         return $files;
     }
