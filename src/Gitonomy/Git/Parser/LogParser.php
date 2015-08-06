@@ -49,8 +49,8 @@ class LogParser extends CommitParser
             $message = '';
             $files = array();
 
-            //Is there a body?
-            $this->expects("\n"); //Last commit may not have trailing linebreaks
+            // Is there a body?
+            $this->expects("\n"); // Last commit may not have trailing linebreaks
             $this->expects("\n");
 
             if($this->expects('    ')) {
