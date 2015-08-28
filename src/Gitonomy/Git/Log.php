@@ -80,7 +80,6 @@ class Log implements \Countable, \IteratorAggregate
         $this->offset = $offset;
         $this->limit = $limit;
         $this->addArgs = $addArgs;
-        $this->additional_args = $additional_args;
     }
 
     public function setAdditionalArgs(array $addArgs)
