@@ -122,6 +122,14 @@ class Commit extends Revision
     }
 
     /**
+     * @return array An array of file => status
+     */
+    public function getFiles()
+    {
+        return $this->getData('files');
+    }
+
+    /**
      * Returns the tree hash.
      *
      * @return string A SHA1 hash
@@ -331,7 +339,7 @@ class Commit extends Revision
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function getCommit()
     {
