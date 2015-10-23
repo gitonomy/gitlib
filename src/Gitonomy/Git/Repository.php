@@ -377,7 +377,7 @@ class Repository
      *
      * @param array $revisions An array of revisions to show logs from. Can be
      *                         any text value type
-     * @param array $paths     Restrict log to modifications occuring on given
+     * @param array $paths     Restrict log to modifications occurring on given
      *                         paths.
      * @param int   $offset    Start from a given offset in results.
      * @param int   $limit     Limit number of total results.
