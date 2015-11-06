@@ -13,7 +13,9 @@ class ProcessException extends RuntimeException implements GitExceptionInterface
         parent::__construct("Error while running git command:\n".
             $process->getCommandLine()."\n".
             "\n".
-            $process->getErrorOutput()
+            $process->getErrorOutput()."\n".
+            "\n".
+            $process->getOutput()
         );
 
         $this->process = $process;
