@@ -45,7 +45,7 @@ class RepoWriteCommandsTest extends AbstractTest
 
     /**
      * @expectedException        Gitonomy\Git\Exception\ProcessException
-     * @expectedExceptionMessage fatal: clean.requireForce defaults to true and neither -i, -n, nor -f given; refusing to clean
+     * @expectedExceptionMessage fatal: clean.requireForce defaults to true
      */
     public function testCleanRepoFail()
     {
@@ -73,7 +73,7 @@ class RepoWriteCommandsTest extends AbstractTest
     {
         $repository = self::createFoobarRepository(false);
 
-        $repository->commitChanges('test');
+        $repository->commitChanges('test', 'test.user@gmail.com', 'Test User');
     }
 
     /**

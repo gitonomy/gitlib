@@ -534,10 +534,21 @@ class Repository
      *
      * @param $message String message to add to the commit
      *
+     * @param null $userEmail Email identity to set in the repository
+     * @param null $userName Name identity to set in the repository
+     *
      * @return String The output of the command
      */
-    public function commitChanges($message)
+    public function commitChanges($message, $userEmail = null, $userName = null)
     {
+        if (!is_null($userEmail)) {
+            $this->run('config', array('user.email', '"'.$userEmail.'"'));
+        }
+
+        if (!is_null($userName)) {
+            $this->run('config', array('user.name', '"'.$userName.'"'));
+        }
+
         $args = array('-m '.$message);
 
         return $this->run('commit', $args);
