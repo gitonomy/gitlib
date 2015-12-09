@@ -65,7 +65,6 @@ class RepoWriteCommandsTest extends AbstractTest
         $this->assertContains('HEAD is now at', $output);
     }
 
-
     /**
      * @expectedException        Gitonomy\Git\Exception\ProcessException
      * @expectedExceptionMessage nothing to commit, working directory clean

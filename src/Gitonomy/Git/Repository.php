@@ -543,7 +543,6 @@ class Repository
         return $this->run('commit', $args);
     }
 
-
     /**
      * Update remote refs along with associated objects.
      *
