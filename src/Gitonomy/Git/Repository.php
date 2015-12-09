@@ -516,7 +516,7 @@ class Repository
     }
 
     /**
-     * Adds file contents to the index
+     * Adds file contents to the index.
      *
      * @param $filePath String path of the file to add to the index
      *
@@ -530,7 +530,7 @@ class Repository
     }
 
     /**
-     * Commits the changes to the repository
+     * Commits the changes to the repository.
      *
      * @param $message String message to add to the commit
      *
@@ -545,7 +545,7 @@ class Repository
 
 
     /**
-     * Update remote refs along with associated objects
+     * Update remote refs along with associated objects.
      *
      * @return String The output of the command
      */
@@ -557,7 +557,7 @@ class Repository
     }
 
     /**
-     * Reset current HEAD to specified state
+     * Reset current HEAD to specified state.
      *
      * @param $options array of string options to add to the reset command
      *

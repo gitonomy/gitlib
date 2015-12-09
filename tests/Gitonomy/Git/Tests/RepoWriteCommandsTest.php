@@ -74,7 +74,7 @@ class RepoWriteCommandsTest extends AbstractTest
     {
         $repository = self::createFoobarRepository(false);
 
-        $repository->commitChanges("test");
+        $repository->commitChanges('test');
     }
 
     /**
