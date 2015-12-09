@@ -29,8 +29,7 @@
         "symfony/process": "^2.3|^3.0"
     },
     "require-dev": {
-        "psr/log": "^1.0",
-        "phpunit/phpunit": "^4.8"
+        "psr/log": "^1.0"
     },
     "suggest": {
         "psr/log": "Add some log"
