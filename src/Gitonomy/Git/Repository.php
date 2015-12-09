@@ -533,9 +533,8 @@ class Repository
      * Commits the changes to the repository.
      *
      * @param $message String message to add to the commit
-     *
      * @param null $userEmail Email identity to set in the repository
-     * @param null $userName Name identity to set in the repository
+     * @param null $userName  Name identity to set in the repository
      *
      * @return String The output of the command
      */
