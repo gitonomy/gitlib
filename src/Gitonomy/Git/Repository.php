@@ -175,7 +175,7 @@ class Repository
     /**
      * Returns the HEAD resolved as a commit.
      *
-     * @return Revision|null returns a Commit, Branch, or ``null`` if repository is empty
+     * @return Commit|null returns a Commit or ``null`` if repository is empty
      */
     public function getHeadCommit()
     {
