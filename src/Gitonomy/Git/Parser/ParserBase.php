@@ -56,6 +56,15 @@ abstract class ParserBase
         return true;
     }
 
+    protected function lookAheadRegexp($regexp)
+    {
+        if (!preg_match($regexp.'A', $this->content, $vars, null, $this->cursor)) {
+            return false;
+        }
+
+        return true;
+    }
+
     protected function consumeShortHash()
     {
         if (!preg_match('/([A-Za-z0-9]{7,40})/A', $this->content, $vars, null, $this->cursor)) {

@@ -46,6 +46,11 @@ class Log implements \Countable, \IteratorAggregate
     protected $limit;
 
     /**
+     * @var array|null
+     */
+    protected $addArgs;
+
+    /**
      * Instanciates a git log object.
      *
      * @param Repository   $repository the repository where log occurs
@@ -53,8 +58,9 @@ class Log implements \Countable, \IteratorAggregate
      * @param array        $paths      paths to filter on
      * @param int|null     $offset     start list from a given position
      * @param int|null     $limit      limit number of fetched elements
+     * @param array|null   $addArgs    optional additional git log arguments, such as --since
      */
-    public function __construct(Repository $repository, $revisions = null, $paths = null, $offset = null, $limit = null)
+    public function __construct(Repository $repository, $revisions = null, $paths = null, $offset = null, $limit = null, array $addArgs = null)
     {
         if (null !== $revisions && !$revisions instanceof RevisionList) {
             $revisions = new RevisionList($repository, $revisions);
@@ -73,6 +79,25 @@ class Log implements \Countable, \IteratorAggregate
         $this->paths = $paths;
         $this->offset = $offset;
         $this->limit = $limit;
+        $this->addArgs = $addArgs;
+    }
+
+    public function setAdditionalArgs(array $addArgs)
+    {
+        $this->addArgs = $addArgs;
+    }
+
+    public function addAdditionalArgs(array $addArgs)
+    {
+        if(!isset($this->addArgs)) {
+            $this->addArgs = array();
+        }
+        $this->addArgs = array_merge($this->addArgs, $addArgs);
+    }
+
+    public function setNameStatus()
+    {
+        $this->addAdditionalArgs(array('--name-status'));
     }
 
     /**
@@ -155,6 +180,9 @@ class Log implements \Countable, \IteratorAggregate
     public function getCommits()
     {
         $args = array('--encoding='.StringHelper::getEncoding(), '--format=raw');
+        if($this->addArgs) {
+            $args = array_merge($args, $this->addArgs);
+        }
 
         if (null !== $this->offset) {
             $args[] = '--skip='.((int) $this->offset);
