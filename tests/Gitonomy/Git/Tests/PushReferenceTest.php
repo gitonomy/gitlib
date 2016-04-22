@@ -56,6 +56,19 @@ class PushReferenceTest extends AbstractTest
     }
 
     /**
+     * This test ensures that GPG signed requests does not break the reading of commit logs.
+     *
+     * @dataProvider provideFoobar
+     */
+    public function testSignedLog($repository)
+    {
+        $ref = new PushReference($repository, 'foo', self::INITIAL_COMMIT, self::SIGNED_COMMIT);
+        $log = $ref->getLog()->getCommits();
+        $this->assertEquals(16, count($log), '16 commits in log');
+        $this->assertEquals('signed commit', $log[0]->getShortMessage(), 'Last commit is correct');
+    }
+
+    /**
      * @dataProvider provideFoobar
      */
     public function testLogWithExclude($repository)

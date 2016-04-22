@@ -43,6 +43,10 @@ class LogParser extends CommitParser
             $this->consume('committer ');
             list($commit['committerName'], $commit['committerEmail'], $commit['committerDate']) = $this->consumeNameEmailDate();
             $commit['committerDate'] = $this->parseDate($commit['committerDate']);
+
+            // will consume an GPG signed commit if there is one
+            $this->consumeGPGSignature();
+
             $this->consumeNewLine();
             $this->consumeNewLine();
 
