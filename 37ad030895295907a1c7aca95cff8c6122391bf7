@@ -1,0 +1,61 @@
+---------------------------------------------------------------------------
+
+by stojg at 2016-04-28T22:42:36Z
+
+Anything else I can do to move this forward?
+
+---------------------------------------------------------------------------
+
+by sminnee at 2016-04-28T23:45:29Z
+
+Looks like the tests are breaking, @stojg?
+
+---------------------------------------------------------------------------
+
+by stojg at 2016-04-28T23:51:23Z
+
+Created a PR for the signed commit in the foobar repo https://github.com/gitonomy/foobar/pull/1
+
+---------------------------------------------------------------------------
+
+by lyrixx at 2016-04-29T21:28:21Z
+
+I just merged your PR thanks.
+
+---------------------------------------------------------------------------
+
+by dhensby at 2016-05-05T00:50:05Z
+
+Bump :)
+
+---------------------------------------------------------------------------
+
+by stojg at 2016-05-05T00:52:24Z
+
+Closed and reopened to trigger the travis tests
+
+---------------------------------------------------------------------------
+
+by dhensby at 2016-05-05T00:55:41Z
+
+Green ticks, yay.
+
+:shipit:
+
+---------------------------------------------------------------------------
+
+by mateusz at 2016-05-05T01:04:27Z
+
+yay :shipit:
+
+---------------------------------------------------------------------------
+
+by tractorcow at 2016-05-05T01:04:52Z
+
+![](https://media.giphy.com/media/d2Z3a1Ga2WGUBaWQ/giphy.gif)
+
+---------------------------------------------------------------------------
+
+by tractorcow at 2016-05-08T20:54:10Z
+
+@lyrixx would you please be able to review this, now that the tests are passing?
