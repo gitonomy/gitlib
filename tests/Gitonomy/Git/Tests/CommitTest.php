@@ -186,6 +186,18 @@ class CommitTest extends AbstractTest
     }
 
     /**
+     * This test ensures that GPG signed commits does not break the reading of a commit
+     * message.
+     *
+     * @dataProvider provideFoobar
+     */
+    public function testGetSignedMessage($repository)
+    {
+        $commit = $repository->getCommit(self::SIGNED_COMMIT);
+        $this->assertEquals('signed commit'."\n", $commit->getMessage());
+    }
+
+    /**
      * @dataProvider provideFoobar
      */
     public function testGetShortMessage($repository)
