@@ -24,6 +24,7 @@ abstract class AbstractTest extends \PHPUnit_Framework_TestCase
     const INITIAL_COMMIT = '74acd054c8ec873ae6be044041d3a85a4f890ba5';
     const MERGE_COMMIT = '2f5b9d0a4e6e7173d7816e417805709c708674f8';
     const ENCODING_COMMIT = '779420b9b936f18a0b6579e1499a85b14270802e';
+    const SIGNED_COMMIT = 'e1a83f16ed61ae3807e5652c7ef894692c813513';
 
     /**
      * Local clone of remote URL. Avoids network call on each test.

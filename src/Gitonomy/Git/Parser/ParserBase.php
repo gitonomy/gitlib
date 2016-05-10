@@ -119,4 +119,19 @@ abstract class ParserBase
     {
         return $this->consume("\n");
     }
+
+    /**
+     * @return string
+     */
+    protected function consumeGPGSignature() {
+        $expected = "\ngpgsig ";
+        $length = strlen($expected);
+        $actual = substr($this->content, $this->cursor, $length);
+        if($actual != $expected) {
+            return '';
+        }
+        $this->cursor += $length;
+
+        return $this->consumeTo("\n\n");
+    }
 }
