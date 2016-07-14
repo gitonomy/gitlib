@@ -26,10 +26,12 @@
         }
     },
     "require": {
+        "php": ">=5.5.9",
         "symfony/process": "^2.3|^3.0"
     },
     "require-dev": {
-        "psr/log": "^1.0"
+        "psr/log": "^1.0",
+        "phpunit/phpunit": "^5.4"
     },
     "suggest": {
         "psr/log": "Add some log"

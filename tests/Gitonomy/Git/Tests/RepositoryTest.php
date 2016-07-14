@@ -18,8 +18,9 @@ class RepositoryTest extends AbstractTest
 {
     /**
      * @dataProvider provideFoobar
+     * @param Repository $repository
      */
-    public function testGetBlob_WithExisting_Works($repository)
+    public function testGetBlob_WithExisting_Works(Repository $repository)
     {
         $blob = $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('README.md');
 
@@ -29,8 +30,9 @@ class RepositoryTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
+     * @param Repository $repository
      */
-    public function testGetSize($repository)
+    public function testGetSize(Repository $repository)
     {
         $size = $repository->getSize();
         $this->assertGreaterThan(70, $size, 'Repository is greater than 70KB');
@@ -47,22 +49,24 @@ class RepositoryTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
+     * @param Repository $repository
      */
-    public function testGetDescription($repository)
+    public function testGetDescription(Repository $repository)
     {
         $this->assertSame("Unnamed repository; edit this file 'description' to name the repository.\n", $repository->getDescription());
     }
 
     /**
      * @dataProvider provideFoobar
+     * @param Repository $repository
      */
-    public function testLoggerOk($repository)
+    public function testLoggerOk(Repository $repository)
     {
         if (!interface_exists('Psr\Log\LoggerInterface')) {
             $this->markTestSkipped();
         }
 
-        $logger = $this->getMock('Psr\Log\LoggerInterface');
+        $logger = $this->getMockBuilder('Psr\Log\LoggerInterface')->getMock();
         $logger
             ->expects($this->once())
             ->method('info')
@@ -79,15 +83,16 @@ class RepositoryTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     * @expectedException RuntimeException
+     * @expectedException \RuntimeException
+     * @param Repository $repository
      */
-    public function testLoggerNOk($repository)
+    public function testLoggerNOk(Repository $repository)
     {
         if (!interface_exists('Psr\Log\LoggerInterface')) {
             $this->markTestSkipped();
         }
 
-        $logger = $this->getMock('Psr\Log\LoggerInterface');
+        $logger = $this->getMockBuilder('Psr\Log\LoggerInterface')->getMock();
         $logger
             ->expects($this->once())
             ->method('info')

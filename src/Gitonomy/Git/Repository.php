@@ -16,7 +16,6 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Process\Process;
 use Symfony\Component\Process\ProcessBuilder;
 
 /**
@@ -94,6 +93,11 @@ class Repository
     protected $processTimeout;
 
     /**
+     * @var bool
+     */
+    private $inheritEnvironmentVariables;
+
+    /**
      * Constructs a new repository.
      *
      * Available options are:
@@ -121,6 +125,7 @@ class Repository
             'environment_variables' => $is_windows ? array('PATH' => getenv('path')) : array(),
             'command' => 'git',
             'process_timeout' => 3600,
+            'inherit_environment_variables' => false
         ), $options);
 
         if (null !== $options['logger'] && !$options['logger'] instanceof LoggerInterface) {
@@ -135,6 +140,7 @@ class Repository
         $this->environmentVariables = $options['environment_variables'];
         $this->processTimeout = $options['process_timeout'];
         $this->command = $options['command'];
+        $this->inheritEnvironmentVariables = $options['inherit_environment_variables'];
 
         if (true === $this->debug && null !== $this->logger) {
             $this->logger->debug(sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ?: 'none'));
@@ -619,7 +625,7 @@ class Repository
         $base[] = $command;
 
         $builder = new ProcessBuilder(array_merge($base, $args));
-        $builder->inheritEnvironmentVariables(false);
+        $builder->inheritEnvironmentVariables($this->inheritEnvironmentVariables);
         $process = $builder->getProcess();
         $process->setEnv($this->environmentVariables);
         $process->setTimeout($this->processTimeout);
