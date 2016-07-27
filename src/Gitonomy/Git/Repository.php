@@ -149,16 +149,18 @@ class Repository
      */
     private function initDir($gitDir, $workingDir = null)
     {
-        $gitDir = realpath($gitDir);
+        $realGitDir = realpath($gitDir);
 
-        if (null === $workingDir && is_dir($gitDir.'/.git')) {
-            $workingDir = $gitDir;
-            $gitDir = $gitDir.'/.git';
-        } elseif (!is_dir($gitDir)) {
+        if (false === $realGitDir) {
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
+        } else if (!is_dir($realGitDir)) {
+            throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $realGitDir));
+        } elseif (null === $workingDir && is_dir($realGitDir.'/.git')) {
+            $workingDir = $realGitDir;
+            $realGitDir = $realGitDir.'/.git';
         }
 
-        $this->gitDir = $gitDir;
+        $this->gitDir = $realGitDir;
         $this->workingDir = $workingDir;
     }
 
