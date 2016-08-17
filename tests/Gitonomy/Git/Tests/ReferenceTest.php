@@ -73,9 +73,29 @@ class ReferenceTest extends AbstractTest
         $tag = $repository->getReferences()->getTag('0.1');
 
         $this->assertTrue($tag instanceof Tag, 'Tag object is correct type');
+        $this->assertFalse($tag->isAnnotated(), 'Tag is not annotated');
 
         $this->assertEquals(self::LONGFILE_COMMIT, $tag->getCommitHash(), 'Commit hash is correct');
         $this->assertEquals(self::LONGFILE_COMMIT, $tag->getCommit()->getHash(), 'Commit hash is correct');
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testAnnotatedTag($repository)
+    {
+        $tag = $repository->getReferences()->getTag('annotated');
+
+        $this->assertTrue($tag instanceof Tag, 'Tag object is correct type');
+        $this->assertTrue($tag->isAnnotated(), 'Tag is annotated');
+        $this->assertFalse($tag->isSigned(), 'Tag is not signed');
+
+        $this->assertEquals('Bob', $tag->getTaggerName(), 'Tagger name is correct');
+        $this->assertEquals('bob@example.org', $tag->getTaggerEmail(), 'Tagger email is correct');
+        $this->assertEquals(1471428000, $tag->getTaggerDate()->getTimestamp(), 'Tag date is correct');
+
+        $this->assertEquals('heading', $tag->getSubjectMessage(), 'Message heading is correct');
+        $this->assertEquals("body\nbody", $tag->getBodyMessage(), 'Message body is correct');
     }
 
     /**

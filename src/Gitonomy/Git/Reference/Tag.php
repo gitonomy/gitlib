@@ -12,7 +12,9 @@
 namespace Gitonomy\Git\Reference;
 
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Reference;
+use Gitonomy\Git\Parser\TagParser;
 
 /**
  * Representation of a tag reference.
@@ -28,5 +30,154 @@ class Tag extends Reference
         }
 
         return $vars[1];
+    }
+
+    /**
+     * Check if tag is annotated.
+     *
+     * @return bool
+     */
+    public function isAnnotated()
+    {
+        try {
+            $this->repository->run('cat-file', array('tag', $this->revision));
+        } catch (ProcessException $e) {
+            return false; // Is not an annotated tag
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns the tagger name.
+     *
+     * @return string A name
+     */
+    public function getTaggerName()
+    {
+        return $this->getData('taggerName');
+    }
+
+    /**
+     * Returns the comitter email.
+     *
+     * @return string An email
+     */
+    public function getTaggerEmail()
+    {
+        return $this->getData('taggerEmail');
+    }
+
+    /**
+     * Returns the authoring date.
+     *
+     * @return DateTime A time object
+     */
+    public function getTaggerDate()
+    {
+        return $this->getData('taggerDate');
+    }
+
+    /**
+     * Returns the message of the commit.
+     *
+     * @return string A tag message
+     */
+    public function getMessage()
+    {
+        return $this->getData('message');
+    }
+
+    /**
+     * Returns the subject message (the first line).
+     *
+     * @return string The subject message
+     */
+    public function getSubjectMessage()
+    {
+        return $this->getData('subjectMessage');
+    }
+
+    /**
+     * Return the body message.
+     *
+     * @return string The body message
+     */
+    public function getBodyMessage()
+    {
+        return $this->getData('bodyMessage');
+    }
+
+    /**
+     * Return the GPG signature.
+     *
+     * @return string The GPG signature
+     */
+    public function getGPGSignature()
+    {
+        return $this->getData('gpgSignature');
+    }
+
+    /**
+     * Check whether tag is signed.
+     *
+     * @return boolean
+     */
+    public function isSigned()
+    {
+        try {
+            $this->getGPGSignature();
+            return true;
+        } catch (\InvalidArgumentException $e) {
+            return false;
+        }
+    }
+
+    private function getData($name)
+    {
+        if (!$this->isAnnotated()) {
+            return false;
+        }
+
+        if (isset($this->data[$name])) {
+            return $this->data[$name];
+        }
+
+        if ($name === 'subjectMessage') {
+            $lines = explode("\n", $this->getData('message'));
+            $this->data['subjectMessage'] = reset($lines);
+
+            return $this->data['subjectMessage'];
+        }
+
+        if ($name === 'bodyMessage') {
+            $message = $this->getData('message');
+
+            $lines = explode("\n", $message);
+
+            array_shift($lines);
+            array_pop($lines);
+
+            $data['bodyMessage'] = implode("\n", $lines);
+
+            return $data['bodyMessage'];
+        }
+
+        $parser = new TagParser();
+        $result = $this->repository->run('cat-file', array('tag', $this->revision));
+
+        $parser->parse($result);
+
+        $this->data['taggerName'] = $parser->taggerName;
+        $this->data['taggerEmail'] = $parser->taggerEmail;
+        $this->data['taggerDate'] = $parser->taggerDate;
+        $this->data['message'] = $parser->message;
+        $this->data['gpgSignature'] = $parser->gpgSignature;
+
+        if (!isset($this->data[$name])) {
+            throw new \InvalidArgumentException(sprintf('No data named "%s" in Tag.', $name));
+        }
+
+        return $this->data[$name];
     }
 }
