@@ -206,9 +206,7 @@ class Repository
                 $this->logger->error($message);
             }
 
-            if (true === $this->debug) {
-                throw new RuntimeException($message);
-            }
+            throw new RuntimeException($message);
         }
 
         $content = trim(file_get_contents($file));
@@ -229,9 +227,7 @@ class Repository
             $this->logger->error($message);
         }
 
-        if (true === $this->debug) {
-            throw new RuntimeException($message);
-        }
+        throw new RuntimeException($message);
     }
 
     /**
@@ -428,9 +424,7 @@ class Repository
                 $this->logger->error($message);
             }
 
-            if (true === $this->debug) {
-                throw new RuntimeException('unable to parse repository size output');
-            }
+            throw new RuntimeException('unable to parse repository size output');
 
             return;
         }
@@ -555,9 +549,7 @@ class Repository
                 $this->logger->error($error);
             }
 
-            if ($this->debug) {
-                throw new ProcessException($process);
-            }
+            throw new ProcessException($process);
 
             return;
         }
