@@ -421,7 +421,7 @@ class Repository
 
         $process->run();
 
-        if (!preg_match('/(\d+)\s+total$/', trim($process->getOutput()), $vars)) {
+        if (!preg_match('/^(\d+)\s/', trim($process->getOutput()), $vars)) {
             $message = sprintf("Unable to parse process output\ncommand: %s\noutput: %s", $process->getCommandLine(), $process->getOutput());
 
             if (null !== $this->logger) {
