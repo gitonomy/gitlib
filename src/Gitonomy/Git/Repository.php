@@ -80,6 +80,13 @@ class Repository
     protected $debug;
 
     /**
+     * Bag containing remotes and remote references.
+     *
+     * @var RemoteBag
+     */
+    protected $remoteBag;
+
+    /**
      * Environment variables that should be set for every running process.
      *
      * @var array
@@ -313,6 +320,20 @@ class Repository
         }
 
         return $this->referenceBag;
+    }
+
+    /**
+     * Returns the remote list associated to the repository.
+     *
+     * @return RemoteBag
+     */
+    public function getRemotes()
+    {
+        if (null === $this->remoteBag) {
+            $this->remoteBag = new RemoteBag($this);
+        }
+
+        return $this->remoteBag;
     }
 
     /**
