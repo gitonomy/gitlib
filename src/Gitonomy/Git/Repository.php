@@ -621,7 +621,6 @@ class Repository
         $base[] = $command;
 
         $builder = new ProcessBuilder(array_merge($base, $args));
-        $builder->inheritEnvironmentVariables(false);
         $process = $builder->getProcess();
         $process->setEnv($this->environmentVariables);
         $process->setTimeout($this->processTimeout);
