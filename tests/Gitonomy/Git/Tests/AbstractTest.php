@@ -13,8 +13,9 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
 use Gitonomy\Git\Repository;
+use PHPUnit\Framework\TestCase;
 
-abstract class AbstractTest extends \PHPUnit_Framework_TestCase
+abstract class AbstractTest extends TestCase
 {
     const REPOSITORY_URL = 'http://github.com/gitonomy/foobar.git';
 

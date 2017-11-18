@@ -17,4 +17,4 @@ matrix:
 install:
     - composer install --prefer-source
 
-script: phpunit
+script: vendor/bin/phpunit
