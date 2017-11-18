@@ -17,7 +17,7 @@ use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Process\ProcessBuilder;
+use Symfony\Component\Process\ProcessUtils;
 
 /**
  * Git repository object.
@@ -417,8 +417,9 @@ class Repository
      */
     public function getSize()
     {
-        $process = ProcessBuilder::create(array('du', '-skc', $this->gitDir))->getProcess();
-
+        $commandlineArguments = array('du', '-skc', $this->gitDir);
+        $commandline = $this->normalizeCommandlineArguments($commandlineArguments);
+        $process = new Process($commandline);
         $process->run();
 
         if (!preg_match('/(\d+)\s+total$/', trim($process->getOutput()), $vars)) {
@@ -620,13 +621,47 @@ class Repository
 
         $base[] = $command;
 
-        $builder = new ProcessBuilder(array_merge($base, $args));
-        $builder->inheritEnvironmentVariables(false);
-        $process = $builder->getProcess();
+        $commandlineArguments = array_merge($base, $args);
+        $commandline = $this->normalizeCommandlineArguments($commandlineArguments);
+
+        $process = new Process($commandline);
         $process->setEnv($this->environmentVariables);
         $process->setTimeout($this->processTimeout);
         $process->setIdleTimeout($this->processTimeout);
 
         return $process;
+    }
+
+    /**
+     * This internal helper method is used to convert an array of commandline
+     * arguments to an escaped commandline string for older versions of the
+     * Symfony Process component.
+     *
+     * It acts as a backward compatible layer for Symfony Process < 3.3.
+     *
+     * @param array $arguments a list of command line arguments
+     *
+     * @return string|array a single escaped string (< 4.0) or a raw array of
+     *                      the arguments passed in (4.0+)
+     *
+     * @see Process::escapeArgument()
+     * @see ProcessUtils::escapeArgument()
+     */
+    private function normalizeCommandlineArguments(array $arguments)
+    {
+        // From version 4.0 and onwards, the Process accepts an array of
+        // arguments, and escaping is taken care of automatically.
+        if (!class_exists('Symfony\Component\Process\ProcessBuilder')) {
+            return $arguments;
+        }
+
+        // For version < 3.3, the Process only accepts a simple string
+        // as commandline, and escaping has to happen manually.
+        $commandline = implode(' ', array_map(
+            'Symfony\Component\Process\ProcessUtils::escapeArgument',
+            $arguments
+        ));
+
+        return $commandline;
     }
 }
