@@ -17,7 +17,6 @@ use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Process\ProcessBuilder;
 
 /**
  * Git repository object.
@@ -417,8 +416,7 @@ class Repository
      */
     public function getSize()
     {
-        $process = ProcessBuilder::create(array('du', '-skc', $this->gitDir))->getProcess();
-
+        $process = new Process(array('du', '-skc', $this->gitDir));
         $process->run();
 
         if (!preg_match('/(\d+)\s+total$/', trim($process->getOutput()), $vars)) {
@@ -620,9 +618,7 @@ class Repository
 
         $base[] = $command;
 
-        $builder = new ProcessBuilder(array_merge($base, $args));
-        $builder->inheritEnvironmentVariables(false);
-        $process = $builder->getProcess();
+        $process = new Process(array_merge($base, $args));
         $process->setEnv($this->environmentVariables);
         $process->setTimeout($this->processTimeout);
         $process->setIdleTimeout($this->processTimeout);

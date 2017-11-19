@@ -12,7 +12,7 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\RuntimeException;
-use Symfony\Component\Process\ProcessBuilder;
+use Symfony\Component\Process\Process;
 
 /**
  * Administration class for Git repositories.
@@ -153,10 +153,7 @@ class Admin
             'process_timeout' => 3600,
         ), $options);
 
-        $builder = ProcessBuilder::create(array_merge(array($options['command'], $command), $args));
-        $builder->inheritEnvironmentVariables(false);
-
-        $process = $builder->getProcess();
+        $process = new Process(array_merge(array($options['command'], $command), $args));
         $process->setEnv($options['environment_variables']);
         $process->setTimeout($options['process_timeout']);
         $process->setIdleTimeout($options['process_timeout']);
