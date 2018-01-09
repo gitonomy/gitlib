@@ -26,7 +26,7 @@ class Log implements \Countable, \IteratorAggregate
     protected $repository;
 
     /**
-     * @var array
+     * @var null|RevisionList
      */
     protected $revisions;
 
@@ -221,7 +221,7 @@ class Log implements \Countable, \IteratorAggregate
      */
     public function countCommits()
     {
-        if (count($this->revisions)) {
+        if (null !== $this->revisions && count($this->revisions)) {
             $output = $this->repository->run('rev-list', array_merge(array('--count'), $this->revisions->getAsTextArray(), array('--'), $this->paths));
         } else {
             $output = $this->repository->run('rev-list', array_merge(array('--count', '--all', '--'), $this->paths));
