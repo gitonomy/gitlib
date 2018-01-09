@@ -48,11 +48,11 @@ class Log implements \Countable, \IteratorAggregate
     /**
      * Instanciates a git log object.
      *
-     * @param Repository   $repository the repository where log occurs
-     * @param RevisionList $revisions  a list of revisions or null if you want all history
-     * @param array        $paths      paths to filter on
-     * @param int|null     $offset     start list from a given position
-     * @param int|null     $limit      limit number of fetched elements
+     * @param Repository                  $repository the repository where log occurs
+     * @param RevisionList|Revision|array $revisions  a list of revisions or null if you want all history
+     * @param array                       $paths      paths to filter on
+     * @param int|null                    $offset     start list from a given position
+     * @param int|null                    $limit      limit number of fetched elements
      */
     public function __construct(Repository $repository, $revisions = null, $paths = null, $offset = null, $limit = null)
     {
