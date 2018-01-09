@@ -14,7 +14,11 @@ matrix:
         - php: 5.3
           dist: precise
 
+before_install:
+    # turn off XDebug, if present
+    - phpenv config-rm xdebug.ini || return 0
+
 install:
-    - composer install --prefer-source
+    - composer install --no-interaction --no-progress
 
 script: vendor/bin/phpunit
