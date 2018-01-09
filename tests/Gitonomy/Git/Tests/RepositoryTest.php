@@ -62,7 +62,7 @@ class RepositoryTest extends AbstractTest
             $this->markTestSkipped();
         }
 
-        $logger = $this->getMock('Psr\Log\LoggerInterface');
+        $logger = $this->createMock('Psr\Log\LoggerInterface');
         $logger
             ->expects($this->once())
             ->method('info')
@@ -87,7 +87,7 @@ class RepositoryTest extends AbstractTest
             $this->markTestSkipped();
         }
 
-        $logger = $this->getMock('Psr\Log\LoggerInterface');
+        $logger = $this->createMock('Psr\Log\LoggerInterface');
         $logger
             ->expects($this->once())
             ->method('info')
