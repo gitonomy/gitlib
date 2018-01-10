@@ -13,6 +13,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\Repository;
+use Prophecy\Argument;
 
 class RepositoryTest extends AbstractTest
 {
@@ -62,17 +63,17 @@ class RepositoryTest extends AbstractTest
             $this->markTestSkipped();
         }
 
-        $logger = $this->createMock('Psr\Log\LoggerInterface');
-        $logger
-            ->expects($this->once())
-            ->method('info')
+        $loggerProphecy = $this->prophesize('Psr\Log\LoggerInterface');
+        $loggerProphecy
+            ->info('run command: remote "" ')
+            ->shouldBeCalledTimes(1)
         ;
-        $logger
-            ->expects($this->exactly(3)) // duration, return code and output
-            ->method('debug')
+        $loggerProphecy
+            ->debug(Argument::type('string')) // duration, return code and output
+            ->shouldBeCalledTimes(3)
         ;
 
-        $repository->setLogger($logger);
+        $repository->setLogger($loggerProphecy->reveal());
 
         $repository->run('remote');
     }
@@ -87,21 +88,21 @@ class RepositoryTest extends AbstractTest
             $this->markTestSkipped();
         }
 
-        $logger = $this->createMock('Psr\Log\LoggerInterface');
-        $logger
-            ->expects($this->once())
-            ->method('info')
+        $loggerProphecy = $this->prophesize('Psr\Log\LoggerInterface');
+        $loggerProphecy
+            ->info(Argument::type('string'))
+            ->shouldBeCalledTimes(1)
         ;
-        $logger
-            ->expects($this->exactly(3)) // duration, return code and output
-            ->method('debug')
+        $loggerProphecy
+            ->debug(Argument::type('string')) // duration, return code and output
+            ->shouldBeCalledTimes(3)
         ;
-        $logger
-            ->expects($this->once())
-            ->method('error')
+        $loggerProphecy
+            ->error(Argument::type('string'))
+            ->shouldBeCalledTimes(1)
         ;
 
-        $repository->setLogger($logger);
+        $repository->setLogger($loggerProphecy->reveal());
 
         $repository->run('not-work');
     }
