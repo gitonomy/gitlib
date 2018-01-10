@@ -1,0 +1,43 @@
+---------------------------------------------------------------------------
+
+by UrGuardian4ngel at 2017-11-19T01:31:49Z
+
+Also I think this would fix #120 (as this PR removes the ProcessBuilder)...
+
+---------------------------------------------------------------------------
+
+by keradus at 2018-01-09T11:08:38Z
+
+ping @UrGuardian4ngel
+
+---------------------------------------------------------------------------
+
+by UrGuardian4ngel at 2018-01-09T19:55:10Z
+
+Kind of assumed it would've been the same treatment as [this comment](https://github.com/phpro/grumphp/pull/428#issuecomment-354109029)?
+But seeing there is no `--prefer-lowest` here.
+
+What do you suggest, @keradus? Because I don't really have any experience w/ Travis, to be honest... :-/
+
+---------------------------------------------------------------------------
+
+by keradus at 2018-01-09T20:38:17Z
+
+currently, only v2 and v3 is used, v4 is not picked, let me check
+
+---------------------------------------------------------------------------
+
+by UrGuardian4ngel at 2018-01-09T20:43:04Z
+
+> v4 is not picked
+
+If you're referring to the previous Travis build results:
+at that time, `symfony/*` was still in `4.0-beta`...?
+
+---------------------------------------------------------------------------
+
+by keradus at 2018-01-09T20:45:42Z
+
+no, I'm refering to current build.
+v4 is not used because of it requires 7.1+, which is not configured.
+It will be pickuped in this PR as soon as #124 will be merge.
