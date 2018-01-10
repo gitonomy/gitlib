@@ -26,9 +26,10 @@
         }
     },
     "require": {
-        "symfony/process": "^2.3|^3.0"
+        "symfony/process": "^2.3|^3.0|^4.0"
     },
     "require-dev": {
+        "phpunit/phpunit": "^4.8.35|^5.7",
         "psr/log": "^1.0"
     },
     "suggest": {
