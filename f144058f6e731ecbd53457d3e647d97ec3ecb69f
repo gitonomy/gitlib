@@ -1,0 +1,19 @@
+---------------------------------------------------------------------------
+
+by keradus at 2018-01-09T21:10:06Z
+
+failure on 5.3/7+ was fixed on #122 and are not related to this PR.
+
+@lyrixx, could you give a look on this PR and merge it please ?
+
+---------------------------------------------------------------------------
+
+by lyrixx at 2018-01-10T10:23:21Z
+
+Could you rebase ? Thanks.
+
+---------------------------------------------------------------------------
+
+by keradus at 2018-01-10T10:26:57Z
+
+rebased
