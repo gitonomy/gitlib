@@ -26,7 +26,7 @@ class Log implements \Countable, \IteratorAggregate
     protected $repository;
 
     /**
-     * @var array
+     * @var null|RevisionList
      */
     protected $revisions;
 
@@ -48,11 +48,11 @@ class Log implements \Countable, \IteratorAggregate
     /**
      * Instanciates a git log object.
      *
-     * @param Repository   $repository the repository where log occurs
-     * @param RevisionList $revisions  a list of revisions or null if you want all history
-     * @param array        $paths      paths to filter on
-     * @param int|null     $offset     start list from a given position
-     * @param int|null     $limit      limit number of fetched elements
+     * @param Repository                       $repository the repository where log occurs
+     * @param RevisionList|Revision|array|null $revisions  a list of revisions or null if you want all history
+     * @param array                            $paths      paths to filter on
+     * @param int|null                         $offset     start list from a given position
+     * @param int|null                         $limit      limit number of fetched elements
      */
     public function __construct(Repository $repository, $revisions = null, $paths = null, $offset = null, $limit = null)
     {
@@ -221,7 +221,7 @@ class Log implements \Countable, \IteratorAggregate
      */
     public function countCommits()
     {
-        if (count($this->revisions)) {
+        if (null !== $this->revisions && count($this->revisions)) {
             $output = $this->repository->run('rev-list', array_merge(array('--count'), $this->revisions->getAsTextArray(), array('--'), $this->paths));
         } else {
             $output = $this->repository->run('rev-list', array_merge(array('--count', '--all', '--'), $this->paths));
