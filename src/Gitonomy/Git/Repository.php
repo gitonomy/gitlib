@@ -622,12 +622,12 @@ class Repository
         $base[] = $command;
 
         $commandlineArguments = array_merge($base, $args);
-        $commandline = $this->normalizeCommandlineArguments($commandlineArguments);
 
-        $process = new Process($commandline);
+        $process = new Process($commandlineArguments);
         $process->setEnv($this->environmentVariables);
         $process->setTimeout($this->processTimeout);
         $process->setIdleTimeout($this->processTimeout);
+        $process->inheritEnvironmentVariables(true);
 
         return $process;
     }
