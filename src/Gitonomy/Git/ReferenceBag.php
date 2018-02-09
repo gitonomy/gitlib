@@ -78,7 +78,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
      *
      * @param string $fullname Fullname of the reference (refs/heads/master, for example).
      *
-     * @return Gitonomy\Git\Reference A reference object.
+     * @return Reference A reference object.
      */
     public function get($fullname)
     {

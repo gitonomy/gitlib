@@ -56,7 +56,7 @@ abstract class Reference extends Revision
     /**
      * Returns the commit associated to the reference.
      *
-     * @return Gitonomy\Git\Commit
+     * @return Commit
      */
     public function getCommit()
     {
