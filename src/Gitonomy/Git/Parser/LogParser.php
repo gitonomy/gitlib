@@ -51,9 +51,16 @@ class LogParser extends CommitParser
             $this->consumeNewLine();
 
             $message = '';
-            while ($this->expects('    ')) {
-                $message .= $this->consumeTo("\n")."\n";
-                $this->consumeNewLine();
+            if ($this->expects('    ')) {
+                $this->cursor -= strlen('    ');
+
+                while ($this->expects('    ')) {
+                    $message .= $this->consumeTo("\n")."\n";
+                    $this->consumeNewLine();
+                }
+            }
+            else {
+                $this->cursor--;
             }
 
             if (!$this->isFinished()) {
