@@ -519,6 +519,81 @@ class Repository
     }
 
     /**
+     * Adds file contents to the index.
+     *
+     * @param $filePath String path of the file to add to the index
+     *
+     * @return String The output of the command
+     */
+    public function addFile($filePath)
+    {
+        $args = array($filePath);
+
+        return $this->run('add', $args);
+    }
+
+    /**
+     * Commits the changes to the repository.
+     *
+     * @param $message String message to add to the commit
+     * @param null $userEmail Email identity to set in the repository
+     * @param null $userName  Name identity to set in the repository
+     *
+     * @return String The output of the command
+     */
+    public function commitChanges($message, $userEmail = null, $userName = null)
+    {
+        if (!is_null($userEmail)) {
+            $this->run('config', array('user.email', '"'.$userEmail.'"'));
+        }
+
+        if (!is_null($userName)) {
+            $this->run('config', array('user.name', '"'.$userName.'"'));
+        }
+
+        $args = array('-m '.$message);
+
+        return $this->run('commit', $args);
+    }
+
+    /**
+     * Update remote refs along with associated objects.
+     *
+     * @return String The output of the command
+     */
+    public function pushToRemote($remote)
+    {
+        $args = array('origin', $remote);
+
+        return $this->run('push', $args);
+    }
+
+    /**
+     * Reset current HEAD to specified state.
+     *
+     * @param $options array of string options to add to the reset command
+     *
+     * @return String The output of the command
+     */
+    public function resetRepo($options)
+    {
+        return $this->run('reset', $options);
+    }
+
+    /**
+     * Cleans the working tree by recursively removing files that are not under version
+     * control, starting from the current directory.
+     *
+     * @param $options array of string options to add to the reset command
+     *
+     * @return String The output of the command
+     */
+    public function cleanRepo($options)
+    {
+        return $this->run('clean', $options);
+    }
+
+    /**
      * This command is a facility command. You can run any command
      * directly on git repository.
      *
