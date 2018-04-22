@@ -37,10 +37,10 @@ class PushReferenceTest extends AbstractTest
     public function testIsers($reference, $before, $after, $mask)
     {
         $reference = new PushReference(self::createFoobarRepository(), $reference, $before, $after);
-        $this->assertEquals($mask & self::CREATE,        $reference->isCreate(),       'Create value is correct.');
-        $this->assertEquals($mask & self::DELETE,        $reference->isDelete(),       'Delete value is correct.');
-        $this->assertEquals($mask & self::FORCE,         $reference->isForce(),        'Force value is correct.');
-        $this->assertEquals($mask & self::FAST_FORWARD,  $reference->isFastForward(),  'FastForward value is correct.');
+        $this->assertEquals($mask & self::CREATE, $reference->isCreate(), 'Create value is correct.');
+        $this->assertEquals($mask & self::DELETE, $reference->isDelete(), 'Delete value is correct.');
+        $this->assertEquals($mask & self::FORCE, $reference->isForce(), 'Force value is correct.');
+        $this->assertEquals($mask & self::FAST_FORWARD, $reference->isFastForward(), 'FastForward value is correct.');
     }
 
     /**

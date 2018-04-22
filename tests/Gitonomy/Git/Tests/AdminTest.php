@@ -36,7 +36,7 @@ class AdminTest extends AbstractTest
         $objectDir = $this->tmpDir.'/objects';
 
         $this->assertTrue($repository->isBare(), 'Repository is bare');
-        $this->assertTrue(is_dir($objectDir),     'objects/ folder is present');
+        $this->assertTrue(is_dir($objectDir), 'objects/ folder is present');
         $this->assertTrue($repository instanceof Repository, 'Admin::init returns a repository');
         $this->assertEquals($this->tmpDir, $repository->getGitDir(), 'The folder passed as argument is git dir');
         $this->assertNull($repository->getWorkingDir(), 'No working dir in bare repository');
