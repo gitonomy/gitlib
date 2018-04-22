@@ -153,7 +153,7 @@ class Repository
 
         if (false === $realGitDir) {
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
-        } else if (!is_dir($realGitDir)) {
+        } elseif (!is_dir($realGitDir)) {
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $realGitDir));
         } elseif (null === $workingDir && is_dir($realGitDir.'/.git')) {
             $workingDir = $realGitDir;
