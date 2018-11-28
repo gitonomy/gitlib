@@ -265,7 +265,7 @@ class Commit extends Revision
     /**
      * Returns the authoring date.
      *
-     * @return DateTime A time object
+     * @return \DateTime A time object
      */
     public function getAuthorDate()
     {
@@ -295,7 +295,7 @@ class Commit extends Revision
     /**
      * Returns the authoring date.
      *
-     * @return DateTime A time object
+     * @return \DateTime A time object
      */
     public function getCommitterDate()
     {
