@@ -627,7 +627,6 @@ class Repository
         $process->setEnv($this->environmentVariables);
         $process->setTimeout($this->processTimeout);
         $process->setIdleTimeout($this->processTimeout);
-        $process->inheritEnvironmentVariables(true);
 
         return $process;
     }
