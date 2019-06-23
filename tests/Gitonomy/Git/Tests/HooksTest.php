@@ -140,7 +140,7 @@ class HooksTest extends AbstractTest
     {
         $repository->getHooks()->set('foo', 'bar');
 
-        $this->setExpectedException('LogicException');
+        $this->expectException('LogicException');
         $repository->getHooks()->set('foo', 'bar');
     }
 
