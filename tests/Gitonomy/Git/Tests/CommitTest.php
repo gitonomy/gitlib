@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
@@ -223,7 +224,7 @@ class CommitTest extends AbstractTest
     public function testGetBodyMessage($repository)
     {
         $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
-        $message = <<<EOL
+        $message = <<<'EOL'
 If you want to know everything,
 I ran something like `chmox +x test.sh`
 

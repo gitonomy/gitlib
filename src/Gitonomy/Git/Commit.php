@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
@@ -333,7 +334,7 @@ class Commit extends Revision
     }
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public function getCommit()
     {
@@ -379,6 +380,7 @@ class Commit extends Revision
         }
 
         $parser = new Parser\CommitParser();
+
         try {
             $result = $this->repository->run('cat-file', array('commit', $this->revision));
         } catch (ProcessException $e) {

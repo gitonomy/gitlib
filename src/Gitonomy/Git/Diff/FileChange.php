@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Diff;
 
 class FileChange
@@ -37,7 +38,7 @@ class FileChange
         $result = 0;
         foreach ($this->lines as $line) {
             if ($line[0] === $type) {
-                ++$result;
+                $result++;
             }
         }
 
@@ -76,7 +77,7 @@ class FileChange
             'range_old_count' => $this->rangeOldCount,
             'range_new_start' => $this->rangeNewStart,
             'range_new_count' => $this->rangeNewCount,
-            'lines' => $this->lines,
+            'lines'           => $this->lines,
         );
     }
 

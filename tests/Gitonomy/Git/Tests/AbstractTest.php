@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
@@ -93,7 +94,7 @@ abstract class AbstractTest extends TestCase
             } else {
                 $dir = $repository->getGitDir();
             }
-            AbstractTest::deleteDir($dir);
+            self::deleteDir($dir);
         });
     }
 
@@ -141,9 +142,9 @@ abstract class AbstractTest extends TestCase
         $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : array();
 
         return array(
-            'command' => $command,
+            'command'               => $command,
             'environment_variables' => $envs,
-            'process_timeout' => 60,
+            'process_timeout'       => 60,
         );
     }
 }
