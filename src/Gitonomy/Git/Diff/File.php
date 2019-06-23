@@ -77,7 +77,7 @@ class File
         $this->newIndex = $newIndex;
         $this->isBinary = $isBinary;
 
-        $this->changes = array();
+        $this->changes = [];
     }
 
     public function addChange(FileChange $change)
@@ -222,7 +222,7 @@ class File
 
     public function toArray()
     {
-        return array(
+        return [
             'old_name'  => $this->oldName,
             'new_name'  => $this->newName,
             'old_mode'  => $this->oldMode,
@@ -233,7 +233,7 @@ class File
             'changes'   => array_map(function (FileChange $change) {
                 return $change->toArray();
             }, $this->changes),
-        );
+        ];
     }
 
     public static function fromArray(array $array)

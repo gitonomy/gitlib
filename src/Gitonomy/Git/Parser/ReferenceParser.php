@@ -18,14 +18,14 @@ class ReferenceParser extends ParserBase
 
     protected function doParse()
     {
-        $this->references = array();
+        $this->references = [];
 
         while (!$this->isFinished()) {
             $hash = $this->consumeHash();
             $this->consume(' ');
             $name = $this->consumeTo("\n");
             $this->consumeNewLine();
-            $this->references[] = array($hash, $name);
+            $this->references[] = [$hash, $name];
         }
     }
 }

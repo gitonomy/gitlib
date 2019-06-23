@@ -162,7 +162,7 @@ class AdminTest extends AbstractTest
     public function testCloneRepository()
     {
         $newDir = self::createTempDir();
-        $args = array();
+        $args = [];
 
         $new = Admin::cloneRepository($newDir, self::REPOSITORY_URL, $args, self::getOptions());
         self::registerDeletion($new);

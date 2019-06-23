@@ -72,13 +72,13 @@ class FileChange
 
     public function toArray()
     {
-        return array(
+        return [
             'range_old_start' => $this->rangeOldStart,
             'range_old_count' => $this->rangeOldCount,
             'range_new_start' => $this->rangeNewStart,
             'range_new_count' => $this->rangeNewCount,
             'lines'           => $this->lines,
-        );
+        ];
     }
 
     public static function fromArray(array $array)

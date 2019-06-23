@@ -21,7 +21,7 @@ class DiffParser extends ParserBase
 
     protected function doParse()
     {
-        $this->files = array();
+        $this->files = [];
 
         while (!$this->isFinished()) {
             // 1. title
@@ -106,14 +106,14 @@ class DiffParser extends ParserBase
                 $this->consumeNewLine();
 
                 // 6. Lines
-                $lines = array();
+                $lines = [];
                 while (true) {
                     if ($this->expects(' ')) {
-                        $lines[] = array(FileChange::LINE_CONTEXT, $this->consumeTo("\n"));
+                        $lines[] = [FileChange::LINE_CONTEXT, $this->consumeTo("\n")];
                     } elseif ($this->expects('+')) {
-                        $lines[] = array(FileChange::LINE_ADD, $this->consumeTo("\n"));
+                        $lines[] = [FileChange::LINE_ADD, $this->consumeTo("\n")];
                     } elseif ($this->expects('-')) {
-                        $lines[] = array(FileChange::LINE_REMOVE, $this->consumeTo("\n"));
+                        $lines[] = [FileChange::LINE_REMOVE, $this->consumeTo("\n")];
                     } elseif ($this->expects("\ No newline at end of file")) {
                         // Ignore this case...
                     } else {

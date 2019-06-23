@@ -67,7 +67,7 @@ class LogTest extends AbstractTest
     {
         $log = $repository->getLog(self::LONGFILE_COMMIT);
 
-        $expectedHashes = array(self::LONGFILE_COMMIT, self::BEFORE_LONGFILE_COMMIT);
+        $expectedHashes = [self::LONGFILE_COMMIT, self::BEFORE_LONGFILE_COMMIT];
         foreach ($log as $entry) {
             $hash = array_shift($expectedHashes);
             $this->assertEquals($hash, $entry->getHash());
