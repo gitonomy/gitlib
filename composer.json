@@ -34,7 +34,7 @@
         "psr/log": "^1.0"
     },
     "suggest": {
-        "psr/log": "Add some log"
+        "psr/log": "Required to use loggers for reporting of execution"
     },
     "extra": {
         "branch-alias": {
