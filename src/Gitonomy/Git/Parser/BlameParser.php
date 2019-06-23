@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Blame\Line;
@@ -68,7 +69,7 @@ class BlameParser extends ParserBase
             $this->consumeNewLine();
 
             $this->lines[$line] = new Line($memory[$hash], $sourceLine, $targetLine, $blockLine, $content);
-            ++$line;
+            $line++;
         }
     }
 }

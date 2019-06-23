@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Reference\Branch;
@@ -144,7 +145,7 @@ class ReferenceTest extends AbstractTest
     {
         $i = 0;
         foreach ($repository->getReferences() as $ref) {
-            ++$i;
+            $i++;
         }
         $this->assertGreaterThanOrEqual(2, $i, 'At least two references in repository');
     }

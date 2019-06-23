@@ -9,9 +9,8 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Log;
+namespace Gitonomy\Git\Tests;
 
 class LogTest extends AbstractTest
 {

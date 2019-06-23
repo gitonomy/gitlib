@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
@@ -17,7 +18,6 @@ use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Process\ProcessUtils;
 
 /**
  * Git repository object.
@@ -115,12 +115,12 @@ class Repository
     {
         $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
         $options = array_merge(array(
-            'working_dir' => null,
-            'debug' => true,
-            'logger' => null,
+            'working_dir'           => null,
+            'debug'                 => true,
+            'logger'                => null,
             'environment_variables' => $is_windows ? array('PATH' => getenv('path')) : array(),
-            'command' => 'git',
-            'process_timeout' => 3600,
+            'command'               => 'git',
+            'process_timeout'       => 3600,
         ), $options);
 
         if (null !== $options['logger'] && !$options['logger'] instanceof LoggerInterface) {
@@ -411,9 +411,9 @@ class Repository
     /**
      * Returns the size of repository, in kilobytes.
      *
-     * @return int A sum, in kilobytes
-     *
      * @throws RuntimeException An error occurred while computing size
+     *
+     * @return int A sum, in kilobytes
      */
     public function getSize()
     {
@@ -523,9 +523,9 @@ class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
-     *
      * @throws RuntimeException Error while executing git command (debug-mode only)
+     *
+     * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
      */
     public function run($command, $args = array())
     {

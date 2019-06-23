@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\RuntimeException;
@@ -28,9 +29,9 @@ class Admin
      * @param bool   $bare    indicate to create a bare repository
      * @param array  $options options for Repository creation
      *
-     * @return Repository
-     *
      * @throws RuntimeException Directory exists or not writable (only if debug=true)
+     *
+     * @return Repository
      */
     public static function init($path, $bare = true, array $options = array())
     {
@@ -149,8 +150,8 @@ class Admin
         $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
         $options = array_merge(array(
             'environment_variables' => $is_windows ? array('PATH' => getenv('PATH')) : array(),
-            'command' => 'git',
-            'process_timeout' => 3600,
+            'command'               => 'git',
+            'process_timeout'       => 3600,
         ), $options);
 
         $commandline = array_merge(array($options['command'], $command), $args);
