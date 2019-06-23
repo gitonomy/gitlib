@@ -24,12 +24,12 @@ class PushReferenceTest extends AbstractTest
     public function provideIsers()
     {
         // mask: force fastforward create delete
-        return array(
-            array('foo', PushReference::ZERO,          self::LONGFILE_COMMIT,        self::CREATE),
-            array('foo', self::LONGFILE_COMMIT,        PushReference::ZERO,          self::DELETE),
-            array('foo', self::LONGFILE_COMMIT,        self::BEFORE_LONGFILE_COMMIT, self::FORCE),
-            array('foo', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT,        self::FAST_FORWARD),
-        );
+        return [
+            ['foo', PushReference::ZERO,          self::LONGFILE_COMMIT,        self::CREATE],
+            ['foo', self::LONGFILE_COMMIT,        PushReference::ZERO,          self::DELETE],
+            ['foo', self::LONGFILE_COMMIT,        self::BEFORE_LONGFILE_COMMIT, self::FORCE],
+            ['foo', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT,        self::FAST_FORWARD],
+        ];
     }
 
     /**
@@ -76,7 +76,7 @@ class PushReferenceTest extends AbstractTest
     {
         $ref = new PushReference($repository, 'foo', PushReference::ZERO, self::LONGFILE_COMMIT);
 
-        $log = $ref->getLog(array(self::INITIAL_COMMIT))->getCommits();
+        $log = $ref->getLog([self::INITIAL_COMMIT])->getCommits();
         $this->assertEquals(7, count($log), '7 commits in log');
         $this->assertEquals('add a long file', $log[0]->getShortMessage(), 'First commit is correct');
     }

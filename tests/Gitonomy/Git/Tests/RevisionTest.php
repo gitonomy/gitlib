@@ -56,6 +56,6 @@ class RevisionTest extends AbstractTest
         $this->assertTrue($log instanceof Log, 'Log type object');
         $this->assertEquals(2, $log->getOffset(), 'Log offset is passed');
         $this->assertEquals(3, $log->getLimit(), 'Log limit is passed');
-        $this->assertEquals(array($revision), $log->getRevisions()->getAll(), 'Revision is passed');
+        $this->assertEquals([$revision], $log->getRevisions()->getAll(), 'Revision is passed');
     }
 }

@@ -97,7 +97,7 @@ class Diff
      */
     public function toArray()
     {
-        return array(
+        return [
             'rawDiff' => $this->rawDiff,
             'files'   => array_map(
                 function (File $file) {
@@ -105,7 +105,7 @@ class Diff
                 },
                 $this->files
             ),
-        );
+        ];
     }
 
     /**

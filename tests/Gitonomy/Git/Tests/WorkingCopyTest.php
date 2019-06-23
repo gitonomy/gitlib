@@ -49,7 +49,7 @@ class WorkingCopyTest extends AbstractTest
 
         $file = $repository->getWorkingDir().'/foobar-test';
         file_put_contents($file, 'test');
-        $repository->run('add', array($file));
+        $repository->run('add', [$file]);
 
         $diffStaged = $wc->getDiffStaged();
         $this->assertCount(1, $diffStaged->getFiles());

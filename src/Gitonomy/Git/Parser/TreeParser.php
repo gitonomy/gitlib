@@ -14,7 +14,7 @@ namespace Gitonomy\Git\Parser;
 
 class TreeParser extends ParserBase
 {
-    public $entries = array();
+    public $entries = [];
 
     protected function doParse()
     {
@@ -33,7 +33,7 @@ class TreeParser extends ParserBase
             $name = $this->consumeTo("\n");
             $this->consumeNewLine();
 
-            $this->entries[] = array($mode, $type, $hash, $name);
+            $this->entries[] = [$mode, $type, $hash, $name];
         }
     }
 }

@@ -28,9 +28,9 @@ class BlameParser extends ParserBase
 
     protected function doParse()
     {
-        $this->lines = array();
+        $this->lines = [];
 
-        $memory = array();
+        $memory = [];
 
         $line = 1;
         while (!$this->isFinished()) {
@@ -44,9 +44,9 @@ class BlameParser extends ParserBase
             $this->consumeNewLine();
 
             if (!isset($memory[$hash])) {
-                foreach (array('author', 'author-mail', 'author-time', 'author-tz',
+                foreach (['author', 'author-mail', 'author-time', 'author-tz',
                     'committer', 'committer-mail', 'committer-time', 'committer-tz',
-                    'summary', ) as $key) {
+                    'summary', ] as $key) {
                     $this->consume($key);
                     $this->consumeTo("\n");
                     $this->consumeNewLine();

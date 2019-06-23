@@ -65,7 +65,7 @@ class Blob
     public function getContent()
     {
         if (null === $this->content) {
-            $this->content = $this->repository->run('cat-file', array('-p', $this->hash));
+            $this->content = $this->repository->run('cat-file', ['-p', $this->hash]);
         }
 
         return $this->content;

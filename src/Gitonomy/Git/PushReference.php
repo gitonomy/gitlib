@@ -88,10 +88,10 @@ class PushReference
     /**
      * @return array
      */
-    public function getLog($excludes = array())
+    public function getLog($excludes = [])
     {
         return $this->repository->getLog(array_merge(
-            array($this->getRevision()),
+            [$this->getRevision()],
             array_map(function ($e) {
                 return '^'.$e;
             }, $excludes)
@@ -160,10 +160,10 @@ class PushReference
             return false;
         }
 
-        $result = $this->repository->run('merge-base', array(
+        $result = $this->repository->run('merge-base', [
             $this->before,
             $this->after,
-        ));
+        ]);
 
         return $this->before !== trim($result);
     }

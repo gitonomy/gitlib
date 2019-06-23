@@ -52,10 +52,10 @@ abstract class AbstractTest extends TestCase
      */
     public static function provideFoobar()
     {
-        return array(
-            array(self::createFoobarRepository()),
-            array(self::createFoobarRepository(false)),
-        );
+        return [
+            [self::createFoobarRepository()],
+            [self::createFoobarRepository(false)],
+        ];
     }
 
     /**
@@ -63,10 +63,10 @@ abstract class AbstractTest extends TestCase
      */
     public static function provideEmpty()
     {
-        return array(
-            array(self::createEmptyRepository()),
-            array(self::createEmptyRepository(false)),
-        );
+        return [
+            [self::createEmptyRepository()],
+            [self::createEmptyRepository(false)],
+        ];
     }
 
     /**
@@ -139,12 +139,12 @@ abstract class AbstractTest extends TestCase
     protected static function getOptions()
     {
         $command = isset($_SERVER['GIT_COMMAND']) ? $_SERVER['GIT_COMMAND'] : 'git';
-        $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : array();
+        $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : [];
 
-        return array(
+        return [
             'command'               => $command,
             'environment_variables' => $envs,
             'process_timeout'       => 60,
-        );
+        ];
     }
 }

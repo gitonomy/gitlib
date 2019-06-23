@@ -25,7 +25,7 @@ class ReferenceTest extends AbstractTest
     public function testEmptyRepository($repository)
     {
         $this->assertCount(0, $repository->getReferences());
-        $this->assertEquals(array(), $repository->getReferences()->getAll());
+        $this->assertEquals([], $repository->getReferences()->getAll());
     }
 
     /**
