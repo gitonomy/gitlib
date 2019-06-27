@@ -5,19 +5,19 @@
     "authors": [
         {
             "name": "Graham Campbell",
-            "email": "graham@alt-three.com",
+            "email": "graham@alt-three.com"
         },
         {
             "name": "Julien Didier",
-            "email": "genzo.wm@gmail.com",
+            "email": "genzo.wm@gmail.com"
         },
         {
             "name": "Grégoire Pineau",
-            "email": "lyrixx@lyrixx.info",
+            "email": "lyrixx@lyrixx.info"
         },
         {
             "name": "Alexandre Salomé",
-            "email": "alexandre.salome@gmail.com",
+            "email": "alexandre.salome@gmail.com"
         }
     ],
     "homepage": "http://gitonomy.com",
