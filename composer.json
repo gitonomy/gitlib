@@ -4,14 +4,20 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Alexandre Salomé",
-            "email": "alexandre.salome@gmail.com",
-            "homepage": "http://alexandre-salome.fr"
+            "name": "Graham Campbell",
+            "email": "graham@alt-three.com"
         },
         {
-            "name": "Julien DIDIER",
-            "email": "genzo.wm@gmail.com",
-            "homepage": "http://www.jdidier.net"
+            "name": "Julien Didier",
+            "email": "genzo.wm@gmail.com"
+        },
+        {
+            "name": "Grégoire Pineau",
+            "email": "lyrixx@lyrixx.info"
+        },
+        {
+            "name": "Alexandre Salomé",
+            "email": "alexandre.salome@gmail.com"
         }
     ],
     "homepage": "http://gitonomy.com",
