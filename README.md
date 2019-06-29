@@ -1,7 +1,9 @@
 Git lib for Gitonomy
 ====================
 
-[![Build Status](https://secure.travis-ci.org/gitonomy/gitlib.png)](https://travis-ci.org/gitonomy/gitlib)
+[![Build Status](https://img.shields.io/travis/gitonomy/gitlib/master.svg?style=flat-square)](https://travis-ci.org/gitonomy/gitlib)
+[![StyleCI](https://github.styleci.io/repos/5709354/shield?branch=master)](https://github.styleci.io/repos/5709354)
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square" alt="Software License"></img></a>
 
 This library provides methods to access Git repository from PHP.
 
