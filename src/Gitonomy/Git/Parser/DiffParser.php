@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Diff\File;
@@ -20,7 +21,7 @@ class DiffParser extends ParserBase
 
     protected function doParse()
     {
-        $this->files = array();
+        $this->files = [];
 
         while (!$this->isFinished()) {
             // 1. title
@@ -64,9 +65,9 @@ class DiffParser extends ParserBase
             // 4. File informations
             $isBinary = false;
             if ($this->expects('index ')) {
-                $oldIndex = $this->consumeHash();
+                $oldIndex = $this->consumeShortHash();
                 $this->consume('..');
-                $newIndex = $this->consumeHash();
+                $newIndex = $this->consumeShortHash();
                 if ($this->expects(' ')) {
                     $vars = $this->consumeRegexp('/\d{6}/');
                     $newMode = $oldMode = $vars[0];
@@ -105,14 +106,14 @@ class DiffParser extends ParserBase
                 $this->consumeNewLine();
 
                 // 6. Lines
-                $lines = array();
+                $lines = [];
                 while (true) {
                     if ($this->expects(' ')) {
-                        $lines[] = array(FileChange::LINE_CONTEXT, $this->consumeTo("\n"));
+                        $lines[] = [FileChange::LINE_CONTEXT, $this->consumeTo("\n")];
                     } elseif ($this->expects('+')) {
-                        $lines[] = array(FileChange::LINE_ADD, $this->consumeTo("\n"));
+                        $lines[] = [FileChange::LINE_ADD, $this->consumeTo("\n")];
                     } elseif ($this->expects('-')) {
-                        $lines[] = array(FileChange::LINE_REMOVE, $this->consumeTo("\n"));
+                        $lines[] = [FileChange::LINE_REMOVE, $this->consumeTo("\n")];
                     } elseif ($this->expects("\ No newline at end of file")) {
                         // Ignore this case...
                     } else {

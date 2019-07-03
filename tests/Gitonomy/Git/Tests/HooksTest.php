@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Tests;
 
 class HooksTest extends AbstractTest
@@ -140,7 +141,7 @@ class HooksTest extends AbstractTest
     {
         $repository->getHooks()->set('foo', 'bar');
 
-        $this->setExpectedException('LogicException');
+        $this->expectException('LogicException');
         $repository->getHooks()->set('foo', 'bar');
     }
 

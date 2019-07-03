@@ -9,9 +9,8 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
-namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Log;
+namespace Gitonomy\Git\Tests;
 
 class LogTest extends AbstractTest
 {
@@ -68,7 +67,7 @@ class LogTest extends AbstractTest
     {
         $log = $repository->getLog(self::LONGFILE_COMMIT);
 
-        $expectedHashes = array(self::LONGFILE_COMMIT, self::BEFORE_LONGFILE_COMMIT);
+        $expectedHashes = [self::LONGFILE_COMMIT, self::BEFORE_LONGFILE_COMMIT];
         foreach ($log as $entry) {
             $hash = array_shift($expectedHashes);
             $this->assertEquals($hash, $entry->getHash());

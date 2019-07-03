@@ -9,18 +9,19 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Parser;
 
 class LogParser extends CommitParser
 {
-    public $log = array();
+    public $log = [];
 
     protected function doParse()
     {
-        $this->log = array();
+        $this->log = [];
 
         while (!$this->isFinished()) {
-            $commit = array();
+            $commit = [];
             $this->consume('commit ');
             $commit['id'] = $this->consumeHash();
             $this->consumeNewLine();
@@ -29,7 +30,7 @@ class LogParser extends CommitParser
             $commit['treeHash'] = $this->consumeHash();
             $this->consumeNewLine();
 
-            $commit['parentHashes'] = array();
+            $commit['parentHashes'] = [];
             while ($this->expects('parent ')) {
                 $commit['parentHashes'][] = $this->consumeHash();
                 $this->consumeNewLine();
@@ -51,9 +52,15 @@ class LogParser extends CommitParser
             $this->consumeNewLine();
 
             $message = '';
-            while ($this->expects('    ')) {
-                $message .= $this->consumeTo("\n")."\n";
-                $this->consumeNewLine();
+            if ($this->expects('    ')) {
+                $this->cursor -= strlen('    ');
+
+                while ($this->expects('    ')) {
+                    $message .= $this->consumeTo("\n")."\n";
+                    $this->consumeNewLine();
+                }
+            } else {
+                $this->cursor--;
             }
 
             if (!$this->isFinished()) {

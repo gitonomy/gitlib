@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
@@ -36,7 +37,7 @@ class AdminTest extends AbstractTest
         $objectDir = $this->tmpDir.'/objects';
 
         $this->assertTrue($repository->isBare(), 'Repository is bare');
-        $this->assertTrue(is_dir($objectDir),     'objects/ folder is present');
+        $this->assertTrue(is_dir($objectDir), 'objects/ folder is present');
         $this->assertTrue($repository instanceof Repository, 'Admin::init returns a repository');
         $this->assertEquals($this->tmpDir, $repository->getGitDir(), 'The folder passed as argument is git dir');
         $this->assertNull($repository->getWorkingDir(), 'No working dir in bare repository');
@@ -161,7 +162,7 @@ class AdminTest extends AbstractTest
     public function testCloneRepository()
     {
         $newDir = self::createTempDir();
-        $args = array();
+        $args = [];
 
         $new = Admin::cloneRepository($newDir, self::REPOSITORY_URL, $args, self::getOptions());
         self::registerDeletion($new);

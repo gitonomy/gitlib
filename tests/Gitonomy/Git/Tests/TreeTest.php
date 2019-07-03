@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
@@ -16,6 +17,7 @@ use Gitonomy\Git\Blob;
 class TreeTest extends AbstractTest
 {
     const PATH_RESOLVING_COMMIT = 'cc06ac171d884282202dff88c1ded499a1f89420';
+
     /**
      * @dataProvider provideFooBar
      */

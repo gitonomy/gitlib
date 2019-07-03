@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
@@ -48,7 +49,7 @@ class WorkingCopyTest extends AbstractTest
 
         $file = $repository->getWorkingDir().'/foobar-test';
         file_put_contents($file, 'test');
-        $repository->run('add', array($file));
+        $repository->run('add', [$file]);
 
         $diffStaged = $wc->getDiffStaged();
         $this->assertCount(1, $diffStaged->getFiles());

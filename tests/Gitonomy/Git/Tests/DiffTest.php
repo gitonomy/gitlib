@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Diff\Diff;
@@ -48,13 +49,13 @@ class DiffTest extends AbstractTest
 
         $this->assertTrue($files[0]->isCreation(), 'script_A.php created');
 
-        $this->assertEquals(null,           $files[0]->getOldName(), 'First file name is a new file');
+        $this->assertEquals(null, $files[0]->getOldName(), 'First file name is a new file');
         $this->assertEquals('script_A.php', $files[0]->getNewName(), 'First file name is script_A.php');
-        $this->assertEquals(null,           $files[0]->getOldMode(), 'First file mode is a new file');
-        $this->assertEquals('100644',       $files[0]->getNewMode(), 'First file mode is correct');
+        $this->assertEquals(null, $files[0]->getOldMode(), 'First file mode is a new file');
+        $this->assertEquals('100644', $files[0]->getNewMode(), 'First file mode is correct');
 
         $this->assertEquals(1, $files[0]->getAdditions(), '1 line added');
-        $this->assertEquals(0,  $files[0]->getDeletions(), '0 lines deleted');
+        $this->assertEquals(0, $files[0]->getDeletions(), '0 lines deleted');
     }
 
     /**
@@ -70,8 +71,8 @@ class DiffTest extends AbstractTest
 
         $this->assertEquals('image.jpg', $files[0]->getOldName(), 'Second file name is image.jpg');
         $this->assertEquals('image.jpg', $files[0]->getNewName(), 'Second file name is image.jpg');
-        $this->assertEquals('100644',    $files[0]->getOldMode(), 'Second file mode is a new file');
-        $this->assertEquals('100644',    $files[0]->getNewMode(), 'Second file mode is correct');
+        $this->assertEquals('100644', $files[0]->getOldMode(), 'Second file mode is a new file');
+        $this->assertEquals('100644', $files[0]->getNewMode(), 'Second file mode is correct');
 
         $this->assertTrue($files[0]->isBinary(), 'binary file');
         $this->assertEquals(0, $files[0]->getAdditions(), '0 lines added');

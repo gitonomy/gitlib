@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
@@ -17,7 +18,6 @@ use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
-use Symfony\Component\Process\ProcessBuilder;
 
 /**
  * Git repository object.
@@ -111,17 +111,17 @@ class Repository
      *
      * @throws InvalidArgumentException The folder does not exists
      */
-    public function __construct($dir, $options = array())
+    public function __construct($dir, $options = [])
     {
         $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
-        $options = array_merge(array(
-            'working_dir' => null,
-            'debug' => true,
-            'logger' => null,
-            'environment_variables' => $is_windows ? array('PATH' => getenv('path')) : array(),
-            'command' => 'git',
-            'process_timeout' => 3600,
-        ), $options);
+        $options = array_merge([
+            'working_dir'           => null,
+            'debug'                 => true,
+            'logger'                => null,
+            'environment_variables' => $is_windows ? ['PATH' => getenv('path')] : [],
+            'command'               => 'git',
+            'process_timeout'       => 3600,
+        ], $options);
 
         if (null !== $options['logger'] && !$options['logger'] instanceof LoggerInterface) {
             throw new InvalidArgumentException(sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', is_object($options['logger']) ? get_class($options['logger']) : gettype($options['logger'])));
@@ -130,7 +130,7 @@ class Repository
         $this->logger = $options['logger'];
         $this->initDir($dir, $options['working_dir']);
 
-        $this->objects = array();
+        $this->objects = [];
         $this->debug = (bool) $options['debug'];
         $this->environmentVariables = $options['environment_variables'];
         $this->processTimeout = $options['process_timeout'];
@@ -153,7 +153,7 @@ class Repository
 
         if (false === $realGitDir) {
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
-        } else if (!is_dir($realGitDir)) {
+        } elseif (!is_dir($realGitDir)) {
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $realGitDir));
         } elseif (null === $workingDir && is_dir($realGitDir.'/.git')) {
             $workingDir = $realGitDir;
@@ -400,7 +400,7 @@ class Repository
             $revisions = new RevisionList($this, $revisions);
         }
 
-        $args = array_merge(array('-r', '-p', '-m', '-M', '--no-commit-id', '--full-index'), $revisions->getAsTextArray());
+        $args = array_merge(['-r', '-p', '-m', '-M', '--no-commit-id', '--full-index'], $revisions->getAsTextArray());
 
         $diff = Diff::parse($this->run('diff', $args));
         $diff->setRepository($this);
@@ -411,14 +411,13 @@ class Repository
     /**
      * Returns the size of repository, in kilobytes.
      *
-     * @return int A sum, in kilobytes
-     *
      * @throws RuntimeException An error occurred while computing size
+     *
+     * @return int A sum, in kilobytes
      */
     public function getSize()
     {
-        $process = ProcessBuilder::create(array('du', '-skc', $this->gitDir))->getProcess();
-
+        $process = new Process(['du', '-skc', $this->gitDir]);
         $process->run();
 
         if (!preg_match('/(\d+)\s+total$/', trim($process->getOutput()), $vars)) {
@@ -443,7 +442,7 @@ class Repository
      *
      * @param string $command The command to execute
      */
-    public function shell($command, array $env = array())
+    public function shell($command, array $env = [])
     {
         $argument = sprintf('%s \'%s\'', $command, $this->gitDir);
 
@@ -452,7 +451,7 @@ class Repository
             $prefix .= sprintf('export %s=%s;', escapeshellarg($name), escapeshellarg($value));
         }
 
-        proc_open($prefix.'git shell -c '.escapeshellarg($argument), array(STDIN, STDOUT, STDERR), $pipes);
+        proc_open($prefix.'git shell -c '.escapeshellarg($argument), [STDIN, STDOUT, STDERR], $pipes);
     }
 
     /**
@@ -524,11 +523,11 @@ class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
-     *
      * @throws RuntimeException Error while executing git command (debug-mode only)
+     *
+     * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
      */
-    public function run($command, $args = array())
+    public function run($command, $args = [])
     {
         $process = $this->getProcess($command, $args);
 
@@ -597,7 +596,7 @@ class Repository
      *
      * @return Repository the newly created repository
      */
-    public function cloneTo($path, $bare = true, array $options = array())
+    public function cloneTo($path, $bare = true, array $options = [])
     {
         return Admin::cloneTo($path, $this->gitDir, $bare, $options);
     }
@@ -610,19 +609,17 @@ class Repository
      *
      * @see self::run
      */
-    private function getProcess($command, $args = array())
+    private function getProcess($command, $args = [])
     {
-        $base = array($this->command, '--git-dir', $this->gitDir);
+        $base = [$this->command, '--git-dir', $this->gitDir];
 
         if ($this->workingDir) {
-            $base = array_merge($base, array('--work-tree', $this->workingDir));
+            $base = array_merge($base, ['--work-tree', $this->workingDir]);
         }
 
         $base[] = $command;
 
-        $builder = new ProcessBuilder(array_merge($base, $args));
-        $builder->inheritEnvironmentVariables(false);
-        $process = $builder->getProcess();
+        $process = new Process(array_merge($base, $args));
         $process->setEnv($this->environmentVariables);
         $process->setTimeout($this->processTimeout);
         $process->setIdleTimeout($this->processTimeout);
