@@ -12,10 +12,10 @@
 
 namespace Gitonomy\Git\Reference;
 
-use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\ProcessException;
-use Gitonomy\Git\Reference;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Parser\TagParser;
+use Gitonomy\Git\Reference;
 
 /**
  * Representation of a tag reference.
@@ -41,7 +41,7 @@ class Tag extends Reference
     public function isAnnotated()
     {
         try {
-            $this->repository->run('cat-file', array('tag', $this->revision));
+            $this->repository->run('cat-file', ['tag', $this->revision]);
         } catch (ProcessException $e) {
             return false; // Is not an annotated tag
         }
@@ -122,12 +122,13 @@ class Tag extends Reference
     /**
      * Check whether tag is signed.
      *
-     * @return boolean
+     * @return bool
      */
     public function isSigned()
     {
         try {
             $this->getGPGSignature();
+
             return true;
         } catch (\InvalidArgumentException $e) {
             return false;
@@ -165,7 +166,7 @@ class Tag extends Reference
         }
 
         $parser = new TagParser();
-        $result = $this->repository->run('cat-file', array('tag', $this->revision));
+        $result = $this->repository->run('cat-file', ['tag', $this->revision]);
 
         $parser->parse($result);
 

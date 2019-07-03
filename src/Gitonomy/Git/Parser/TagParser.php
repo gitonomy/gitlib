@@ -9,6 +9,7 @@
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Exception\RuntimeException;
@@ -46,7 +47,7 @@ class TagParser extends ParserBase
         $this->consumeNewLine();
 
         try {
-            $this->message = $this->consumeTo("-----BEGIN PGP SIGNATURE-----");
+            $this->message = $this->consumeTo('-----BEGIN PGP SIGNATURE-----');
             $this->gpgSignature = $this->consumeGPGSignature();
         } catch (RuntimeException $e) {
             $this->message = $this->consumeAll();
@@ -55,7 +56,7 @@ class TagParser extends ParserBase
 
     protected function consumeGPGSignature()
     {
-        $expected = "-----BEGIN PGP SIGNATURE-----";
+        $expected = '-----BEGIN PGP SIGNATURE-----';
         $length = strlen($expected);
         $actual = substr($this->content, $this->cursor, $length);
         if ($actual != $expected) {
@@ -63,7 +64,7 @@ class TagParser extends ParserBase
         }
         $this->cursor += $length;
 
-        return $this->consumeTo("-----END PGP SIGNATURE-----");
+        return $this->consumeTo('-----END PGP SIGNATURE-----');
     }
 
     protected function consumeNameEmailDate()
@@ -74,7 +75,7 @@ class TagParser extends ParserBase
 
         $this->cursor += strlen($vars[1]);
 
-        return array($vars[2], $vars[3], $vars[4]);
+        return [$vars[2], $vars[3], $vars[4]];
     }
 
     protected function parseDate($text)
