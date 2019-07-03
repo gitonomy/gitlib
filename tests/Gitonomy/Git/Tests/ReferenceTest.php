@@ -90,8 +90,8 @@ class ReferenceTest extends AbstractTest
         $this->assertTrue($tag->isAnnotated(), 'Tag is annotated');
         $this->assertFalse($tag->isSigned(), 'Tag is not signed');
 
-        $this->assertEquals('Bob', $tag->getTaggerName(), 'Tagger name is correct');
-        $this->assertEquals('bob@example.org', $tag->getTaggerEmail(), 'Tagger email is correct');
+        $this->assertEquals('Graham Campbell', $tag->getTaggerName(), 'Tagger name is correct');
+        $this->assertEquals('graham@alt-three.com', $tag->getTaggerEmail(), 'Tagger email is correct');
         $this->assertEquals(1471428000, $tag->getTaggerDate()->getTimestamp(), 'Tag date is correct');
 
         $this->assertEquals('heading', $tag->getSubjectMessage(), 'Message heading is correct');
