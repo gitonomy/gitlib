@@ -35,7 +35,7 @@ class WorkingCopyTest extends AbstractTest
         $wc->checkout('origin/new-feature', 'new-feature');
 
         $head = $repository->getHead();
-        $this->assertTrue($head instanceof Branch, 'HEAD is a branch');
+        $this->assertInstanceOf(Branch::class, $head, 'HEAD is a branch');
         $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
     }
 

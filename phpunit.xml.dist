@@ -14,7 +14,7 @@
 
     <testsuites>
         <testsuite name="Test Suite">
-            <directory>tests/Gitonomy/Git/Tests</directory>
+            <directory suffix="Test.php">tests/Gitonomy/Git/Tests</directory>
         </testsuite>
     </testsuites>
 

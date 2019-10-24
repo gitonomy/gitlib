@@ -45,7 +45,7 @@ class DiffTest extends AbstractTest
     {
         $files = $diff->getFiles();
 
-        $this->assertEquals(2, count($files), '1 file in diff');
+        $this->assertCount(2, $files, '1 file in diff');
 
         $this->assertTrue($files[0]->isCreation(), 'script_A.php created');
 
@@ -65,7 +65,7 @@ class DiffTest extends AbstractTest
     {
         $files = $repository->getCommit(self::BEFORE_LONGFILE_COMMIT)->getDiff()->getFiles();
 
-        $this->assertEquals(1, count($files), '1 files in diff');
+        $this->assertCount(1, $files, '1 files in diff');
 
         $this->assertTrue($files[0]->isModification(), 'image.jpg modified');
 
@@ -86,7 +86,7 @@ class DiffTest extends AbstractTest
     {
         $files = $repository->getCommit(self::DELETE_COMMIT)->getDiff()->getFiles();
 
-        $this->assertEquals(1, count($files), '1 files modified');
+        $this->assertCount(1, $files, '1 files modified');
 
         $this->assertTrue($files[0]->isDeletion(), 'File deletion');
         $this->assertEquals('script_B.php', $files[0]->getOldName(), 'verify old filename');
@@ -100,7 +100,7 @@ class DiffTest extends AbstractTest
     {
         $files = $repository->getCommit(self::RENAME_COMMIT)->getDiff()->getFiles();
 
-        $this->assertEquals(1, count($files), '1 files modified');
+        $this->assertCount(1, $files, '1 files modified');
 
         $this->assertTrue($files[0]->isModification());
         $this->assertTrue($files[0]->isRename());
@@ -116,7 +116,7 @@ class DiffTest extends AbstractTest
     {
         $files = $repository->getCommit(self::CHANGEMODE_COMMIT)->getDiff()->getFiles();
 
-        $this->assertEquals(1, count($files), '1 files modified');
+        $this->assertCount(1, $files, '1 files modified');
 
         $this->assertTrue($files[0]->isModification());
         $this->assertTrue($files[0]->isChangeMode());

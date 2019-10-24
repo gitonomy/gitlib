@@ -35,7 +35,7 @@ class ReferenceTest extends AbstractTest
     {
         $branch = $repository->getReferences()->getBranch('master');
 
-        $this->assertTrue($branch instanceof Branch, 'Branch object is correct type');
+        $this->assertInstanceOf(Branch::class, $branch, 'Branch object is correct type');
         $this->assertEquals($branch->getCommitHash(), $branch->getCommit()->getHash(), 'Hash is correctly resolved');
     }
 
@@ -63,7 +63,7 @@ class ReferenceTest extends AbstractTest
      */
     public function testGetBranch_NotExisting_Error($repository)
     {
-        $branch = $repository->getReferences()->getBranch('notexisting');
+        $repository->getReferences()->getBranch('notexisting');
     }
 
     /**
@@ -73,7 +73,7 @@ class ReferenceTest extends AbstractTest
     {
         $tag = $repository->getReferences()->getTag('0.1');
 
-        $this->assertTrue($tag instanceof Tag, 'Tag object is correct type');
+        $this->assertInstanceOf(Tag::class, $tag, 'Tag object is correct type');
         $this->assertFalse($tag->isAnnotated(), 'Tag is not annotated');
 
         $this->assertEquals(self::LONGFILE_COMMIT, $tag->getCommitHash(), 'Commit hash is correct');
@@ -87,7 +87,7 @@ class ReferenceTest extends AbstractTest
     {
         $tag = $repository->getReferences()->getTag('annotated');
 
-        $this->assertTrue($tag instanceof Tag, 'Tag object is correct type');
+        $this->assertInstanceOf(Tag::class, $tag, 'Tag object is correct type');
         $this->assertTrue($tag->isAnnotated(), 'Tag is annotated');
         $this->assertFalse($tag->isSigned(), 'Tag is not signed');
 
@@ -105,7 +105,7 @@ class ReferenceTest extends AbstractTest
      */
     public function testGetTag_NotExisting_Error($repository)
     {
-        $branch = $repository->getReferences()->getTag('notexisting');
+        $repository->getReferences()->getTag('notexisting');
     }
 
     /**
@@ -116,8 +116,8 @@ class ReferenceTest extends AbstractTest
         $commit = $repository->getReferences()->getTag('0.1')->getCommit();
         $resolved = $repository->getReferences()->resolve($commit->getHash());
 
-        $this->assertEquals(1, count($resolved), '1 revision resolved');
-        $this->assertTrue(reset($resolved) instanceof Tag, 'Resolved object is a tag');
+        $this->assertCount(1, $resolved, '1 revision resolved');
+        $this->assertInstanceOf(Tag::class, reset($resolved), 'Resolved object is a tag');
     }
 
     /**
@@ -128,8 +128,8 @@ class ReferenceTest extends AbstractTest
         $commit = $repository->getReferences()->getTag('0.1')->getCommit();
         $resolved = $repository->getReferences()->resolveTags($commit->getHash());
 
-        $this->assertEquals(1, count($resolved), '1 revision resolved');
-        $this->assertTrue(reset($resolved) instanceof Tag, 'Resolved object is a tag');
+        $this->assertCount(1, $resolved, '1 revision resolved');
+        $this->assertInstanceOf(Tag::class, reset($resolved), 'Resolved object is a tag');
     }
 
     /**
@@ -142,12 +142,12 @@ class ReferenceTest extends AbstractTest
         $resolved = $repository->getReferences()->resolveBranches($master->getCommitHash());
 
         if ($repository->isBare()) {
-            $this->assertEquals(1, count($resolved), '1 revision resolved');
+            $this->assertCount(1, $resolved, '1 revision resolved');
         } else {
-            $this->assertEquals(2, count($resolved), '2 revision resolved');
+            $this->assertCount(2, $resolved, '2 revision resolved');
         }
 
-        $this->assertTrue(reset($resolved) instanceof Branch, 'Resolved object is a branch');
+        $this->assertInstanceOf(Branch::class, reset($resolved), 'Resolved object is a branch');
     }
 
     /**

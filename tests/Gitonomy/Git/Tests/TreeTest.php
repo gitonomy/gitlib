@@ -27,10 +27,10 @@ class TreeTest extends AbstractTest
 
         $entries = $tree->getEntries();
 
-        $this->assertTrue(isset($entries['long.php']), 'long.php is present');
+        $this->assertNotEmpty($entries['long.php'], 'long.php is present');
         $this->assertTrue($entries['long.php'][1] instanceof Blob, 'long.php is a Blob');
 
-        $this->assertTrue(isset($entries['README.md']), 'README.md is present');
+        $this->assertNotEmpty($entries['README.md'], 'README.md is present');
         $this->assertTrue($entries['README.md'][1] instanceof Blob, 'README.md is a Blob');
     }
 
@@ -45,6 +45,6 @@ class TreeTest extends AbstractTest
         $resolved = $tree->resolvePath($path);
         $entries = $resolved->getEntries();
 
-        $this->assertTrue(isset($entries['d']), 'Successfully resolved source folder');
+        $this->assertNotEmpty($entries['d'], 'Successfully resolved source folder');
     }
 }

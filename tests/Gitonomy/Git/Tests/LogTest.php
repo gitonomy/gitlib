@@ -22,8 +22,8 @@ class LogTest extends AbstractTest
         $logReadme = $repository->getLog(self::LONGFILE_COMMIT, 'README');
         $logImage = $repository->getLog(self::LONGFILE_COMMIT, 'image.jpg');
 
-        $this->assertEquals(3, count($logReadme));
-        $this->assertEquals(2, count($logImage));
+        $this->assertCount(3, $logReadme);
+        $this->assertCount(2, $logImage);
     }
 
     /**
@@ -35,7 +35,7 @@ class LogTest extends AbstractTest
 
         $commits = $log->getCommits();
 
-        $this->assertEquals(3, count($commits), '3 commits in log');
+        $this->assertCount(3, $commits, '3 commits in log');
         $this->assertEquals(self::LONGFILE_COMMIT, $commits[0]->getHash(), 'First is requested one');
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commits[1]->getHash(), "Second is longfile parent\'s");
     }
