@@ -13,8 +13,8 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
-use Gitonomy\Git\Tree;
 use Gitonomy\Git\Diff\Diff;
+use Gitonomy\Git\Tree;
 
 class CommitTest extends AbstractTest
 {
