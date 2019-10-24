@@ -49,7 +49,7 @@ class HooksTest extends AbstractTest
         $file = $this->hookPath($repository, $hook);
 
         $this->assertTrue($repository->getHooks()->has($hook), "hook $hook in repository");
-        $this->assertTrue(file_exists($file), "Hook $hook is present");
+        $this->assertFileExists($file, "Hook $hook is present");
     }
 
     public function assertNoHook($repository, $hook)
@@ -57,7 +57,7 @@ class HooksTest extends AbstractTest
         $file = $this->hookPath($repository, $hook);
 
         $this->assertFalse($repository->getHooks()->has($hook), "No hook $hook in repository");
-        $this->assertFalse(file_exists($file), "Hook $hook is not present");
+        $this->assertFileNotExists($file, "Hook $hook is not present");
     }
 
     /**
@@ -154,7 +154,7 @@ class HooksTest extends AbstractTest
         touch($file);
 
         $repository->getHooks()->remove('foo');
-        $this->assertFalse(file_exists($file));
+        $this->assertFileNotExists($file);
     }
 
     /**

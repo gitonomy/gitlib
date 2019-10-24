@@ -52,7 +52,7 @@ class PushReferenceTest extends AbstractTest
         $ref = new PushReference($repository, 'foo', self::INITIAL_COMMIT, self::LONGFILE_COMMIT);
 
         $log = $ref->getLog()->getCommits();
-        $this->assertEquals(7, count($log), '7 commits in log');
+        $this->assertCount(7, $log, '7 commits in log');
         $this->assertEquals('add a long file', $log[0]->getShortMessage(), 'First commit is correct');
     }
 
@@ -65,7 +65,7 @@ class PushReferenceTest extends AbstractTest
     {
         $ref = new PushReference($repository, 'foo', self::INITIAL_COMMIT, self::SIGNED_COMMIT);
         $log = $ref->getLog()->getCommits();
-        $this->assertEquals(16, count($log), '16 commits in log');
+        $this->assertCount(16, $log, '16 commits in log');
         $this->assertEquals('signed commit', $log[0]->getShortMessage(), 'Last commit is correct');
     }
 
@@ -77,7 +77,7 @@ class PushReferenceTest extends AbstractTest
         $ref = new PushReference($repository, 'foo', PushReference::ZERO, self::LONGFILE_COMMIT);
 
         $log = $ref->getLog([self::INITIAL_COMMIT])->getCommits();
-        $this->assertEquals(7, count($log), '7 commits in log');
+        $this->assertCount(7, $log, '7 commits in log');
         $this->assertEquals('add a long file', $log[0]->getShortMessage(), 'First commit is correct');
     }
 }
