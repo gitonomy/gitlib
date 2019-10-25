@@ -12,13 +12,12 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Tag;
 
 class ReferenceTest extends AbstractTest
 {
-    private $references;
-
     /**
      * @dataProvider provideEmpty
      */
@@ -59,10 +58,11 @@ class ReferenceTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
      */
     public function testGetBranch_NotExisting_Error($repository)
     {
+        $this->expectException(ReferenceNotFoundException::class);
+
         $repository->getReferences()->getBranch('notexisting');
     }
 
@@ -101,10 +101,11 @@ class ReferenceTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
      */
     public function testGetTag_NotExisting_Error($repository)
     {
+        $this->expectException(ReferenceNotFoundException::class);
+
         $repository->getReferences()->getTag('notexisting');
     }
 

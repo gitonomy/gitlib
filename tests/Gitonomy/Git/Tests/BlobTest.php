@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Exception\RuntimeException;
+
 class BlobTest extends AbstractTest
 {
     const README_FRAGMENT = 'Foo Bar project';
@@ -33,10 +35,11 @@ class BlobTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     * @expectedException RuntimeException
      */
     public function testNotExisting($repository)
     {
+        $this->expectException(RuntimeException::class);
+
         $blob = $repository->getBlob('foobar');
         $blob->getContent();
     }

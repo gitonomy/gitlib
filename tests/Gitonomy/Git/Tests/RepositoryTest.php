@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
+use Gitonomy\Git\Exception\RuntimeException;
 use Prophecy\Argument;
 
 class RepositoryTest extends AbstractTest
@@ -78,13 +79,14 @@ class RepositoryTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     * @expectedException RuntimeException
      */
     public function testLoggerNOk($repository)
     {
         if (!interface_exists('Psr\Log\LoggerInterface')) {
             $this->markTestSkipped();
         }
+
+        $this->expectException(RuntimeException::class);
 
         $loggerProphecy = $this->prophesize('Psr\Log\LoggerInterface');
         $loggerProphecy

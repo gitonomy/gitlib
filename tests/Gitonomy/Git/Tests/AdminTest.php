@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 
@@ -148,11 +149,10 @@ class AdminTest extends AbstractTest
         $this->assertFalse(Admin::isValidRepository($url));
     }
 
-    /**
-     * @expectedException RuntimeException
-     */
     public function testExistingFile()
     {
+        $this->expectException(RuntimeException::class);
+
         $file = $this->tmpDir.'/test';
         touch($file);
 

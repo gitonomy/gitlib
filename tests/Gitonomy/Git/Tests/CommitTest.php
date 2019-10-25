@@ -14,6 +14,8 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff\Diff;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Tree;
 
 class CommitTest extends AbstractTest
@@ -42,12 +44,12 @@ class CommitTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     *
-     * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
-     * @expectedExceptionMessage Reference not found: "that-hash-doest-not-exists"
      */
     public function testInvalideHashThrowException($repository)
     {
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage('Reference not found: "that-hash-doest-not-exists"');
+
         new Commit($repository, 'that-hash-doest-not-exists');
     }
 
@@ -241,11 +243,12 @@ EOL;
     }
 
     /**
-     * @expectedException InvalidArgumentException
      * @dataProvider provideFoobar
      */
     public function testGetIncludingBranchesException($repository)
     {
+        $this->expectException(InvalidArgumentException::class);
+
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
         $commit->getIncludingBranches(false, false);
