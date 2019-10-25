@@ -13,15 +13,16 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
+use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 
 class WorkingCopyTest extends AbstractTest
 {
-    /**
-     * @expectedException LogicException
-     */
     public function testNoWorkingCopyInBare()
     {
+        $this->expectException(LogicException::class);
+
         $path = self::createTempDir();
         $repo = Admin::init($path, true, self::getOptions());
 
@@ -70,11 +71,10 @@ class WorkingCopyTest extends AbstractTest
         $this->assertCount(1, $diffPending->getFiles());
     }
 
-    /**
-     * @expectedException RuntimeException
-     */
     public function testCheckoutUnexisting()
     {
+        $this->expectException(RuntimeException::class);
+
         self::createFoobarRepository(false)->getWorkingCopy()->checkout('foobar');
     }
 

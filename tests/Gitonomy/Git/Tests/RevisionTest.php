@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Log;
 use Gitonomy\Git\Revision;
 
@@ -36,12 +37,13 @@ class RevisionTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     * @expectedException Gitonomy\Git\Exception\ReferenceNotFoundException
-     * @expectedExceptionMessage Can not find revision "non-existent-commit"
      */
     public function testGetFailingReference($repository)
     {
-        $revision = $repository->getRevision('non-existent-commit')->getCommit();
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage('Can not find revision "non-existent-commit"');
+
+        $repository->getRevision('non-existent-commit')->getCommit();
     }
 
     /**

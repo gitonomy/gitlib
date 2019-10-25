@@ -12,6 +12,9 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\LogicException;
+
 class HooksTest extends AbstractTest
 {
     private static $symlinkOnWindows = null;
@@ -72,10 +75,11 @@ class HooksTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     * @expectedException InvalidArgumentException
      */
     public function testGet_InvalidName_ThrowsException($repository)
     {
+        $this->expectException(InvalidArgumentException::class);
+
         $repository->getHooks()->get('foo');
     }
 
@@ -105,10 +109,11 @@ class HooksTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     * @expectedException LogicException
      */
     public function testSymlink_WithExisting_ThrowsLogicException($repository)
     {
+        $this->expectException(LogicException::class);
+
         $this->markAsSkippedIfSymlinkIsMissing();
 
         $file = $this->hookPath($repository, 'target-symlink');
@@ -141,7 +146,7 @@ class HooksTest extends AbstractTest
     {
         $repository->getHooks()->set('foo', 'bar');
 
-        $this->expectException('LogicException');
+        $this->expectException(LogicException::class);
         $repository->getHooks()->set('foo', 'bar');
     }
 
@@ -159,10 +164,11 @@ class HooksTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
-     * @expectedException LogicException
      */
     public function testRemove_NotExisting_ThrowsLogicException($repository)
     {
+        $this->expectException(LogicException::class);
+
         $repository->getHooks()->remove('foo');
     }
 
