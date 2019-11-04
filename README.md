@@ -13,9 +13,25 @@ Anyway, it's convenient and don't need to build anything to use it. That's how w
 
 *Documentation*: http://gitonomy.com/doc/gitlib/master/
 
----
+## Quick Start
 
-## For enterprise
+You can install git lib using [Composer](https://getcomposer.org/). Simply require the version you need:
+
+```bash
+$ composer require gitonomy/gitlib
+```
+
+or edit your `composer.json` file by hand:
+
+```json
+{
+    "require": {
+        "gitonomy/gitlib": "^1.1"
+    }
+}
+```
+
+## For Enterprise
 
 Available as part of the Tidelift Subscription
 
