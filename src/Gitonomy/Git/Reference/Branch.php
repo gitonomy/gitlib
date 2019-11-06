@@ -61,7 +61,7 @@ class Branch extends Reference
 	 * Optionally, check only with remote branches
 	 *
 	 * @param string $destinationBranchName
-	 * @param bool   $onlyRemote
+	 * @param bool   $compareOnlyWithRemote
 	 *
 	 * @return null|bool
 	 */
