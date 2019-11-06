@@ -12,8 +12,10 @@
 
 namespace Gitonomy\Git\Reference;
 
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference;
+use Gitonomy\Git\Util\StringHelper;
 
 /**
  * Representation of a branch reference.
@@ -52,6 +54,46 @@ class Branch extends Reference
 
         return $this->local;
     }
+
+	/**
+	 *
+	 * Check if this branch is merged to a destination branch
+	 * Optionally, check only with remote branches
+	 *
+	 * @param string $destinationBranchName
+	 * @param bool   $onlyRemote
+	 *
+	 * @return null|bool
+	 */
+	public function isMergedTo($destinationBranchName = 'master', $compareOnlyWithRemote = false)
+	{
+		$arguments = ['-a'];
+
+		if ($compareOnlyWithRemote) {
+			$arguments = ['-r'];
+		}
+
+		$arguments[] = '--merged';
+		$arguments[] = $destinationBranchName;
+
+		try {
+			$result = $this->repository->run('branch', $arguments);
+		} catch (ProcessException $e) {
+			return null;
+		}
+
+		if (!$result) {
+			return null;
+		}
+
+		$output = explode("\n", trim(str_replace(['*', 'remotes/'], '', $result)));
+		$output = array_filter($output, function ($v) {
+			return false === StringHelper::strpos($v, '->');
+		});
+		$output = array_map('trim', $output);
+
+		return (in_array($this->getName(), $output));
+	}
 
     private function detectBranchType()
     {
