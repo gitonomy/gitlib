@@ -20,7 +20,7 @@
             "email": "alexandre.salome@gmail.com"
         }
     ],
-    "homepage": "http://gitonomy.com",
+    "homepage": "https://github.com/gitonomy",
     "autoload": {
         "psr-4": {
             "Gitonomy\\Git\\": "src/Gitonomy/Git/"
