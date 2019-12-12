@@ -1,15 +1,15 @@
-# Developing gitlib
--------------------
+Developing gitlib
+=================
 
 If you plan to contribute to gitlib, here are few things you should know:
 
-## Documentation
-----------------
+Documentation
+-------------
 
 Documentation is now in [Markdown](https://en.wikipedia.org/wiki/Markdown) and hosted directly on Github
 
-## Test against different git versions
---------------------------------------
+Test against different git versions
+-----------------------------------
 
 A script `test-git-version.sh` is available in repository to test gitlib against many git versions.
 

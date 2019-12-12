@@ -7,13 +7,13 @@ multiple branches, we tend to use `git log`.
 
 To get a *Log* object from a repository:
 
-``` {.sourceCode .php}
+```php
 $log = $repository->getLog();
 ```
 
 You can pass four arguments to *getLog* method:
 
-``` {.sourceCode .php}
+```php
 // Global log for repository
 $log = $repository->getLog();
 
@@ -33,7 +33,7 @@ Counting
 If you want to count overall commits, without offset or limit, use the
 *countCommits* method:
 
-``` {.sourceCode .php}
+```php
 echo sprintf("This log contains %s commits\n", $log->countCommits());
 
 // Countable interface
@@ -45,7 +45,7 @@ Offset and limit
 
 Use those methods:
 
-``` {.sourceCode .php}
+```php
 $log->setOffset(32);
 $log->setLimit(40);
 

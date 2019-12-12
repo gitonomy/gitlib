@@ -7,7 +7,7 @@ represented via *Tree* object.
 To get the root tree associated to a commit, use the *getTree* method on
 the commit object:
 
-``` {.sourceCode .php}
+```php
 $tree = $commit->getTree();
 ```
 
@@ -19,7 +19,7 @@ entry mode and the entry object.
 
 Let's understand how it works with a concrete example:
 
-``` {.sourceCode .php}
+```php
 function displayTree(Tree $tree, $indent = 0)
 {
     $indent = str_repeat(' ', $indent);
@@ -47,7 +47,7 @@ To access directly a sub-file, the easier is probably to use the
 
 An example:
 
-``` {.sourceCode .php}
+```php
 $source = $tree->resolvePath('src/Gitonomy/Git');
 
 $source instanceof Tree;

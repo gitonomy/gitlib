@@ -13,7 +13,7 @@ object.
 To access it from a repository, use the *getHooks* method on a
 *Repository* object:
 
-``` {.sourceCode .php}
+```php
 $hooks = $repository->getHooks();
 ```
 
@@ -22,7 +22,7 @@ Reading hooks
 
 To read the content of a hook, use the *get* method like this:
 
-``` {.sourceCode .php}
+```php
 $content = $hooks->get('pre-receive'); // returns a string
 ```
 
@@ -31,7 +31,7 @@ If the hook does not exist, an exception will be thrown
 
 You can test if a hook is present using the method *has*:
 
-``` {.sourceCode .php}
+```php
 $hooks->has('pre-receive'); // a boolean indicating presence
 ```
 
@@ -43,7 +43,7 @@ using a symlink.
 
 To create the hook using a symlink:
 
-``` {.sourceCode .php}
+```php
 $hooks->setSymlink('pre-receive', '/path/to/file-to-link');
 ```
 
@@ -55,7 +55,7 @@ If you want to directly create a new file in hooks directory, use the
 method *set*. This method will create a new file, put content in it and
 make it executable:
 
-``` {.sourceCode .php}
+```php
 $content = <<<HOOK
 #!/bin/bash
 echo "Push is disabled"
@@ -75,6 +75,6 @@ Removing hooks
 
 To remove a hook from a repository, use the function *remove*:
 
-``` {.sourceCode .php}
+```php
 $hooks->remove('pre-receive');
 ```

@@ -4,7 +4,7 @@ Repository methods
 Creating a *Repository* object is possible, providing a *path* argument
 to the constructor:
 
-``` {.sourceCode .php}
+```php
 $repository = new Repository('/path/to/repo');
 ```
 
@@ -27,7 +27,7 @@ Available options are:
 
 An example:
 
-``` {.sourceCode .php}
+```php
 $repository = new Repository('/path/to/repo', array(
     'debug'  => true,
     'logger' => new Monolog\Logger()
@@ -40,7 +40,7 @@ Test if a repository is bare
 On a *Repository* object, you can call method *isBare* to test if your
 repository is bare or not:
 
-``` {.sourceCode .php}
+```php
 $repository->isBare();
 ```
 
@@ -56,7 +56,7 @@ To know how much size a repository is using on your drive, you can use
 
 The returned size is in kilobytes:
 
-``` {.sourceCode .php}
+```php
 $size = $repository->getSize();
 
 echo "Your repository size is ".$size."KB";
@@ -69,7 +69,7 @@ Access HEAD
 tree). Your `HEAD` can be attached (using a reference) or detached
 (using a commit).
 
-``` {.sourceCode .php}
+```php
 $head = $repository->getHead(); // Commit or Reference
 $head = $repository->getHeadCommit(); // Commit
 
@@ -88,7 +88,7 @@ repository, telling you every executed command.
 
 You call method `setLogger` as an option on repository creation:
 
-``` {.sourceCode .php}
+```php
 $repository->setLogger(new Monolog\Logger('repository'));
 
 $repository->run('fetch', array('--all'));
@@ -116,6 +116,6 @@ Gitlib throws an exception when something seems wrong. If a
 `` git` command returns a non-zero result, it will stop execution and throw an ``RuntimeException`.  If you want to prevent this, set`debug`option to`false`. This will make Repository log errors and return empty data instead of throwing exceptions.  .. code-block:: php      $repository = new Repository('/tmp/foo', array('debug' => false, 'logger' => $logger));  .. note:: if you plan to disable debug, you should rely on logger to keep a trace of edge failing cases.  Specify git command to use ..........................  You can pass option`command`to specify which command to use to run git calls. If you have a git binary located somewhere else, use this option to specify to gitlib path to your git binary:  .. code-block:: php      $repository = new Gitonomy\Git\Repository('/tmp/foo', array('command' => '/home/alice/bin/git'));  Environment variables .....................  Now you want to set environment variables to use to run`git\`\`
 commands. It might be useful.
 
-``` {.sourceCode .php}
+```php
 $repository = new Gitonomy\Git\Repository('/tmp/foo', array('environment_variables' => array('GIT_')))
 ```

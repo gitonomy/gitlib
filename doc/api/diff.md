@@ -12,13 +12,13 @@ For more informations about git revisions: *man gitrevisions*.
 When you have decided the revision you want and have your *Repository*
 object, you can call the *getDiff* method on the repository:
 
-``` {.sourceCode .php}
+```php
 $diff = $repository->getDiff('master@{2 days ago}..master');
 ```
 
 You can also access it from a *Log* object:
 
-``` {.sourceCode .php}
+```php
 $log  = $repository->getLog('master@{2 days ago}..master');
 $diff = $log->getDiff();
 ```
@@ -30,7 +30,7 @@ When you have a *Diff* object, you can iterate over files using method
 *getFiles()*. This method returns a list of *File* objects, who
 represents the modifications for a single file.
 
-``` {.sourceCode .php}
+```php
 $files = $diff->getFiles();
 echo sprintf("%s files modified", count($files));
 
@@ -45,7 +45,7 @@ The File object
 
 Here is an exhaustive list of the *File* class methods:
 
-``` {.sourceCode .php}
+```php
 $file->getOldName();
 $file->getNewName();
 $file->getOldDiff();
@@ -80,7 +80,7 @@ a *FileChange* object is associated.
 
 To access changes from a file, use the *getChanges* method:
 
-``` {.sourceCode .php}
+```php
 $changes = $file->getChanges();
 foreach ($changes as $change) {
     foreach ($lines as $data) {
@@ -98,7 +98,7 @@ foreach ($changes as $change) {
 
 To get line numbers, use the range methods:
 
-``` {.sourceCode .php}
+```php
 echo sprintf("Previously from line %s to %s\n", $change->getOldRangeStart(), $change->getOldRangeEnd());
 echo sprintf("Now from line %s to %s\n", $change->getNewRangeStart(), $change->getNewRangeEnd());
 ```

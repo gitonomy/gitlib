@@ -6,7 +6,7 @@ Line-per-line iteration
 
 To iterate on lines of a blame:
 
-``` {.sourceCode .php}
+```php
 $blame = $repository->getBlame('master', 'README.md');
 
 foreach ($blame->getLines() as $lineNumber => $line) {
@@ -22,7 +22,7 @@ are iterating on.
 
 If you want to access directly a line:
 
-``` {.sourceCode .php}
+```php
 $line = $blame->getLine(32);
 ```
 
@@ -32,7 +32,7 @@ The Line object
 LineObject represents an item of the blame file. It is composed of those
 informations:
 
-``` {.sourceCode .php}
+```php
 $line->getCommit();  // returns a Commit
 $line->getContent(); // returns text
 
@@ -49,7 +49,7 @@ from same commit are grouped.
 To do so, use the *getGroupedLines* method that will return an array
 like this:
 
-``` {.sourceCode .php}
+```php
 $blame = array(
     array(Commit, array(1 => Line, 2 => Line, 3 => Line)),
     array(Commit, array(4 => Line)),

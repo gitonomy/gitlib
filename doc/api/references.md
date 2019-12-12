@@ -7,13 +7,13 @@ Accessing tags and branches
 With *gitlib*, you can access them via the *ReferenceBag* object. To get
 this object from a *Repository*, use the *getReferences* method:
 
-``` {.sourceCode .php}
+```php
 $references = $repository->getReferences();
 ```
 
 First, you can test existence of tags and branches like this:
 
-``` {.sourceCode .php}
+```php
 if ($references->hasBranch('master') && $references->hasTag('0.1')) {
     echo "Good start!";
 }
@@ -21,7 +21,7 @@ if ($references->hasBranch('master') && $references->hasTag('0.1')) {
 
 If you want to access all branches or all tags:
 
-``` {.sourceCode .php}
+```php
 $branches       = $references->getBranches();
 $localBranches  = $references->getLocalBranches();
 $remoteBranches = $references->getRemoteBranches();
@@ -32,7 +32,7 @@ $all            = $references->getAll();
 To get a given branch or tag, call *getBranch* or *getTag* on the
 *ReferenceBag*. Those methods return *Branch* and *Tag* objects:
 
-``` {.sourceCode .php}
+```php
 $master  = $references->getBranch('master');
 $feat123 = $references->getLocalBranch('feat123');
 $feat456 = $references->getRemoteBranch('origin/feat456');
@@ -44,7 +44,7 @@ be thrown.
 
 On each of those objects, you can access those informations:
 
-``` {.sourceCode .php}
+```php
 // Get the associated commit
 $commit = $master->getCommit();
 
@@ -61,7 +61,7 @@ Create and delete reference
 You can create new tags and branches on repository, using helper methods
 on ReferenceBag object:
 
-``` {.sourceCode .php}
+```php
 // create a branch
 $references = $repository->getReferences();
 $branch     = $references->createBranch('foobar', 'a8b7e4...'); // commit to reference
@@ -80,7 +80,7 @@ Resolution from a commit
 To resolve a branch or a commit from a commit, you can use the
 *resolveTags* and *resolveBranches* methods on it:
 
-``` {.sourceCode .php}
+```php
 $branches = $references->resolveBranches($commit);
 $tags     = $references->resolveTags($commit);
 

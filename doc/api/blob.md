@@ -10,7 +10,7 @@ will have the same hash.
 
 To access a repository *Blob*, you need the hash identifier:
 
-``` {.sourceCode .php}
+```php
 $repository = new Gitonomy\Git\Repository('/path/to/repository');
 $blob = $repository->getBlob('a7c8d2b4');
 ```
@@ -20,7 +20,7 @@ Get content
 
 To get content from a *Blob* object:
 
-``` {.sourceCode .php}
+```php
 echo $blob->getContent();
 ```
 
@@ -29,13 +29,13 @@ File informations
 
 To get mimetype of a *Blob* object using finfo extension:
 
-``` {.sourceCode .php}
+```php
 echo $blob->getMimetype();
 ```
 
 You can also test if *Blob* is a text of a binary file:
 
-``` {.sourceCode .php}
+```php
 if ($blob->isText()) {
     echo $blob->getContent(), "\n";
 } elseif ($blob->isBinary()) {

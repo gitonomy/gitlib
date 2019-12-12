@@ -16,7 +16,7 @@ differently:
 If you want to disable exceptions and try to minimize as much as
 possible errors, pass `false` when construction a repository:
 
-``` {.sourceCode .php}
+```php
 $repository = new Gitonomy\Git\Repository($path'/tmp/repo', $debug = false)
 ```
 

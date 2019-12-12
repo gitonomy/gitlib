@@ -3,7 +3,7 @@ Commit
 
 To access a *Commit*, starting from a repository object:
 
-``` {.sourceCode .php}
+```php
 $repository = new Gitonomy\Git\Repository('/path/to/repository');
 $commit = $repository->getCommit('a7c8d2b4');
 ```
@@ -19,7 +19,7 @@ A *Commit* can have a natural number of parents:
 
 You have 2 methods available for accessing parents:
 
-``` {.sourceCode .php}
+```php
 // Access parent hashes
 $hashes = $commit->getParentHashes();
 
@@ -29,7 +29,7 @@ $commits = $commit->getParents();
 
 For example, if you want to display all parents, starting from a commit:
 
-``` {.sourceCode .php}
+```php
 function displayLog(Gitonomy\Git\Commit $commit) {
     echo '- '.$commit->getShortMessage()."\n";
     foreach ($commit->getParents() as $parent) {
@@ -51,7 +51,7 @@ about the tree, see the chapter dedicated to it.
 
 To access a tree starting from a commit:
 
-``` {.sourceCode .php}
+```php
 // Returns the tree hash
 $tree = $commit->getTreeHash();
 
@@ -70,7 +70,7 @@ modification to the repository.
 You can access informations from author and committer using those
 methods:
 
-``` {.sourceCode .php}
+```php
 // Author
 $commit->getAuthorName();
 $commit->getAuthorEmail();
@@ -90,7 +90,7 @@ message can be multilined.
 
 To access the message, you can use the *getMessage* method:
 
-``` {.sourceCode .php}
+```php
 $commit->getMessage();
 ```
 
@@ -98,13 +98,13 @@ For your convenience, this library provides a shortcut method to keep
 only the first line or first 50 characters if the first line is too
 long:
 
-``` {.sourceCode .php}
+```php
 $commit->getShortMessage();
 ```
 
 You can customize it like this:
 
-``` {.sourceCode .php}
+```php
 $commit->getShortMessage(45, true, '.');
 ```
 
@@ -115,7 +115,7 @@ $commit->getShortMessage(45, true, '.');
 
 There are also two other methods for your convenience:
 
-``` {.sourceCode .php}
+```php
 // The first line
 $commit->getSubjectMessage();
 
@@ -140,7 +140,7 @@ For more informations about the diff API, read the related chapter.
 
 To access the *Diff* object of a commit, use the method *getDiff*:
 
-``` {.sourceCode .php}
+```php
 $diff = $commit->getDiff();
 ```
 
@@ -152,7 +152,7 @@ To know the last modification of a file, you can use the
 
 Here is a very straightforward example:
 
-``` {.sourceCode .php}
+```php
 $last = $commit->getLastModification('README');
 
 echo "Last README modification:\n";
@@ -164,7 +164,7 @@ echo" Message: ".$last->getMessage();
 Find every branches containing a commit
 ---------------------------------------
 
-``` {.sourceCode .php}
+```php
 $branches       = $commit->getIncludingBranches($includeLocalBranches, $includeRemoteBranches);
 $localBranches  = $commit->getIncludingBranches(true, false);
 $remoteBranches = $commit->getIncludingBranches(false, true);

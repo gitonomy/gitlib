@@ -8,7 +8,7 @@ Create a repository
 
 To initialize a new repository, use method `Admin::init`.
 
-``` {.sourceCode .php}
+```php
 // Initialize a bare repository
 $repository = Gitonomy\Git\Admin::init('/path/to/repository');
 
@@ -25,7 +25,7 @@ Cloning repositories
 
 You can clone a repository from an URL by doing:
 
-``` {.sourceCode .php}
+```php
 // Clone to a bare repository
 $repository = Gitonomy\Git\Admin::cloneTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git');
 
@@ -38,7 +38,7 @@ Default behavior is to clone in a bare repository.
 You can also clone a repository and point it to a specific branch. In a
 non-bare repository, this branch will be checked out:
 
-``` {.sourceCode .php}
+```php
 // Clone to a bare repository
 $repository = Gitonomy\Git\Admin::cloneBranchTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', 'a-branch');
 
@@ -52,7 +52,7 @@ Clone a Repository object
 If you already have a Repository instance and want to clone it, you can
 use this shortcut:
 
-``` {.sourceCode .php}
+```php
 $new = $repository->cloneTo('/tmp/clone');
 ```
 
@@ -63,7 +63,7 @@ If you want to mirror fully a repository and all references, use the
 `mirrorTo` method. This method takes only two arguments, where to mirror
 and what to mirror:
 
-``` {.sourceCode .php}
+```php
 // Mirror to a bare repository
 $mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitonomy/gitlib.git');
 
