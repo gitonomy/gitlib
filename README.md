@@ -13,24 +13,24 @@ Anyway, it's convenient and don't need to build anything to use it. That's how w
 
 ## Documentation
 
-* [Overview](https://github.com/gitonomy/gitlib/blob/master/doc/index.rst)
-* [Debug](https://github.com/gitonomy/gitlib/blob/master/doc/debug.rst)
-* [Development](https://github.com/gitonomy/gitlib/blob/master/doc/development.rst)
-* [Installation](https://github.com/gitonomy/gitlib/blob/master/doc/installation.rst)
+* [Overview](https://github.com/gitonomy/gitlib/blob/master/doc/index.md)
+* [Debug](https://github.com/gitonomy/gitlib/blob/master/doc/debug.md)
+* [Development](https://github.com/gitonomy/gitlib/blob/master/doc/development.md)
+* [Installation](https://github.com/gitonomy/gitlib/blob/master/doc/installation.md)
 * API
-  + [Admin](https://github.com/gitonomy/gitlib/blob/master/doc/api/admin.rst)
-  + [Blame](https://github.com/gitonomy/gitlib/blob/master/doc/api/blame.rst)
-  + [Blob](https://github.com/gitonomy/gitlib/blob/master/doc/api/blob.rst)
-  + [Branch](https://github.com/gitonomy/gitlib/blob/master/doc/api/branch.rst)
-  + [Commit](https://github.com/gitonomy/gitlib/blob/master/doc/api/commit.rst)
-  + [Diff](https://github.com/gitonomy/gitlib/blob/master/doc/api/diff.rst)
-  + [Hooks](https://github.com/gitonomy/gitlib/blob/master/doc/api/hooks.rst)
-  + [Log](https://github.com/gitonomy/gitlib/blob/master/doc/api/log.rst)
-  + [References](https://github.com/gitonomy/gitlib/blob/master/doc/api/references.rst)
-  + [Repository](https://github.com/gitonomy/gitlib/blob/master/doc/api/repository.rst)
-  + [Revision](https://github.com/gitonomy/gitlib/blob/master/doc/api/revision.rst)
-  + [Tree](https://github.com/gitonomy/gitlib/blob/master/doc/api/tree.rst)
-  + [Working Copy](https://github.com/gitonomy/gitlib/blob/master/doc/api/workingcopy.rst)
+  + [Admin](https://github.com/gitonomy/gitlib/blob/master/doc/api/admin.md)
+  + [Blame](https://github.com/gitonomy/gitlib/blob/master/doc/api/blame.md)
+  + [Blob](https://github.com/gitonomy/gitlib/blob/master/doc/api/blob.md)
+  + [Branch](https://github.com/gitonomy/gitlib/blob/master/doc/api/branch.md)
+  + [Commit](https://github.com/gitonomy/gitlib/blob/master/doc/api/commit.md)
+  + [Diff](https://github.com/gitonomy/gitlib/blob/master/doc/api/diff.md)
+  + [Hooks](https://github.com/gitonomy/gitlib/blob/master/doc/api/hooks.md)
+  + [Log](https://github.com/gitonomy/gitlib/blob/master/doc/api/log.md)
+  + [References](https://github.com/gitonomy/gitlib/blob/master/doc/api/references.md)
+  + [Repository](https://github.com/gitonomy/gitlib/blob/master/doc/api/repository.md)
+  + [Revision](https://github.com/gitonomy/gitlib/blob/master/doc/api/revision.md)
+  + [Tree](https://github.com/gitonomy/gitlib/blob/master/doc/api/tree.md)
+  + [Working Copy](https://github.com/gitonomy/gitlib/blob/master/doc/api/workingcopy.md)
 
 ## Quick Start
 
