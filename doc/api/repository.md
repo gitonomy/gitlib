@@ -96,14 +96,15 @@ $repository->run('fetch', array('--all'));
 
 You can also specify as an option on repository creation:
 
-> \$logger = new MonologLogger('repository'); \$repository = new
-> Repository('/path/foo', array('logger' =\> \$logger));
->
-> \$repository-\>run('fetch', array('--all'));
+```php
+$logger = new MonologLogger('repository');
+$repository = new Repository('/path/foo', array('logger' => $logger));
+$repository->run('fetch', array('--all'));
+```
 
 This will output:
 
-``` {.sourceCode .text}
+```
 info run command: fetch "--all"
 debug last command (fetch) duration: 23.24ms
 debug last command (fetch) return code: 0
@@ -112,9 +113,34 @@ debug last command (fetch) output: Fetching origin
 
 ### Disable debug-mode
 
-Gitlib throws an exception when something seems wrong. If a
-`` git` command returns a non-zero result, it will stop execution and throw an ``RuntimeException`.  If you want to prevent this, set`debug`option to`false`. This will make Repository log errors and return empty data instead of throwing exceptions.  .. code-block:: php      $repository = new Repository('/tmp/foo', array('debug' => false, 'logger' => $logger));  .. note:: if you plan to disable debug, you should rely on logger to keep a trace of edge failing cases.  Specify git command to use ..........................  You can pass option`command`to specify which command to use to run git calls. If you have a git binary located somewhere else, use this option to specify to gitlib path to your git binary:  .. code-block:: php      $repository = new Gitonomy\Git\Repository('/tmp/foo', array('command' => '/home/alice/bin/git'));  Environment variables .....................  Now you want to set environment variables to use to run`git\`\`
-commands. It might be useful.
+Gitlib throws an exception when something seems wrong. If a `git` command exits
+with a non-zero code, then execution will be stopped, and a `RuntimeException`
+will be thrown. If you want to prevent this, set the `debug` option to` false`.
+This will make `Repository` log errors and return empty data instead of
+throwing exceptions. 
+
+```php
+$repository = new Repository('/tmp/foo', array('debug' => false, 'logger' => $logger));
+```
+
+> **note**
+>
+> If you plan to disable debug, you should rely on the logger to keep a trace
+> of the failing cases.
+
+### Specify git command to use
+
+You can pass the option `command` to specify which command to use to run git
+calls. If you have a git binary located somewhere else, use this option to
+specify to gitlib path to your git binary:
+
+```php
+$repository = new Gitonomy\Git\Repository('/tmp/foo', array('command' => '/home/alice/bin/git')); 
+```
+
+### Environment variables
+
+It is possible to send environment variables to the `git` commands.
 
 ```php
 $repository = new Gitonomy\Git\Repository('/tmp/foo', array('environment_variables' => array('GIT_')))
