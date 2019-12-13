@@ -41,7 +41,7 @@ use Gitonomy\Git\Repository;
 $repository = new Repository('/path/to/repository');
 
 foreach ($repository->getReferences()->getBranches() as $branch) {
-    echo "- ".$branch->getName().PHP_EOL;
+    echo '- '.$branch->getName().PHP_EOL;
 }
 
 $repository->run('fetch', ['--all']);
