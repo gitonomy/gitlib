@@ -75,4 +75,3 @@ $mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitono
 
 -   <http://linux.die.net/man/1/git-init>
 -   <http://linux.die.net/man/1/git-clone>
-
