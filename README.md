@@ -1,9 +1,9 @@
-Git lib for Gitonomy
-====================
+Gitlib for Gitonomy
+===================
 
 [![Build Status](https://img.shields.io/travis/gitonomy/gitlib/master.svg?style=flat-square)](https://travis-ci.org/gitonomy/gitlib)
 [![StyleCI](https://github.styleci.io/repos/5709354/shield?branch=master)](https://github.styleci.io/repos/5709354)
-<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square" alt="Software License"></img></a>
+[![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
 This library provides methods to access Git repository from PHP.
 
@@ -11,11 +11,31 @@ It makes shell calls, which makes it less performant than any solution.
 
 Anyway, it's convenient and don't need to build anything to use it. That's how we love it.
 
-*Documentation*: http://gitonomy.com/doc/gitlib/master/
+## Documentation
+
+* [Overview](doc/index.md)
+* [Debug](doc/debug.md)
+* [Development](doc/development.md)
+* [Installation](doc/installation.md)
+* API
+  + [Admin](doc/api/admin.md)
+  + [Blame](doc/api/blame.md)
+  + [Blob](doc/api/blob.md)
+  + [Branch](doc/api/branch.md)
+  + [Commit](doc/api/commit.md)
+  + [Diff](doc/api/diff.md)
+  + [Hooks](doc/api/hooks.md)
+  + [Log](doc/api/log.md)
+  + [References](doc/api/references.md)
+  + [Repository](doc/api/repository.md)
+  + [Revision](doc/api/revision.md)
+  + [Tree](doc/api/tree.md)
+  + [Working Copy](doc/api/workingcopy.md)
 
 ## Quick Start
 
-You can install git lib using [Composer](https://getcomposer.org/). Simply require the version you need:
+You can install gitlib using [Composer](https://getcomposer.org/). Simply
+require the version you need:
 
 ```bash
 $ composer require gitonomy/gitlib
@@ -26,7 +46,7 @@ or edit your `composer.json` file by hand:
 ```json
 {
     "require": {
-        "gitonomy/gitlib": "^1.1"
+        "gitonomy/gitlib": "^1.2"
     }
 }
 ```
