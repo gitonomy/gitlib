@@ -1,5 +1,5 @@
-Git lib for Gitonomy
-====================
+Gitlib for Gitonomy
+===================
 
 [![Build Status](https://img.shields.io/travis/gitonomy/gitlib/master.svg?style=flat-square)](https://travis-ci.org/gitonomy/gitlib)
 [![StyleCI](https://github.styleci.io/repos/5709354/shield?branch=master)](https://github.styleci.io/repos/5709354)
@@ -34,7 +34,8 @@ Anyway, it's convenient and don't need to build anything to use it. That's how w
 
 ## Quick Start
 
-You can install git lib using [Composer](https://getcomposer.org/). Simply require the version you need:
+You can install gitlib using [Composer](https://getcomposer.org/). Simply
+require the version you need:
 
 ```bash
 $ composer require gitonomy/gitlib
@@ -45,7 +46,7 @@ or edit your `composer.json` file by hand:
 ```json
 {
     "require": {
-        "gitonomy/gitlib": "^1.1"
+        "gitonomy/gitlib": "^1.2"
     }
 }
 ```
