@@ -11,7 +11,7 @@ $blame = $repository->getBlame('master', 'README.md');
 
 foreach ($blame->getLines() as $lineNumber => $line) {
     $commit = $line->getCommit();
-    echo $lineNumber.': '.$line->getContent()."    - ".$commit->getAuthorName()."\n";
+    echo $lineNumber.': '.$line->getContent().'    - '.$commit->getAuthorName().PHP_EOL;
 }
 ```
 

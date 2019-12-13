@@ -24,7 +24,7 @@ $log = $repository->getLog('master');
 $log = $repository->getLog('master', 'README', 0, 10);
 
 // Returns last 10 commits on README or UPGRADE files
-$log = $repository->getLog('master', array('README', 'UPGRADE'), 0, 10);
+$log = $repository->getLog('master', ['README', 'UPGRADE'], 0, 10);
 ```
 
 Counting
@@ -34,10 +34,10 @@ If you want to count overall commits, without offset or limit, use the
 *countCommits* method:
 
 ```php
-echo sprintf("This log contains %s commits\n", $log->countCommits());
+echo sprintf('This log contains %s commits%s', $log->countCommits(), PHP_EOL);
 
 // Countable interface
-echo sprintf("This log contains %s commits\n", count($log));
+echo sprintf('This log contains %s commits%s', count($log), PHP_EOL);
 ```
 
 Offset and limit

@@ -37,8 +37,8 @@ You can also test if *Blob* is a text of a binary file:
 
 ```php
 if ($blob->isText()) {
-    echo $blob->getContent(), "\n";
+    echo $blob->getContent(), PHP_EOL;
 } elseif ($blob->isBinary()) {
-    echo "File is binary\n";
+    echo 'File is binary', PHP_EOL;
 }
 ```

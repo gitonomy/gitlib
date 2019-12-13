@@ -28,10 +28,10 @@ Available options are:
 An example:
 
 ```php
-$repository = new Repository('/path/to/repo', array(
+$repository = new Repository('/path/to/repo', [
     'debug'  => true,
-    'logger' => new Monolog\Logger()
-));
+    'logger' => new Monolog\Logger(),
+]);
 ```
 
 Test if a repository is bare
@@ -59,7 +59,7 @@ The returned size is in kilobytes:
 ```php
 $size = $repository->getSize();
 
-echo "Your repository size is ".$size."KB";
+echo 'Your repository size is '.$size.'KB';
 ```
 
 Access HEAD
@@ -74,7 +74,7 @@ $head = $repository->getHead(); // Commit or Reference
 $head = $repository->getHeadCommit(); // Commit
 
 if ($repository->isHeadDetached()) {
-    echo "Sorry man\n";
+    echo 'Sorry man'.PHP_EOL;
 }
 ```
 
@@ -91,15 +91,15 @@ You call method `setLogger` as an option on repository creation:
 ```php
 $repository->setLogger(new Monolog\Logger('repository'));
 
-$repository->run('fetch', array('--all'));
+$repository->run('fetch', ['--all']);
 ```
 
 You can also specify as an option on repository creation:
 
 ```php
 $logger = new MonologLogger('repository');
-$repository = new Repository('/path/foo', array('logger' => $logger));
-$repository->run('fetch', array('--all'));
+$repository = new Repository('/path/foo', ['logger' => $logger]);
+$repository->run('fetch', ['--all']);
 ```
 
 This will output:
@@ -120,7 +120,7 @@ This will make `Repository` log errors and return empty data instead of
 throwing exceptions. 
 
 ```php
-$repository = new Repository('/tmp/foo', array('debug' => false, 'logger' => $logger));
+$repository = new Repository('/tmp/foo', ['debug' => false, 'logger' => $logger]);
 ```
 
 > **note**
@@ -135,7 +135,7 @@ calls. If you have a git binary located somewhere else, use this option to
 specify to gitlib path to your git binary:
 
 ```php
-$repository = new Gitonomy\Git\Repository('/tmp/foo', array('command' => '/home/alice/bin/git')); 
+$repository = new Gitonomy\Git\Repository('/tmp/foo', ['command' => '/home/alice/bin/git']); 
 ```
 
 ### Environment variables
@@ -143,5 +143,5 @@ $repository = new Gitonomy\Git\Repository('/tmp/foo', array('command' => '/home/
 It is possible to send environment variables to the `git` commands.
 
 ```php
-$repository = new Gitonomy\Git\Repository('/tmp/foo', array('environment_variables' => array('GIT_')))
+$repository = new Gitonomy\Git\Repository('/tmp/foo', ['environment_variables' => ['GIT_']])
 ```

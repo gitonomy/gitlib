@@ -26,10 +26,10 @@ function displayTree(Tree $tree, $indent = 0)
     foreach ($tree->getEntries() as $name => $data) {
         list($mode, $entry) = $data;
         if ($entry instanceof Tree) {
-            echo $indent.$name."/\n";
+            echo $indent.$name.'/'.PHP_EOL;
             displayTree($tree, $indent + 1);
         } else {
-            echo $indent.$name."\n";
+            echo $indent.$name.PHP_EOL;
         }
     }
 }

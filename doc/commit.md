@@ -31,7 +31,7 @@ For example, if you want to display all parents, starting from a commit:
 
 ```php
 function displayLog(Gitonomy\Git\Commit $commit) {
-    echo '- '.$commit->getShortMessage()."\n";
+    echo '- '.$commit->getShortMessage().PHP_EOL;
     foreach ($commit->getParents() as $parent) {
         displayLog($parent);
     }
@@ -155,10 +155,10 @@ Here is a very straightforward example:
 ```php
 $last = $commit->getLastModification('README');
 
-echo "Last README modification:\n";
-echo"  Author: ".$last->getAuthorName()."\n";
-echo"    Date: ".$last->getAuthorDate()->format('d/m/Y')."\n";
-echo" Message: ".$last->getMessage();
+echo 'Last README modification'.PHP_EOL;
+echo '  Author: '.$last->getAuthorName().PHP_EOL;
+echo '    Date: '.$last->getAuthorDate()->format('d/m/Y').PHP_EOL;
+echo ' Message: '.$last->getMessage();
 ```
 
 Find every branches containing a commit

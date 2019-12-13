@@ -32,11 +32,11 @@ represents the modifications for a single file.
 
 ```php
 $files = $diff->getFiles();
-echo sprintf("%s files modified", count($files));
+echo sprintf('%s files modified%s', count($files), PHP_EOL);
 
 foreach ($files as $fileDiff) {
-    echo sprintf("Old name: (%s) %s\n", $fileDiff->getOldMode(), $fileDiff->getOldName());
-    echo sprintf("New name: (%s) %s\n", $fileDiff->getNewMode(), $fileDiff->getNewName());
+    echo sprintf('Old name: (%s) %s%s', $fileDiff->getOldMode(), $fileDiff->getOldName(), PHP_EOL);
+    echo sprintf('New name: (%s) %s%s', $fileDiff->getNewMode(), $fileDiff->getNewName(), PHP_EOL);
 }
 ```
 
@@ -86,11 +86,11 @@ foreach ($changes as $change) {
     foreach ($lines as $data) {
         list ($type, $line) = $data;
         if ($type === FileChange::LINE_CONTEXT) {
-            echo ' '.$line."\n";
+            echo ' '.$line.PHP_EOL;
         } elseif ($type === FileChange::LINE_ADD) {
-            echo '+'.$line."\n";
+            echo '+'.$line.PHP_EOL;
         } else {
-            echo '-'.$line."\n";
+            echo '-'.$line.PHP_EOL;
         }
     }
 }
@@ -99,6 +99,6 @@ foreach ($changes as $change) {
 To get line numbers, use the range methods:
 
 ```php
-echo sprintf("Previously from line %s to %s\n", $change->getOldRangeStart(), $change->getOldRangeEnd());
-echo sprintf("Now from line %s to %s\n", $change->getNewRangeStart(), $change->getNewRangeEnd());
+echo sprintf('Previously from line %s to %s%s', $change->getOldRangeStart(), $change->getOldRangeEnd(), PHP_EOL);
+echo sprintf('Now from line %s to %s%s', $change->getNewRangeStart(), $change->getNewRangeEnd(), PHP_EOL);
 ```

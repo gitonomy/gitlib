@@ -15,7 +15,7 @@ First, you can test existence of tags and branches like this:
 
 ```php
 if ($references->hasBranch('master') && $references->hasTag('0.1')) {
-    echo "Good start!";
+    echo 'Good start!'.PHP_EOL;
 }
 ```
 
