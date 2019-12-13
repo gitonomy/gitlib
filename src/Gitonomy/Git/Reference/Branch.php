@@ -79,7 +79,11 @@ class Branch extends Reference
         try {
             $result = $this->repository->run('branch', $arguments);
         } catch (ProcessException $e) {
-            throw new RuntimeException(sprintf('Cannot determine if merged to the branch branch "%s"', $destinationBranchName));
+            throw new RuntimeException(
+                sprintf('Cannot determine if merged to the branch "%s"', $destinationBranchName),
+                $e->getCode(),
+                $e
+            );
         }
 
         $output = explode("\n", trim(str_replace(['*', 'remotes/'], '', $result)));
