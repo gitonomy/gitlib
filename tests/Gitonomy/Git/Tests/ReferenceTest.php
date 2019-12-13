@@ -202,4 +202,28 @@ class ReferenceTest extends AbstractTest
         $branch->delete();
         $this->assertFalse($references->hasBranch('foobar'), 'Branch foobar removed');
     }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testIsBranchMergedToMaster()
+    {
+        $repository = self::createFoobarRepository(false);
+
+        $master = $repository->getReferences()->getBranch('master');
+        $references = $repository->getReferences();
+        $branch = $references->createBranch('foobar-new', $master->getCommit()->getHash());
+
+        $this->assertTrue($branch->isMergedTo('master'));
+
+        $wc = $repository->getWorkingCopy();
+        $wc->checkout('foobar-new');
+
+        $file = $repository->getWorkingDir().'/foobar-test.txt';
+        file_put_contents($file, 'test');
+        $repository->run('add', [$file]);
+        $repository->run('commit', ['-m', 'foobar-test.txt updated']);
+
+        $this->assertFalse($branch->isMergedTo('master'));
+    }
 }
