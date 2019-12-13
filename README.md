@@ -44,7 +44,7 @@ foreach ($repository->getReferences()->getBranches() as $branch) {
     echo "- ".$branch->getName().PHP_EOL;
 }
 
-$repository->run('fetch', array('--all'));
+$repository->run('fetch', ['--all']);
 ```
 
 API Documentation
