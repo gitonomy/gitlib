@@ -29,6 +29,10 @@ class ReferenceBagTest extends AbstractTest
         $repository->run('update-ref', ['refs/notes/gtm-data', $hash]);
 
         $refs = $repository->getReferences()->getAll();
-        $this->assertIsArray($refs);
+        if (method_exists($this, 'assertIsArray')) {
+            $this->assertIsArray($refs);
+        } else {
+            $this->assertInternalType('array', $refs);
+        }
     }
 }
