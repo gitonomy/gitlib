@@ -370,6 +370,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
                 // Do nothing here
             } elseif ($fullname === 'refs/notes/gtm-data') {
                 // Do nothing here
+            } elseif ($fullname === 'refs/notes/commits') {
+                // Do nothing here
             } else {
                 throw new RuntimeException(sprintf('Unable to parse "%s"', $fullname));
             }
