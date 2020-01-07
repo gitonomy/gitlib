@@ -34,5 +34,14 @@ class ReferenceBagTest extends AbstractTest
         } else {
             $this->assertInternalType('array', $refs);
         }
+
+        // Check that at least it has the master ref
+        $this->assertArrayHasKey('refs/heads/master', $refs);
+
+        // Check that our custom refs have been ignored
+        $this->assertArrayNotHasKey('refs/pipelines/1', $refs);
+        $this->assertArrayNotHasKey('refs/merge-request/1/head', $refs);
+        $this->assertArrayNotHasKey('refs/pull/1/head', $refs);
+        $this->assertArrayNotHasKey('refs/notes/gtm-data', $refs);
     }
 }
