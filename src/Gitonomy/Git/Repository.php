@@ -509,7 +509,7 @@ class Repository
         foreach ($files as $file) {
             $this->run('add', [$file]);
         }
-        
+
         return $this;
     }
 
@@ -523,7 +523,7 @@ class Repository
         foreach ($files as $file) {
             $this->run('restore', ['--staged', $file]);
         }
-        
+
         return $this;
     }
 
@@ -537,13 +537,13 @@ class Repository
         foreach ($files as $file) {
             $this->run('checkout', ['--', $file]);
         }
-        
+
         return $this;
     }
 
     /**
      * Creates a commit with the message provided.
-     * Optionally stages files provided
+     * Optionally stages files provided.
      *
      * @return Repository the current repository
      */
@@ -551,7 +551,7 @@ class Repository
     {
         $this->stage(...$files);
         $this->run('commit', ['-m', $message]);
-        
+
         return $this;
     }
 
@@ -563,7 +563,7 @@ class Repository
     public function pull()
     {
         $this->run('pull');
-        
+
         return $this;
     }
 
@@ -575,7 +575,7 @@ class Repository
     public function push()
     {
         $this->run('push');
-        
+
         return $this;
     }
 
