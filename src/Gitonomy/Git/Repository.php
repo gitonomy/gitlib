@@ -507,10 +507,10 @@ class Repository
     public function stage(string ...$files)
     {
         foreach ($files as $file) {
-            $this->run('add', [ $file ]);
+            $this->run('add', [$file]);
         }
 		
-	return $this;
+	    return $this;
     }
 
     /**
@@ -521,10 +521,10 @@ class Repository
     public function unstage(string ...$files)
     {
         foreach ($files as $file) {
-            $this->run('restore', [ '--staged', $file ]);
+            $this->run('restore', ['--staged', $file]);
         }
 		
-	return $this;
+	    return $this;
     }
 
     /**
@@ -535,10 +535,10 @@ class Repository
     public function discard(string ...$files)
     {
         foreach ($files as $file) {
-            $this->run('checkout', [ '--', $file ]);
+            $this->run('checkout', ['--', $file]);
         }
 		
-	return $this;
+	    return $this;
     }
 
     /**
@@ -551,9 +551,9 @@ class Repository
     {
         $this->stage(...$files);
 
-        $this->run('commit', [ '-m', $message ]);
+        $this->run('commit', ['-m', $message]);
 		
-	return $this;
+	    return $this;
     }
 
     /**
@@ -565,7 +565,7 @@ class Repository
     {
         $this->run('pull');
 		
-	return $this;
+	    return $this;
     }
 
     /**
@@ -576,8 +576,8 @@ class Repository
     public function push()
     {
         $this->run('push');
-		
-	return $this;
+	    
+    	return $this;
     }
 
     /**
