@@ -506,12 +506,11 @@ class Repository
      */
     public function stage(string ...$files)
     {
-        foreach($files as $file)
-        {
+        foreach ($files as $file) {
             $this->run('add', [ $file ]);
         }
 		
-		return $this;
+	return $this;
     }
 
     /**
@@ -521,12 +520,11 @@ class Repository
      */
     public function unstage(string ...$files)
     {
-        foreach($files as $file)
-        {
+        foreach ($files as $file) {
             $this->run('restore', [ '--staged', $file ]);
         }
 		
-		return $this;
+	return $this;
     }
 
     /**
@@ -536,17 +534,16 @@ class Repository
      */
     public function discard(string ...$files)
     {
-        foreach($files as $file)
-        {
+        foreach ($files as $file) {
             $this->run('checkout', [ '--', $file ]);
         }
 		
-		return $this;
+	return $this;
     }
 
     /**
      * Creates a commit with the message provided.
-	 * Optionally stages files provided
+     * Optionally stages files provided
      *
      * @return Repository the current repository
      */
@@ -556,7 +553,7 @@ class Repository
 
         $this->run('commit', [ '-m', $message ]);
 		
-		return $this;
+	return $this;
     }
 
     /**
@@ -568,7 +565,7 @@ class Repository
     {
         $this->run('pull');
 		
-		return $this;
+	return $this;
     }
 
     /**
@@ -580,7 +577,7 @@ class Repository
     {
         $this->run('push');
 		
-		return $this;
+	return $this;
     }
 
     /**
