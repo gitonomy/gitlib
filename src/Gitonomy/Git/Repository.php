@@ -500,6 +500,90 @@ class Repository
     }
 
     /**
+     * Stages the files provided by arguments.
+     *
+     * @return Repository the current repository
+     */
+    public function stage(string ...$files)
+    {
+        foreach($files as $file)
+        {
+            $this->run('add', [ $file ]);
+        }
+		
+		return $this;
+    }
+
+    /**
+     * Unstages the files provided by arguments.
+     *
+     * @return Repository the current repository
+     */
+    public function unstage(string ...$files)
+    {
+        foreach($files as $file)
+        {
+            $this->run('restore', [ '--staged', $file ]);
+        }
+		
+		return $this;
+    }
+
+    /**
+     * Discards file changed from files provided by arguments.
+     *
+     * @return Repository the current repository
+     */
+    public function discard(string ...$files)
+    {
+        foreach($files as $file)
+        {
+            $this->run('checkout', [ '--', $file ]);
+        }
+		
+		return $this;
+    }
+
+    /**
+     * Creates a commit with the message provided.
+	 * Optionally stages files provided
+     *
+     * @return Repository the current repository
+     */
+    public function commit(string $message, string ...$files)
+    {
+        $this->stage(...$files);
+
+        $this->run('commit', [ '-m', $message ]);
+		
+		return $this;
+    }
+
+    /**
+     * Executes pull command.
+     *
+     * @return Repository the current repository
+     */
+    public function pull()
+    {
+        $this->run('pull');
+		
+		return $this;
+    }
+
+    /**
+     * Executes push command.
+     *
+     * @return Repository the current repository
+     */
+    public function push()
+    {
+        $this->run('push');
+		
+		return $this;
+    }
+
+    /**
      * Changes the repository description (file description in git-directory).
      *
      * @return Repository the current repository
