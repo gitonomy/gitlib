@@ -500,57 +500,18 @@ class Repository
     }
 
     /**
-     * Stages the files provided by arguments.
+     * Changes the repository description (file description in git-directory).
      *
      * @return Repository the current repository
      */
-    public function stage(string ...$files)
+    public function setDescription($description)
     {
-        foreach ($files as $file) {
-            $this->run('add', [$file]);
+        $file = $this->gitDir.'/description';
+
+        if (null !== $this->logger && true === $this->debug) {
+            $this->logger->debug(sprintf('change description file content to "%s" (file: %s)', $description, $file));
         }
-
-        return $this;
-    }
-
-    /**
-     * Unstages the files provided by arguments.
-     *
-     * @return Repository the current repository
-     */
-    public function unstage(string ...$files)
-    {
-        foreach ($files as $file) {
-            $this->run('restore', ['--staged', $file]);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Discards file changed from files provided by arguments.
-     *
-     * @return Repository the current repository
-     */
-    public function discard(string ...$files)
-    {
-        foreach ($files as $file) {
-            $this->run('checkout', ['--', $file]);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Creates a commit with the message provided.
-     * Optionally stages files provided.
-     *
-     * @return Repository the current repository
-     */
-    public function commit(string $message, string ...$files)
-    {
-        $this->stage(...$files);
-        $this->run('commit', ['-m', $message]);
+        file_put_contents($file, $description);
 
         return $this;
     }
@@ -575,23 +536,6 @@ class Repository
     public function push()
     {
         $this->run('push');
-
-        return $this;
-    }
-
-    /**
-     * Changes the repository description (file description in git-directory).
-     *
-     * @return Repository the current repository
-     */
-    public function setDescription($description)
-    {
-        $file = $this->gitDir.'/description';
-
-        if (null !== $this->logger && true === $this->debug) {
-            $this->logger->debug(sprintf('change description file content to "%s" (file: %s)', $description, $file));
-        }
-        file_put_contents($file, $description);
 
         return $this;
     }
