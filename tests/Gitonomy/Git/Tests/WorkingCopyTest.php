@@ -120,7 +120,7 @@ class WorkingCopyTest extends AbstractTest
         file_put_contents($file, 'test');
 
         $this->assertContains('test.sh', $wc->getDiffPending());
-        
+
         $wc->stage('test.sh');
 
         $this->assertContains('test.sh', $wc->getDiffStaged());
@@ -133,10 +133,10 @@ class WorkingCopyTest extends AbstractTest
 
         $file = $repository->getWorkingDir().'/test.sh';
         file_put_contents($file, 'test');
-        
+
         $wc->stage('test.sh');
         $this->assertContains('test.sh', $wc->getDiffStaged());
-        
+
         $wc->unstage('test.sh');
         $this->assertContains('test.sh', $wc->getDiffPending());
     }
@@ -148,11 +148,11 @@ class WorkingCopyTest extends AbstractTest
 
         $file = $repository->getWorkingDir().'/test.sh';
         file_put_contents($file, 'test');
-        
+
         $this->assertContains('test.sh', $wc->getDiffPending());
-        
+
         $wc->discard('test.sh');
-        
+
         $diffPending = $wc->getDiffPending();
         $this->assertCount(0, $diffPending->getFiles());
     }
@@ -164,11 +164,11 @@ class WorkingCopyTest extends AbstractTest
 
         $file = $repository->getWorkingDir().'/test.sh';
         file_put_contents($file, 'test');
-        
+
         $this->assertContains('test.sh', $wc->getDiffPending());
-        
+
         $wc->commit('this is the commit message', 'John Doe', 'test.sh');
-        
+
         $diffPending = $wc->getDiffPending();
         $this->assertCount(0, $diffPending->getFiles());
     }
