@@ -94,6 +94,62 @@ class WorkingCopy
         return $this;
     }
 
+    /**
+     * Stages the files provided by arguments.
+     *
+     * @return Repository the current repository
+     */
+    public function stage(string ...$files)
+    {
+        foreach ($files as $file) {
+            $this->run('add', [$file]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Unstages the files provided by arguments.
+     *
+     * @return Repository the current repository
+     */
+    public function unstage(string ...$files)
+    {
+        foreach ($files as $file) {
+            $this->run('restore', ['--staged', $file]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Discards file changed from files provided by arguments.
+     *
+     * @return Repository the current repository
+     */
+    public function discard(string ...$files)
+    {
+        foreach ($files as $file) {
+            $this->run('checkout', ['--', $file]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Creates a commit with the message provided.
+     * Optionally stages files provided.
+     *
+     * @return Repository the current repository
+     */
+    public function commit(string $message, string ...$files)
+    {
+        $this->stage(...$files);
+        $this->run('commit', ['-m', $message]);
+
+        return $this;
+    }
+
     protected function run($command, array $args = [])
     {
         return $this->repository->run($command, $args);
