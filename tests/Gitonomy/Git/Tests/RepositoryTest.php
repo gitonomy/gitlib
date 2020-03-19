@@ -26,7 +26,7 @@ class RepositoryTest extends AbstractTest
         $blob = $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('README.md');
 
         $this->assertInstanceOf(Blob::class, $blob, 'getBlob() returns a Blob object');
-        $this->assertContains('Foo Bar project', $blob->getContent(), 'file is correct');
+        $this->assertStringContainsString('Foo Bar project', $blob->getContent(), 'file is correct');
     }
 
     /**

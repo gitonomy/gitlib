@@ -30,7 +30,7 @@ class BlobTest extends AbstractTest
     {
         $blob = $this->getReadmeBlob($repository);
 
-        $this->assertContains(self::README_FRAGMENT, $blob->getContent());
+        $this->assertStringContainsString(self::README_FRAGMENT, $blob->getContent());
     }
 
     /**

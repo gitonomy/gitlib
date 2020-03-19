@@ -19,7 +19,7 @@ class HooksTest extends AbstractTest
 {
     private static $symlinkOnWindows = null;
 
-    public static function setUpBeforeClass()
+    public static function setUpBeforeClass() : void
     {
         if (defined('PHP_WINDOWS_VERSION_MAJOR')) {
             self::$symlinkOnWindows = true;
