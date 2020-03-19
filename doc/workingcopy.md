@@ -76,10 +76,10 @@ $wc->discard('file1.txt', 'file2.txt');
 Commiting
 ---------
 
-You can unstage files by calling `unstage(message, author, ...files)`:
+You can commit changed files by calling `commit(message, author, ...files)`:
 
 NOTE :: this will commit all staged files, the ...files argument simply stages those files before commiting, if you already have files staged by having called `stage(...files)` these files are included in the commit
 
 ```php
-$wc->commin('summary', 'author', 'file1.txt', 'file2.txt');
+$wc->commit('summary', 'author', 'file1.txt', 'file2.txt');
 ```
