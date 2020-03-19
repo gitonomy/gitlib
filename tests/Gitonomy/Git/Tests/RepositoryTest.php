@@ -60,7 +60,7 @@ class RepositoryTest extends AbstractTest
      */
     public function testPull($repository)
     {
-        $this->assert($repository->pull());
+        $this->assertIsBool($repository->pull());
     }
 
     /*
@@ -68,7 +68,7 @@ class RepositoryTest extends AbstractTest
      */
     public function testPush($repository)
     {
-        $this->assert($repository->push());
+        $this->assertIsBool($repository->push());
     }
 
     /**
