@@ -45,3 +45,41 @@ You can get pending modifications on tracked files by calling method
 ```php
 $diff = $wc->getDiffPending();
 ```
+
+Staging file(s)
+---------------
+
+You can stage changed files by calling `stage(...files)`:
+
+```php
+$wc->stage('file1.txt', 'file2.txt');
+```
+
+Unstaging file(s)
+-----------------
+
+You can unstage files by calling `unstage(...files)`:
+
+```php
+$wc->unstage('file1.txt', 'file2.txt');
+```
+
+Discard file(s) changes
+-----------------------
+
+You can discard file(s) changed by calling `discard(...files)`:
+
+```php
+$wc->discard('file1.txt', 'file2.txt');
+```
+
+Commiting
+---------
+
+You can unstage files by calling `unstage(message, author, ...files)`:
+
+NOTE :: this will commit all staged files, the ...files argument simply stages those files before commiting, if you already have files staged by having called `stage(...files)` these files are included in the commit
+
+```php
+$wc->commin('summary', 'author', 'file1.txt', 'file2.txt');
+```
