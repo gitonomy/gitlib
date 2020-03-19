@@ -521,7 +521,7 @@ class Repository
      *
      * @return Repository the current repository
      */
-    public function pull(): bool
+    public function pull()
     {
         $result = $this->run('pull');
 
@@ -533,7 +533,7 @@ class Repository
      *
      * @return Repository the current repository
      */
-    public function push(): bool
+    public function push()
     {
         $result = $this->run('push');
 
