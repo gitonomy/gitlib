@@ -411,30 +411,19 @@ class Repository
     /**
      * Returns the size of repository, in kilobytes.
      *
-     * @throws RuntimeException An error occurred while computing size
-     *
      * @return int A sum, in kilobytes
      */
     public function getSize()
     {
-        $process = new Process(['du', '-skc', $this->gitDir]);
-        $process->run();
-
-        if (!preg_match('/(\d+)\s+total$/', trim($process->getOutput()), $vars)) {
-            $message = sprintf("Unable to parse process output\ncommand: %s\noutput: %s", $process->getCommandLine(), $process->getOutput());
-
-            if (null !== $this->logger) {
-                $this->logger->error($message);
+        $totalKilobytes = 0;
+        $path = realpath($this->gitDir);
+        if ($path && file_exists($path)) {
+            foreach(new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)) as $object) {
+                $totalKilobytes += $object->getSize() / 1024;
             }
-
-            if (true === $this->debug) {
-                throw new RuntimeException('unable to parse repository size output');
-            }
-
-            return;
         }
 
-        return $vars[1];
+        return (int)($totalKilobytes + 0.5);
     }
 
     /**
