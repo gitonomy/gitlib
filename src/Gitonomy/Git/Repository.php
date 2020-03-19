@@ -521,11 +521,11 @@ class Repository
      *
      * @return Repository the current repository
      */
-    public function pull()
+    public function pull(): bool
     {
-        $this->run('pull');
-
-        return $this;
+        $result = $this->run('pull');
+        
+        return preg_match('/\d file changed, \d insertion(+), \d deletion(-)/', $result) === 1;
     }
 
     /**
@@ -533,11 +533,11 @@ class Repository
      *
      * @return Repository the current repository
      */
-    public function push()
+    public function push(): bool
     {
-        $this->run('push');
+        $result = $this->run('push');
 
-        return $this;
+        return strpos($result, 'Writing objects: 100%') !== false;
     }
 
     /**
