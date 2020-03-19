@@ -110,4 +110,66 @@ class WorkingCopyTest extends AbstractTest
 
         $this->assertContains('untracked.txt', $wc->getUntrackedFiles());
     }
+
+    public function testStage()
+    {
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
+
+        $file = $repository->getWorkingDir().'/test.sh';
+        file_put_contents($file, 'test');
+
+        $this->assertContains('test.sh', $wc->getDiffPending());
+        
+        $wc->stage('test.sh');
+
+        $this->assertContains('test.sh', $wc->getDiffStaged());
+    }
+
+    public function testUnstage()
+    {
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
+
+        $file = $repository->getWorkingDir().'/test.sh';
+        file_put_contents($file, 'test');
+        
+        $wc->stage('test.sh');
+        $this->assertContains('test.sh', $wc->getDiffStaged());
+        
+        $wc->unstage('test.sh');
+        $this->assertContains('test.sh', $wc->getDiffPending());
+    }
+
+    public function testDiscard()
+    {
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
+
+        $file = $repository->getWorkingDir().'/test.sh';
+        file_put_contents($file, 'test');
+        
+        $this->assertContains('test.sh', $wc->getDiffPending());
+        
+        $wc->discard('test.sh');
+        
+        $diffPending = $wc->getDiffPending();
+        $this->assertCount(0, $diffPending->getFiles());
+    }
+
+    public function testCommit()
+    {
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
+
+        $file = $repository->getWorkingDir().'/test.sh';
+        file_put_contents($file, 'test');
+        
+        $this->assertContains('test.sh', $wc->getDiffPending());
+        
+        $wc->commit('this is the commit message', 'John Doe', 'test.sh');
+        
+        $diffPending = $wc->getDiffPending();
+        $this->assertCount(0, $diffPending->getFiles());
+    }
 }
