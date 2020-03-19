@@ -54,7 +54,7 @@ class RepositoryTest extends AbstractTest
     {
         $this->assertSame("Unnamed repository; edit this file 'description' to name the repository.\n", $repository->getDescription());
     }
-    
+
     /*
      * @dataProvider provideFoobar
      */
@@ -62,7 +62,7 @@ class RepositoryTest extends AbstractTest
     {
         $this->assert($repository->pull());
     }
-    
+
     /*
      * @dataProvider provideFoobar
      */
