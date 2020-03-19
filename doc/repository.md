@@ -145,3 +145,21 @@ It is possible to send environment variables to the `git` commands.
 ```php
 $repository = new Gitonomy\Git\Repository('/tmp/foo', ['environment_variables' => ['GIT_']])
 ```
+
+Pull
+----
+
+You can pull changed from remote by calling `pull()`:
+
+```php
+$repository->pull();
+```
+
+Push
+----
+
+You can pull changed from remote by calling `push()`:
+
+```php
+$repository->push();
+```
