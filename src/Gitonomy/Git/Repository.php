@@ -524,7 +524,7 @@ class Repository
     public function pull(): bool
     {
         $result = $this->run('pull');
-        
+
         return preg_match('/\d file changed, \d insertion(+), \d deletion(-)/', $result) === 1;
     }
 
