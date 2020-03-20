@@ -411,30 +411,64 @@ class Repository
     /**
      * Returns the size of repository, in kilobytes.
      *
-     * @throws RuntimeException An error occurred while computing size
-     *
      * @return int A sum, in kilobytes
      */
     public function getSize()
     {
+        if (!defined('PHP_WINDOWS_VERSION_BUILD')) {
+            try {
+                return $this->getSizeViaDu();
+            } catch (RuntimeException $e) {
+                // ignore exception
+            }
+        }
+
+        return $this->getSizeViaPhp();
+    }
+
+    /**
+     * Returns the size of repository, in kilobytes.
+     *
+     * @throws RuntimeException An error occurred while computing size
+     *
+     * @return int A sum, in kilobytes
+     */
+    private function getSizeViaDu()
+    {
         $process = new Process(['du', '-skc', $this->gitDir]);
         $process->run();
 
-        if (!preg_match('/(\d+)\s+total$/', trim($process->getOutput()), $vars)) {
+        if (preg_match('/(\d+)\s+total$/', trim($process->getOutput()), $vars)) {
             $message = sprintf("Unable to parse process output\ncommand: %s\noutput: %s", $process->getCommandLine(), $process->getOutput());
 
             if (null !== $this->logger) {
                 $this->logger->error($message);
             }
 
-            if (true === $this->debug) {
-                throw new RuntimeException('unable to parse repository size output');
-            }
-
-            return;
+            throw new RuntimeException('Unable to parse repository size output');
         }
 
         return $vars[1];
+    }
+
+    /**
+     * Returns the size of repository, in kilobytes.
+     *
+     * @return int A sum, in kilobytes
+     */
+    private function getSizeViaPhp()
+    {
+        $totalKilobytes = 0;
+        $path = realpath($this->gitDir);
+
+        if ($path && file_exists($path)) {
+            $iterator = new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS);
+            foreach (new \RecursiveIteratorIterator($iterator) as $object) {
+                $totalKilobytes += $object->getSize() / 1024;
+            }
+        }
+
+        return (int) ($totalKilobytes + 0.5);
     }
 
     /**
