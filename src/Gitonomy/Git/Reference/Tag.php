@@ -57,22 +57,22 @@ class Tag extends Reference
      */
     public function getCommit()
     {
-         if ($this->isAnnotated()) {
-             try {
-                 $output = $this->repository->run('show-ref', ['-d', '--tag', $this->revision]);
-                 $parser = new ReferenceParser();
-                 $parser->parse($output);
+        if ($this->isAnnotated()) {
+            try {
+                $output = $this->repository->run('show-ref', ['-d', '--tag', $this->revision]);
+                $parser = new ReferenceParser();
+                $parser->parse($output);
 
-                 foreach ($parser->references as $row) {
-                     list($commitHash, $fullname) = $row;
-                 }
+                foreach ($parser->references as $row) {
+                    list($commitHash, $fullname) = $row;
+                }
 
-                 return $this->repository->getCommit($commitHash);
-             } catch (ProcessException $e) {
-             }
-         }
+                return $this->repository->getCommit($commitHash);
+            } catch (ProcessException $e) {
+            }
+        }
 
-         return parent::getCommit();
+        return parent::getCommit();
     }
 
     /**

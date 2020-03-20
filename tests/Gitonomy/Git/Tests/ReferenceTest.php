@@ -98,7 +98,7 @@ class ReferenceTest extends AbstractTest
         $this->assertEquals('heading', $tag->getSubjectMessage(), 'Message heading is correct');
         $this->assertEquals("body\nbody", $tag->getBodyMessage(), 'Message body is correct');
 
-        $closure = function() {
+        $closure = function () {
             return parent::getCommit();
         };
         $parentCommit = $closure->bindTo($tag, Tag::class);
