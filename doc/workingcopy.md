@@ -73,7 +73,7 @@ You can discard file(s) changed by calling `discard(...files)`:
 $wc->discard('file1.txt', 'file2.txt');
 ```
 
-Commiting
+Committing
 ---------
 
 You can commit changed files by calling `commit(message, author, ...files)`:
