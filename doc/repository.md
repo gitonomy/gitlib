@@ -158,7 +158,7 @@ $repository->pull();
 Push
 ----
 
-You can pull changed from remote by calling `push()`:
+You can push changes to remote by calling `push()`:
 
 ```php
 $repository->push();
