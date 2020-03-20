@@ -149,7 +149,7 @@ $repository = new Gitonomy\Git\Repository('/tmp/foo', ['environment_variables' =
 Pull
 ----
 
-You can pull changed from remote by calling `pull()`:
+You can pull changes from remote by calling `pull()`:
 
 ```php
 $repository->pull();
