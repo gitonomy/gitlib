@@ -1,7 +1,7 @@
 Gitlib for Gitonomy
 ===================
 
-[![Build Status](https://img.shields.io/travis/gitonomy/gitlib/master.svg?style=flat-square)](https://travis-ci.org/gitonomy/gitlib)
+[![Build Status](https://img.shields.io/travis/com/gitonomy/gitlib/master.svg?style=flat-square)](https://travis-ci.com/gitonomy/gitlib)
 [![StyleCI](https://github.styleci.io/repos/5709354/shield?branch=master)](https://github.styleci.io/repos/5709354)
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
