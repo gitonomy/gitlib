@@ -419,11 +419,11 @@ class Repository
         $path = realpath($this->gitDir);
         if ($path && file_exists($path)) {
             foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)) as $object) {
-                $totalKilobytes += $object->getSize() / 1024;
+                $totalKilobytes += $object->getSize();
             }
         }
 
-        return (int) ($totalKilobytes + 0.5);
+        return (int) (($totalKilobytes / 1024) + 0.5);
     }
 
     /**
