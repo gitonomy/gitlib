@@ -163,7 +163,7 @@ class WorkingCopy
     public function commit($message, $author = null, array $files = [])
     {
         $this->stage($files);
-        
+
         if ($author === null) {
             $this->run('commit', ['-m', $message]);
         } else {
