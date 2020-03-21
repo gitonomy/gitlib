@@ -415,15 +415,15 @@ class Repository
      */
     public function getSize()
     {
-        $totalKilobytes = 0;
+        $totalBytes = 0;
         $path = realpath($this->gitDir);
         if ($path && file_exists($path)) {
             foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)) as $object) {
-                $totalKilobytes += $object->getSize();
+                $totalBytes += $object->getSize();
             }
         }
 
-        return (int) ($totalKilobytes / 1000 + 0.5);
+        return (int) ($totalBytes / 1000 + 0.5);
     }
 
     /**
