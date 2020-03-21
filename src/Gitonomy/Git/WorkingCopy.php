@@ -108,7 +108,7 @@ class WorkingCopy
      *
      * @return Repository the current repository
      */
-    public function stage(array $files)
+    public function stage(array $files = [])
     {
         foreach ($files as $file) {
             $this->run('add', [$file]);
@@ -124,7 +124,7 @@ class WorkingCopy
      *
      * @return Repository the current repository
      */
-    public function unstage(array $files)
+    public function unstage(array $files = [])
     {
         foreach ($files as $file) {
             $this->run('restore', ['--staged', $file]);
@@ -140,7 +140,7 @@ class WorkingCopy
      *
      * @return Repository the current repository
      */
-    public function discard(array $files)
+    public function discard(array $files = [])
     {
         foreach ($files as $file) {
             $this->run('checkout', ['--', $file]);
@@ -154,15 +154,21 @@ class WorkingCopy
      *
      * Optionally stages files provided.
      *
-     * @param string   $message
-     * @param string[] $files
+     * @param string      $message
+     * @param string|null $author
+     * @param string[]    $files
      *
      * @return Repository the current repository
      */
-    public function commit($message, array $files)
+    public function commit($message, $author = null, array $files = [])
     {
         $this->stage($files);
-        $this->run('commit', ['-m', $message]);
+        
+        if ($author === null) {
+            $this->run('commit', ['-m', $message]);
+        } else {
+            $this->run('commit', ['-m', $message, sprintf('--author="%s"', $author)]);
+        }
 
         return $this;
     }
