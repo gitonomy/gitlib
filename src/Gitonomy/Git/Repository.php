@@ -61,9 +61,9 @@ class Repository
     protected $referenceBag;
 
     /**
-     * Logger (can be null).
+     * The logger instance (can be null).
      *
-     * @var LoggerInterface
+     * @var LoggerInterface|null
      */
     protected $logger;
 
@@ -519,7 +519,7 @@ class Repository
     /**
      * Executes pull command.
      *
-     * @return Repository the current repository
+     * @return bool True if there was anything to do
      */
     public function pull()
     {
@@ -531,7 +531,7 @@ class Repository
     /**
      * Executes push command.
      *
-     * @return Repository the current repository
+     * @return bool True if there was anything to do
      */
     public function push()
     {
@@ -541,8 +541,9 @@ class Repository
     }
 
     /**
-     * This command is a facility command. You can run any command
-     * directly on git repository.
+     * This command is a facility command.
+     *
+     * You can run any command directly on the git repository.
      *
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
@@ -605,7 +606,7 @@ class Repository
     /**
      * Returns repository logger.
      *
-     * @return LoggerInterface the logger or null
+     * @return LoggerInterface|null the logger or null
      */
     public function getLogger()
     {
