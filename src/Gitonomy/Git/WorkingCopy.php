@@ -70,6 +70,13 @@ class WorkingCopy
     }
 
     /**
+     * Checkout the given revision.
+     *
+     * Optionally sets the branch.
+     *
+     * @param Commit|Reference|string $revision
+     * @param string|null             $branch
+     *
      * @return WorkingCopy
      */
     public function checkout($revision, $branch = null)
@@ -97,9 +104,11 @@ class WorkingCopy
     /**
      * Stages the files provided by arguments.
      *
+     * @param string[] $files
+     *
      * @return Repository the current repository
      */
-    public function stage(string ...$files)
+    public function stage(array $files)
     {
         foreach ($files as $file) {
             $this->run('add', [$file]);
@@ -111,9 +120,11 @@ class WorkingCopy
     /**
      * Unstages the files provided by arguments.
      *
+     * @param string[] $files
+     *
      * @return Repository the current repository
      */
-    public function unstage(string ...$files)
+    public function unstage(array $files)
     {
         foreach ($files as $file) {
             $this->run('restore', ['--staged', $file]);
@@ -125,9 +136,11 @@ class WorkingCopy
     /**
      * Discards file changed from files provided by arguments.
      *
+     * @param string[] $files
+     *
      * @return Repository the current repository
      */
-    public function discard(string ...$files)
+    public function discard(array $files)
     {
         foreach ($files as $file) {
             $this->run('checkout', ['--', $file]);
@@ -138,13 +151,17 @@ class WorkingCopy
 
     /**
      * Creates a commit with the message provided.
+     *
      * Optionally stages files provided.
+     *
+     * @param string   $message
+     * @param string[] $files
      *
      * @return Repository the current repository
      */
-    public function commit(string $message, string ...$files)
+    public function commit($message, array $files)
     {
-        $this->stage(...$files);
+        $this->stage($files);
         $this->run('commit', ['-m', $message]);
 
         return $this;
