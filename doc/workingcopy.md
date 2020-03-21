@@ -49,37 +49,39 @@ $diff = $wc->getDiffPending();
 Staging file(s)
 ---------------
 
-You can stage changed files by calling `stage(...files)`:
+You can stage changed files by calling `stage($files)`:
 
 ```php
-$wc->stage('file1.txt', 'file2.txt');
+$wc->stage(['file1.txt', 'file2.txt']);
 ```
 
 Unstaging file(s)
 -----------------
 
-You can unstage files by calling `unstage(...files)`:
+You can unstage files by calling `unstage($files)`:
 
 ```php
-$wc->unstage('file1.txt', 'file2.txt');
+$wc->unstage(['file1.txt', 'file2.txt']);
 ```
 
-Discard file(s) changes
------------------------
+Discarding file(s) changes
+--------------------------
 
-You can discard file(s) changed by calling `discard(...files)`:
+You can discard files changed by calling `discard($files)`:
 
 ```php
-$wc->discard('file1.txt', 'file2.txt');
+$wc->discard(['file1.txt', 'file2.txt']);
 ```
 
 Committing
----------
+----------
 
-You can commit changed files by calling `commit(message, author, ...files)`:
-
-NOTE :: this will commit all staged files, the ...files argument simply stages those files before commiting, if you already have files staged by having called `stage(...files)` these files are included in the commit
+You can commit changed files by calling `commit($message, $author, $files)`:
 
 ```php
-$wc->commit('summary', 'author', 'file1.txt', 'file2.txt');
+$wc->commit('summary', 'author', ['file1.txt', 'file2.txt']);
 ```
+
+NOTE :: this will commit all staged files, the `$files` argument simply
+stages those files before commiting, if you already have files staged by
+having called `stage($files)` these files are included in the commit.
