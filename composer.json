@@ -32,6 +32,7 @@
     },
     "require": {
         "php": "^5.6 || ^7.0",
+        "symfony/polyfill-mbstring": "^1.7",
         "symfony/process": "^3.4|^4.0|^5.0"
     },
     "require-dev": {
