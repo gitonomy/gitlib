@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 4 * * 1'
+
+jobs:
+  example:
+
+    runs-on: ${{matrix.os}}
+
+    strategy:
+      matrix:
+        os: ["ubuntu-18.04", "windows-2019"]
+        php: ["5.6", "7.0", "7.1", "7.2", "7.3", "7.4"]
+        symfony: ["^3.4", "^4.0", "^5.0"]
+        exclude:
+          - os: "ubuntu-18.04"
+            php: "5.6"
+            symfony: "^4.0"
+          - os: "ubuntu-18.04"
+            php: "5.6"
+            symfony: "^5.0"
+          - os: "ubuntu-18.04"
+            php: "7.0"
+            symfony: "^4.0"
+          - os: "ubuntu-18.04"
+            php: "7.0"
+            symfony: "^5.0"
+          - os: "ubuntu-18.04"
+            php: "7.1"
+            symfony: "^5.0"
+          - os: "windows-2019"
+            php: "5.6"
+            symfony: "^4.0"
+          - os: "windows-2019"
+            php: "5.6"
+            symfony: "^5.0"
+          - os: "windows-2019"
+            php: "7.0"
+            symfony: "^4.0"
+          - os: "windows-2019"
+            php: "7.0"
+            symfony: "^5.0"
+          - os: "windows-2019"
+            php: "7.1"
+            symfony: "^5.0"
+
+    name: OS ${{ matrix.os }}; PHP ${{ matrix.php }}; Symfony ${{ matrix.symfony }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, fileinfo, libxml, mbstring, zip
+          coverage: none
+
+      - name: Select Symfony Version
+        run: composer require "symfony/process:${{ matrix.symfony }}" --no-update
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run Test Suite
+        run: vendor/bin/phpunit
