@@ -42,8 +42,8 @@ matrix:
       dist: bionic
       env: SYMFONY_VERSION=^5.0
 
-before_install: composer require "symfony/process:${SYMFONY_VERSION}" --no-update
+before_install: travis_retry composer require "symfony/process:${SYMFONY_VERSION}" --no-update
 
-install: travis_retry composer install --no-interaction --no-progress --no-suggest
+install: travis_retry composer install --prefer-dist --no-progress -n -o
 
 script: vendor/bin/phpunit
