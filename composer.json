@@ -44,10 +44,5 @@
     "suggest": {
         "ext-fileinfo": "Required to determine the mimetype of a blob",
         "psr/log": "Required to use loggers for reporting of execution"
-    },
-    "extra": {
-        "branch-alias": {
-            "dev-master": "1.2-dev"
-        }
     }
 }
