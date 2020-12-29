@@ -24,6 +24,15 @@ class FileChange
     protected $rangeNewCount;
     protected $lines;
 
+    /**
+     * @param int   $rangeOldStart
+     * @param int   $rangeOldCount
+     * @param int   $rangeNewStart
+     * @param int   $rangeNewCount
+     * @param array $lines
+     *
+     * @return void
+     */
     public function __construct($rangeOldStart, $rangeOldCount, $rangeNewStart, $rangeNewCount, $lines)
     {
         $this->rangeOldStart = $rangeOldStart;
@@ -33,6 +42,9 @@ class FileChange
         $this->lines = $lines;
     }
 
+    /**
+     * @return int
+     */
     public function getCount($type)
     {
         $result = 0;
@@ -45,31 +57,49 @@ class FileChange
         return $result;
     }
 
+    /**
+     * @return int
+     */
     public function getRangeOldStart()
     {
         return $this->rangeOldStart;
     }
 
+    /**
+     * @return int
+     */
     public function getRangeOldCount()
     {
         return $this->rangeOldCount;
     }
 
+    /**
+     * @return int
+     */
     public function getRangeNewStart()
     {
         return $this->rangeNewStart;
     }
 
+    /**
+     * @return int
+     */
     public function getRangeNewCount()
     {
         return $this->rangeNewCount;
     }
 
+    /**
+     * @return array
+     */
     public function getLines()
     {
         return $this->lines;
     }
 
+    /**
+     * @return array
+     */
     public function toArray()
     {
         return [
@@ -81,6 +111,11 @@ class FileChange
         ];
     }
 
+    /**
+     * @param array $array
+     *
+     * @return self
+     */
     public static function fromArray(array $array)
     {
         return new self($array['range_old_start'], $array['range_old_count'], $array['range_new_start'], $array['range_new_count'], $array['lines']);

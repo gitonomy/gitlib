@@ -134,10 +134,10 @@ class DiffTest extends AbstractTest
 
         $changes = $files[0]->getChanges();
 
-        $this->assertEquals(0, $changes[0]->getRangeOldStart());
-        $this->assertEquals(0, $changes[0]->getRangeOldCount());
+        $this->assertSame(0, $changes[0]->getRangeOldStart());
+        $this->assertSame(0, $changes[0]->getRangeOldCount());
 
-        $this->assertEquals(1, $changes[0]->getRangeNewStart());
-        $this->assertEquals(0, $changes[0]->getRangeNewCount());
+        $this->assertSame(1, $changes[0]->getRangeNewStart());
+        $this->assertSame(0, $changes[0]->getRangeNewCount());
     }
 }
