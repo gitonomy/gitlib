@@ -1,9 +1,10 @@
 Gitlib for Gitonomy
 ===================
 
-[![Build Status](https://img.shields.io/travis/com/gitonomy/gitlib/1.2.svg?style=flat-square)](https://travis-ci.com/gitonomy/gitlib)
+[![Build Status](https://img.shields.io/github/workflow/status/gitonomy/gitlib/Tests/1.2?label=Tests&style=flat-square)](https://github.com/gitonomy/gitlib/actions?query=workflow%3ATests+branch%3A1.2)
 [![StyleCI](https://github.styleci.io/repos/5709354/shield?branch=1.2)](https://github.styleci.io/repos/5709354?branch=1.2)
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Downloads](https://img.shields.io/packagist/dt/gitonomy/gitlib?style=flat-square)](https://packagist.org/packages/gitonomy/gitlib)
 
 This library provides methods to access Git repository from PHP 5.6+.
 
