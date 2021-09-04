@@ -5,7 +5,7 @@
     "authors": [
         {
             "name": "Graham Campbell",
-            "email": "graham@alt-three.com"
+            "email": "hello@gjcampbell.co.uk"
         },
         {
             "name": "Julien Didier",
@@ -34,15 +34,20 @@
         "php": "^5.6 || ^7.0 || ^8.0",
         "ext-pcre": "*",
         "symfony/polyfill-mbstring": "^1.7",
-        "symfony/process": "^3.4 || ^4.0 || ^5.0"
+        "symfony/process": "^3.4 || ^4.4 || ^5.0 || ^6.0"
     },
     "require-dev": {
         "ext-fileinfo": "*",
-        "phpunit/phpunit": "^5.7 || ^6.5 || ^7.0 || ^8.0 || ^9.0",
+        "phpunit/phpunit": "^5.7.27 || ^6.5.14 || ^7.5.20 || ^8.5.20 || ^9.5.9",
         "psr/log": "^1.0"
     },
     "suggest": {
         "ext-fileinfo": "Required to determine the mimetype of a blob",
         "psr/log": "Required to use loggers for reporting of execution"
-    }
+    },
+    "config": {
+        "preferred-install": "dist"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

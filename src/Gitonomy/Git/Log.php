@@ -202,6 +202,7 @@ class Log implements \Countable, \IteratorAggregate
     /**
      * @see Countable
      */
+    #[\ReturnTypeWillChange]
     public function count()
     {
         return $this->countCommits();
@@ -210,6 +211,7 @@ class Log implements \Countable, \IteratorAggregate
     /**
      * @see IteratorAggregate
      */
+    #[\ReturnTypeWillChange]
     public function getIterator()
     {
         return new \ArrayIterator($this->getCommits());

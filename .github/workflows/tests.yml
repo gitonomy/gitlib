@@ -11,19 +11,33 @@ jobs:
 
     strategy:
       matrix:
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-        symfony: ['3', '4', '5']
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        symfony: ['3', '4', '5', '6']
         exclude:
           - php: '5.6'
             symfony: '4'
           - php: '5.6'
             symfony: '5'
+          - php: '5.6'
+            symfony: '6'
           - php: '7.0'
             symfony: '4'
           - php: '7.0'
             symfony: '5'
+          - php: '7.0'
+            symfony: '6'
           - php: '7.1'
             symfony: '5'
+          - php: '7.1'
+            symfony: '6'
+          - php: '7.2'
+            symfony: '6'
+          - php: '7.3'
+            symfony: '6'
+          - php: '7.4'
+            symfony: '6'
+          - php: '8.1'
+            symfony: '3'
 
     steps:
       - name: Checkout Code
@@ -60,8 +74,16 @@ jobs:
         with:
           timeout_minutes: 5
           max_attempts: 5
-          command: composer require "symfony/process:^5.2" --no-update --no-interaction
+          command: composer require "symfony/process:^5.3" --no-update --no-interaction
         if: "matrix.symfony == '5'"
+
+      - name: Select Symfony 6
+        uses: nick-invision/retry@v1
+        with:
+          timeout_minutes: 5
+          max_attempts: 5
+          command: composer require "symfony/process:^6.0" --no-update --no-interaction
+        if: "matrix.symfony == '6'"
 
       - name: Install PHP Dependencies
         uses: nick-invision/retry@v1
