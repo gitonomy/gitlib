@@ -54,11 +54,13 @@ class RevisionList implements \IteratorAggregate, \Countable
         return $this->revisions;
     }
 
+    #[\ReturnTypeWillChange]
     public function getIterator()
     {
         return new \ArrayIterator($this->revisions);
     }
 
+    #[\ReturnTypeWillChange]
     public function count()
     {
         return count($this->revisions);

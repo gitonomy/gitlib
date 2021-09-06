@@ -375,6 +375,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
      *
      * @see Countable
      */
+    #[\ReturnTypeWillChange]
     public function count()
     {
         $this->initialize();
@@ -385,6 +386,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * @see IteratorAggregate
      */
+    #[\ReturnTypeWillChange]
     public function getIterator()
     {
         $this->initialize();
