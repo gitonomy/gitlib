@@ -59,7 +59,7 @@ abstract class ParserBase
 
     protected function consumeShortHash()
     {
-        if (!preg_match('/([A-Za-z0-9]{7,40})/A', $this->content, $vars, null, $this->cursor)) {
+        if (!preg_match('/([A-Za-z0-9]{7,40})/A', $this->content, $vars, 0, $this->cursor)) {
             throw new RuntimeException('No short hash found: '.substr($this->content, $this->cursor, 7));
         }
 
@@ -70,7 +70,7 @@ abstract class ParserBase
 
     protected function consumeHash()
     {
-        if (!preg_match('/([A-Za-z0-9]{40})/A', $this->content, $vars, null, $this->cursor)) {
+        if (!preg_match('/([A-Za-z0-9]{40})/A', $this->content, $vars, 0, $this->cursor)) {
             throw new RuntimeException('No hash found: '.substr($this->content, $this->cursor, 40));
         }
 
@@ -81,7 +81,7 @@ abstract class ParserBase
 
     protected function consumeRegexp($regexp)
     {
-        if (!preg_match($regexp.'A', $this->content, $vars, null, $this->cursor)) {
+        if (!preg_match($regexp.'A', $this->content, $vars, 0, $this->cursor)) {
             throw new RuntimeException('No match for regexp '.$regexp.' Upcoming: '.substr($this->content, $this->cursor, 30));
         }
 
