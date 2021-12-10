@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Reference;
 
+use Gitonomy\Git\Commit;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Parser\ReferenceParser;
