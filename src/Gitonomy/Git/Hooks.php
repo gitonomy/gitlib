@@ -82,7 +82,7 @@ class Hooks
 
         $path = $this->getPath($name);
         if (false === symlink($file, $path)) {
-            throw new RuntimeException(sprintf('Unable to create hook "%s"', $name, $path));
+            throw new RuntimeException(sprintf('Unable to create hook "%s" (%s)', $name, $path));
         }
     }
 
