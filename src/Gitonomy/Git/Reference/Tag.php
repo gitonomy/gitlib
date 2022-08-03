@@ -65,8 +65,8 @@ class Tag extends Reference
                 $parser = new ReferenceParser();
                 $parser->parse($output);
 
-                foreach ($parser->references as $row) {
-                    list($commitHash, $fullname) = $row;
+                foreach ($parser->references as list($row)) {
+                    $commitHash = $row;
                 }
 
                 return $this->repository->getCommit($commitHash);
