@@ -49,6 +49,9 @@ class RevisionList implements \IteratorAggregate, \Countable
         $this->revisions = $revisions;
     }
 
+    /**
+     * @return Revision[]
+     */
     public function getAll()
     {
         return $this->revisions;

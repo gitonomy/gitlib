@@ -24,6 +24,11 @@ class PushReference
 {
     const ZERO = '0000000000000000000000000000000000000000';
 
+
+    /**
+     * @var Repository
+     */
+    protected $repository;
     /**
      * @var string
      */
@@ -86,7 +91,7 @@ class PushReference
     }
 
     /**
-     * @return array
+     * @return Log
      */
     public function getLog($excludes = [])
     {
@@ -98,6 +103,9 @@ class PushReference
         ));
     }
 
+    /**
+     * @return string
+     */
     public function getRevision()
     {
         if ($this->isDelete()) {

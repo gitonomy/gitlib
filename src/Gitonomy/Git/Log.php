@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Util\StringHelper;
@@ -136,6 +137,9 @@ class Log implements \Countable, \IteratorAggregate
         return $this;
     }
 
+    /**
+     * @return Commit
+     */
     public function getSingleCommit()
     {
         $limit = $this->limit;
@@ -151,7 +155,7 @@ class Log implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @return array
+     * @return Commit[]
      */
     public function getCommits()
     {

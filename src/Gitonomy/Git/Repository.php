@@ -376,6 +376,9 @@ class Repository
         return $this->objects[$hash];
     }
 
+    /**
+     * @return Blame
+     */
     public function getBlame($revision, $file, $lineRange = null)
     {
         if (is_string($revision)) {
