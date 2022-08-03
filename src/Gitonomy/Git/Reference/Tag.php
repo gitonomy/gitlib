@@ -27,6 +27,8 @@ use Gitonomy\Git\Reference;
  */
 class Tag extends Reference
 {
+    protected $data;
+
     public function getName()
     {
         if (!preg_match('#^refs/tags/(.*)$#', $this->revision, $vars)) {
@@ -101,7 +103,7 @@ class Tag extends Reference
     /**
      * Returns the authoring date.
      *
-     * @return DateTime A time object
+     * @return \DateTime A time object
      */
     public function getTaggerDate()
     {
