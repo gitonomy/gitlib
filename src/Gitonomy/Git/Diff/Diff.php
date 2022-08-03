@@ -63,14 +63,6 @@ class Diff
     }
 
     /**
-     * @return array
-     */
-    public function getRevisions()
-    {
-        return $this->revisions;
-    }
-
-    /**
      * Get list of files modified in the diff's revision.
      *
      * @return array An array of Diff\File objects
