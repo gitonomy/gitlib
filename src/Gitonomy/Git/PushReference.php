@@ -24,7 +24,6 @@ class PushReference
 {
     const ZERO = '0000000000000000000000000000000000000000';
 
-
     /**
      * @var Repository
      */

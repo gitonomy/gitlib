@@ -15,7 +15,7 @@ namespace Gitonomy\Git;
 class CommitReference
 {
     /**
-     * @var string $hash
+     * @var string
      */
     private $hash;
 

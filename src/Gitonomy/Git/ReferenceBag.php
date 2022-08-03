@@ -179,6 +179,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     {
         $this->initialize();
         reset($this->branches);
+
         return current($this->references);
     }
 

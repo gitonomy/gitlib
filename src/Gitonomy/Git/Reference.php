@@ -25,7 +25,7 @@ abstract class Reference extends Revision
 {
     protected $commitHash;
 
-    public function __construct(Repository  $repository, $revision, $commitHash = null)
+    public function __construct(Repository $repository, $revision, $commitHash = null)
     {
         $this->repository = $repository;
         $this->revision = $revision;

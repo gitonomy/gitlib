@@ -59,6 +59,7 @@ class Blob
 
     /**
      * @throws ProcessException Error occurred while getting content of blob
+     *
      * @return string Content of the blob.
      */
     public function getContent()
