@@ -23,7 +23,7 @@ use Gitonomy\Git\Repository;
 class Diff
 {
     /**
-     * @var array
+     * @var File[]
      */
     protected $files;
 
@@ -65,7 +65,7 @@ class Diff
     /**
      * Get list of files modified in the diff's revision.
      *
-     * @return array An array of Diff\File objects
+     * @return File[] An array of Diff\File objects
      */
     public function getFiles()
     {
