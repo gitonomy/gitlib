@@ -27,6 +27,8 @@ use Gitonomy\Git\Reference;
  */
 class Tag extends Reference
 {
+    protected $data;
+
     public function getName()
     {
         if (!preg_match('#^refs/tags/(.*)$#', $this->revision, $vars)) {
@@ -65,8 +67,8 @@ class Tag extends Reference
                 $parser = new ReferenceParser();
                 $parser->parse($output);
 
-                foreach ($parser->references as $row) {
-                    list($commitHash, $fullname) = $row;
+                foreach ($parser->references as list($row)) {
+                    $commitHash = $row;
                 }
 
                 return $this->repository->getCommit($commitHash);
@@ -101,7 +103,7 @@ class Tag extends Reference
     /**
      * Returns the authoring date.
      *
-     * @return DateTime A time object
+     * @return \DateTime A time object
      */
     public function getTaggerDate()
     {

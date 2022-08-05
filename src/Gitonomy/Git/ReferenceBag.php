@@ -29,7 +29,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * Repository object.
      *
-     * @var Gitonomy\Git\Repository
+     * @var Repository
      */
     protected $repository;
 
@@ -43,14 +43,14 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * List with all tags.
      *
-     * @var array
+     * @var Tag[]
      */
     protected $tags;
 
     /**
      * List with all branches.
      *
-     * @var array
+     * @var Branch[]
      */
     protected $branches;
 
@@ -64,7 +64,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * Constructor.
      *
-     * @param Gitonomy\Git\Repository $repository The repository
+     * @param Repository $repository The repository
      */
     public function __construct($repository)
     {
@@ -92,6 +92,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->references[$fullname];
     }
 
+    /**
+     * @return bool
+     */
     public function has($fullname)
     {
         $this->initialize();
@@ -99,6 +102,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return isset($this->references[$fullname]);
     }
 
+    /**
+     * @return Reference
+     */
     public function update(Reference $reference)
     {
         $fullname = $reference->getFullname();
@@ -111,6 +117,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $reference;
     }
 
+    /**
+     * @return Reference
+     */
     public function createBranch($name, $commitHash)
     {
         $branch = new Branch($this->repository, 'refs/heads/'.$name, $commitHash);
@@ -118,6 +127,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->update($branch);
     }
 
+    /**
+     * @return Reference
+     */
     public function createTag($name, $commitHash)
     {
         $tag = new Tag($this->repository, 'refs/tags/'.$name, $commitHash);
@@ -125,6 +137,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->update($tag);
     }
 
+    /**
+     * @return void
+     */
     public function delete($fullname)
     {
         $this->repository->run('update-ref', ['-d', $fullname]);
@@ -132,6 +147,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         unset($this->references[$fullname]);
     }
 
+    /**
+     * @return bool
+     */
     public function hasBranches()
     {
         $this->initialize();
@@ -154,6 +172,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->has('refs/tags/'.$name);
     }
 
+    /**
+     * @return Branch
+     */
     public function getFirstBranch()
     {
         $this->initialize();
@@ -163,7 +184,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @return array An array of Tag objects
+     * @return Tag[] An array of Tag objects
      */
     public function resolveTags($hash)
     {
@@ -184,7 +205,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @return array An array of Branch objects
+     * @return Branch[] An array of Branch objects
      */
     public function resolveBranches($hash)
     {
@@ -205,7 +226,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @return array An array of references
+     * @return Reference[] An array of references
      */
     public function resolve($hash)
     {
@@ -226,9 +247,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * Returns all tags.
-     *
-     * @return array
+     * @return Tag[] All tags.
      */
     public function getTags()
     {
@@ -238,9 +257,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * Returns all branches.
-     *
-     * @return array
+     * @return Branch[] All branches.
      */
     public function getBranches()
     {
@@ -257,9 +274,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * Returns all locales branches.
-     *
-     * @return array
+     * @return Branch[] All local branches.
      */
     public function getLocalBranches()
     {
@@ -274,9 +289,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * Returns all remote branches.
-     *
-     * @return array
+     * @return Branch[] All remote branches.
      */
     public function getRemoteBranches()
     {

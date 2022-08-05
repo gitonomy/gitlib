@@ -16,6 +16,7 @@ use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Util\StringHelper;
 
 /**
@@ -35,8 +36,8 @@ class Commit extends Revision
     /**
      * Constructor.
      *
-     * @param Gitonomy\Git\Repository $repository Repository of the commit
-     * @param string                  $hash       Hash of the commit
+     * @param Repository $repository Repository of the commit
+     * @param string     $hash       Hash of the commit
      */
     public function __construct(Repository $repository, $hash, array $data = [])
     {
@@ -91,6 +92,8 @@ class Commit extends Revision
 
     /**
      * Returns a fixed-with short hash.
+     *
+     * @return string Short hash
      */
     public function getFixedShortHash($length = 6)
     {
@@ -100,7 +103,7 @@ class Commit extends Revision
     /**
      * Returns parent hashes.
      *
-     * @return array An array of SHA1 hashes
+     * @return string[] An array of SHA1 hashes
      */
     public function getParentHashes()
     {
@@ -110,7 +113,7 @@ class Commit extends Revision
     /**
      * Returns the parent commits.
      *
-     * @return array An array of Commit objects
+     * @return Commit[] An array of Commit objects
      */
     public function getParents()
     {
@@ -132,6 +135,9 @@ class Commit extends Revision
         return $this->getData('treeHash');
     }
 
+    /**
+     * @return Tree
+     */
     public function getTree()
     {
         return $this->getData('tree');
@@ -184,7 +190,7 @@ class Commit extends Revision
     /**
      * Resolves all references associated to this commit.
      *
-     * @return array An array of references (Branch, Tag, Squash)
+     * @return Reference[] An array of references (Branch, Tag, Squash)
      */
     public function resolveReferences()
     {
@@ -197,7 +203,7 @@ class Commit extends Revision
      * @param bool $local  set true to try to locate a commit on local repository
      * @param bool $remote set true to try to locate a commit on remote repository
      *
-     * @return array An array of Reference\Branch
+     * @return Reference[]|Branch[] An array of Reference\Branch
      */
     public function getIncludingBranches($local = true, $remote = true)
     {

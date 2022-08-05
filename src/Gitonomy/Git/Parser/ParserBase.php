@@ -82,7 +82,7 @@ abstract class ParserBase
     protected function consumeRegexp($regexp)
     {
         if (!preg_match($regexp.'A', $this->content, $vars, 0, $this->cursor)) {
-            throw new RuntimeException('No match for regexp '.$regexp.' Upcoming: '.substr($this->content, $this->cursor, 30));
+            throw new RuntimeException('No match for regexp '.$regexp.' Upcoming: '.substr($this->content, $this->cursor, 500));
         }
 
         $this->cursor += strlen($vars[0]);

@@ -108,9 +108,7 @@ class Blame implements \Countable
     }
 
     /**
-     * Returns all lines of the blame.
-     *
-     * @return array
+     * @return Line[] All lines of the blame.
      */
     public function getLines()
     {

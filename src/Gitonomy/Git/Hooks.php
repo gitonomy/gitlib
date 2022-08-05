@@ -14,6 +14,7 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\RuntimeException;
 
 /**
  * Hooks collection, aggregated by repository.
@@ -23,7 +24,7 @@ use Gitonomy\Git\Exception\LogicException;
 class Hooks
 {
     /**
-     * @var Gitonomy\Git\Repository
+     * @var \Gitonomy\Git\Repository
      */
     protected $repository;
 
@@ -82,7 +83,7 @@ class Hooks
 
         $path = $this->getPath($name);
         if (false === symlink($file, $path)) {
-            throw new RuntimeException(sprintf('Unable to create hook "%s"', $name, $path));
+            throw new RuntimeException(sprintf('Unable to create hook "%s" (%s)', $name, $path));
         }
     }
 
@@ -121,6 +122,9 @@ class Hooks
         unlink($this->getPath($name));
     }
 
+    /**
+     * @return string
+     */
     protected function getPath($name)
     {
         return $this->repository->getGitDir().'/hooks/'.$name;

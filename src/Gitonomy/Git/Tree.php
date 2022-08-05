@@ -96,7 +96,7 @@ class Tree
         foreach ($segments as $segment) {
             if ($element instanceof self) {
                 $element = $element->getEntry($segment);
-            } elseif ($entry instanceof Blob) {
+            } elseif ($element instanceof Blob) {
                 throw new InvalidArgumentException('Unresolvable path');
             } else {
                 throw new UnexpectedValueException('Unknow type of element');

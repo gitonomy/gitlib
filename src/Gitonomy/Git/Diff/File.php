@@ -55,7 +55,7 @@ class File
     protected $isBinary;
 
     /**
-     * @var array An array of FileChange objects
+     * @var FileChange[] An array of FileChange objects
      */
     protected $changes;
 
@@ -215,6 +215,9 @@ class File
         return $this->isBinary;
     }
 
+    /**
+     * @return FileChange[]
+     */
     public function getChanges()
     {
         return $this->changes;
@@ -236,6 +239,9 @@ class File
         ];
     }
 
+    /**
+     * @return File
+     */
     public static function fromArray(array $array)
     {
         $file = new self($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary']);
