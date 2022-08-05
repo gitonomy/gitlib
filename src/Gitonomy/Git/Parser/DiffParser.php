@@ -76,10 +76,10 @@ class DiffParser extends ParserBase
 
                 //verifying if the file was deleted or created
                 if ($this->expects('--- ')) {
-                    $oldName = $this->consumeTo("\n") === "/dev/null" ? '/dev/null' : $oldName;
+                    $oldName = $this->consumeTo("\n") === '/dev/null' ? '/dev/null' : $oldName;
                     $this->consumeNewLine();
                     $this->consume('+++ ');
-                    $newName = $this->consumeTo("\n") === "/dev/null" ? '/dev/null' : $newName;
+                    $newName = $this->consumeTo("\n") === '/dev/null' ? '/dev/null' : $newName;
                     $this->consumeNewLine();
                 } elseif ($this->expects('Binary files ')) {
                     $vars = $this->consumeRegexp('/"?(.*?)"? and "?(.*?)"? differ\n/');
