@@ -25,7 +25,7 @@ class DiffParser extends ParserBase
 
         while (!$this->isFinished()) {
             // 1. title
-            $vars = $this->consumeRegexp('/diff --git "?(a\/.*?)"? "?(b\/.*?)"?\n/');
+            $vars = $this->consumeRegexp("/diff --git \"?(a\/.*?)\"? \"?(b\/.*?)\"?\n/");
             $oldName = $vars[1];
             $newName = $vars[2];
             $oldIndex = null;
