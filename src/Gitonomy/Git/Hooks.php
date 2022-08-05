@@ -29,7 +29,7 @@ class Hooks
     protected $repository;
 
     /**
-     * @var Repository $repository
+     * @var Repository
      */
     public function __construct(Repository $repository)
     {
