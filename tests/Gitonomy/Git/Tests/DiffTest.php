@@ -20,6 +20,7 @@ class DiffTest extends AbstractTest
     const CREATE_COMMIT = 'e6fa3c792facc06faa049a6938c84c411954deb5';
     const RENAME_COMMIT = '6640e0ef31518054847a1876328e26ee64083e0a';
     const CHANGEMODE_COMMIT = '93da965f58170f13017477b9a608657e87e23230';
+    const FILE_WITH_UMLAUTS_COMMIT = '8defb9217692dc1f4c18e05e343ca91cf5047702';
 
     /**
      * @dataProvider provideFoobar
@@ -139,5 +140,14 @@ class DiffTest extends AbstractTest
 
         $this->assertSame(1, $changes[0]->getRangeNewStart());
         $this->assertSame(0, $changes[0]->getRangeNewCount());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testWorksWithUmlauts($repository)
+    {
+        $files = $repository->getCommit(self::FILE_WITH_UMLAUTS_COMMIT)->getDiff()->getFiles();
+        $this->assertSame('file_with_umlauts_\303\244\303\266\303\274', $files[0]->getNewName());
     }
 }

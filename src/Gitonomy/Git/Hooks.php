@@ -14,7 +14,7 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
-use RuntimeException;
+use Gitonomy\Git\Exception\RuntimeException;
 
 /**
  * Hooks collection, aggregated by repository.
@@ -29,7 +29,7 @@ class Hooks
     protected $repository;
 
     /**
-     * @var Repository
+     * @var Repository $repository
      */
     public function __construct(Repository $repository)
     {
