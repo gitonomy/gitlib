@@ -16,6 +16,7 @@ use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Repository;
 use Gitonomy\Git\Tree;
 
 class CommitTest extends AbstractTest
@@ -187,6 +188,31 @@ class CommitTest extends AbstractTest
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('add a long file'."\n", $commit->getMessage());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     *
+     * @param $repository Repository
+     */
+    public function testGetEmptyMessage($repository)
+    {
+        $commit = $repository->getCommit(self::NO_MESSAGE_COMMIT);
+
+        $this->assertEquals('', $commit->getMessage());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     *
+     * @param $repository Repository
+     */
+    public function testGetEmptyMessageFromLog($repository)
+    {
+        $commit = $repository->getCommit(self::NO_MESSAGE_COMMIT);
+        $commitMessageFromLog = $commit->getLog()->getCommits()[0]->getMessage();
+
+        $this->assertEquals('', $commitMessageFromLog);
     }
 
     /**
