@@ -20,6 +20,7 @@ abstract class AbstractTest extends TestCase
 {
     const REPOSITORY_URL = 'https://github.com/gitonomy/foobar.git';
 
+    const NO_MESSAGE_COMMIT = '011cd0c1625190d2959ee9a8f9f822006d94b661';
     const LONGFILE_COMMIT = '4f17752acc9b7c54ba679291bf24cb7d354f0f4f';
     const BEFORE_LONGFILE_COMMIT = 'e0ec50e2af75fa35485513f60b2e658e245227e9';
     const LONGMESSAGE_COMMIT = '3febd664b6886344a9b32d70657687ea4b1b4fab';
