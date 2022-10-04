@@ -43,7 +43,8 @@
     "require-dev": {
         "ext-fileinfo": "*",
         "phpunit/phpunit": "^5.7.27 || ^6.5.14 || ^7.5.20 || ^8.5.20 || ^9.5.9",
-        "psr/log": "^1.0"
+        "psr/log": "^1.0",
+        "phpspec/prophecy": "^1.15"
     },
     "suggest": {
         "ext-fileinfo": "Required to determine the mimetype of a blob",
