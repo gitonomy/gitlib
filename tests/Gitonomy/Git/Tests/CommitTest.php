@@ -192,6 +192,7 @@ class CommitTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
+     *
      * @param $repository Repository
      */
     public function testGetEmptyMessage($repository)
@@ -203,6 +204,7 @@ class CommitTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
+     *
      * @param $repository Repository
      */
     public function testGetEmptyMessageFromLog($repository)
