@@ -219,6 +219,10 @@ class ReferenceTest extends AbstractTest
 
         $master = $repository->getReferences()->getBranch('master');
         $references = $repository->getReferences();
+
+        $repository->run('config', ['--local', 'user.name', '"Unit Test"']);
+        $repository->run('config', ['--local', 'user.email', '"unit_test@unit-test.com"']);
+
         $branch = $references->createBranch('foobar-new', $master->getCommit()->getHash());
 
         $this->assertTrue($branch->isMergedTo('master'));
