@@ -56,7 +56,6 @@ class Branch extends Reference
     }
 
     /**
-     *
      * Check if this branch is merged to a destination branch
      * Optionally, check only with remote branches
      *
@@ -96,7 +95,7 @@ class Branch extends Reference
         });
         $trimmed_output = array_map('trim', $filtered_output);
 
-        return (in_array($this->getName(), $trimmed_output, true));
+        return in_array($this->getName(), $trimmed_output, true);
     }
 
     private function detectBranchType()
