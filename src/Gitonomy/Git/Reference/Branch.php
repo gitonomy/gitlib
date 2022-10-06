@@ -57,7 +57,7 @@ class Branch extends Reference
 
     /**
      * Check if this branch is merged to a destination branch
-     * Optionally, check only with remote branches
+     * Optionally, check only with remote branches.
      *
      * @param string $destinationBranchName
      * @param bool   $compareOnlyWithRemote
