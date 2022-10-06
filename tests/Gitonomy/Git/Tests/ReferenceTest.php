@@ -217,11 +217,11 @@ class ReferenceTest extends AbstractTest
     {
         $repository = self::createFoobarRepository(false);
 
-        $master = $repository->getReferences()->getBranch('master');
-        $references = $repository->getReferences();
-
         $repository->run('config', ['--local', 'user.name', '"Unit Test"']);
         $repository->run('config', ['--local', 'user.email', '"unit_test@unit-test.com"']);
+
+        $master = $repository->getReferences()->getBranch('master');
+        $references = $repository->getReferences();
 
         $branch = $references->createBranch('foobar-new', $master->getCommit()->getHash());
 
