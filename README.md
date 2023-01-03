@@ -1,7 +1,7 @@
 Gitlib for Gitonomy
 ===================
 
-[![Build Status](https://img.shields.io/github/workflow/status/gitonomy/gitlib/Tests/1.3?label=Tests&style=flat-square)](https://github.com/gitonomy/gitlib/actions?query=workflow%3ATests+branch%3A1.3)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/gitonomy/gitlib/tests.yml?label=Tests&style=flat-square&branch=1.3)](https://github.com/gitonomy/gitlib/actions?query=workflow%3ATests+branch%3A1.3)
 [![StyleCI](https://github.styleci.io/repos/5709354/shield?branch=1.3)](https://github.styleci.io/repos/5709354?branch=1.3)
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Downloads](https://img.shields.io/packagist/dt/gitonomy/gitlib?style=flat-square)](https://packagist.org/packages/gitonomy/gitlib)
