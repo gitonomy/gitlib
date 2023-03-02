@@ -166,9 +166,19 @@ class Repository
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
         } elseif (!is_dir($realGitDir)) {
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $realGitDir));
-        } elseif (null === $workingDir && is_dir($realGitDir.'/.git')) {
+        } elseif (null === $workingDir && is_file($realGitDir . '/.git')) {
+            if (!preg_match('/^gitdir: ?(.+)$/', file_get_contents($realGitDir . '/.git'), $matches)) {
+                throw new InvalidArgumentException(sprintf('Directory "%s" contains a .git file, but it is not in the expected format', $realGitDir));
+            }
+            $foundGitPath = realpath($realGitDir . DIRECTORY_SEPARATOR . $matches[1]);
+            if (!is_dir($foundGitPath)) {
+                throw new InvalidArgumentException(sprintf('Directory "%s" contains a .git file, but the directory it points to cannot be found', $realGitDir));
+            }
             $workingDir = $realGitDir;
-            $realGitDir = $realGitDir.'/.git';
+            $realGitDir = $foundGitPath;
+        } elseif (null === $workingDir && is_dir($realGitDir . '/.git')) {
+            $workingDir = $realGitDir;
+            $realGitDir = $realGitDir . '/.git';
         }
 
         $this->gitDir = $realGitDir;
