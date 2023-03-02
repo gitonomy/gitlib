@@ -608,12 +608,14 @@ class Repository
      *
      * @param string $path path to the new repository in which current repository will be cloned
      * @param bool   $bare flag indicating if repository is bare or has a working-copy
+     * @param array  $options options for Repository creation
+     * @param array  $args arguments to be added to the command-line
      *
      * @return Repository the newly created repository
      */
-    public function cloneTo($path, $bare = true, array $options = [])
+    public function cloneTo($path, $bare = true, array $options = [], array $args = [])
     {
-        return Admin::cloneTo($path, $this->gitDir, $bare, $options);
+        return Admin::cloneTo($path, $this->gitDir, $bare, $options, $args);
     }
 
     /**

@@ -98,12 +98,13 @@ class Admin
      * @param string $url     url of repository to clone
      * @param bool   $bare    indicates if repository should be bare or have a working copy
      * @param array  $options options for Repository creation
+     * @param array  $args    arguments to be added to the command-line
      *
      * @return Repository
      */
-    public static function cloneTo($path, $url, $bare = true, array $options = [])
+    public static function cloneTo($path, $url, $bare = true, array $options = [], array $args = [])
     {
-        $args = $bare ? ['--bare'] : [];
+        $args = array_merge($args,$bare ? ['--bare'] : []);
 
         return static::cloneRepository($path, $url, $args, $options);
     }
