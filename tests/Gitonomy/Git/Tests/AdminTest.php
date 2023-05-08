@@ -155,6 +155,24 @@ class AdminTest extends AbstractTest
         $this->assertFalse(Admin::isValidRepository($url));
     }
 
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testCheckValidRepositoryAndBranch($repository)
+    {
+        $url = $repository->getGitDir();
+        $this->assertTrue(Admin::isValidRepositoryAndBranch($url, 'master'));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testCheckInvalidRepositoryAndBranch($repository)
+    {
+        $url = $repository->getGitDir();
+        $this->assertFalse(Admin::isValidRepositoryAndBranch($url, 'invalid-branch-name'));
+    }
+
     public function testExistingFile()
     {
         $this->expectException(RuntimeException::class);

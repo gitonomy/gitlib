@@ -68,6 +68,30 @@ class Admin
     }
 
     /**
+     * Checks the validity of a git repository url without cloning it and
+     * check if a certain branch exists in that repository.
+     *
+     * This will use the `ls-remote` command of git against the given url.
+     * Usually, this command returns 0 when successful, and 128 when the
+     * repository is not found.
+     *
+     * @param string $url        url of repository to check
+     * @param string $branchName name of branch to check
+     * @param array  $options    options for Repository creation
+     *
+     * @return bool true if url is valid and branch exists
+     */
+    public static function isValidRepositoryAndBranch($url, $branchName, array $options = [])
+    {
+        $process = static::getProcess('ls-remote', ['--heads', $url, $branchName], $options);
+
+        $process->run();
+        $processOutput = $process->getOutput();
+
+        return $process->isSuccessFul() && strpos($processOutput, $branchName) !== false;
+    }
+
+    /**
      * Clone a repository to a local path.
      *
      * @param string $path    indicates where to clone repository
