@@ -111,6 +111,8 @@ class Log implements \Countable, \IteratorAggregate
 
     /**
      * @param int $offset
+     *
+     * @return Log
      */
     public function setOffset($offset)
     {
@@ -129,6 +131,8 @@ class Log implements \Countable, \IteratorAggregate
 
     /**
      * @param int $limit
+     *
+     * @return Log
      */
     public function setLimit($limit)
     {
@@ -138,6 +142,8 @@ class Log implements \Countable, \IteratorAggregate
     }
 
     /**
+     * Returns the last modification date of the reference.
+     *
      * @return Commit
      */
     public function getSingleCommit()

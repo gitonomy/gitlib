@@ -21,8 +21,17 @@ use Gitonomy\Git\Exception\UnexpectedValueException;
 class Tree
 {
     protected $repository;
+    /**
+     * @var string
+     */
     protected $hash;
+    /**
+     * @var boolean
+     */
     protected $isInitialized = false;
+    /**
+     * @var array
+     */
     protected $entries;
 
     public function __construct(Repository $repository, $hash)
@@ -31,6 +40,9 @@ class Tree
         $this->hash = $hash;
     }
 
+    /**
+     * @return string
+     */
     public function getHash()
     {
         return $this->hash;
@@ -72,6 +84,9 @@ class Tree
         return $this->entries;
     }
 
+    /**
+     * @return Blob
+     */
     public function getEntry($name)
     {
         $this->initialize();
@@ -83,6 +98,9 @@ class Tree
         return $this->entries[$name][1];
     }
 
+    /**
+     * @return Tree
+     */
     public function resolvePath($path)
     {
         if ($path == '') {

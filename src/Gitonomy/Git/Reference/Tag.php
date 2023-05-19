@@ -27,8 +27,16 @@ use Gitonomy\Git\Reference;
  */
 class Tag extends Reference
 {
+    /**
+     * @var array
+     */
     protected $data;
 
+    /**
+     * @throws RuntimeException Cannot extract tag name
+     *
+     * @return string
+     */
     public function getName()
     {
         if (!preg_match('#^refs/tags/(.*)$#', $this->revision, $vars)) {

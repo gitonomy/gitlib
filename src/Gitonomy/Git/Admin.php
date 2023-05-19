@@ -168,6 +168,12 @@ class Admin
 
     /**
      * This internal method is used to create a process object.
+     *
+     * @param string $command
+     * @param array $args
+     * @param array $options
+     *
+     * @return Process
      */
     private static function getProcess($command, array $args = [], array $options = [])
     {

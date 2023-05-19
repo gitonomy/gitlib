@@ -38,6 +38,7 @@ class Commit extends Revision
      *
      * @param Repository $repository Repository of the commit
      * @param string     $hash       Hash of the commit
+     * @param array      $data       Associative array of commit data.
      */
     public function __construct(Repository $repository, $hash, array $data = [])
     {
@@ -50,6 +51,9 @@ class Commit extends Revision
         $this->setData($data);
     }
 
+    /**
+     * @param array $data Associative array of commit data.
+     */
     public function setData(array $data)
     {
         foreach ($data as $name => $value) {
@@ -144,6 +148,8 @@ class Commit extends Revision
     }
 
     /**
+     * @param string|null $path
+     *
      * @return Commit
      */
     public function getLastModification($path = null)
@@ -347,6 +353,14 @@ class Commit extends Revision
         return $this;
     }
 
+    /**
+     * Possible options are: treeHash, parentHashes, authorName, authorEmail, authorDate,
+     * committerName, committerEmail, committerDate, message or an other attribute
+     *
+     * @param string $name
+     *
+     * @return Tree|string
+     */
     private function getData($name)
     {
         if (isset($this->data[$name])) {

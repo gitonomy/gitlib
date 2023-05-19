@@ -25,6 +25,11 @@ abstract class Reference extends Revision
 {
     protected $commitHash;
 
+    /**
+     * @param Repository $repository
+     * @param string $revision
+     * @param string $commitHash
+     */
     public function __construct(Repository $repository, $revision, $commitHash = null)
     {
         $this->repository = $repository;
@@ -75,6 +80,8 @@ abstract class Reference extends Revision
     }
 
     /**
+     * @param string|null $path
+     *
      * @return Commit
      */
     public function getLastModification($path = null)

@@ -47,7 +47,10 @@ class Blame implements \Countable
     protected $lines;
 
     /**
-     * @param string $lineRange Argument to pass to git blame (-L).
+     * @param Repository $repository
+     * @param Revision   $revision
+     * @param string     $file
+     * @param string     $lineRange Argument to pass to git blame (-L).
      *                          Can be a line range (40,60 or 40,+21)
      *                          or a regexp ('/^function$/')
      */
@@ -60,6 +63,8 @@ class Blame implements \Countable
     }
 
     /**
+     * @param int $number Line number
+     *
      * @return Line
      */
     public function getLine($number)

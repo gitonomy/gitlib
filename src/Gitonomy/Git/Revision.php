@@ -34,6 +34,15 @@ class Revision
     }
 
     /**
+     * Returns log for this revision
+     *
+     * All those values can be null, meaning everything.
+     *
+     * @param array $paths     Restrict log to modifications occurring on given
+     *                         paths.
+     * @param int   $offset    Start from a given offset in results.
+     * @param int   $limit     Limit number of total results.
+     *
      * @return Log
      */
     public function getLog($paths = null, $offset = null, $limit = null)

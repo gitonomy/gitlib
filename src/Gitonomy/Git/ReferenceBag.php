@@ -93,6 +93,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param string $fullname Fullname of the reference (refs/heads/master, for example).
+     *
      * @return bool
      */
     public function has($fullname)
@@ -103,6 +105,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param Reference $reference
+     *
      * @return Reference
      */
     public function update(Reference $reference)
@@ -118,6 +122,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param string $name
+     * @param string $commitHash
+     *
      * @return Reference
      */
     public function createBranch($name, $commitHash)
@@ -128,6 +135,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param string $name
+     * @param string $commitHash
+     *
      * @return Reference
      */
     public function createTag($name, $commitHash)
@@ -138,6 +148,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param string $fullname Fullname of the reference (refs/heads/master, for example).
+     *
      * @return void
      */
     public function delete($fullname)
@@ -157,16 +169,31 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return count($this->branches) > 0;
     }
 
+    /**
+     * @param string $name Name of the branch
+     *
+     * @return bool
+     */
     public function hasBranch($name)
     {
         return $this->has('refs/heads/'.$name);
     }
 
+    /**
+     * @param string $name Name of the remote branch
+     *
+     * @return bool
+     */
     public function hasRemoteBranch($name)
     {
         return $this->has('refs/remotes/'.$name);
     }
 
+    /**
+     * @param string $name Name of the tag
+     *
+     * @return bool
+     */
     public function hasTag($name)
     {
         return $this->has('refs/tags/'.$name);
@@ -184,6 +211,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param Commit | string $hash
+     *
      * @return Tag[] An array of Tag objects
      */
     public function resolveTags($hash)
@@ -205,6 +234,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param Commit | string $hash
+     *
      * @return Branch[] An array of Branch objects
      */
     public function resolveBranches($hash)
@@ -226,6 +257,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param Commit | string $hash
+     *
      * @return Reference[] An array of references
      */
     public function resolve($hash)

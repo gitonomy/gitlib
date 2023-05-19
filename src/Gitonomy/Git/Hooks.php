@@ -24,12 +24,12 @@ use Gitonomy\Git\Exception\RuntimeException;
 class Hooks
 {
     /**
-     * @var \Gitonomy\Git\Repository
+     * @var Repository
      */
     protected $repository;
 
     /**
-     * @var Repository
+     * @var Repository $repository
      */
     public function __construct(Repository $repository)
     {
@@ -123,6 +123,8 @@ class Hooks
     }
 
     /**
+     * @param string $name Name of the hook
+     *
      * @return string
      */
     protected function getPath($name)

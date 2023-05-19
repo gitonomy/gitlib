@@ -35,6 +35,9 @@ class WorkingCopy
         }
     }
 
+    /**
+     * @return String[]
+     */
     public function getUntrackedFiles()
     {
         $lines = explode("\0", $this->run('status', ['--porcelain', '--untracked-files=all', '-z']));
@@ -48,6 +51,9 @@ class WorkingCopy
         return $lines;
     }
 
+    /**
+     * @return Diff
+     */
     public function getDiffPending()
     {
         $diff = Diff::parse($this->run('diff', ['-r', '-p', '-m', '-M', '--full-index']));
@@ -56,6 +62,9 @@ class WorkingCopy
         return $diff;
     }
 
+    /**
+     * @return Diff
+     */
     public function getDiffStaged()
     {
         $diff = Diff::parse($this->run('diff', ['-r', '-p', '-m', '-M', '--full-index', '--staged']));

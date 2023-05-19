@@ -48,6 +48,12 @@ class PushReference
      */
     protected $isForce;
 
+    /**
+     * @param Repository $repository
+     * @param string $reference
+     * @param string $before
+     * @param string $after
+     */
     public function __construct(Repository $repository, $reference, $before, $after)
     {
         $this->repository = $repository;
