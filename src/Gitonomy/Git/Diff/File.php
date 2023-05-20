@@ -67,13 +67,14 @@ class File
 
     /**
      * Instanciates a new File object.
+     *
      * @param string $oldName
      * @param string $newName
      * @param string $oldMode
      * @param string $newMode
      * @param string $oldIndex
      * @param string $newIndex
-     * @param bool $isBinary
+     * @param bool   $isBinary
      */
     public function __construct($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary)
     {

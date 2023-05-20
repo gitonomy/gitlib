@@ -363,7 +363,7 @@ class Commit extends Revision
 
     /**
      * Possible options are: treeHash, parentHashes, authorName, authorEmail, authorDate,
-     * committerName, committerEmail, committerDate, message or an other attribute
+     * committerName, committerEmail, committerDate, message or an other attribute.
      *
      * @param string $name
      *

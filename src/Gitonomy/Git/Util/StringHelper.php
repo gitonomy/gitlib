@@ -48,8 +48,8 @@ class StringHelper
     }
 
     /**
-     * @param string $string
-     * @param int $start
+     * @param string    $string
+     * @param int       $start
      * @param int|false $length
      *
      * @return false|string
@@ -66,7 +66,7 @@ class StringHelper
     /**
      * @param string $haystack
      * @param string $needle
-     * @param int $offset
+     * @param int    $offset
      *
      * @return false|int
      */
@@ -78,7 +78,7 @@ class StringHelper
     /**
      * @param string $haystack
      * @param string $needle
-     * @param int $offset
+     * @param int    $offset
      *
      * @return false|int
      */

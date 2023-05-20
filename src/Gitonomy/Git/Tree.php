@@ -22,14 +22,17 @@ use Gitonomy\Git\Exception\UnexpectedValueException;
 class Tree
 {
     protected $repository;
+
     /**
      * @var string
      */
     protected $hash;
+
     /**
-     * @var boolean
+     * @var bool
      */
     protected $isInitialized = false;
+
     /**
      * @var array
      */

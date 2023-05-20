@@ -7,7 +7,7 @@ use Symfony\Component\Process\Process;
 class ProcessException extends RuntimeException implements GitExceptionInterface
 {
     /**
-     * @var Process $process
+     * @var Process
      */
     protected $process;
 

@@ -51,9 +51,9 @@ class Blame implements \Countable
      * @param Repository $repository
      * @param Revision   $revision
      * @param string     $file
-     * @param string     $lineRange Argument to pass to git blame (-L).
-     *                              Can be a line range (40,60 or 40,+21)
-     *                              or a regexp ('/^function$/')
+     * @param string     $lineRange  Argument to pass to git blame (-L).
+     *                               Can be a line range (40,60 or 40,+21)
+     *                               or a regexp ('/^function$/')
      */
     public function __construct(Repository $repository, Revision $revision, $file, $lineRange = null)
     {

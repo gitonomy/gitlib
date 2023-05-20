@@ -15,12 +15,12 @@ namespace Gitonomy\Git;
 class CommitReference
 {
     /**
-     * @var string $hash
+     * @var string
      */
     private $hash;
 
     /**
-     * @param  string $hash
+     * @param string $hash
      */
     public function __construct($hash)
     {

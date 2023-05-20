@@ -28,9 +28,6 @@ class Hooks
      */
     protected $repository;
 
-    /**
-     * @var Repository $repository
-     */
     public function __construct(Repository $repository)
     {
         $this->repository = $repository;

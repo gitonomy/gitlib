@@ -465,7 +465,7 @@ class Repository
      * Executes a shell command on the repository, using PHP pipes.
      *
      * @param string $command The command to execute
-     * @param array $env      Environment variables as a key-value pair
+     * @param array  $env     Environment variables as a key-value pair
      */
     public function shell($command, array $env = [])
     {
@@ -618,8 +618,8 @@ class Repository
     /**
      * Clones the current repository to a new directory and return instance of new repository.
      *
-     * @param string $path path to the new repository in which current repository will be cloned
-     * @param bool   $bare flag indicating if repository is bare or has a working-copy
+     * @param string $path    path to the new repository in which current repository will be cloned
+     * @param bool   $bare    flag indicating if repository is bare or has a working-copy
      * @param array  $options options for Repository creation
      *
      * @return Repository the newly created repository

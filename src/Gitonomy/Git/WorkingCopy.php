@@ -14,8 +14,8 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\ProcessException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -80,8 +80,8 @@ class WorkingCopy
     }
 
     /**
-     * @param Commit | Reference | string $revision
-     * @param string $branch
+     * @param Commit|Reference|string $revision
+     * @param string                  $branch
      *
      * @throws InvalidArgumentException If the $revision type is not Commit, Reference or string
      *
