@@ -27,8 +27,8 @@ abstract class Reference extends Revision
 
     /**
      * @param Repository $repository
-     * @param string $revision
-     * @param string $commitHash
+     * @param string     $revision
+     * @param string     $commitHash
      */
     public function __construct(Repository $repository, $revision, $commitHash = null)
     {
@@ -82,7 +82,7 @@ abstract class Reference extends Revision
     }
 
     /**
-     * @param string|null $path
+     * @param string $path
      *
      * @return Commit
      */

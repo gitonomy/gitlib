@@ -27,6 +27,11 @@ class WorkingCopy
      */
     protected $repository;
 
+    /**
+     * @param Repository $repository
+     *
+     * @throws LogicException Can't create a working copy on a bare repository
+     */
     public function __construct(Repository $repository)
     {
         $this->repository = $repository;

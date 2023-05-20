@@ -52,9 +52,11 @@ class Log implements \Countable, \IteratorAggregate
      *
      * @param Repository                       $repository the repository where log occurs
      * @param RevisionList|Revision|array|null $revisions  a list of revisions or null if you want all history
-     * @param array                            $paths      paths to filter on
+     * @param array|string                     $paths      paths to filter on
      * @param int|null                         $offset     start list from a given position
      * @param int|null                         $limit      limit number of fetched elements
+     *
+     * @throws \InvalidArgumentException Expected a string or an array for $paths
      */
     public function __construct(Repository $repository, $revisions = null, $paths = null, $offset = null, $limit = null)
     {
@@ -143,6 +145,8 @@ class Log implements \Countable, \IteratorAggregate
 
     /**
      * Returns the last modification date of the reference.
+     *
+     * @ReferenceNotFoundException The log is empty
      *
      * @return Commit
      */

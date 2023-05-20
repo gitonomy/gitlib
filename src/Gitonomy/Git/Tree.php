@@ -89,6 +89,10 @@ class Tree
     }
 
     /**
+     * @param string $name
+     *
+     * @throws InvalidArgumentException No entry found
+     *
      * @return Blob
      */
     public function getEntry($name)
@@ -103,6 +107,11 @@ class Tree
     }
 
     /**
+     * @param string $path
+     *
+     * @throws InvalidArgumentException Unresolvable path
+     * @throws UnexpectedValueException Unknow type of element
+     *
      * @return Tree
      */
     public function resolvePath($path)

@@ -60,6 +60,11 @@ abstract class ParserBase
         return true;
     }
 
+    /**
+     * @throws RuntimeException No short hash found
+     *
+     * @return string
+     */
     protected function consumeShortHash()
     {
         if (!preg_match('/([A-Za-z0-9]{7,40})/A', $this->content, $vars, 0, $this->cursor)) {
@@ -71,6 +76,11 @@ abstract class ParserBase
         return $vars[1];
     }
 
+    /**
+     * @throws RuntimeException No hash found
+     *
+     * @return string
+     */
     protected function consumeHash()
     {
         if (!preg_match('/([A-Za-z0-9]{40})/A', $this->content, $vars, 0, $this->cursor)) {
@@ -82,6 +92,13 @@ abstract class ParserBase
         return $vars[1];
     }
 
+    /**
+     * @param string $regexp
+     *
+     * @throws RuntimeException No match for $regexp
+     *
+     * @return string[]
+     */
     protected function consumeRegexp($regexp)
     {
         if (!preg_match($regexp.'A', $this->content, $vars, 0, $this->cursor)) {
@@ -93,6 +110,13 @@ abstract class ParserBase
         return $vars;
     }
 
+    /**
+     * @param $text
+     *
+     * @throws RuntimeException Unable to find $text
+     *
+     * @return false|string
+     */
     protected function consumeTo($text)
     {
         $pos = strpos($this->content, $text, $this->cursor);
@@ -107,6 +131,13 @@ abstract class ParserBase
         return $result;
     }
 
+    /**
+     * @param $expected
+     *
+     * @throws RuntimeException
+     *
+     * @return false|string
+     */
     protected function consume($expected)
     {
         $length = strlen($expected);
@@ -119,6 +150,11 @@ abstract class ParserBase
         return $expected;
     }
 
+    /**
+     * @throws RuntimeException
+     *
+     * @return false|string
+     */
     protected function consumeNewLine()
     {
         return $this->consume("\n");

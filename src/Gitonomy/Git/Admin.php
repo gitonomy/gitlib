@@ -151,6 +151,8 @@ class Admin
      * @param array  $args    arguments to be added to the command-line
      * @param array  $options options for Repository creation
      *
+     * @throws RuntimeException Error while initializing repository
+     *
      * @return Repository
      */
     public static function cloneRepository($path, $url, array $args = [], array $options = [])
@@ -170,8 +172,8 @@ class Admin
      * This internal method is used to create a process object.
      *
      * @param string $command
-     * @param array $args
-     * @param array $options
+     * @param array  $args
+     * @param array  $options
      *
      * @return Process
      */

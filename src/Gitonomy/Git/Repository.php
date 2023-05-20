@@ -163,6 +163,8 @@ class Repository
      *
      * @param string $gitDir     directory of a working copy with files checked out
      * @param string $workingDir directory containing git files (objects, config...)
+     *
+     * @throws InvalidArgumentException Directory $$gitDir does not exist or is not a directory
      */
     private function initDir($gitDir, $workingDir = null)
     {
@@ -384,10 +386,10 @@ class Repository
 
     /**
      * @param Revision | string $revision
-     * @param string $file
-     * @param string $lineRange Argument to pass to git blame (-L).
-     *                          Can be a line range (40,60 or 40,+21)
-     *                          or a regexp ('/^function$/')
+     * @param string            $file
+     * @param string            $lineRange Argument to pass to git blame (-L).
+     *                                     Can be a line range (40,60 or 40,+21)
+     *                                     or a regexp ('/^function$/')
      *
      * @return Blame
      */
@@ -463,7 +465,7 @@ class Repository
      * Executes a shell command on the repository, using PHP pipes.
      *
      * @param string $command The command to execute
-     * @param array $env Environment variables as a key-value pair
+     * @param array $env      Environment variables as a key-value pair
      */
     public function shell($command, array $env = [])
     {

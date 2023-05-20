@@ -80,7 +80,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
      *
      * @param string $fullname Fullname of the reference (refs/heads/master, for example).
      *
-     * @return Reference A reference object.
+     * @throws ReferenceNotFoundException
+     *
+     * @return Reference|Tag A reference object.
      */
     public function get($fullname)
     {

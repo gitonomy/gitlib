@@ -51,9 +51,9 @@ class PushReference
 
     /**
      * @param Repository $repository
-     * @param string $reference
-     * @param string $before
-     * @param string $after
+     * @param string     $reference
+     * @param string     $before
+     * @param string     $after
      */
     public function __construct(Repository $repository, $reference, $before, $after)
     {
@@ -97,6 +97,8 @@ class PushReference
     }
 
     /**
+     * @param array $excludes
+     *
      * @return Log
      */
     public function getLog($excludes = [])
@@ -110,6 +112,8 @@ class PushReference
     }
 
     /**
+     * @throws LogicException
+     *
      * @return string
      */
     public function getRevision()

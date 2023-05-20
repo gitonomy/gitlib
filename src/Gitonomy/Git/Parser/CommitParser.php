@@ -26,6 +26,9 @@ class CommitParser extends ParserBase
     public $committerDate;
     public $message;
 
+    /**
+     * @throws RuntimeException Unable to parse name, email and date
+     */
     protected function doParse()
     {
         $this->consume('tree ');
@@ -56,6 +59,11 @@ class CommitParser extends ParserBase
         $this->message = $this->consumeAll();
     }
 
+    /**
+     * @throws RuntimeException unable to parse name, email and date
+     *
+     * @return array
+     */
     protected function consumeNameEmailDate()
     {
         if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+ [+-]\d{4}))/A', $this->content, $vars, 0, $this->cursor)) {
@@ -67,6 +75,13 @@ class CommitParser extends ParserBase
         return [$vars[2], $vars[3], $vars[4]];
     }
 
+    /**
+     * @param string $text
+     *
+     * @throws RuntimeException Unable to convert given string to datetime
+     *
+     * @return \DateTime
+     */
     protected function parseDate($text)
     {
         $date = \DateTime::createFromFormat('U e O', $text.' UTC');

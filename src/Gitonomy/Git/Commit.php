@@ -39,6 +39,8 @@ class Commit extends Revision
      * @param Repository $repository Repository of the commit
      * @param string     $hash       Hash of the commit
      * @param array      $data       Associative array of commit data.
+     *
+     * @throws ReferenceNotFoundException Hash not matching regular expression
      */
     public function __construct(Repository $repository, $hash, array $data = [])
     {
@@ -150,7 +152,7 @@ class Commit extends Revision
     }
 
     /**
-     * @param string|null $path
+     * @param string $path
      *
      * @throws ProcessException Error while executing git command (debug-mode only)
      *
@@ -212,6 +214,8 @@ class Commit extends Revision
      *
      * @param bool $local  set true to try to locate a commit on local repository
      * @param bool $remote set true to try to locate a commit on remote repository
+     *
+     * @throws InvalidArgumentException You should a least set one argument to true
      *
      * @return Reference[]|Branch[] An array of Reference\Branch
      */
@@ -363,9 +367,9 @@ class Commit extends Revision
      *
      * @param string $name
      *
-     * @throws ProcessException Error while executing git command (debug-mode only)
+     * @throws ProcessException           Error while executing git command (debug-mode only)
      * @throws ReferenceNotFoundException Reference not found
-     * @throws InvalidArgumentException No data with give name
+     * @throws InvalidArgumentException   No data with give name
      *
      * @return Tree|string
      */
