@@ -109,7 +109,6 @@ class WorkingCopy
         return $this;
     }
 
-
     /**
      * This command is a facility command. You can run any command
      * directly on git repository.
