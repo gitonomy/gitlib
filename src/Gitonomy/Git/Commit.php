@@ -62,6 +62,8 @@ class Commit extends Revision
     }
 
     /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *
      * @return Diff
      */
     public function getDiff()
@@ -149,6 +151,8 @@ class Commit extends Revision
 
     /**
      * @param string|null $path
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
      *
      * @return Commit
      */
@@ -358,6 +362,10 @@ class Commit extends Revision
      * committerName, committerEmail, committerDate, message or an other attribute
      *
      * @param string $name
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     * @throws ReferenceNotFoundException Reference not found
+     * @throws InvalidArgumentException No data with give name
      *
      * @return Tree|string
      */

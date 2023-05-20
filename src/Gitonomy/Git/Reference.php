@@ -54,6 +54,8 @@ abstract class Reference extends Revision
     }
 
     /**
+     * @throws ReferenceNotFoundException Can not find revision
+     *
      * @return string
      */
     public function getCommitHash()

@@ -13,6 +13,7 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\UnexpectedValueException;
 
 /**
@@ -48,6 +49,9 @@ class Tree
         return $this->hash;
     }
 
+    /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     */
     protected function initialize()
     {
         if (true === $this->isInitialized) {

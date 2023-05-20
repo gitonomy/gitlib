@@ -14,6 +14,7 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Parser\BlameParser;
 
 /**
@@ -113,6 +114,8 @@ class Blame implements \Countable
     }
 
     /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *
      * @return Line[] All lines of the blame.
      */
     public function getLines()

@@ -19,6 +19,9 @@ use Gitonomy\Git\Reference;
  */
 class Stash extends Reference
 {
+    /**
+     * @return string
+     */
     public function getName()
     {
         return 'stash';

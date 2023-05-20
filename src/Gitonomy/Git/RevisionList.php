@@ -70,7 +70,7 @@ class RevisionList implements \IteratorAggregate, \Countable
     }
 
     /**
-     * @return String[]
+     * @return string[]
      */
     public function getAsTextArray()
     {

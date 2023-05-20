@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\ProcessException;
+
 /**
  * Representation of a Blob commit.
  *

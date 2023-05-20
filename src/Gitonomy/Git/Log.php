@@ -161,6 +161,8 @@ class Log implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @throws ReferenceNotFoundException Can not find revision
+     *
      * @return Commit[]
      */
     public function getCommits()
@@ -229,6 +231,8 @@ class Log implements \Countable, \IteratorAggregate
 
     /**
      * Count commits, without offset or limit.
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
      *
      * @return int
      */

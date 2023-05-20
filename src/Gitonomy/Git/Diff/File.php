@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Diff;
 
+use Gitonomy\Git\Blob;
 use Gitonomy\Git\Repository;
 
 /**
@@ -66,6 +67,13 @@ class File
 
     /**
      * Instanciates a new File object.
+     * @param string $oldName
+     * @param string $newName
+     * @param string $oldMode
+     * @param string $newMode
+     * @param string $oldIndex
+     * @param string $newIndex
+     * @param bool $isBinary
      */
     public function __construct($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary)
     {
@@ -80,6 +88,9 @@ class File
         $this->changes = [];
     }
 
+    /**
+     * @param FileChange $change
+     */
     public function addChange(FileChange $change)
     {
         $this->changes[] = $change;
@@ -119,6 +130,8 @@ class File
 
     /**
      * Indicates if the file mode has changed.
+     *
+     * @return bool
      */
     public function isChangeMode()
     {
@@ -171,16 +184,25 @@ class File
         return $result;
     }
 
+    /**
+     * @return string
+     */
     public function getOldName()
     {
         return $this->oldName;
     }
 
+    /**
+     * @return string
+     */
     public function getNewName()
     {
         return $this->newName;
     }
 
+    /**
+     * @return string
+     */
     public function getName()
     {
         if (null === $this->newName) {
@@ -190,26 +212,41 @@ class File
         return $this->newName;
     }
 
+    /**
+     * @return string
+     */
     public function getOldMode()
     {
         return $this->oldMode;
     }
 
+    /**
+     * @return string
+     */
     public function getNewMode()
     {
         return $this->newMode;
     }
 
+    /**
+     * @return string
+     */
     public function getOldIndex()
     {
         return $this->oldIndex;
     }
 
+    /**
+     * @return string
+     */
     public function getNewIndex()
     {
         return $this->newIndex;
     }
 
+    /**
+     * @return bool
+     */
     public function isBinary()
     {
         return $this->isBinary;
@@ -223,6 +260,9 @@ class File
         return $this->changes;
     }
 
+    /**
+     * @return array
+     */
     public function toArray()
     {
         return [
@@ -240,6 +280,8 @@ class File
     }
 
     /**
+     * @param array $array
+     *
      * @return File
      */
     public static function fromArray(array $array)
@@ -253,21 +295,36 @@ class File
         return $file;
     }
 
+    /**
+     * @return false|string
+     */
     public function getAnchor()
     {
         return substr($this->newIndex, 0, 12);
     }
 
+    /**
+     * @return Repository
+     */
     public function getRepository()
     {
         return $this->repository;
     }
 
+    /**
+     * @param Repository $repository
+     */
     public function setRepository(Repository $repository)
     {
         $this->repository = $repository;
     }
 
+    /**
+     * @throws \RuntimeException Repository is missing to return Blob object.
+     * @throws \LogicException   Can't return old Blob on a creation.
+     *
+     * @return Blob
+     */
     public function getOldBlob()
     {
         if (null === $this->repository) {
@@ -281,6 +338,12 @@ class File
         return $this->repository->getBlob($this->oldIndex);
     }
 
+    /**
+     * @throws \RuntimeException Repository is missing to return Blob object.
+     * @throws \LogicException   Can't return new Blob on a deletion.
+     *
+     * @return Blob
+     */
     public function getNewBlob()
     {
         if (null === $this->repository) {

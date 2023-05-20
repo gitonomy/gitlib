@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
@@ -107,6 +108,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * @param Reference $reference
      *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *
      * @return Reference
      */
     public function update(Reference $reference)
@@ -149,6 +152,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
 
     /**
      * @param string $fullname Fullname of the reference (refs/heads/master, for example).
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
      *
      * @return void
      */
@@ -376,6 +381,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->get('refs/remotes/'.$name);
     }
 
+    /**
+     * @throws RuntimeException Error while getting list of references
+     */
     protected function initialize()
     {
         if (true === $this->initialized) {

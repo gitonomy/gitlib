@@ -423,6 +423,8 @@ class Repository
      * @param mixed $revisions can be a RevisionList, a string, an array of
      *                         strings or an array of Revision, Branch, Tag, Commit
      *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *
      * @return Diff
      */
     public function getDiff($revisions)
@@ -546,7 +548,7 @@ class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @throws RuntimeException Error while executing git command (debug-mode only)
+     * @throws ProcessException Error while executing git command (debug-mode only)
      *
      * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
      */
@@ -633,6 +635,8 @@ class Repository
      *
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
      *
      * @see self::run
      *

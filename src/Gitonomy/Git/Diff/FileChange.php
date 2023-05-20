@@ -18,10 +18,25 @@ class FileChange
     const LINE_REMOVE = -1;
     const LINE_ADD = 1;
 
+    /**
+     * @var int
+     */
     protected $rangeOldStart;
+    /**
+     * @var int
+     */
     protected $rangeOldCount;
+    /**
+     * @var int
+     */
     protected $rangeNewStart;
+    /**
+     * @var int
+     */
     protected $rangeNewCount;
+    /**
+     * @var array
+     */
     protected $lines;
 
     /**
@@ -30,8 +45,6 @@ class FileChange
      * @param int   $rangeNewStart
      * @param int   $rangeNewCount
      * @param array $lines
-     *
-     * @return void
      */
     public function __construct($rangeOldStart, $rangeOldCount, $rangeNewStart, $rangeNewCount, $lines)
     {
@@ -43,6 +56,10 @@ class FileChange
     }
 
     /**
+     * @param int $type 'FileChange::LINE_CONTEXT',
+     *                  'FileChange::LINE_ADD',
+     *                  'FileChange::LINE_REMOVE'
+     *
      * @return int
      */
     public function getCount($type)

@@ -22,6 +22,9 @@ abstract class ParserBase
 
     abstract protected function doParse();
 
+    /**
+     * @param string $content
+     */
     public function parse($content)
     {
         $this->cursor = 0;
