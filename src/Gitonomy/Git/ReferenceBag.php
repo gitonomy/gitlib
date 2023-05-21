@@ -111,6 +111,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
      * @param Reference $reference
      *
      * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      *
      * @return Reference
      */
@@ -156,6 +157,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
      * @param string $fullname Fullname of the reference (refs/heads/master, for example).
      *
      * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      *
      * @return void
      */
@@ -385,6 +387,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
 
     /**
      * @throws RuntimeException Error while getting list of references
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      */
     protected function initialize()
     {

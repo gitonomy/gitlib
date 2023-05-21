@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Symfony\Component\Process\Process;
 
@@ -29,9 +30,9 @@ class Admin
      * @param bool   $bare    indicate to create a bare repository
      * @param array  $options options for Repository creation
      *
-     * @throws RuntimeException Directory exists or not writable (only if debug=true)
-     *
      * @return Repository
+     *
+     * @throws RuntimeException Directory exists or not writable
      */
     public static function init($path, $bare = true, array $options = [])
     {
@@ -151,9 +152,9 @@ class Admin
      * @param array  $args    arguments to be added to the command-line
      * @param array  $options options for Repository creation
      *
-     * @throws RuntimeException Error while initializing repository
-     *
      * @return Repository
+     *
+     * @throws RuntimeException Error while initializing repository
      */
     public static function cloneRepository($path, $url, array $args = [], array $options = [])
     {

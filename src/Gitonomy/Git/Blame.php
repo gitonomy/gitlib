@@ -116,9 +116,10 @@ class Blame implements \Countable
     }
 
     /**
-     * @throws ProcessException Error while executing git command (debug-mode only)
-     *
      * @return Line[] All lines of the blame.
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      */
     public function getLines()
     {

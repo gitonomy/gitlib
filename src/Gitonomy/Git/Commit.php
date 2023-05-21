@@ -64,9 +64,10 @@ class Commit extends Revision
     }
 
     /**
-     * @throws ProcessException Error while executing git command (debug-mode only)
-     *
      * @return Diff
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      */
     public function getDiff()
     {
@@ -154,9 +155,10 @@ class Commit extends Revision
     /**
      * @param string $path
      *
-     * @throws ProcessException Error while executing git command (debug-mode only)
-     *
      * @return Commit
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      */
     public function getLastModification($path = null)
     {
@@ -368,6 +370,7 @@ class Commit extends Revision
      * @param string $name
      *
      * @throws ProcessException           Error while executing git command (debug-mode only)
+     *                                    or when there are Problems with executing the Process
      * @throws ReferenceNotFoundException Reference not found
      * @throws InvalidArgumentException   No data with give name
      *

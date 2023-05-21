@@ -178,7 +178,8 @@ class Tag extends Reference
      * @param string $name
      *
      * @throws \InvalidArgumentException No data wtih provided name
-     * @throws ProcessException          Error while executing git command
+     * @throws ProcessException          Error while executing git command (debug-mode only)
+     *                                   or when there are Problems with executing the Process
      *
      * @return bool|\DateTime|string
      */

@@ -43,6 +43,9 @@ class WorkingCopy
 
     /**
      * @return string[]
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      */
     public function getUntrackedFiles()
     {
@@ -59,6 +62,9 @@ class WorkingCopy
 
     /**
      * @return Diff
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      */
     public function getDiffPending()
     {
@@ -70,6 +76,9 @@ class WorkingCopy
 
     /**
      * @return Diff
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      */
     public function getDiffStaged()
     {
@@ -84,6 +93,8 @@ class WorkingCopy
      * @param string                  $branch
      *
      * @throws InvalidArgumentException If the $revision type is not Commit, Reference or string
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      *
      * @return WorkingCopy
      */
@@ -117,6 +128,7 @@ class WorkingCopy
      * @param array  $args    Arguments of git command
      *
      * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      *
      * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
      */

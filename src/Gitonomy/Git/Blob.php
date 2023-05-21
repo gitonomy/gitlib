@@ -60,9 +60,10 @@ class Blob
     }
 
     /**
-     * @throws ProcessException Error occurred while getting content of blob
-     *
      * @return string Content of the blob.
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      */
     public function getContent()
     {
