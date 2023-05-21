@@ -64,10 +64,10 @@ class Commit extends Revision
     }
 
     /**
-     * @return Diff
-     *
      * @throws ProcessException Error while executing git command (debug-mode only)
      *                          or when there are Problems with executing the Process
+     *
+     * @return Diff
      */
     public function getDiff()
     {
@@ -155,10 +155,10 @@ class Commit extends Revision
     /**
      * @param string $path
      *
-     * @return Commit
-     *
      * @throws ProcessException Error while executing git command (debug-mode only)
      *                          or when there are Problems with executing the Process
+     *
+     * @return Commit
      */
     public function getLastModification($path = null)
     {

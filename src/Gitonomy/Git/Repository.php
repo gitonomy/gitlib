@@ -551,10 +551,10 @@ class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
-     *
      * @throws ProcessException Error while executing git command (debug-mode only)
      *                          or when there are Problems with executing the Process
+     *
+     * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
      */
     public function run($command, $args = [])
     {

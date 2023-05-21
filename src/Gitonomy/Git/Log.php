@@ -236,10 +236,10 @@ class Log implements \Countable, \IteratorAggregate
     /**
      * Count commits, without offset or limit.
      *
-     * @return int
-     *
      * @throws ProcessException Error while executing git command (debug-mode only)
      *                          or when there are Problems with executing the Process
+     *
+     * @return int
      */
     public function countCommits()
     {
