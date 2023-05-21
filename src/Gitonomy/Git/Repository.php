@@ -550,9 +550,10 @@ class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @throws ProcessException Error while executing git command (debug-mode only)
-     *
      * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      */
     public function run($command, $args = [])
     {
@@ -563,7 +564,11 @@ class Repository
             $before = microtime(true);
         }
 
-        $process->run();
+        try {
+            $process->run();
+        } catch (\Exception $e) {
+            throw new ProcessException($process);
+        }
 
         $output = $process->getOutput();
 
