@@ -35,23 +35,20 @@
         }
     },
     "require": {
-        "php": "^5.6 || ^7.0 || ^8.0",
+        "php": "^8.0",
         "ext-pcre": "*",
         "symfony/polyfill-mbstring": "^1.7",
-        "symfony/process": "^3.4 || ^4.4 || ^5.0 || ^6.0"
+        "symfony/process": "^5.4 || ^6.0"
     },
     "require-dev": {
         "ext-fileinfo": "*",
-        "phpspec/prophecy": "^1.10.2",
-        "phpunit/phpunit": "^5.7.27 || ^6.5.14 || ^7.5.20 || ^8.5.20 || ^9.5.9",
+        "phpspec/prophecy-phpunit": "^2.0",
+        "phpunit/phpunit": "^7.5.20 || ^8.5.20 || ^9.5.9",
         "psr/log": "^1.0"
     },
-    "suggest": {
-        "ext-fileinfo": "Required to determine the mimetype of a blob",
-        "psr/log": "Required to use loggers for reporting of execution"
-    },
     "config": {
-        "preferred-install": "dist"
+        "preferred-install": "dist",
+        "sort-packages": true
     },
     "minimum-stability": "dev",
     "prefer-stable": true
