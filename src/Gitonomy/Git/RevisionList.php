@@ -23,6 +23,8 @@ class RevisionList implements \IteratorAggregate, \Countable
      * Constructs a revision list from a variety of types.
      *
      * @param mixed $revisions can be a string, an array of strings or an array of Revision, Branch, Tag, Commit
+     *
+     * @throws \InvalidArgumentException Unexpected revision type
      */
     public function __construct(Repository $repository, $revisions)
     {
@@ -69,6 +71,9 @@ class RevisionList implements \IteratorAggregate, \Countable
         return count($this->revisions);
     }
 
+    /**
+     * @return string[]
+     */
     public function getAsTextArray()
     {
         return array_map(function ($revision) {

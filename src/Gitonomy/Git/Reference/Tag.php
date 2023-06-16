@@ -27,8 +27,16 @@ use Gitonomy\Git\Reference;
  */
 class Tag extends Reference
 {
+    /**
+     * @var array
+     */
     protected $data;
 
+    /**
+     * @throws RuntimeException Cannot extract tag name
+     *
+     * @return string
+     */
     public function getName()
     {
         if (!preg_match('#^refs/tags/(.*)$#', $this->revision, $vars)) {
@@ -166,6 +174,15 @@ class Tag extends Reference
         }
     }
 
+    /**
+     * @param string $name
+     *
+     * @throws \InvalidArgumentException No data wtih provided name
+     * @throws ProcessException          Error while executing git command (debug-mode only)
+     *                                   or when there are Problems with executing the Process
+     *
+     * @return bool|\DateTime|string
+     */
     private function getData($name)
     {
         if (!$this->isAnnotated()) {

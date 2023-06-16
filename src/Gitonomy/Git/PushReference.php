@@ -13,6 +13,7 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\ProcessException;
 
 /**
  * Push reference contains a commit interval. This object aggregates methods
@@ -48,6 +49,12 @@ class PushReference
      */
     protected $isForce;
 
+    /**
+     * @param Repository $repository
+     * @param string     $reference
+     * @param string     $before
+     * @param string     $after
+     */
     public function __construct(Repository $repository, $reference, $before, $after)
     {
         $this->repository = $repository;
@@ -90,6 +97,8 @@ class PushReference
     }
 
     /**
+     * @param array $excludes
+     *
      * @return Log
      */
     public function getLog($excludes = [])
@@ -103,6 +112,8 @@ class PushReference
     }
 
     /**
+     * @throws LogicException
+     *
      * @return string
      */
     public function getRevision()
@@ -159,6 +170,9 @@ class PushReference
     }
 
     /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
      * @return bool
      */
     protected function getForce()

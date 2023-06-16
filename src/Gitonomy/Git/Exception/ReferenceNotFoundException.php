@@ -14,6 +14,9 @@ namespace Gitonomy\Git\Exception;
 
 class ReferenceNotFoundException extends \InvalidArgumentException implements GitExceptionInterface
 {
+    /**
+     * @param string $reference
+     */
     public function __construct($reference)
     {
         parent::__construct(sprintf('Reference not found: "%s"', $reference));

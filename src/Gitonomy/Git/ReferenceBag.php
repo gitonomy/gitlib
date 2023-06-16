@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
@@ -79,7 +80,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
      *
      * @param string $fullname Fullname of the reference (refs/heads/master, for example).
      *
-     * @return Reference A reference object.
+     * @throws ReferenceNotFoundException
+     *
+     * @return Reference|Tag A reference object.
      */
     public function get($fullname)
     {
@@ -93,6 +96,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param string $fullname Fullname of the reference (refs/heads/master, for example).
+     *
      * @return bool
      */
     public function has($fullname)
@@ -103,6 +108,11 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param Reference $reference
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
      * @return Reference
      */
     public function update(Reference $reference)
@@ -118,6 +128,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param string $name
+     * @param string $commitHash
+     *
      * @return Reference
      */
     public function createBranch($name, $commitHash)
@@ -128,6 +141,9 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param string $name
+     * @param string $commitHash
+     *
      * @return Reference
      */
     public function createTag($name, $commitHash)
@@ -138,6 +154,11 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param string $fullname Fullname of the reference (refs/heads/master, for example).
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
      * @return void
      */
     public function delete($fullname)
@@ -157,16 +178,31 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return count($this->branches) > 0;
     }
 
+    /**
+     * @param string $name Name of the branch
+     *
+     * @return bool
+     */
     public function hasBranch($name)
     {
         return $this->has('refs/heads/'.$name);
     }
 
+    /**
+     * @param string $name Name of the remote branch
+     *
+     * @return bool
+     */
     public function hasRemoteBranch($name)
     {
         return $this->has('refs/remotes/'.$name);
     }
 
+    /**
+     * @param string $name Name of the tag
+     *
+     * @return bool
+     */
     public function hasTag($name)
     {
         return $this->has('refs/tags/'.$name);
@@ -184,6 +220,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param Commit | string $hash
+     *
      * @return Tag[] An array of Tag objects
      */
     public function resolveTags($hash)
@@ -205,6 +243,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param Commit | string $hash
+     *
      * @return Branch[] An array of Branch objects
      */
     public function resolveBranches($hash)
@@ -226,6 +266,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * @param Commit | string $hash
+     *
      * @return Reference[] An array of references
      */
     public function resolve($hash)
@@ -343,6 +385,11 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->get('refs/remotes/'.$name);
     }
 
+    /**
+     * @throws RuntimeException Error while getting list of references
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     */
     protected function initialize()
     {
         if (true === $this->initialized) {

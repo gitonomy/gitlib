@@ -19,6 +19,9 @@ class CommitReference
      */
     private $hash;
 
+    /**
+     * @param string $hash
+     */
     public function __construct($hash)
     {
         $this->hash = $hash;

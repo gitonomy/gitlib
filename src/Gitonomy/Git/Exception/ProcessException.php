@@ -6,8 +6,14 @@ use Symfony\Component\Process\Process;
 
 class ProcessException extends RuntimeException implements GitExceptionInterface
 {
+    /**
+     * @var Process
+     */
     protected $process;
 
+    /**
+     * @param Process $process
+     */
     public function __construct(Process $process)
     {
         parent::__construct(
@@ -22,11 +28,17 @@ class ProcessException extends RuntimeException implements GitExceptionInterface
         $this->process = $process;
     }
 
+    /**
+     * @return string
+     */
     public function getErrorOutput()
     {
         return $this->process->getErrorOutput();
     }
 
+    /**
+     * @return string
+     */
     public function getOutput()
     {
         return $this->process->getOutput();

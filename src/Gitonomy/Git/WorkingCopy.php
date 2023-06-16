@@ -15,6 +15,7 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\ProcessException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -26,6 +27,11 @@ class WorkingCopy
      */
     protected $repository;
 
+    /**
+     * @param Repository $repository
+     *
+     * @throws LogicException Can't create a working copy on a bare repository
+     */
     public function __construct(Repository $repository)
     {
         $this->repository = $repository;
@@ -35,6 +41,12 @@ class WorkingCopy
         }
     }
 
+    /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
+     * @return string[]
+     */
     public function getUntrackedFiles()
     {
         $lines = explode("\0", $this->run('status', ['--porcelain', '--untracked-files=all', '-z']));
@@ -48,6 +60,12 @@ class WorkingCopy
         return $lines;
     }
 
+    /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
+     * @return Diff
+     */
     public function getDiffPending()
     {
         $diff = Diff::parse($this->run('diff', ['-r', '-p', '-m', '-M', '--full-index']));
@@ -56,6 +74,12 @@ class WorkingCopy
         return $diff;
     }
 
+    /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
+     * @return Diff
+     */
     public function getDiffStaged()
     {
         $diff = Diff::parse($this->run('diff', ['-r', '-p', '-m', '-M', '--full-index', '--staged']));
@@ -65,6 +89,13 @@ class WorkingCopy
     }
 
     /**
+     * @param Commit|Reference|string $revision
+     * @param string                  $branch
+     *
+     * @throws InvalidArgumentException If the $revision type is not Commit, Reference or string
+     * @throws ProcessException         Error while executing git command (debug-mode only)
+     *                                  or when there are Problems with executing the Process
+     *
      * @return WorkingCopy
      */
     public function checkout($revision, $branch = null)
@@ -89,6 +120,18 @@ class WorkingCopy
         return $this;
     }
 
+    /**
+     * This command is a facility command. You can run any command
+     * directly on git repository.
+     *
+     * @param string $command Git command to run (checkout, branch, tag)
+     * @param array  $args    Arguments of git command
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
+     * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
+     */
     protected function run($command, array $args = [])
     {
         return $this->repository->run($command, $args);

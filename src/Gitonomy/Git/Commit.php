@@ -38,6 +38,9 @@ class Commit extends Revision
      *
      * @param Repository $repository Repository of the commit
      * @param string     $hash       Hash of the commit
+     * @param array      $data       Associative array of commit data.
+     *
+     * @throws ReferenceNotFoundException Hash not matching regular expression
      */
     public function __construct(Repository $repository, $hash, array $data = [])
     {
@@ -50,6 +53,9 @@ class Commit extends Revision
         $this->setData($data);
     }
 
+    /**
+     * @param array $data Associative array of commit data.
+     */
     public function setData(array $data)
     {
         foreach ($data as $name => $value) {
@@ -58,6 +64,9 @@ class Commit extends Revision
     }
 
     /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
      * @return Diff
      */
     public function getDiff()
@@ -144,6 +153,11 @@ class Commit extends Revision
     }
 
     /**
+     * @param string $path
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
      * @return Commit
      */
     public function getLastModification($path = null)
@@ -202,6 +216,8 @@ class Commit extends Revision
      *
      * @param bool $local  set true to try to locate a commit on local repository
      * @param bool $remote set true to try to locate a commit on remote repository
+     *
+     * @throws InvalidArgumentException You should a least set one argument to true
      *
      * @return Reference[]|Branch[] An array of Reference\Branch
      */
@@ -347,6 +363,19 @@ class Commit extends Revision
         return $this;
     }
 
+    /**
+     * Possible options are: treeHash, parentHashes, authorName, authorEmail, authorDate,
+     * committerName, committerEmail, committerDate, message or an other attribute.
+     *
+     * @param string $name
+     *
+     * @throws ProcessException           Error while executing git command (debug-mode only)
+     *                                    or when there are Problems with executing the Process
+     * @throws ReferenceNotFoundException Reference not found
+     * @throws InvalidArgumentException   No data with give name
+     *
+     * @return Tree|string
+     */
     private function getData($name)
     {
         if (isset($this->data[$name])) {

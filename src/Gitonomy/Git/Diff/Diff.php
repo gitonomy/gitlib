@@ -55,6 +55,9 @@ class Diff
         return new self($parser->files, $rawDiff);
     }
 
+    /**
+     * @param Repository $repository
+     */
     public function setRepository(Repository $repository)
     {
         foreach ($this->files as $file) {

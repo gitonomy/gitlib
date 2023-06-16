@@ -24,8 +24,16 @@ use Gitonomy\Git\Util\StringHelper;
  */
 class Branch extends Reference
 {
+    /**
+     * @var null | bool
+     */
     private $local = null;
 
+    /**
+     * @throws RuntimeException Cannot extract branch name
+     *
+     * @return string
+     */
     public function getName()
     {
         $fullname = $this->getFullname();
@@ -41,6 +49,9 @@ class Branch extends Reference
         throw new RuntimeException(sprintf('Cannot extract branch name from "%s"', $fullname));
     }
 
+    /**
+     * @return null | bool
+     */
     public function isRemote()
     {
         $this->detectBranchType();
@@ -48,6 +59,9 @@ class Branch extends Reference
         return !$this->local;
     }
 
+    /**
+     * @return null | bool
+     */
     public function isLocal()
     {
         $this->detectBranchType();
@@ -61,6 +75,8 @@ class Branch extends Reference
      *
      * @param string $destinationBranchName
      * @param bool   $compareOnlyWithRemote
+     *
+     * @throws RuntimeException Cannot determine if merged to the branch
      *
      * @return null|bool
      */

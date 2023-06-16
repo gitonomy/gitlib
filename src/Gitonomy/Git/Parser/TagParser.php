@@ -54,6 +54,9 @@ class TagParser extends ParserBase
         }
     }
 
+    /**
+     * @return false|string
+     */
     protected function consumeGPGSignature()
     {
         $expected = '-----BEGIN PGP SIGNATURE-----';
@@ -67,6 +70,11 @@ class TagParser extends ParserBase
         return $this->consumeTo('-----END PGP SIGNATURE-----');
     }
 
+    /**
+     * @throws RuntimeException Unable to parse name, email and date
+     *
+     * @return array
+     */
     protected function consumeNameEmailDate()
     {
         if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+ [+-]\d{4}))/A', $this->content, $vars, 0, $this->cursor)) {
@@ -78,6 +86,13 @@ class TagParser extends ParserBase
         return [$vars[2], $vars[3], $vars[4]];
     }
 
+    /**
+     * @param string $text
+     *
+     * @throws RuntimeException Unable to convert $text to datetime
+     *
+     * @return \DateTime
+     */
     protected function parseDate($text)
     {
         $date = \DateTime::createFromFormat('U e O', $text.' UTC');

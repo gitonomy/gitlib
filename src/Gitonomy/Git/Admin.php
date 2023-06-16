@@ -29,7 +29,7 @@ class Admin
      * @param bool   $bare    indicate to create a bare repository
      * @param array  $options options for Repository creation
      *
-     * @throws RuntimeException Directory exists or not writable (only if debug=true)
+     * @throws RuntimeException Directory exists or not writable
      *
      * @return Repository
      */
@@ -151,6 +151,8 @@ class Admin
      * @param array  $args    arguments to be added to the command-line
      * @param array  $options options for Repository creation
      *
+     * @throws RuntimeException Error while initializing repository
+     *
      * @return Repository
      */
     public static function cloneRepository($path, $url, array $args = [], array $options = [])
@@ -168,6 +170,12 @@ class Admin
 
     /**
      * This internal method is used to create a process object.
+     *
+     * @param string $command
+     * @param array  $args
+     * @param array  $options
+     *
+     * @return Process
      */
     private static function getProcess($command, array $args = [], array $options = [])
     {

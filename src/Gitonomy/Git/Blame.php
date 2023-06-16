@@ -14,6 +14,7 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Parser\BlameParser;
 
 /**
@@ -47,9 +48,12 @@ class Blame implements \Countable
     protected $lines;
 
     /**
-     * @param string $lineRange Argument to pass to git blame (-L).
-     *                          Can be a line range (40,60 or 40,+21)
-     *                          or a regexp ('/^function$/')
+     * @param Repository $repository
+     * @param Revision   $revision
+     * @param string     $file
+     * @param string     $lineRange  Argument to pass to git blame (-L).
+     *                               Can be a line range (40,60 or 40,+21)
+     *                               or a regexp ('/^function$/')
      */
     public function __construct(Repository $repository, Revision $revision, $file, $lineRange = null)
     {
@@ -60,6 +64,10 @@ class Blame implements \Countable
     }
 
     /**
+     * @param int $number Line number
+     *
+     * @throws InvalidArgumentException Line number does either not exist or is below 1
+     *
      * @return Line
      */
     public function getLine($number)
@@ -108,6 +116,9 @@ class Blame implements \Countable
     }
 
     /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
      * @return Line[] All lines of the blame.
      */
     public function getLines()

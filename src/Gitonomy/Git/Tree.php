@@ -13,6 +13,7 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\UnexpectedValueException;
 
 /**
@@ -21,8 +22,20 @@ use Gitonomy\Git\Exception\UnexpectedValueException;
 class Tree
 {
     protected $repository;
+
+    /**
+     * @var string
+     */
     protected $hash;
+
+    /**
+     * @var bool
+     */
     protected $isInitialized = false;
+
+    /**
+     * @var array
+     */
     protected $entries;
 
     public function __construct(Repository $repository, $hash)
@@ -31,11 +44,18 @@ class Tree
         $this->hash = $hash;
     }
 
+    /**
+     * @return string
+     */
     public function getHash()
     {
         return $this->hash;
     }
 
+    /**
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     */
     protected function initialize()
     {
         if (true === $this->isInitialized) {
@@ -72,6 +92,13 @@ class Tree
         return $this->entries;
     }
 
+    /**
+     * @param string $name
+     *
+     * @throws InvalidArgumentException No entry found
+     *
+     * @return Blob
+     */
     public function getEntry($name)
     {
         $this->initialize();
@@ -83,6 +110,14 @@ class Tree
         return $this->entries[$name][1];
     }
 
+    /**
+     * @param string $path
+     *
+     * @throws InvalidArgumentException Unresolvable path
+     * @throws UnexpectedValueException Unknow type of element
+     *
+     * @return Tree
+     */
     public function resolvePath($path)
     {
         if ($path == '') {

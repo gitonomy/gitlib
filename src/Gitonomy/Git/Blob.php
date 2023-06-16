@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\ProcessException;
+
 /**
  * Representation of a Blob commit.
  *
@@ -58,7 +60,8 @@ class Blob
     }
 
     /**
-     * @throws ProcessException Error occurred while getting content of blob
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      *
      * @return string Content of the blob.
      */

@@ -103,13 +103,19 @@ class Repository
      *
      * Available options are:
      *
-     * * working_dir : specify where working copy is located (option --work-tree)
+     * * working_dir: (default: null) specify where working copy is located (option --work-tree)
      *
-     * * debug : (default: true) enable/disable minimize errors and reduce log level
+     * * debug: (default: true) enable/disable minimize errors and reduce log level
      *
-     * * logger : a logger to use for logging actions (Psr\Log\LoggerInterface)
+     * * logger: (default: null) a logger to use for logging actions (Psr\Log\LoggerInterface)
      *
-     * * environment_variables : define environment variables for every ran process
+     * * environment_variables: (default: []) define environment variables for every ran process in an array
+     *
+     * * command: (default: 'git')
+     *
+     * * inherit_environment_variables: (default: false)
+     *
+     * * process_timeout: (default: 3600)
      *
      * @param string $dir     path to git repository
      * @param array  $options array of options values
@@ -157,6 +163,8 @@ class Repository
      *
      * @param string $gitDir     directory of a working copy with files checked out
      * @param string $workingDir directory containing git files (objects, config...)
+     *
+     * @throws InvalidArgumentException Directory $$gitDir does not exist or is not a directory
      */
     private function initDir($gitDir, $workingDir = null)
     {
@@ -377,6 +385,12 @@ class Repository
     }
 
     /**
+     * @param Revision | string $revision
+     * @param string            $file
+     * @param string            $lineRange Argument to pass to git blame (-L).
+     *                                     Can be a line range (40,60 or 40,+21)
+     *                                     or a regexp ('/^function$/')
+     *
      * @return Blame
      */
     public function getBlame($revision, $file, $lineRange = null)
@@ -393,8 +407,8 @@ class Repository
      *
      * All those values can be null, meaning everything.
      *
-     * @param array $revisions An array of revisions to show logs from. Can be
-     *                         any text value type
+     * @param mixed $revisions can be a RevisionList, a string, an array of
+     *                         strings or an array of Revision, Branch, Tag, Commit
      * @param array $paths     Restrict log to modifications occurring on given
      *                         paths.
      * @param int   $offset    Start from a given offset in results.
@@ -408,6 +422,12 @@ class Repository
     }
 
     /**
+     * @param mixed $revisions can be a RevisionList, a string, an array of
+     *                         strings or an array of Revision, Branch, Tag, Commit
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
+     *
      * @return Diff
      */
     public function getDiff($revisions)
@@ -446,6 +466,7 @@ class Repository
      * Executes a shell command on the repository, using PHP pipes.
      *
      * @param string $command The command to execute
+     * @param array  $env     Environment variables as a key-value pair
      */
     public function shell($command, array $env = [])
     {
@@ -507,6 +528,8 @@ class Repository
     /**
      * Changes the repository description (file description in git-directory).
      *
+     * @param string $description New description
+     *
      * @return Repository the current repository
      */
     public function setDescription($description)
@@ -528,7 +551,8 @@ class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @throws RuntimeException Error while executing git command (debug-mode only)
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *                          or when there are Problems with executing the Process
      *
      * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
      */
@@ -541,7 +565,11 @@ class Repository
             $before = microtime(true);
         }
 
-        $process->run();
+        try {
+            $process->run();
+        } catch (\Exception $e) {
+            throw new ProcessException($process);
+        }
 
         $output = $process->getOutput();
 
@@ -596,8 +624,9 @@ class Repository
     /**
      * Clones the current repository to a new directory and return instance of new repository.
      *
-     * @param string $path path to the new repository in which current repository will be cloned
-     * @param bool   $bare flag indicating if repository is bare or has a working-copy
+     * @param string $path    path to the new repository in which current repository will be cloned
+     * @param bool   $bare    flag indicating if repository is bare or has a working-copy
+     * @param array  $options options for Repository creation
      *
      * @return Repository the newly created repository
      */
@@ -612,7 +641,14 @@ class Repository
      * Made private to be sure that process creation is handled through the run method.
      * run method ensures logging and debug.
      *
+     * @param string $command Git command to run (checkout, branch, tag)
+     * @param array  $args    Arguments of git command
+     *
+     * @throws ProcessException Error while executing git command (debug-mode only)
+     *
      * @see self::run
+     *
+     * @return Process
      */
     private function getProcess($command, $args = [])
     {
