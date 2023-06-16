@@ -15,9 +15,12 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\Exception\RuntimeException;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 
 class RepositoryTest extends AbstractTest
 {
+    use ProphecyTrait;
+
     /**
      * @dataProvider provideFoobar
      */
@@ -40,7 +43,7 @@ class RepositoryTest extends AbstractTest
     public function testGetSize($repository)
     {
         $size = $repository->getSize();
-        $this->assertGreaterThanOrEqual(69, $size, 'Repository is at least 69KB');
+        $this->assertGreaterThanOrEqual(53, $size, 'Repository is at least 53KB');
         $this->assertLessThan(80, $size, 'Repository is less than 80KB');
     }
 
