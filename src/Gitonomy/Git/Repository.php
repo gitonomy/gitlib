@@ -166,9 +166,19 @@ class Repository
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
         } elseif (!is_dir($realGitDir)) {
             throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $realGitDir));
-        } elseif (null === $workingDir && is_dir($realGitDir.'/.git')) {
+        } elseif (null === $workingDir && is_file($realGitDir . '/.git')) {
+            if (!preg_match('/^gitdir: ?(.+)$/', file_get_contents($realGitDir . '/.git'), $matches)) {
+                throw new InvalidArgumentException(sprintf('Directory "%s" contains a .git file, but it is not in the expected format', $realGitDir));
+            }
+            $foundGitPath = realpath($realGitDir . DIRECTORY_SEPARATOR . $matches[1]);
+            if (!is_dir($foundGitPath)) {
+                throw new InvalidArgumentException(sprintf('Directory "%s" contains a .git file, but the directory it points to cannot be found', $realGitDir));
+            }
             $workingDir = $realGitDir;
-            $realGitDir = $realGitDir.'/.git';
+            $realGitDir = $foundGitPath;
+        } elseif (null === $workingDir && is_dir($realGitDir . '/.git')) {
+            $workingDir = $realGitDir;
+            $realGitDir = $realGitDir . '/.git';
         }
 
         $this->gitDir = $realGitDir;
@@ -598,12 +608,14 @@ class Repository
      *
      * @param string $path path to the new repository in which current repository will be cloned
      * @param bool   $bare flag indicating if repository is bare or has a working-copy
+     * @param array  $options options for Repository creation
+     * @param array  $args arguments to be added to the command-line
      *
      * @return Repository the newly created repository
      */
-    public function cloneTo($path, $bare = true, array $options = [])
+    public function cloneTo($path, $bare = true, array $options = [], array $args = [])
     {
-        return Admin::cloneTo($path, $this->gitDir, $bare, $options);
+        return Admin::cloneTo($path, $this->gitDir, $bare, $options, $args);
     }
 
     /**

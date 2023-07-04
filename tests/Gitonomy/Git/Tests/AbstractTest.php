@@ -39,7 +39,7 @@ abstract class AbstractTest extends TestCase
      *
      * @return Repository
      */
-    public static function createEmptyRepository($bare = true)
+    public static function createEmptyRepository($bare = true, $separateGitDir = false)
     {
         $dir = self::createTempDir();
         $repository = Admin::init($dir, $bare, self::getOptions());
@@ -56,6 +56,7 @@ abstract class AbstractTest extends TestCase
         return [
             [self::createFoobarRepository()],
             [self::createFoobarRepository(false)],
+            [self::createFoobarRepository(false, true)]
         ];
     }
 
@@ -75,10 +76,12 @@ abstract class AbstractTest extends TestCase
      *
      * @return Repository
      */
-    public static function createFoobarRepository($bare = true)
+    public static function createFoobarRepository($bare = true, $separateGitDirectory = false)
     {
+        $args = $separateGitDirectory ? ['--separate-git-dir=' . tempnam(sys_get_temp_dir(), 'gitlib_')] : [];
+
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, self::getOptions());
+            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, self::getOptions(), $args);
         }
 
         $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare, self::getOptions());
