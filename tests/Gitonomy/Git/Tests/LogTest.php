@@ -76,4 +76,14 @@ class LogTest extends AbstractTest
             }
         }
     }
+
+    public function testFirstMessageEmpty()
+    {
+        $repository = $this->createEmptyRepository(false);
+        file_put_contents($repository->getWorkingDir().'/file', 'foo');
+        $repository->run('add', ['.']);
+        $repository->run('commit', ['--allow-empty-message', '--no-edit']);
+        $commits = $repository->getLog()->getCommits();
+        $this->assertCount(1, $commits);
+    }
 }
