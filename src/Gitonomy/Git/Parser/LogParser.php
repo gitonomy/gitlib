@@ -49,9 +49,7 @@ class LogParser extends CommitParser
             $this->consumeGPGSignature();
 
             $this->consumeNewLine();
-            if ($this->cursor < strlen($this->content)) {
-                $this->consumeNewLine();
-            }
+            $this->consumeNewLine();
 
             $message = '';
             if ($this->expects('    ')) {
