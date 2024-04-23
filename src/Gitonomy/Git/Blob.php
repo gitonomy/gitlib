@@ -19,6 +19,8 @@ namespace Gitonomy\Git;
  */
 class Blob
 {
+    private const FIRST_FEW_BYTES = 8000;
+
     /**
      * @var Repository
      */
@@ -38,6 +40,11 @@ class Blob
      * @var string
      */
     protected $mimetype;
+
+    /**
+     * @var bool
+     */
+    protected $text;
 
     /**
      * @param Repository $repository Repository where the blob is located
@@ -103,6 +110,10 @@ class Blob
      */
     public function isText()
     {
-        return (bool) preg_match('#^text/|^application/xml#', $this->getMimetype());
+        if (null === $this->text) {
+            $this->text = !str_contains(substr($this->getContent(), 0, self::FIRST_FEW_BYTES), chr(0));
+        }
+
+        return $this->text;
     }
 }
