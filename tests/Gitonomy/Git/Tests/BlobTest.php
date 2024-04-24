@@ -23,6 +23,11 @@ class BlobTest extends AbstractTest
         return $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('README.md');
     }
 
+    public function getImageBlob($repository)
+    {
+        return $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('image.jpg');
+    }
+
     /**
      * @dataProvider provideFoobar
      */
@@ -67,8 +72,10 @@ class BlobTest extends AbstractTest
      */
     public function testIsText($repository)
     {
-        $blob = $this->getReadmeBlob($repository);
-        $this->assertTrue($blob->isText());
+        $readmeBlob = $this->getReadmeBlob($repository);
+        $this->assertTrue($readmeBlob->isText());
+        $imageBlob = $this->getImageBlob($repository);
+        $this->assertFalse($imageBlob->isText());
     }
 
     /**
@@ -76,7 +83,9 @@ class BlobTest extends AbstractTest
      */
     public function testIsBinary($repository)
     {
-        $blob = $this->getReadmeBlob($repository);
-        $this->assertFalse($blob->isBinary());
+        $readmeBlob = $this->getReadmeBlob($repository);
+        $this->assertFalse($readmeBlob->isBinary());
+        $imageBlob = $this->getImageBlob($repository);
+        $this->assertTrue($imageBlob->isBinary());
     }
 }

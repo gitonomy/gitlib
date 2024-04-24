@@ -20,6 +20,11 @@ namespace Gitonomy\Git;
 class Blob
 {
     /**
+     * @var int Size that git uses to look for NULL byte: https://git.kernel.org/pub/scm/git/git.git/tree/xdiff-interface.c?h=v2.44.0#n193
+     */
+    private const FIRST_FEW_BYTES = 8000;
+
+    /**
      * @var Repository
      */
     protected $repository;
@@ -38,6 +43,11 @@ class Blob
      * @var string
      */
     protected $mimetype;
+
+    /**
+     * @var bool
+     */
+    protected $text;
 
     /**
      * @param Repository $repository Repository where the blob is located
@@ -89,6 +99,9 @@ class Blob
     /**
      * Determines if file is binary.
      *
+     * Uses the same check that git uses to determine if a file is binary or not
+     * https://git.kernel.org/pub/scm/git/git.git/tree/xdiff-interface.c?h=v2.44.0#n193
+     *
      * @return bool
      */
     public function isBinary()
@@ -99,10 +112,17 @@ class Blob
     /**
      * Determines if file is text.
      *
+     * Uses the same check that git uses to determine if a file is binary or not
+     * https://git.kernel.org/pub/scm/git/git.git/tree/xdiff-interface.c?h=v2.44.0#n193
+     *
      * @return bool
      */
     public function isText()
     {
-        return (bool) preg_match('#^text/|^application/xml#', $this->getMimetype());
+        if (null === $this->text) {
+            $this->text = !str_contains(substr($this->getContent(), 0, self::FIRST_FEW_BYTES), chr(0));
+        }
+
+        return $this->text;
     }
 }
