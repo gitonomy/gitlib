@@ -49,8 +49,8 @@ class Tree
 
         $this->entries = [];
         $this->entriesByType = [
-            TreeType::BLOB->value => [],
-            TreeType::TREE->value => [],
+            TreeType::BLOB->value   => [],
+            TreeType::TREE->value   => [],
             TreeType::COMMIT->value => [],
         ];
 
