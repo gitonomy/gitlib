@@ -24,6 +24,7 @@ class Tree
     protected $hash;
     protected $isInitialized = false;
     protected $entries;
+    protected $entriesByType;
 
     public function __construct(Repository $repository, $hash)
     {
@@ -47,16 +48,23 @@ class Tree
         $parser->parse($output);
 
         $this->entries = [];
+        $this->entriesByType = [
+            TreeType::BLOB->value => [],
+            TreeType::TREE->value => [],
+            TreeType::COMMIT->value => [],
+        ];
 
         foreach ($parser->entries as $entry) {
             list($mode, $type, $hash, $name) = $entry;
-            if ($type == 'blob') {
-                $this->entries[$name] = [$mode, $this->repository->getBlob($hash)];
-            } elseif ($type == 'tree') {
-                $this->entries[$name] = [$mode, $this->repository->getTree($hash)];
+            if ($type == TreeType::BLOB->value) {
+                $treeEntry = [$mode, $this->repository->getBlob($hash)];
+            } elseif ($type == TreeType::TREE->value) {
+                $treeEntry = [$mode, $this->repository->getTree($hash)];
             } else {
-                $this->entries[$name] = [$mode, new CommitReference($hash)];
+                $treeEntry = [$mode, new CommitReference($hash)];
             }
+            $this->entries[$name] = $treeEntry;
+            $this->entriesByType[$type][$name] = $treeEntry;
         }
 
         $this->isInitialized = true;
@@ -65,11 +73,11 @@ class Tree
     /**
      * @return array An associative array name => $object
      */
-    public function getEntries()
+    public function getEntries(?TreeType $type = null)
     {
         $this->initialize();
 
-        return $this->entries;
+        return $type ? $this->entriesByType[$type->value] : $this->entries;
     }
 
     public function getEntry($name)
