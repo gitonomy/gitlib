@@ -434,7 +434,9 @@ class Repository
         $totalBytes = 0;
         $path = realpath($this->gitDir);
         if ($path && file_exists($path)) {
+            echo "\n";
             foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)) as $object) {
+                echo $object->getPath().'/'.$object->getFileName().':'.$object->getSize()."\n";
                 $totalBytes += $object->getSize();
             }
         }
