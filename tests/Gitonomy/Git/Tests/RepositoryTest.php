@@ -43,8 +43,8 @@ class RepositoryTest extends AbstractTest
     public function testGetSize($repository)
     {
         $size = $repository->getSize();
-        $this->assertGreaterThanOrEqual(53, $size, 'Repository is at least 53KB');
-        $this->assertLessThan(80, $size, 'Repository is less than 80KB');
+        $this->assertGreaterThanOrEqual(57, $size, 'Repository is at least 57KB');
+        $this->assertLessThan(84, $size, 'Repository is less than 84KB');
     }
 
     public function testIsBare()
