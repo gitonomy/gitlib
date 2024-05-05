@@ -139,7 +139,7 @@ class DiffTest extends AbstractTest
         $this->assertSame(0, $changes[0]->getRangeOldCount());
 
         $this->assertSame(1, $changes[0]->getRangeNewStart());
-        $this->assertSame(0, $changes[0]->getRangeNewCount());
+        $this->assertSame(1, $changes[0]->getRangeNewCount());
     }
 
     /**
