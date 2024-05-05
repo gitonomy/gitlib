@@ -49,16 +49,16 @@ class Tree
 
         $this->entries = [];
         $this->entriesByType = [
-            TreeType::BLOB->value   => [],
-            TreeType::TREE->value   => [],
-            TreeType::COMMIT->value => [],
+            'blob'   => [],
+            'tree'   => [],
+            'commit' => [],
         ];
 
         foreach ($parser->entries as $entry) {
             list($mode, $type, $hash, $name) = $entry;
-            if ($type == TreeType::BLOB->value) {
+            if ($type == 'blob') {
                 $treeEntry = [$mode, $this->repository->getBlob($hash)];
-            } elseif ($type == TreeType::TREE->value) {
+            } elseif ($type == 'tree') {
                 $treeEntry = [$mode, $this->repository->getTree($hash)];
             } else {
                 $treeEntry = [$mode, new CommitReference($hash)];
@@ -71,13 +71,43 @@ class Tree
     }
 
     /**
-     * @return array An associative array name => $object
+     * @return array<string, array{string, CommitReference|Tree|Blob}> An associative array name => $object
      */
-    public function getEntries(?TreeType $type = null)
+    public function getEntries(): array
     {
         $this->initialize();
 
-        return $type ? $this->entriesByType[$type->value] : $this->entries;
+        return $this->entries;
+    }
+
+    /**
+     * @return array<string, array{string, CommitReference}> An associative array of name => [mode, commit reference]
+     */
+    public function getCommitReferenceEntries(): array
+    {
+        $this->initialize();
+
+        return $this->entriesByType['commit'];
+    }
+
+    /**
+     * @return array<string, array{string, Tree}> An associative array of name => [mode, tree]
+     */
+    public function getTreeEntries(): array
+    {
+        $this->initialize();
+
+        return $this->entriesByType['tree'];
+    }
+
+    /**
+     * @return array<string, array{string, Blob}> An associative array of name => [mode, blob]
+     */
+    public function getBlobEntries(): array
+    {
+        $this->initialize();
+
+        return $this->entriesByType['blob'];
     }
 
     public function getEntry($name)

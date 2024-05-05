@@ -14,7 +14,6 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\CommitReference;
-use Gitonomy\Git\TreeType;
 
 class TreeTest extends AbstractTest
 {
@@ -39,21 +38,39 @@ class TreeTest extends AbstractTest
     /**
      * @dataProvider provideFooBar
      */
-    public function testGetEntriesByType($repository)
+    public function testGetCommitReferenceEntries($repository)
     {
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
-        $blobs = $tree->getEntries(TreeType::BLOB);
+        $commits = $tree->getCommitReferenceEntries();
+
+        $this->assertNotEmpty($commits['barbaz'], 'barbaz is present');
+        $this->assertTrue($commits['barbaz'][1] instanceof CommitReference, 'barbaz is a Commit');
+    }
+
+    /**
+     * @dataProvider provideFooBar
+     */
+    public function testGetTreeEntries($repository)
+    {
+        $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $trees = $tree->getTreeEntries();
+
+        $this->assertEmpty($trees);
+    }
+
+    /**
+     * @dataProvider provideFooBar
+     */
+    public function testGetBlobEntries($repository)
+    {
+        $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $blobs = $tree->getBlobEntries();
 
         $this->assertNotEmpty($blobs['README.md'], 'README.md is present');
         $this->assertTrue($blobs['README.md'][1] instanceof Blob, 'README.md is a blob');
-
-        $trees = $tree->getEntries(TreeType::TREE);
-        $this->assertEmpty($trees);
-
-        $commits = $tree->getEntries(TreeType::COMMIT);
-        $this->assertNotEmpty($commits['barbaz'], 'barbaz is present');
-        $this->assertTrue($commits['barbaz'][1] instanceof CommitReference, 'barbaz is a Commit');
     }
 
     /**
