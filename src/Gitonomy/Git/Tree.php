@@ -24,6 +24,7 @@ class Tree
     protected $hash;
     protected $isInitialized = false;
     protected $entries;
+    protected $entriesByType;
 
     public function __construct(Repository $repository, $hash)
     {
@@ -47,29 +48,66 @@ class Tree
         $parser->parse($output);
 
         $this->entries = [];
+        $this->entriesByType = [
+            'blob'   => [],
+            'tree'   => [],
+            'commit' => [],
+        ];
 
         foreach ($parser->entries as $entry) {
             list($mode, $type, $hash, $name) = $entry;
             if ($type == 'blob') {
-                $this->entries[$name] = [$mode, $this->repository->getBlob($hash)];
+                $treeEntry = [$mode, $this->repository->getBlob($hash)];
             } elseif ($type == 'tree') {
-                $this->entries[$name] = [$mode, $this->repository->getTree($hash)];
+                $treeEntry = [$mode, $this->repository->getTree($hash)];
             } else {
-                $this->entries[$name] = [$mode, new CommitReference($hash)];
+                $treeEntry = [$mode, new CommitReference($hash)];
             }
+            $this->entries[$name] = $treeEntry;
+            $this->entriesByType[$type][$name] = $treeEntry;
         }
 
         $this->isInitialized = true;
     }
 
     /**
-     * @return array An associative array name => $object
+     * @return array<string, array{string, CommitReference|Tree|Blob}> An associative array name => $object
      */
-    public function getEntries()
+    public function getEntries(): array
     {
         $this->initialize();
 
         return $this->entries;
+    }
+
+    /**
+     * @return array<string, array{string, CommitReference}> An associative array of name => [mode, commit reference]
+     */
+    public function getCommitReferenceEntries(): array
+    {
+        $this->initialize();
+
+        return $this->entriesByType['commit'];
+    }
+
+    /**
+     * @return array<string, array{string, Tree}> An associative array of name => [mode, tree]
+     */
+    public function getTreeEntries(): array
+    {
+        $this->initialize();
+
+        return $this->entriesByType['tree'];
+    }
+
+    /**
+     * @return array<string, array{string, Blob}> An associative array of name => [mode, blob]
+     */
+    public function getBlobEntries(): array
+    {
+        $this->initialize();
+
+        return $this->entriesByType['blob'];
     }
 
     public function getEntry($name)
