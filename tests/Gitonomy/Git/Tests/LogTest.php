@@ -76,4 +76,19 @@ class LogTest extends AbstractTest
             }
         }
     }
+
+    public function testFirstMessageEmpty()
+    {
+        $repository = $this->createEmptyRepository(false);
+        $repository->run('config', ['--local', 'user.name', '"Unit Test"']);
+        $repository->run('config', ['--local', 'user.email', '"unit_test@unit-test.com"']);
+
+        // Edge case: first commit lacks a message.
+        file_put_contents($repository->getWorkingDir().'/file', 'foo');
+        $repository->run('add', ['.']);
+        $repository->run('commit', ['--allow-empty-message', '--no-edit']);
+
+        $commits = $repository->getLog()->getCommits();
+        $this->assertCount(1, $commits);
+    }
 }
