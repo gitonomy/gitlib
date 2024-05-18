@@ -380,9 +380,9 @@ class Commit extends Revision
             array_shift($lines);
             array_shift($lines);
 
-            $data['bodyMessage'] = implode("\n", $lines);
+            $this->data['bodyMessage'] = implode("\n", $lines);
 
-            return $data['bodyMessage'];
+            return $this->data['bodyMessage'];
         }
 
         $parser = new Parser\CommitParser();

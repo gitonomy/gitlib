@@ -40,8 +40,8 @@ class TagParser extends ParserBase
         $this->consumeNewLine();
 
         $this->consume('tagger ');
-        list($this->taggerName, $this->taggerEmail, $this->taggerDate) = $this->consumeNameEmailDate();
-        $this->taggerDate = $this->parseDate($this->taggerDate);
+        list($this->taggerName, $this->taggerEmail, $taggerDate) = $this->consumeNameEmailDate();
+        $this->taggerDate = $this->parseDate($taggerDate);
 
         $this->consumeNewLine();
         $this->consumeNewLine();

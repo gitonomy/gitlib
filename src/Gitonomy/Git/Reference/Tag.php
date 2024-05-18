@@ -191,9 +191,9 @@ class Tag extends Reference
             array_shift($lines);
             array_pop($lines);
 
-            $data['bodyMessage'] = implode("\n", $lines);
+            $this->data['bodyMessage'] = implode("\n", $lines);
 
-            return $data['bodyMessage'];
+            return $this->data['bodyMessage'];
         }
 
         $parser = new TagParser();
