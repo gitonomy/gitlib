@@ -150,4 +150,26 @@ class DiffTest extends AbstractTest
         $files = $repository->getCommit(self::FILE_WITH_UMLAUTS_COMMIT)->getDiff()->getFiles();
         $this->assertSame('file_with_umlauts_\303\244\303\266\303\274', $files[0]->getNewName());
     }
+
+    public function testEmptyNewFile()
+    {
+        $diff = Diff::parse("diff --git a/test b/test\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391\n");
+        $firstFile = $diff->getFiles()[0];
+
+        $this->assertTrue($firstFile->isCreation());
+        $this->assertFalse($firstFile->isDeletion());
+        $this->assertSame('test', $firstFile->getNewName());
+        $this->assertNull($firstFile->getOldName());
+    }
+
+    public function testEmptyOldFile()
+    {
+        $diff = Diff::parse("diff --git a/test b/test\ndeleted file mode 100644\nindex e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..0000000000000000000000000000000000000000\n");
+        $firstFile = $diff->getFiles()[0];
+
+        $this->assertFalse($firstFile->isCreation());
+        $this->assertTrue($firstFile->isDeletion());
+        $this->assertNull($firstFile->getNewName());
+        $this->assertSame('test', $firstFile->getOldName());
+    }
 }
