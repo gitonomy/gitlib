@@ -22,14 +22,31 @@ class DiffParser extends ParserBase
     protected function doParse()
     {
         $this->files = [];
+        $indexes = [];
+        // Diff contains raw information
+        if (str_starts_with($this->content, ':')) {
+            while ($this->expects(':')) {
+                $this->consumeRegexp('/\d{6} \d{6} /');
+                $oldIndex = $this->consumeShortHash();
+                $this->consume(' ');
+                $newIndex = $this->consumeShortHash();
+                $this->consumeTo("\n");
+                $this->consumeNewLine();
+                $indexes[] = [$oldIndex, $newIndex];
+            }
+            $this->consumeNewLine();
+        } elseif (!$this->isFinished()) {
+            trigger_error('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.', E_USER_DEPRECATED);
+        }
 
+        $fileIndex = 0;
         while (!$this->isFinished()) {
             // 1. title
             $vars = $this->consumeRegexp("/diff --git \"?(a\/.*?)\"? \"?(b\/.*?)\"?\n/");
             $oldName = $vars[1];
             $newName = $vars[2];
-            $oldIndex = null;
-            $newIndex = null;
+            $oldIndex = isset($indexes[$fileIndex]) ? $indexes[$fileIndex][0] : null;
+            $newIndex = isset($indexes[$fileIndex]) ? $indexes[$fileIndex][1] : null;
             $oldMode = null;
             $newMode = null;
 
