@@ -246,6 +246,7 @@ class DiffTest extends AbstractTest
         } catch(\RuntimeException $exception) {
             $this->assertSame('Index is missing to return Blob object.', $exception->getMessage());
         }
+
         try {
             $file->getNewBlob();
         } catch(\RuntimeException $exception) {
