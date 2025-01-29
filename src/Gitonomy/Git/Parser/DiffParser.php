@@ -55,6 +55,7 @@ class DiffParser extends ParserBase
                 $newMode = $this->consumeTo("\n");
                 $this->consumeNewLine();
                 $oldMode = null;
+                $oldName = '/dev/null';
             }
             if ($this->expects('old mode ')) {
                 $oldMode = $this->consumeTo("\n");
@@ -66,6 +67,7 @@ class DiffParser extends ParserBase
             if ($this->expects('deleted file mode ')) {
                 $oldMode = $this->consumeTo("\n");
                 $newMode = null;
+                $newName = '/dev/null';
                 $this->consumeNewLine();
             }
 

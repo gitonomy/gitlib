@@ -259,4 +259,26 @@ class DiffTest extends AbstractTest
         $this->assertSame('', $file->getOldIndex());
         $this->assertSame('', $file->getNewIndex());
     }
+
+    public function testEmptyNewFile()
+    {
+        $diff = Diff::parse("diff --git a/test b/test\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391\n");
+        $firstFile = $diff->getFiles()[0];
+
+        $this->assertTrue($firstFile->isCreation());
+        $this->assertFalse($firstFile->isDeletion());
+        $this->assertSame('test', $firstFile->getNewName());
+        $this->assertNull($firstFile->getOldName());
+    }
+
+    public function testEmptyOldFile()
+    {
+        $diff = Diff::parse("diff --git a/test b/test\ndeleted file mode 100644\nindex e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..0000000000000000000000000000000000000000\n");
+        $firstFile = $diff->getFiles()[0];
+
+        $this->assertFalse($firstFile->isCreation());
+        $this->assertTrue($firstFile->isDeletion());
+        $this->assertNull($firstFile->getNewName());
+        $this->assertSame('test', $firstFile->getOldName());
+    }
 }
