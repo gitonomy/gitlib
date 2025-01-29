@@ -62,7 +62,7 @@ class Commit extends Revision
      */
     public function getDiff()
     {
-        $args = ['-r', '-p', '-m', '-M', '--no-commit-id', '--full-index', $this->revision];
+        $args = ['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index', $this->revision];
 
         $diff = Diff::parse($this->repository->run('diff-tree', $args));
         $diff->setRepository($this->repository);

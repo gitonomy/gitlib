@@ -13,6 +13,8 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Diff\Diff;
+use Gitonomy\Git\Diff\File;
+use Gitonomy\Git\Repository;
 
 class DiffTest extends AbstractTest
 {
@@ -149,6 +151,113 @@ class DiffTest extends AbstractTest
     {
         $files = $repository->getCommit(self::FILE_WITH_UMLAUTS_COMMIT)->getDiff()->getFiles();
         $this->assertSame('file_with_umlauts_\303\244\303\266\303\274', $files[0]->getNewName());
+    }
+
+    public function testDeleteFileWithoutRaw()
+    {
+        $deprecationCalled = false;
+        $self = $this;
+        set_error_handler(function (int $errno, string $errstr) use ($self, &$deprecationCalled): void {
+            $deprecationCalled = true;
+            $self->assertSame('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.', $errstr);
+        }, E_USER_DEPRECATED);
+
+        $diff = Diff::parse(<<<'DIFF'
+        diff --git a/test b/test
+        deleted file mode 100644
+        index e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..0000000000000000000000000000000000000000
+
+        DIFF);
+        $firstFile = $diff->getFiles()[0];
+
+        restore_exception_handler();
+
+        $this->assertTrue($deprecationCalled);
+        $this->assertFalse($firstFile->isCreation());
+        // TODO: Enable after #226 is merged
+        //$this->assertTrue($firstFile->isDeletion());
+        //$this->assertFalse($firstFile->isChangeMode());
+        $this->assertSame('e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', $firstFile->getOldIndex());
+        $this->assertNull($firstFile->getNewIndex());
+    }
+
+    public function testModeChangeFileWithoutRaw()
+    {
+        $deprecationCalled = false;
+        $self = $this;
+        set_error_handler(function (int $errno, string $errstr) use ($self, &$deprecationCalled): void {
+            $deprecationCalled = true;
+            $self->assertSame('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.', $errstr);
+        }, E_USER_DEPRECATED);
+
+        $diff = Diff::parse(<<<'DIFF'
+        diff --git a/a.out b/a.out
+        old mode 100755
+        new mode 100644
+
+        DIFF);
+        $firstFile = $diff->getFiles()[0];
+
+        restore_exception_handler();
+
+        $this->assertTrue($deprecationCalled);
+        $this->assertFalse($firstFile->isCreation());
+        $this->assertFalse($firstFile->isDeletion());
+        $this->assertTrue($firstFile->isChangeMode());
+        $this->assertSame('', $firstFile->getOldIndex());
+        $this->assertSame('', $firstFile->getNewIndex());
+    }
+
+    public function testModeChangeFileWithRaw()
+    {
+        $deprecationCalled = false;
+        set_error_handler(function (int $errno, string $errstr) use (&$deprecationCalled): void {
+            $deprecationCalled = true;
+        }, E_USER_DEPRECATED);
+
+        $diff = Diff::parse(<<<'DIFF'
+        :100755 100644 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 M      a.out
+
+        diff --git a/a.out b/a.out
+        old mode 100755
+        new mode 100644
+
+        DIFF);
+        $firstFile = $diff->getFiles()[0];
+
+        restore_exception_handler();
+
+        $this->assertFalse($deprecationCalled);
+        $this->assertFalse($firstFile->isCreation());
+        $this->assertFalse($firstFile->isDeletion());
+        $this->assertTrue($firstFile->isChangeMode());
+        $this->assertSame('d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81', $firstFile->getOldIndex());
+        $this->assertSame('d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81', $firstFile->getNewIndex());
+    }
+
+    public function testThrowErrorOnBlobGetWithoutIndex()
+    {
+        $repository = $this->getMockBuilder(Repository::class)->disableOriginalConstructor()->getMock();
+        $file = new File('oldName', 'newName', '100755', '100644', '', '', false);
+        $file->setRepository($repository);
+
+        try {
+            $file->getOldBlob();
+        } catch(\RuntimeException $exception) {
+            $this->assertSame('Index is missing to return Blob object.', $exception->getMessage());
+        }
+
+        try {
+            $file->getNewBlob();
+        } catch(\RuntimeException $exception) {
+            $this->assertSame('Index is missing to return Blob object.', $exception->getMessage());
+        }
+
+        $this->assertFalse($file->isCreation());
+        $this->assertFalse($file->isDeletion());
+        $this->assertTrue($file->isChangeMode());
+        $this->assertSame('', $file->getOldIndex());
+        $this->assertSame('', $file->getNewIndex());
     }
 
     public function testEmptyNewFile()

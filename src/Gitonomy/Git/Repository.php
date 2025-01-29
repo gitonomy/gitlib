@@ -416,7 +416,7 @@ class Repository
             $revisions = new RevisionList($this, $revisions);
         }
 
-        $args = array_merge(['-r', '-p', '-m', '-M', '--no-commit-id', '--full-index'], $revisions->getAsTextArray());
+        $args = array_merge(['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index'], $revisions->getAsTextArray());
 
         $diff = Diff::parse($this->run('diff', $args));
         $diff->setRepository($this);

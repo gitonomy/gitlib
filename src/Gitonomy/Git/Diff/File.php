@@ -278,6 +278,10 @@ class File
             throw new \LogicException('Can\'t return old Blob on a creation');
         }
 
+        if ($this->oldIndex === '') {
+            throw new \RuntimeException('Index is missing to return Blob object.');
+        }
+
         return $this->repository->getBlob($this->oldIndex);
     }
 
@@ -289,6 +293,10 @@ class File
 
         if ($this->isDeletion()) {
             throw new \LogicException('Can\'t return new Blob on a deletion');
+        }
+
+        if ($this->newIndex === '') {
+            throw new \RuntimeException('Index is missing to return Blob object.');
         }
 
         return $this->repository->getBlob($this->newIndex);
