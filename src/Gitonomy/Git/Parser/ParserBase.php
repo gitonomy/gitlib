@@ -136,4 +136,18 @@ abstract class ParserBase
 
         return $this->consumeTo("\n\n");
     }
+
+    protected function consumeMergeTag()
+    {
+        $expected = "\nmergetag ";
+        $length = strlen($expected);
+        $actual = substr($this->content, $this->cursor, $length);
+        if ($actual != $expected) {
+            return '';
+        }
+        $this->cursor += $length;
+
+        $this->consumeTo('-----END PGP SIGNATURE-----');
+        $this->consume('-----END PGP SIGNATURE-----');
+    }
 }

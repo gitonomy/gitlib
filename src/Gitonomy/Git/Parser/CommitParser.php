@@ -47,6 +47,8 @@ class CommitParser extends ParserBase
         list($this->committerName, $this->committerEmail, $committerDate) = $this->consumeNameEmailDate();
         $this->committerDate = $this->parseDate($committerDate);
 
+        $this->consumeMergeTag();
+
         // will consume an GPG signed commit if there is one
         $this->consumeGPGSignature();
 
