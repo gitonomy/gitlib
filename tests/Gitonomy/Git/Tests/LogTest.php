@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Parser\LogParser;
+
 class LogTest extends AbstractTest
 {
     /**
@@ -91,4 +93,45 @@ class LogTest extends AbstractTest
         $commits = $repository->getLog()->getCommits();
         $this->assertCount(1, $commits);
     }
+
+    public function testParsesCommitsWithAndWithoutGitButlerHeaders(): void
+    {
+        $logContent = <<<EOT
+  commit 1111111111111111111111111111111111111111
+  tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
+  author John Doe <john@example.com> 1620000000 +0000
+  committer John Doe <john@example.com> 1620000000 +0000
+  
+      First commit message
+  
+  commit 2222222222222222222222222222222222222222
+  tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
+  parent 1111111111111111111111111111111111111111
+  author Jane Smith <jane@example.com> 1620003600 +0000
+  committer Jane Smith <jane@example.com> 1620003600 +0000
+  gitbutler-headers-version: 2
+  gitbutler-change-id: a7bd485c-bae6-45b2-910f-163c78aace81
+  
+      Commit with GitButler headers
+  
+  commit 3333333333333333333333333333333333333333
+  tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
+  author John Doe <john@example.com> 1620007200 +0000
+  committer Jane Smith <jane@example.com> 1620007200 +0000
+  
+      Another commit without GitButler headers
+  
+  EOT;
+
+        $parser = new LogParser();
+        $parser->parse($logContent);
+
+        $log = $parser->log;
+        $this->assertCount(3, $log);
+
+        $this->assertEquals("First commit message\n", $log[0]['message']);
+        $this->assertEquals("Commit with GitButler headers\n", $log[1]['message']);
+        $this->assertEquals("Another commit without GitButler headers\n", $log[2]['message']);
+    }
+
 }
