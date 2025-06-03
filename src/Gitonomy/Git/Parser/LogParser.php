@@ -88,5 +88,4 @@ class LogParser extends CommitParser
             $this->consumeNewLine();
         }
     }
-
 }

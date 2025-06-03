@@ -133,5 +133,4 @@ class LogTest extends AbstractTest
         $this->assertEquals("Commit with GitButler headers\n", $log[1]['message']);
         $this->assertEquals("Another commit without GitButler headers\n", $log[2]['message']);
     }
-
 }
