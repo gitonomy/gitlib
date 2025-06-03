@@ -78,7 +78,8 @@ class LogParser extends CommitParser
         }
     }
 
-    protected function consumeUnsupportedLinesToNewLine() {
+    protected function consumeUnsupportedLinesToNewLine()
+    {
         // Consume any unsupported lines that may appear in the log output. For
         // example, gitbutler headers or other custom metadata but this should
         // work regardless of the content.

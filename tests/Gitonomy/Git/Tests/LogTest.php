@@ -96,7 +96,7 @@ class LogTest extends AbstractTest
 
     public function testParsesCommitsWithAndWithoutGitButlerHeaders(): void
     {
-        $logContent = <<<EOT
+        $logContent = <<<'EOT'
   commit 1111111111111111111111111111111111111111
   tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
   author John Doe <john@example.com> 1620000000 +0000
