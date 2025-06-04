@@ -51,6 +51,7 @@ class LogParser extends CommitParser
             $this->consumeGPGSignature();
 
             $this->consumeNewLine();
+            $this->consumeUnsupportedLinesToNewLine();
             if ($this->cursor < strlen($this->content)) {
                 $this->consumeNewLine();
             }
@@ -74,6 +75,17 @@ class LogParser extends CommitParser
             $commit['message'] = $message;
 
             $this->log[] = $commit;
+        }
+    }
+
+    protected function consumeUnsupportedLinesToNewLine()
+    {
+        // Consume any unsupported lines that may appear in the log output. For
+        // example, gitbutler headers or other custom metadata but this should
+        // work regardless of the content.
+        while (!$this->isFinished() && substr($this->content, $this->cursor, 1) !== "\n") {
+            $this->consumeTo("\n");
+            $this->consumeNewLine();
         }
     }
 }
