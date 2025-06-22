@@ -25,7 +25,7 @@ abstract class ParserBase
     public function parse($content)
     {
         $this->cursor = 0;
-        $this->content = $content;
+        $this->content = $content ?? '';
         $this->length = strlen($this->content);
 
         $this->doParse();

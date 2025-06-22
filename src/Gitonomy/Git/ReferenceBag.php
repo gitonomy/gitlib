@@ -354,7 +354,7 @@ class ReferenceBag implements \Countable, \IteratorAggregate
             $parser = new Parser\ReferenceParser();
             $output = $this->repository->run('show-ref');
         } catch (RuntimeException $e) {
-            $output = null;
+            return;
         }
         $parser->parse($output);
 
