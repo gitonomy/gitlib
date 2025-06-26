@@ -44,4 +44,13 @@ class ReferenceBagTest extends AbstractTest
         $this->assertArrayNotHasKey('refs/pull/1/head', $refs);
         $this->assertArrayNotHasKey('refs/notes/gtm-data', $refs);
     }
+
+    /**
+     * @dataProvider provideEmpty
+     */
+    public function testEmptyRepo(Repository $repository)
+    {
+        $refs = $repository->getReferences()->getAll();
+        $this->assertSame([], $refs);
+    }
 }
