@@ -174,9 +174,8 @@ class DiffTest extends AbstractTest
 
         $this->assertTrue($deprecationCalled);
         $this->assertFalse($firstFile->isCreation());
-        // TODO: Enable after #226 is merged
-        //$this->assertTrue($firstFile->isDeletion());
-        //$this->assertFalse($firstFile->isChangeMode());
+        $this->assertTrue($firstFile->isDeletion());
+        $this->assertFalse($firstFile->isChangeMode());
         $this->assertSame('e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', $firstFile->getOldIndex());
         $this->assertNull($firstFile->getNewIndex());
     }
@@ -216,23 +215,36 @@ class DiffTest extends AbstractTest
         }, E_USER_DEPRECATED);
 
         $diff = Diff::parse(<<<'DIFF'
-        :100755 100644 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 M      a.out
+        :100644 100755 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 M        testfile
+        :100644 100755 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82 M        testfile2
 
-        diff --git a/a.out b/a.out
-        old mode 100755
-        new mode 100644
+        diff --git a/testfile b/testfile
+        old mode 100644
+        new mode 100755
+        diff --git a/testfile2 b/testfile2
+        old mode 100644
+        new mode 100755
 
         DIFF);
-        $firstFile = $diff->getFiles()[0];
+        $files = $diff->getFiles();
+        $firstFile = $files[0];
+        $secondFile = $files[1];
 
         restore_exception_handler();
 
         $this->assertFalse($deprecationCalled);
+
         $this->assertFalse($firstFile->isCreation());
         $this->assertFalse($firstFile->isDeletion());
         $this->assertTrue($firstFile->isChangeMode());
         $this->assertSame('d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81', $firstFile->getOldIndex());
         $this->assertSame('d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81', $firstFile->getNewIndex());
+
+        $this->assertFalse($secondFile->isCreation());
+        $this->assertFalse($secondFile->isDeletion());
+        $this->assertTrue($secondFile->isChangeMode());
+        $this->assertSame('d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82', $secondFile->getOldIndex());
+        $this->assertSame('d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82', $secondFile->getNewIndex());
     }
 
     public function testThrowErrorOnBlobGetWithoutIndex()

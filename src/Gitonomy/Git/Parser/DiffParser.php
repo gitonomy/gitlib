@@ -45,8 +45,10 @@ class DiffParser extends ParserBase
             $vars = $this->consumeRegexp("/diff --git \"?(a\/.*?)\"? \"?(b\/.*?)\"?\n/");
             $oldName = $vars[1];
             $newName = $vars[2];
+            // Get indexes from raw if it exists
             $oldIndex = isset($indexes[$fileIndex]) ? $indexes[$fileIndex][0] : null;
             $newIndex = isset($indexes[$fileIndex]) ? $indexes[$fileIndex][1] : null;
+            $fileIndex++;
             $oldMode = null;
             $newMode = null;
 
