@@ -22,7 +22,7 @@ use Gitonomy\Git\Exception\LogicException;
 final readonly class WorkingCopy
 {
     public function __construct(
-        private readonly Repository $repository,
+        private Repository $repository,
     ) {
         if ($this->repository->isBare()) {
             throw new LogicException('Can\'t create a working copy on a bare repository');

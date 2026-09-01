@@ -24,7 +24,7 @@ use Gitonomy\Git\Exception\RuntimeException;
 final readonly class Hooks
 {
     public function __construct(
-        private readonly Repository $repository,
+        private Repository $repository,
     ) {
     }
 

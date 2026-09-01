@@ -24,13 +24,13 @@ final readonly class PushReference
 {
     public const string ZERO = '0000000000000000000000000000000000000000';
 
-    private readonly bool $isForce;
+    private bool $isForce;
 
     public function __construct(
-        private readonly Repository $repository,
-        private readonly string $reference,
-        private readonly string $before,
-        private readonly string $after,
+        private Repository $repository,
+        private string $reference,
+        private string $before,
+        private string $after,
     ) {
         $this->isForce = $this->getForce();
     }

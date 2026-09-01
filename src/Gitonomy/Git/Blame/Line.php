@@ -23,11 +23,11 @@ final readonly class Line
      * Instanciates a new Line object.
      */
     public function __construct(
-        private readonly Commit $commit,
-        private readonly string $sourceLine,
-        private readonly string $targetLine,
-        private readonly ?string $blockLine,
-        private readonly string $content,
+        private Commit $commit,
+        private string $sourceLine,
+        private string $targetLine,
+        private ?string $blockLine,
+        private string $content,
     ) {
     }
 

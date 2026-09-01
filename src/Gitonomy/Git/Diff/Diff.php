@@ -28,8 +28,8 @@ final readonly class Diff
      * @param File[] $files The files
      */
     public function __construct(
-        private readonly array $files,
-        private readonly string $rawDiff,
+        private array $files,
+        private string $rawDiff,
     ) {
     }
 

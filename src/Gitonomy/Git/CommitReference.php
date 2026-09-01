@@ -14,7 +14,7 @@ namespace Gitonomy\Git;
 
 final readonly class CommitReference
 {
-    public function __construct(private readonly string $hash)
+    public function __construct(private string $hash)
     {
     }
 

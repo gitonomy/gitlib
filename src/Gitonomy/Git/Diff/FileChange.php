@@ -22,11 +22,11 @@ final readonly class FileChange
      * @param array<int, array{int, string}> $lines
      */
     public function __construct(
-        private readonly int $rangeOldStart,
-        private readonly int $rangeOldCount,
-        private readonly int $rangeNewStart,
-        private readonly int $rangeNewCount,
-        private readonly array $lines,
+        private int $rangeOldStart,
+        private int $rangeOldCount,
+        private int $rangeNewStart,
+        private int $rangeNewCount,
+        private array $lines,
     ) {
     }
 
