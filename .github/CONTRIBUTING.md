@@ -6,7 +6,7 @@ We accept contributions via pull requests on GitHub. Please review these guideli
 
 ## Guidelines
 
-* Please follow the [PSR-12 Coding Style Guide](https://www.php-fig.org/psr/psr-12/), enforced by [StyleCI](https://styleci.io/).
+* Please follow the [PSR-12 Coding Style Guide](https://www.php-fig.org/psr/psr-12/).
 * Ensure that the current tests pass, and if you've added something new, add the tests where relevant.
 * Send a coherent commit history, making sure each commit in your pull request is meaningful.
 * You may need to [rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing) to avoid merge conflicts.
@@ -29,4 +29,3 @@ $ vendor/bin/phpunit
 
 * A script `test-git-versions.sh` is available in repository to test gitlib against many git versions.
 * The tests will be automatically run by [GitHub Actions](https://github.com/features/actions) against pull requests.
-* We also have [StyleCI](https://styleci.io/) set up to automatically fix any code style issues.
