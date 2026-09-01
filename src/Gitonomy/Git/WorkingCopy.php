@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -19,36 +19,32 @@ use Gitonomy\Git\Exception\LogicException;
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class WorkingCopy
+final readonly class WorkingCopy
 {
-    /**
-     * @var Repository
-     */
-    protected $repository;
-
-    public function __construct(Repository $repository)
-    {
-        $this->repository = $repository;
-
+    public function __construct(
+        private Repository $repository,
+    ) {
         if ($this->repository->isBare()) {
             throw new LogicException('Can\'t create a working copy on a bare repository');
         }
     }
 
-    public function getUntrackedFiles()
+    /**
+     * @return string[]
+     */
+    public function getUntrackedFiles(): array
     {
         $lines = explode("\0", $this->run('status', ['--porcelain', '--untracked-files=all', '-z']));
-        $lines = array_filter($lines, function ($l) {
-            return substr($l, 0, 3) === '?? ';
+        $lines = array_filter($lines, static function ($l) {
+            return '?? ' === substr($l, 0, 3);
         });
-        $lines = array_map(function ($l) {
+
+        return array_map(static function ($l) {
             return substr($l, 3);
         }, $lines);
-
-        return $lines;
     }
 
-    public function getDiffPending()
+    public function getDiffPending(): Diff
     {
         $diff = Diff::parse($this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index']));
         $diff->setRepository($this->repository);
@@ -56,7 +52,7 @@ class WorkingCopy
         return $diff;
     }
 
-    public function getDiffStaged()
+    public function getDiffStaged(): Diff
     {
         $diff = Diff::parse($this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index', '--staged']));
         $diff->setRepository($this->repository);
@@ -65,19 +61,19 @@ class WorkingCopy
     }
 
     /**
-     * @return WorkingCopy
+     * @param Commit|Reference|string $revision
      */
-    public function checkout($revision, $branch = null)
+    public function checkout($revision, ?string $branch = null): static
     {
         $args = [];
         if ($revision instanceof Commit) {
             $args[] = $revision->getHash();
         } elseif ($revision instanceof Reference) {
             $args[] = $revision->getFullname();
-        } elseif (is_string($revision)) {
+        } elseif (\is_string($revision)) {
             $args[] = $revision;
         } else {
-            throw new InvalidArgumentException(sprintf('Unknown type "%s"', gettype($revision)));
+            throw new InvalidArgumentException(\sprintf('Unknown type "%s"', \gettype($revision)));
         }
 
         if (null !== $branch) {
@@ -89,7 +85,7 @@ class WorkingCopy
         return $this;
     }
 
-    protected function run($command, array $args = [])
+    private function run(string $command, array $args = []): ?string
     {
         return $this->repository->run($command, $args);
     }

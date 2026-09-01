@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -12,95 +12,52 @@
 
 namespace Gitonomy\Git\Diff;
 
+use Gitonomy\Git\Blob;
 use Gitonomy\Git\Repository;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class File
+final class File
 {
     /**
-     * @var string
+     * @var FileChange[]
      */
-    protected $oldName;
+    private array $changes = [];
 
-    /**
-     * @var string
-     */
-    protected $newName;
-
-    /**
-     * @var string
-     */
-    protected $oldMode;
-
-    /**
-     * @var string
-     */
-    protected $newMode;
-
-    /**
-     * @var string
-     */
-    protected $oldIndex;
-
-    /**
-     * @var string
-     */
-    protected $newIndex;
-
-    /**
-     * @var bool
-     */
-    protected $isBinary;
-
-    /**
-     * @var FileChange[] An array of FileChange objects
-     */
-    protected $changes;
-
-    /**
-     * @var Repository
-     */
-    protected $repository;
+    private ?Repository $repository = null;
 
     /**
      * Instanciates a new File object.
      */
-    public function __construct($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary)
-    {
-        $this->oldName = $oldName;
-        $this->newName = $newName;
-        $this->oldMode = $oldMode;
-        $this->newMode = $newMode;
-        $this->oldIndex = $oldIndex;
-        $this->newIndex = $newIndex;
-        $this->isBinary = $isBinary;
-
-        $this->changes = [];
+    public function __construct(
+        private readonly ?string $oldName,
+        private readonly ?string $newName,
+        private readonly ?string $oldMode,
+        private readonly ?string $newMode,
+        private readonly ?string $oldIndex,
+        private readonly ?string $newIndex,
+        private readonly bool $isBinary,
+    ) {
     }
 
-    public function addChange(FileChange $change)
+    public function addChange(FileChange $change): void
     {
         $this->changes[] = $change;
     }
 
     /**
      * Indicates if this diff file is a creation.
-     *
-     * @return bool
      */
-    public function isCreation()
+    public function isCreation(): bool
     {
         return null === $this->oldName;
     }
 
     /**
      * Indicates if this diff file is a modification.
-     *
-     * @return bool
      */
-    public function isModification()
+    public function isModification(): bool
     {
         return null !== $this->oldName && null !== $this->newName;
     }
@@ -109,10 +66,8 @@ class File
      * Indicates if it's a rename.
      *
      * A rename can only occurs if it's a modification (not a creation or a deletion).
-     *
-     * @return bool
      */
-    public function isRename()
+    public function isRename(): bool
     {
         return $this->isModification() && $this->oldName !== $this->newName;
     }
@@ -120,27 +75,23 @@ class File
     /**
      * Indicates if the file mode has changed.
      */
-    public function isChangeMode()
+    public function isChangeMode(): bool
     {
         return $this->isModification() && $this->oldMode !== $this->newMode;
     }
 
     /**
      * Indicates if this diff file is a deletion.
-     *
-     * @return bool
      */
-    public function isDeletion()
+    public function isDeletion(): bool
     {
         return null === $this->newName;
     }
 
     /**
      * Indicates if this diff file is a deletion.
-     *
-     * @return bool
      */
-    public function isDelete()
+    public function isDelete(): bool
     {
         return null === $this->newName;
     }
@@ -148,7 +99,7 @@ class File
     /**
      * @return int Number of added lines
      */
-    public function getAdditions()
+    public function getAdditions(): int
     {
         $result = 0;
         foreach ($this->changes as $change) {
@@ -161,7 +112,7 @@ class File
     /**
      * @return int Number of deleted lines
      */
-    public function getDeletions()
+    public function getDeletions(): int
     {
         $result = 0;
         foreach ($this->changes as $change) {
@@ -171,17 +122,17 @@ class File
         return $result;
     }
 
-    public function getOldName()
+    public function getOldName(): ?string
     {
         return $this->oldName;
     }
 
-    public function getNewName()
+    public function getNewName(): ?string
     {
         return $this->newName;
     }
 
-    public function getName()
+    public function getName(): ?string
     {
         if (null === $this->newName) {
             return $this->oldName;
@@ -190,27 +141,27 @@ class File
         return $this->newName;
     }
 
-    public function getOldMode()
+    public function getOldMode(): ?string
     {
         return $this->oldMode;
     }
 
-    public function getNewMode()
+    public function getNewMode(): ?string
     {
         return $this->newMode;
     }
 
-    public function getOldIndex()
+    public function getOldIndex(): ?string
     {
         return $this->oldIndex;
     }
 
-    public function getNewIndex()
+    public function getNewIndex(): ?string
     {
         return $this->newIndex;
     }
 
-    public function isBinary()
+    public function isBinary(): bool
     {
         return $this->isBinary;
     }
@@ -218,31 +169,28 @@ class File
     /**
      * @return FileChange[]
      */
-    public function getChanges()
+    public function getChanges(): array
     {
         return $this->changes;
     }
 
-    public function toArray()
+    public function toArray(): array
     {
         return [
-            'old_name'  => $this->oldName,
-            'new_name'  => $this->newName,
-            'old_mode'  => $this->oldMode,
-            'new_mode'  => $this->newMode,
+            'old_name' => $this->oldName,
+            'new_name' => $this->newName,
+            'old_mode' => $this->oldMode,
+            'new_mode' => $this->newMode,
             'old_index' => $this->oldIndex,
             'new_index' => $this->newIndex,
             'is_binary' => $this->isBinary,
-            'changes'   => array_map(function (FileChange $change) {
+            'changes' => array_map(static function (FileChange $change) {
                 return $change->toArray();
             }, $this->changes),
         ];
     }
 
-    /**
-     * @return File
-     */
-    public static function fromArray(array $array)
+    public static function fromArray(array $array): self
     {
         $file = new self($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary']);
 
@@ -253,22 +201,22 @@ class File
         return $file;
     }
 
-    public function getAnchor()
+    public function getAnchor(): string
     {
-        return substr($this->newIndex, 0, 12);
+        return substr($this->newIndex ?? '', 0, 12);
     }
 
-    public function getRepository()
+    public function getRepository(): ?Repository
     {
         return $this->repository;
     }
 
-    public function setRepository(Repository $repository)
+    public function setRepository(Repository $repository): void
     {
         $this->repository = $repository;
     }
 
-    public function getOldBlob()
+    public function getOldBlob(): Blob
     {
         if (null === $this->repository) {
             throw new \RuntimeException('Repository is missing to return Blob object.');
@@ -278,14 +226,14 @@ class File
             throw new \LogicException('Can\'t return old Blob on a creation');
         }
 
-        if ($this->oldIndex === '') {
+        if ('' === $this->oldIndex) {
             throw new \RuntimeException('Index is missing to return Blob object.');
         }
 
         return $this->repository->getBlob($this->oldIndex);
     }
 
-    public function getNewBlob()
+    public function getNewBlob(): Blob
     {
         if (null === $this->repository) {
             throw new \RuntimeException('Repository is missing to return Blob object.');
@@ -295,7 +243,7 @@ class File
             throw new \LogicException('Can\'t return new Blob on a deletion');
         }
 
-        if ($this->newIndex === '') {
+        if ('' === $this->newIndex) {
             throw new \RuntimeException('Index is missing to return Blob object.');
         }
 

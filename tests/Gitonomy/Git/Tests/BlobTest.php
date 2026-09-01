@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -12,40 +12,35 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Blob;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class BlobTest extends AbstractTest
+class BlobTest extends AbstractTestCase
 {
-    const README_FRAGMENT = 'Foo Bar project';
+    public const README_FRAGMENT = 'Foo Bar project';
 
-    public function getReadmeBlob($repository)
+    public function getReadmeBlob(Repository $repository): Blob
     {
         return $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('README.md');
     }
 
-    public function getImageBlob($repository)
+    public function getImageBlob(Repository $repository): Blob
     {
         return $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('image.jpg');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetContent($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetContent(Repository $repository): void
     {
         $blob = $this->getReadmeBlob($repository);
 
-        if (method_exists($this, 'assertStringContainsString')) {
-            $this->assertStringContainsString(self::README_FRAGMENT, $blob->getContent());
-        } else {
-            $this->assertContains(self::README_FRAGMENT, $blob->getContent());
-        }
+        $this->assertStringContainsString(self::README_FRAGMENT, $blob->getContent());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testNotExisting($repository)
+    #[DataProvider('provideFoobar')]
+    public function testNotExisting(Repository $repository): void
     {
         $this->expectException(RuntimeException::class);
 
@@ -53,24 +48,16 @@ class BlobTest extends AbstractTest
         $blob->getContent();
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetMimetype($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetMimetype(Repository $repository): void
     {
         $blob = $this->getReadmeBlob($repository);
 
-        if (method_exists($this, 'assertMatchesRegularExpression')) {
-            $this->assertMatchesRegularExpression('#text/plain#', $blob->getMimetype());
-        } else {
-            $this->assertRegExp('#text/plain#', $blob->getMimetype());
-        }
+        $this->assertMatchesRegularExpression('#text/plain#', $blob->getMimetype());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testIsText($repository)
+    #[DataProvider('provideFoobar')]
+    public function testIsText(Repository $repository): void
     {
         $readmeBlob = $this->getReadmeBlob($repository);
         $this->assertTrue($readmeBlob->isText());
@@ -78,10 +65,8 @@ class BlobTest extends AbstractTest
         $this->assertFalse($imageBlob->isText());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testIsBinary($repository)
+    #[DataProvider('provideFoobar')]
+    public function testIsBinary(Repository $repository): void
     {
         $readmeBlob = $this->getReadmeBlob($repository);
         $this->assertFalse($readmeBlob->isBinary());

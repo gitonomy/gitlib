@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -26,77 +26,72 @@ use Symfony\Component\Process\Process;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Repository
+final class Repository
 {
-    const DEFAULT_DESCRIPTION = "Unnamed repository; edit this file 'description' to name the repository.\n";
+    public const string DEFAULT_DESCRIPTION = "Unnamed repository; edit this file 'description' to name the repository.\n";
 
     /**
      * Directory containing git files.
-     *
-     * @var string
      */
-    protected $gitDir;
+    private readonly string $gitDir;
 
     /**
      * Working directory.
-     *
-     * @var string
      */
-    protected $workingDir;
+    private readonly ?string $workingDir;
 
     /**
-     * Cache containing all objects of the repository.
+     * Cache of commit objects, indexed by hash.
      *
-     * Associative array, indexed by object hash
-     *
-     * @var array
+     * @var array<string, Commit>
      */
-    protected $objects;
+    private array $commits = [];
+
+    /**
+     * Cache of tree objects, indexed by hash.
+     *
+     * @var array<string, Tree>
+     */
+    private array $trees = [];
+
+    /**
+     * Cache of blob objects, indexed by hash.
+     *
+     * @var array<string, Blob>
+     */
+    private array $blobs = [];
 
     /**
      * Reference bag associated to this repository.
-     *
-     * @var ReferenceBag
      */
-    protected $referenceBag;
+    private ?ReferenceBag $referenceBag = null;
 
     /**
      * Logger (can be null).
-     *
-     * @var LoggerInterface
      */
-    protected $logger;
+    private ?LoggerInterface $logger;
 
     /**
      * Path to git command.
      */
-    protected $command;
+    private readonly string $command;
 
     /**
      * Debug flag, indicating if errors should be thrown.
-     *
-     * @var bool
      */
-    protected $debug;
+    private readonly bool $debug;
 
     /**
      * Environment variables that should be set for every running process.
-     *
-     * @var array
      */
-    protected $environmentVariables;
+    private readonly array $environmentVariables;
 
-    /**
-     * @var bool
-     */
-    protected $inheritEnvironmentVariables;
+    private readonly bool $inheritEnvironmentVariables;
 
     /**
      * Timeout that should be set for every running process.
-     *
-     * @var int
      */
-    protected $processTimeout;
+    private readonly int $processTimeout;
 
     /**
      * Constructs a new repository.
@@ -116,31 +111,30 @@ class Repository
      *
      * @throws InvalidArgumentException The folder does not exists
      */
-    public function __construct($dir, $options = [])
+    public function __construct(string $dir, array $options = [])
     {
         $options = array_merge([
-            'working_dir'                   => null,
-            'debug'                         => true,
-            'logger'                        => null,
-            'command'                       => 'git',
-            'environment_variables'         => [],
+            'working_dir' => null,
+            'debug' => true,
+            'logger' => null,
+            'command' => 'git',
+            'environment_variables' => [],
             'inherit_environment_variables' => false,
-            'process_timeout'               => 3600,
+            'process_timeout' => 3600,
         ], $options);
 
         if (null !== $options['logger'] && !$options['logger'] instanceof LoggerInterface) {
-            throw new InvalidArgumentException(sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', is_object($options['logger']) ? get_class($options['logger']) : gettype($options['logger'])));
+            throw new InvalidArgumentException(\sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', \is_object($options['logger']) ? \get_class($options['logger']) : \gettype($options['logger'])));
         }
 
         $this->logger = $options['logger'];
-        $this->initDir($dir, $options['working_dir']);
+        [$this->gitDir, $this->workingDir] = self::resolveDir($dir, $options['working_dir']);
 
-        $this->objects = [];
         $this->command = $options['command'];
         $this->debug = (bool) $options['debug'];
         $this->processTimeout = $options['process_timeout'];
 
-        if (defined('PHP_WINDOWS_VERSION_BUILD') && isset($_SERVER['PATH']) && !isset($options['environment_variables']['PATH'])) {
+        if (\defined('PHP_WINDOWS_VERSION_BUILD') && isset($_SERVER['PATH']) && !isset($options['environment_variables']['PATH'])) {
             $options['environment_variables']['PATH'] = $_SERVER['PATH'];
         }
 
@@ -148,39 +142,14 @@ class Repository
         $this->inheritEnvironmentVariables = $options['inherit_environment_variables'];
 
         if (true === $this->debug && null !== $this->logger) {
-            $this->logger->debug(sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ?: 'none'));
+            $this->logger->debug(\sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ?: 'none'));
         }
-    }
-
-    /**
-     * Initializes directory attributes on repository:.
-     *
-     * @param string $gitDir     directory of a working copy with files checked out
-     * @param string $workingDir directory containing git files (objects, config...)
-     */
-    private function initDir($gitDir, $workingDir = null)
-    {
-        $realGitDir = realpath($gitDir);
-
-        if (false === $realGitDir) {
-            throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
-        } elseif (!is_dir($realGitDir)) {
-            throw new InvalidArgumentException(sprintf('Directory "%s" does not exist or is not a directory', $realGitDir));
-        } elseif (null === $workingDir && is_dir($realGitDir.'/.git')) {
-            $workingDir = $realGitDir;
-            $realGitDir = $realGitDir.'/.git';
-        }
-
-        $this->gitDir = $realGitDir;
-        $this->workingDir = $workingDir;
     }
 
     /**
      * Tests if repository is a bare repository.
-     *
-     * @return bool
      */
-    public function isBare()
+    public function isBare(): bool
     {
         return null === $this->workingDir;
     }
@@ -190,7 +159,7 @@ class Repository
      *
      * @return Commit|null returns a Commit or ``null`` if repository is empty
      */
-    public function getHeadCommit()
+    public function getHeadCommit(): ?Commit
     {
         $head = $this->getHead();
 
@@ -202,16 +171,16 @@ class Repository
     }
 
     /**
-     * @throws RuntimeException Unable to find file HEAD (debug-mode only)
-     *
      * @return Reference|Commit|null current HEAD object or null if error occurs
+     *
+     * @throws RuntimeException Unable to find file HEAD (debug-mode only)
      */
-    public function getHead()
+    public function getHead(): Reference|Commit|null
     {
         $file = $this->gitDir.'/HEAD';
 
         if (!file_exists($file)) {
-            $message = sprintf('Unable to find HEAD file ("%s")', $file);
+            $message = \sprintf('Unable to find HEAD file ("%s")', $file);
 
             if (null !== $this->logger) {
                 $this->logger->error($message);
@@ -230,11 +199,12 @@ class Repository
 
         if (preg_match('/^ref: (.+)$/', $content, $vars)) {
             return $this->getReferences()->get($vars[1]);
-        } elseif (preg_match('/^[0-9a-f]{40}$/', $content)) {
+        }
+        if (preg_match('/^[0-9a-f]{40}$/', $content)) {
             return $this->getCommit($content);
         }
 
-        $message = sprintf('Unexpected HEAD file content (file: %s). Content of file: %s', $file, $content);
+        $message = \sprintf('Unexpected HEAD file content (file: %s). Content of file: %s', $file, $content);
 
         if (null !== $this->logger) {
             $this->logger->error($message);
@@ -243,40 +213,32 @@ class Repository
         if (true === $this->debug) {
             throw new RuntimeException($message);
         }
+
+        return null;
     }
 
-    /**
-     * @return bool
-     */
-    public function isHeadDetached()
+    public function isHeadDetached(): bool
     {
         return !$this->isHeadAttached();
     }
 
-    /**
-     * @return bool
-     */
-    public function isHeadAttached()
+    public function isHeadAttached(): bool
     {
         return $this->getHead() instanceof Reference;
     }
 
     /**
      * Returns the path to the git repository.
-     *
-     * @return string A directory path
      */
-    public function getPath()
+    public function getPath(): string
     {
-        return $this->workingDir === null ? $this->gitDir : $this->workingDir;
+        return null === $this->workingDir ? $this->gitDir : $this->workingDir;
     }
 
     /**
      * Returns the directory containing git files (git-dir).
-     *
-     * @return string
      */
-    public function getGitDir()
+    public function getGitDir(): string
     {
         return $this->gitDir;
     }
@@ -284,10 +246,8 @@ class Repository
     /**
      * Returns the work-tree directory. This may be null if repository is
      * bare.
-     *
-     * @return string path to repository or null if repository is bare
      */
-    public function getWorkingDir()
+    public function getWorkingDir(): ?string
     {
         return $this->workingDir;
     }
@@ -296,18 +256,13 @@ class Repository
      * Instanciates a revision.
      *
      * @param string $name Name of the revision
-     *
-     * @return Revision
      */
-    public function getRevision($name)
+    public function getRevision(string $name): Revision
     {
         return new Revision($this, $name);
     }
 
-    /**
-     * @return WorkingCopy
-     */
-    public function getWorkingCopy()
+    public function getWorkingCopy(): WorkingCopy
     {
         return new WorkingCopy($this);
     }
@@ -316,10 +271,8 @@ class Repository
      * Returns the reference list associated to the repository.
      *
      * @param bool $reload Reload references from the filesystem
-     *
-     * @return ReferenceBag
      */
-    public function getReferences($reload = false)
+    public function getReferences(bool $reload = false): ReferenceBag
     {
         if (null === $this->referenceBag || $reload) {
             $this->referenceBag = new ReferenceBag($this);
@@ -332,56 +285,47 @@ class Repository
      * Instanciates a commit object or fetches one from the cache.
      *
      * @param string $hash A commit hash, with a length of 40
-     *
-     * @return Commit
      */
-    public function getCommit($hash)
+    public function getCommit(string $hash): Commit
     {
-        if (!isset($this->objects[$hash])) {
-            $this->objects[$hash] = new Commit($this, $hash);
+        if (!isset($this->commits[$hash])) {
+            $this->commits[$hash] = new Commit($this, $hash);
         }
 
-        return $this->objects[$hash];
+        return $this->commits[$hash];
     }
 
     /**
      * Instanciates a tree object or fetches one from the cache.
      *
      * @param string $hash A tree hash, with a length of 40
-     *
-     * @return Tree
      */
-    public function getTree($hash)
+    public function getTree(string $hash): Tree
     {
-        if (!isset($this->objects[$hash])) {
-            $this->objects[$hash] = new Tree($this, $hash);
+        if (!isset($this->trees[$hash])) {
+            $this->trees[$hash] = new Tree($this, $hash);
         }
 
-        return $this->objects[$hash];
+        return $this->trees[$hash];
     }
 
     /**
      * Instanciates a blob object or fetches one from the cache.
      *
      * @param string $hash A blob hash, with a length of 40
-     *
-     * @return Blob
      */
-    public function getBlob($hash)
+    public function getBlob(string $hash): Blob
     {
-        if (!isset($this->objects[$hash])) {
-            $this->objects[$hash] = new Blob($this, $hash);
+        if (!isset($this->blobs[$hash])) {
+            $this->blobs[$hash] = new Blob($this, $hash);
         }
 
-        return $this->objects[$hash];
+        return $this->blobs[$hash];
     }
 
-    /**
-     * @return Blame
-     */
-    public function getBlame($revision, $file, $lineRange = null)
+    public function getBlame(string|Revision $revision, string $file, ?string $lineRange = null): Blame
     {
-        if (is_string($revision)) {
+        if (\is_string($revision)) {
             $revision = $this->getRevision($revision);
         }
 
@@ -393,26 +337,25 @@ class Repository
      *
      * All those values can be null, meaning everything.
      *
-     * @param array $revisions An array of revisions to show logs from. Can be
-     *                         any text value type
-     * @param array $paths     Restrict log to modifications occurring on given
-     *                         paths.
-     * @param int   $offset    Start from a given offset in results.
-     * @param int   $limit     Limit number of total results.
-     *
-     * @return Log
+     * @param RevisionList|Revision|string|array|null $revisions An array of revisions to show logs from. Can be
+     *                                                           any text value type
+     * @param array|string|null                       $paths     restrict log to modifications occurring on given
+     *                                                           paths
+     * @param int|null                                $offset    start from a given offset in results
+     * @param int|null                                $limit     limit number of total results
      */
-    public function getLog($revisions = null, $paths = null, $offset = null, $limit = null)
+    public function getLog(RevisionList|Revision|string|array|null $revisions = null, array|string|null $paths = null, ?int $offset = null, ?int $limit = null): Log
     {
         return new Log($this, $revisions, $paths, $offset, $limit);
     }
 
-    /**
-     * @return Diff
-     */
-    public function getDiff($revisions)
+    public function getDiff(RevisionList|Revision|string|array|null $revisions): Diff
     {
-        if (null !== $revisions && !$revisions instanceof RevisionList) {
+        if (null === $revisions) {
+            throw new InvalidArgumentException('Cannot compute a diff without revisions.');
+        }
+
+        if (!$revisions instanceof RevisionList) {
             $revisions = new RevisionList($this, $revisions);
         }
 
@@ -429,11 +372,12 @@ class Repository
      *
      * @return int A sum, in kilobytes
      */
-    public function getSize()
+    public function getSize(): int
     {
         $totalBytes = 0;
         $path = realpath($this->gitDir);
         if ($path && file_exists($path)) {
+            /** @var \SplFileInfo $object */
             foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)) as $object) {
                 $totalBytes += $object->getSize();
             }
@@ -447,24 +391,22 @@ class Repository
      *
      * @param string $command The command to execute
      */
-    public function shell($command, array $env = [])
+    public function shell(string $command, array $env = []): void
     {
-        $argument = sprintf('%s \'%s\'', $command, $this->gitDir);
+        $argument = \sprintf('%s \'%s\'', $command, $this->gitDir);
 
         $prefix = '';
         foreach ($env as $name => $value) {
-            $prefix .= sprintf('export %s=%s;', escapeshellarg($name), escapeshellarg($value));
+            $prefix .= \sprintf('export %s=%s;', escapeshellarg($name), escapeshellarg($value));
         }
 
-        proc_open($prefix.'git shell -c '.escapeshellarg($argument), [STDIN, STDOUT, STDERR], $pipes);
+        proc_open($prefix.'git shell -c '.escapeshellarg($argument), [\STDIN, \STDOUT, \STDERR], $pipes);
     }
 
     /**
      * Returns the hooks object.
-     *
-     * @return Hooks
      */
-    public function getHooks()
+    public function getHooks(): Hooks
     {
         return new Hooks($this);
     }
@@ -474,21 +416,21 @@ class Repository
      *
      * @return string The description
      */
-    public function getDescription()
+    public function getDescription(): string
     {
         $file = $this->gitDir.'/description';
         $exists = is_file($file);
 
         if (null !== $this->logger && true === $this->debug) {
             if (false === $exists) {
-                $this->logger->debug(sprintf('no description file in repository ("%s")', $file));
+                $this->logger->debug(\sprintf('no description file in repository ("%s")', $file));
             } else {
-                $this->logger->debug(sprintf('reading description file in repository ("%s")', $file));
+                $this->logger->debug(\sprintf('reading description file in repository ("%s")', $file));
             }
         }
 
         if (false === $exists) {
-            return static::DEFAULT_DESCRIPTION;
+            return self::DEFAULT_DESCRIPTION;
         }
 
         return file_get_contents($this->gitDir.'/description');
@@ -496,25 +438,23 @@ class Repository
 
     /**
      * Tests if repository has a custom set description.
-     *
-     * @return bool
      */
-    public function hasDescription()
+    public function hasDescription(): bool
     {
-        return static::DEFAULT_DESCRIPTION !== $this->getDescription();
+        return self::DEFAULT_DESCRIPTION !== $this->getDescription();
     }
 
     /**
      * Changes the repository description (file description in git-directory).
      *
-     * @return Repository the current repository
+     * @return $this
      */
-    public function setDescription($description)
+    public function setDescription(string $description): static
     {
         $file = $this->gitDir.'/description';
 
         if (null !== $this->logger && true === $this->debug) {
-            $this->logger->debug(sprintf('change description file content to "%s" (file: %s)', $description, $file));
+            $this->logger->debug(\sprintf('change description file content to "%s" (file: %s)', $description, $file));
         }
         file_put_contents($file, $description);
 
@@ -528,16 +468,16 @@ class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @throws RuntimeException Error while executing git command (debug-mode only)
+     * @return string|null output of a successful process or null if execution failed and debug-mode is disabled
      *
-     * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
+     * @throws RuntimeException Error while executing git command (debug-mode only)
      */
-    public function run($command, $args = [])
+    public function run(string $command, array $args = []): ?string
     {
         $process = $this->getProcess($command, $args);
 
         if ($this->logger) {
-            $this->logger->info(sprintf('run command: %s "%s" ', $command, implode(' ', $args)));
+            $this->logger->info(\sprintf('run command: %s "%s" ', $command, implode(' ', $args)));
             $before = microtime(true);
         }
 
@@ -547,13 +487,13 @@ class Repository
 
         if ($this->logger && $this->debug) {
             $duration = microtime(true) - $before;
-            $this->logger->debug(sprintf('last command (%s) duration: %sms', $command, sprintf('%.2f', $duration * 1000)));
-            $this->logger->debug(sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
-            $this->logger->debug(sprintf('last command (%s) output: %s', $command, $output));
+            $this->logger->debug(\sprintf('last command (%s) duration: %sms', $command, \sprintf('%.2f', $duration * 1000)));
+            $this->logger->debug(\sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
+            $this->logger->debug(\sprintf('last command (%s) output: %s', $command, $output));
         }
 
         if (!$process->isSuccessful()) {
-            $error = sprintf("error while running %s\n output: \"%s\"", $command, $process->getErrorOutput());
+            $error = \sprintf("error while running %s\n output: \"%s\"", $command, $process->getErrorOutput());
 
             if ($this->logger) {
                 $this->logger->error($error);
@@ -563,7 +503,7 @@ class Repository
                 throw new ProcessException($process);
             }
 
-            return;
+            return null;
         }
 
         return $output;
@@ -574,9 +514,9 @@ class Repository
      *
      * @param LoggerInterface $logger A logger
      *
-     * @return Repository The current repository
+     * @return $this
      */
-    public function setLogger(LoggerInterface $logger)
+    public function setLogger(LoggerInterface $logger): static
     {
         $this->logger = $logger;
 
@@ -585,10 +525,8 @@ class Repository
 
     /**
      * Returns repository logger.
-     *
-     * @return LoggerInterface the logger or null
      */
-    public function getLogger()
+    public function getLogger(): ?LoggerInterface
     {
         return $this->logger;
     }
@@ -601,9 +539,35 @@ class Repository
      *
      * @return Repository the newly created repository
      */
-    public function cloneTo($path, $bare = true, array $options = [])
+    public function cloneTo(string $path, bool $bare = true, array $options = []): self
     {
         return Admin::cloneTo($path, $this->gitDir, $bare, $options);
+    }
+
+    /**
+     * Resolves directory attributes for the repository.
+     *
+     * @param string      $gitDir     directory of a working copy with files checked out
+     * @param string|null $workingDir directory containing git files (objects, config...)
+     *
+     * @return array{string, string|null}
+     */
+    private static function resolveDir(string $gitDir, ?string $workingDir = null): array
+    {
+        $realGitDir = realpath($gitDir);
+
+        if (false === $realGitDir) {
+            throw new InvalidArgumentException(\sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
+        }
+        if (!is_dir($realGitDir)) {
+            throw new InvalidArgumentException(\sprintf('Directory "%s" does not exist or is not a directory', $realGitDir));
+        }
+        if (null === $workingDir && is_dir($realGitDir.'/.git')) {
+            $workingDir = $realGitDir;
+            $realGitDir .= '/.git';
+        }
+
+        return [$realGitDir, $workingDir];
     }
 
     /**
@@ -614,7 +578,7 @@ class Repository
      *
      * @see self::run
      */
-    private function getProcess($command, $args = [])
+    private function getProcess(string $command, array $args = []): Process
     {
         $base = [$this->command, '--git-dir', $this->gitDir];
 

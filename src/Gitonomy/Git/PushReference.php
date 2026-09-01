@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -20,92 +20,55 @@ use Gitonomy\Git\Exception\LogicException;
  *
  * @author Julien DIDIER <genzo.wm@gmail.com>
  */
-class PushReference
+final readonly class PushReference
 {
-    const ZERO = '0000000000000000000000000000000000000000';
+    public const string ZERO = '0000000000000000000000000000000000000000';
 
-    /**
-     * @var Repository
-     */
-    protected $repository;
-    /**
-     * @var string
-     */
-    protected $reference;
+    private bool $isForce;
 
-    /**
-     * @var string
-     */
-    protected $before;
-
-    /**
-     * @var string
-     */
-    protected $after;
-
-    /**
-     * @var bool
-     */
-    protected $isForce;
-
-    public function __construct(Repository $repository, $reference, $before, $after)
-    {
-        $this->repository = $repository;
-        $this->reference = $reference;
-        $this->before = $before;
-        $this->after = $after;
+    public function __construct(
+        private Repository $repository,
+        private string $reference,
+        private string $before,
+        private string $after,
+    ) {
         $this->isForce = $this->getForce();
     }
 
-    /**
-     * @return Repository
-     */
-    public function getRepository()
+    public function getRepository(): Repository
     {
         return $this->repository;
     }
 
-    /**
-     * @return string
-     */
-    public function getReference()
+    public function getReference(): string
     {
         return $this->reference;
     }
 
-    /**
-     * @return string
-     */
-    public function getBefore()
+    public function getBefore(): string
     {
         return $this->before;
     }
 
-    /**
-     * @return string
-     */
-    public function getAfter()
+    public function getAfter(): string
     {
         return $this->after;
     }
 
     /**
-     * @return Log
+     * @param string[] $excludes
      */
-    public function getLog($excludes = [])
+    public function getLog(array $excludes = []): Log
     {
         return $this->repository->getLog(array_merge(
             [$this->getRevision()],
-            array_map(function ($e) {
+            array_map(static function ($e) {
                 return '^'.$e;
             }, $excludes)
         ));
     }
 
-    /**
-     * @return string
-     */
-    public function getRevision()
+    public function getRevision(): string
     {
         if ($this->isDelete()) {
             throw new LogicException('No revision for deletion');
@@ -118,50 +81,32 @@ class PushReference
         return $this->getBefore().'..'.$this->getAfter();
     }
 
-    /**
-     * @return bool
-     */
-    public function isCreate()
+    public function isCreate(): bool
     {
         return $this->isZero($this->before);
     }
 
-    /**
-     * @return bool
-     */
-    public function isDelete()
+    public function isDelete(): bool
     {
         return $this->isZero($this->after);
     }
 
-    /**
-     * @return bool
-     */
-    public function isForce()
+    public function isForce(): bool
     {
         return $this->isForce;
     }
 
-    /**
-     * @return bool
-     */
-    public function isFastForward()
+    public function isFastForward(): bool
     {
         return !$this->isDelete() && !$this->isCreate() && !$this->isForce();
     }
 
-    /**
-     * @return bool
-     */
-    protected function isZero($reference)
+    private function isZero(string $reference): bool
     {
         return self::ZERO === $reference;
     }
 
-    /**
-     * @return bool
-     */
-    protected function getForce()
+    private function getForce(): bool
     {
         if ($this->isDelete() || $this->isCreate()) {
             return false;

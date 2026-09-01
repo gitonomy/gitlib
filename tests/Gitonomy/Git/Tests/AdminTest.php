@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -16,28 +16,27 @@ use Gitonomy\Git\Admin;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\Before;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class AdminTest extends AbstractTest
+class AdminTest extends AbstractTestCase
 {
-    private $tmpDir;
+    private string $tmpDir;
 
-    /**
-     * @before
-     */
-    public function setUpTmpDir()
+    #[Before]
+    public function setUpTmpDir(): void
     {
         $this->tmpDir = self::createTempDir();
     }
 
-    /**
-     * @after
-     */
-    public function tearDownTmpDir()
+    #[After]
+    public function tearDownTmpDir(): void
     {
         self::deleteDir(self::createTempDir());
     }
 
-    public function testBare()
+    public function testBare(): void
     {
         $repository = Admin::init($this->tmpDir, true, self::getOptions());
 
@@ -50,7 +49,7 @@ class AdminTest extends AbstractTest
         $this->assertNull($repository->getWorkingDir(), 'No working dir in bare repository');
     }
 
-    public function testNotBare()
+    public function testNotBare(): void
     {
         $repository = Admin::init($this->tmpDir, false, self::getOptions());
 
@@ -63,10 +62,8 @@ class AdminTest extends AbstractTest
         $this->assertEquals($this->tmpDir, $repository->getWorkingDir(), 'working dir present in bare repository');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testClone($repository)
+    #[DataProvider('provideFoobar')]
+    public function testClone(Repository $repository): void
     {
         $newDir = self::createTempDir();
         $new = $repository->cloneTo($newDir, $repository->isBare(), self::getOptions());
@@ -86,11 +83,11 @@ class AdminTest extends AbstractTest
         }
     }
 
-    public function testCloneBranchBare()
+    public function testCloneBranchBare(): void
     {
-        //we can't use AbstractText::createFoobarRepository()
-        //because it does not clone other branches than "master"
-        //so we test it directly against the remote repository
+        // we can't use AbstractTestCase::createFoobarRepository()
+        // because it does not clone other branches than "master"
+        // so we test it directly against the remote repository
 
         $newDir = self::createTempDir();
         $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature');
@@ -101,11 +98,11 @@ class AdminTest extends AbstractTest
         $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
     }
 
-    public function testCloneBranchNotBare()
+    public function testCloneBranchNotBare(): void
     {
-        //we can't use AbstractText::createFoobarRepository()
-        //because it does not clone other branches than "master"
-        //so we test it directly against remote repository
+        // we can't use AbstractTestCase::createFoobarRepository()
+        // because it does not clone other branches than "master"
+        // so we test it directly against remote repository
 
         $newDir = self::createTempDir();
         $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature', false);
@@ -116,10 +113,8 @@ class AdminTest extends AbstractTest
         $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testMirror($repository)
+    #[DataProvider('provideFoobar')]
+    public function testMirror(Repository $repository): void
     {
         $newDir = self::createTempDir();
         $new = Admin::mirrorTo($newDir, $repository->getGitDir(), self::getOptions());
@@ -138,16 +133,14 @@ class AdminTest extends AbstractTest
         }
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testCheckValidRepository($repository)
+    #[DataProvider('provideFoobar')]
+    public function testCheckValidRepository(Repository $repository): void
     {
         $url = $repository->getGitDir();
         $this->assertTrue(Admin::isValidRepository($url));
     }
 
-    public function testCheckInvalidRepository()
+    public function testCheckInvalidRepository(): void
     {
         $url = $this->tmpDir.'/invalid.git';
         mkdir($url);
@@ -155,25 +148,21 @@ class AdminTest extends AbstractTest
         $this->assertFalse(Admin::isValidRepository($url));
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testCheckValidRepositoryAndBranch($repository)
+    #[DataProvider('provideFoobar')]
+    public function testCheckValidRepositoryAndBranch(Repository $repository): void
     {
         $url = $repository->getGitDir();
         $this->assertTrue(Admin::isValidRepositoryAndBranch($url, 'master'));
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testCheckInvalidRepositoryAndBranch($repository)
+    #[DataProvider('provideFoobar')]
+    public function testCheckInvalidRepositoryAndBranch(Repository $repository): void
     {
         $url = $repository->getGitDir();
         $this->assertFalse(Admin::isValidRepositoryAndBranch($url, 'invalid-branch-name'));
     }
 
-    public function testExistingFile()
+    public function testExistingFile(): void
     {
         $this->expectException(RuntimeException::class);
 
@@ -183,7 +172,7 @@ class AdminTest extends AbstractTest
         Admin::init($file, true, self::getOptions());
     }
 
-    public function testCloneRepository()
+    public function testCloneRepository(): void
     {
         $newDir = self::createTempDir();
         $args = [];
