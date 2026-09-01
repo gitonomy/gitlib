@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -16,5 +16,10 @@ final readonly class CommitReference
 {
     public function __construct(private readonly string $hash)
     {
+    }
+
+    public function getHash(): string
+    {
+        return $this->hash;
     }
 }

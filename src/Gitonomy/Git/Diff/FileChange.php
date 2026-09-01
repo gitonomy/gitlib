@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -35,7 +35,7 @@ final readonly class FileChange
         $result = 0;
         foreach ($this->lines as $line) {
             if ($line[0] === $type) {
-                $result++;
+                ++$result;
             }
         }
 
@@ -77,7 +77,7 @@ final readonly class FileChange
             'range_old_count' => $this->rangeOldCount,
             'range_new_start' => $this->rangeNewStart,
             'range_new_count' => $this->rangeNewCount,
-            'lines'           => $this->lines,
+            'lines' => $this->lines,
         ];
     }
 

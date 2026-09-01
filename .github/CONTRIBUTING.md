@@ -13,6 +13,16 @@ We accept contributions via pull requests on GitHub. Please review these guideli
 * If you are changing or adding to the behaviour or public API, you may need to update the docs.
 * Please remember that we follow [Semantic Versioning](https://semver.org/).
 
+You will need [Castor](https://castor.jolicode.com/) to run the tests, fix CS
+violations and run the static analysis. See [Castor's documentation](https://castor.jolicode.com/getting-started/installation/)
+for installation instructions.
+
+To install all the dependencies and tools, run:
+
+```bash
+$ castor install
+```
+
 ## Running Tests
 
 First, install the dependencies using [Composer](https://getcomposer.org/):
@@ -29,3 +39,21 @@ $ vendor/bin/phpunit
 
 * A script `test-git-versions.sh` is available in repository to test gitlib against many git versions.
 * The tests will be automatically run by [GitHub Actions](https://github.com/features/actions) against pull requests.
+
+## Standard code
+
+Use PHP-CS-Fixer to make your code compliant with gitlib's coding standards:
+
+```bash
+$ castor cs
+```
+
+## Static analysis
+
+Use PHPStan to ensure the code is free of errors:
+
+```bash
+$ castor phpstan
+```
+
+Both checks run automatically via GitHub Actions against pull requests.

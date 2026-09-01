@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -177,14 +177,14 @@ final class File
     public function toArray(): array
     {
         return [
-            'old_name'  => $this->oldName,
-            'new_name'  => $this->newName,
-            'old_mode'  => $this->oldMode,
-            'new_mode'  => $this->newMode,
+            'old_name' => $this->oldName,
+            'new_name' => $this->newName,
+            'old_mode' => $this->oldMode,
+            'new_mode' => $this->newMode,
             'old_index' => $this->oldIndex,
             'new_index' => $this->newIndex,
             'is_binary' => $this->isBinary,
-            'changes'   => array_map(function (FileChange $change) {
+            'changes' => array_map(static function (FileChange $change) {
                 return $change->toArray();
             }, $this->changes),
         ];
@@ -226,7 +226,7 @@ final class File
             throw new \LogicException('Can\'t return old Blob on a creation');
         }
 
-        if ($this->oldIndex === '') {
+        if ('' === $this->oldIndex) {
             throw new \RuntimeException('Index is missing to return Blob object.');
         }
 
@@ -243,7 +243,7 @@ final class File
             throw new \LogicException('Can\'t return new Blob on a deletion');
         }
 
-        if ($this->newIndex === '') {
+        if ('' === $this->newIndex) {
             throw new \RuntimeException('Index is missing to return Blob object.');
         }
 

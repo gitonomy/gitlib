@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -51,7 +51,7 @@ abstract class Reference extends Revision
         try {
             $result = $this->repository->run('rev-parse', ['--verify', $this->revision]);
         } catch (ProcessException $e) {
-            throw new ReferenceNotFoundException(sprintf('Can not find revision "%s"', $this->revision));
+            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $this->revision));
         }
 
         return $this->commitHash = trim($result);

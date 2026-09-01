@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -58,7 +58,7 @@ class CommitTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGetParentHashes_WithNoParent(Repository $repository): void
+    public function testGetParentHashesWithNoParent(Repository $repository): void
     {
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
@@ -66,7 +66,7 @@ class CommitTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGetParentHashes_WithOneParent(Repository $repository): void
+    public function testGetParentHashesWithOneParent(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
         $parents = $commit->getParentHashes();
@@ -76,7 +76,7 @@ class CommitTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGetParents_WithOneParent(Repository $repository): void
+    public function testGetParentsWithOneParent(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
         $parents = $commit->getParents();
@@ -209,7 +209,7 @@ class CommitTest extends AbstractTestCase
     public function testGetBodyMessage(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
-        $nl = chr(10);
+        $nl = \chr(10);
         $message = "If you want to know everything,{$nl}I ran something like `chmox +x test.sh`{$nl}{$nl}Hello and good bye.{$nl}";
         $this->assertEquals($message, $commit->getBodyMessage());
 
@@ -234,13 +234,13 @@ class CommitTest extends AbstractTestCase
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
         $branches = $commit->getIncludingBranches(true, false);
-        $this->assertCount(count($repository->getReferences()->getLocalBranches()), $branches);
+        $this->assertCount(\count($repository->getReferences()->getLocalBranches()), $branches);
 
         $branches = $commit->getIncludingBranches(true, true);
-        $this->assertCount(count($repository->getReferences()->getBranches()), $branches);
+        $this->assertCount(\count($repository->getReferences()->getBranches()), $branches);
 
         $branches = $commit->getIncludingBranches(false, true);
-        $this->assertCount(count($repository->getReferences()->getRemoteBranches()), $branches);
+        $this->assertCount(\count($repository->getReferences()->getRemoteBranches()), $branches);
     }
 
     #[DataProvider('provideFoobar')]

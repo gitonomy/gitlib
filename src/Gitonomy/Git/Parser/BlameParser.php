@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -40,7 +40,7 @@ final class BlameParser extends ParserBase
             $vars = $this->consumeRegexp('/(\d+) (\d+)( (\d+))?/A');
             $sourceLine = $vars[1];
             $targetLine = $vars[2];
-            $blockLine = isset($vars[4]) ? $vars[4] : null;
+            $blockLine = $vars[4] ?? null;
             $this->consumeTo("\n");
             $this->consumeNewLine();
 
@@ -70,7 +70,7 @@ final class BlameParser extends ParserBase
             $this->consumeNewLine();
 
             $this->lines[$line] = new Line($memory[$hash], $sourceLine, $targetLine, $blockLine, $content);
-            $line++;
+            ++$line;
         }
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -24,7 +24,7 @@ use Gitonomy\Git\Exception\RuntimeException;
 final readonly class Hooks
 {
     public function __construct(
-        protected readonly Repository $repository,
+        private readonly Repository $repository,
     ) {
     }
 
@@ -43,14 +43,14 @@ final readonly class Hooks
      *
      * @param string $name Name of the hook
      *
-     * @throws InvalidArgumentException Hook does not exist
-     *
      * @return string Content of the hook
+     *
+     * @throws InvalidArgumentException Hook does not exist
      */
     public function get(string $name): string
     {
         if (!$this->has($name)) {
-            throw new InvalidArgumentException(sprintf('Hook named "%s" is not present', $name));
+            throw new InvalidArgumentException(\sprintf('Hook named "%s" is not present', $name));
         }
 
         return file_get_contents($this->getPath($name));
@@ -68,12 +68,12 @@ final readonly class Hooks
     public function setSymlink(string $name, string $file): void
     {
         if ($this->has($name)) {
-            throw new LogicException(sprintf('A hook "%s" is already defined', $name));
+            throw new LogicException(\sprintf('A hook "%s" is already defined', $name));
         }
 
         $path = $this->getPath($name);
         if (false === symlink($file, $path)) {
-            throw new RuntimeException(sprintf('Unable to create hook "%s" (%s)', $name, $path));
+            throw new RuntimeException(\sprintf('Unable to create hook "%s" (%s)', $name, $path));
         }
     }
 
@@ -88,12 +88,12 @@ final readonly class Hooks
     public function set(string $name, string $content): void
     {
         if ($this->has($name)) {
-            throw new LogicException(sprintf('A hook "%s" is already defined', $name));
+            throw new LogicException(\sprintf('A hook "%s" is already defined', $name));
         }
 
         $path = $this->getPath($name);
         file_put_contents($path, $content);
-        chmod($path, 0777);
+        chmod($path, 0o777);
     }
 
     /**
@@ -106,13 +106,13 @@ final readonly class Hooks
     public function remove(string $name): void
     {
         if (!$this->has($name)) {
-            throw new LogicException(sprintf('The hook "%s" was not found', $name));
+            throw new LogicException(\sprintf('The hook "%s" was not found', $name));
         }
 
         unlink($this->getPath($name));
     }
 
-    protected function getPath(string $name): string
+    private function getPath(string $name): string
     {
         return $this->repository->getGitDir().'/hooks/'.$name;
     }

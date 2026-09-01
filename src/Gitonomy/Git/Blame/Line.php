@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -23,11 +23,11 @@ final readonly class Line
      * Instanciates a new Line object.
      */
     public function __construct(
-        protected readonly Commit $commit,
-        protected readonly string $sourceLine,
-        protected readonly string $targetLine,
-        protected readonly ?string $blockLine,
-        protected readonly string $content,
+        private readonly Commit $commit,
+        private readonly string $sourceLine,
+        private readonly string $targetLine,
+        private readonly ?string $blockLine,
+        private readonly string $content,
     ) {
     }
 

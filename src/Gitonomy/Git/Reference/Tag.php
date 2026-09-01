@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -35,7 +35,7 @@ final class Tag extends Reference
     public function getName(): string
     {
         if (!preg_match('#^refs/tags/(.*)$#', $this->revision, $vars)) {
-            throw new RuntimeException(sprintf('Cannot extract tag name from "%s"', $this->revision));
+            throw new RuntimeException(\sprintf('Cannot extract tag name from "%s"', $this->revision));
         }
 
         return $vars[1];
@@ -66,11 +66,14 @@ final class Tag extends Reference
                 $parser = new ReferenceParser();
                 $parser->parse($output);
 
-                foreach ($parser->references as list($row)) {
+                $commitHash = null;
+                foreach ($parser->references as [$row]) {
                     $commitHash = $row;
                 }
 
-                return $this->repository->getCommit($commitHash);
+                if (null !== $commitHash) {
+                    return $this->repository->getCommit($commitHash);
+                }
             } catch (ProcessException $e) {
                 // ignore the exception
             }
@@ -159,14 +162,14 @@ final class Tag extends Reference
             return $this->data[$name];
         }
 
-        if ($name === 'subjectMessage') {
+        if ('subjectMessage' === $name) {
             $lines = explode("\n", $this->getData('message'));
             $this->data['subjectMessage'] = reset($lines);
 
             return $this->data['subjectMessage'];
         }
 
-        if ($name === 'bodyMessage') {
+        if ('bodyMessage' === $name) {
             $message = $this->getData('message');
 
             $lines = explode("\n", $message);
@@ -191,7 +194,7 @@ final class Tag extends Reference
         $this->data['gpgSignature'] = $parser->gpgSignature;
 
         if (!isset($this->data[$name])) {
-            throw new \InvalidArgumentException(sprintf('No data named "%s" in Tag.', $name));
+            throw new \InvalidArgumentException(\sprintf('No data named "%s" in Tag.', $name));
         }
 
         return $this->data[$name];

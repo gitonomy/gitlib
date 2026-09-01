@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -33,12 +33,12 @@ final class Admin
      */
     public static function init(string $path, bool $bare = true, array $options = []): Repository
     {
-        $process = static::getProcess('init', array_merge(['-q'], $bare ? ['--bare'] : [], [$path]), $options);
+        $process = self::getProcess('init', array_merge(['-q'], $bare ? ['--bare'] : [], [$path]), $options);
 
         $process->run();
 
         if (!$process->isSuccessFul()) {
-            throw new RuntimeException(sprintf("Error on repository initialization, command wasn't successful (%s). Error output:\n%s", $process->getCommandLine(), $process->getErrorOutput()));
+            throw new RuntimeException(\sprintf("Error on repository initialization, command wasn't successful (%s). Error output:\n%s", $process->getCommandLine(), $process->getErrorOutput()));
         }
 
         return new Repository($path, $options);
@@ -58,7 +58,7 @@ final class Admin
      */
     public static function isValidRepository(string $url, array $options = []): bool
     {
-        $process = static::getProcess('ls-remote', [$url], $options);
+        $process = self::getProcess('ls-remote', [$url], $options);
 
         $process->run();
 
@@ -81,12 +81,12 @@ final class Admin
      */
     public static function isValidRepositoryAndBranch(string $url, string $branchName, array $options = []): bool
     {
-        $process = static::getProcess('ls-remote', ['--heads', $url, $branchName], $options);
+        $process = self::getProcess('ls-remote', ['--heads', $url, $branchName], $options);
 
         $process->run();
         $processOutput = $process->getOutput();
 
-        return $process->isSuccessFul() && strpos($processOutput, $branchName) !== false;
+        return $process->isSuccessFul() && str_contains($processOutput, $branchName);
     }
 
     /**
@@ -101,7 +101,7 @@ final class Admin
     {
         $args = $bare ? ['--bare'] : [];
 
-        return static::cloneRepository($path, $url, $args, $options);
+        return self::cloneRepository($path, $url, $args, $options);
     }
 
     /**
@@ -120,7 +120,7 @@ final class Admin
             $args[] = '--bare';
         }
 
-        return static::cloneRepository($path, $url, $args, $options);
+        return self::cloneRepository($path, $url, $args, $options);
     }
 
     /**
@@ -132,7 +132,7 @@ final class Admin
      */
     public static function mirrorTo(string $path, string $url, array $options = []): Repository
     {
-        return static::cloneRepository($path, $url, ['--mirror'], $options);
+        return self::cloneRepository($path, $url, ['--mirror'], $options);
     }
 
     /**
@@ -145,12 +145,12 @@ final class Admin
      */
     public static function cloneRepository(string $path, string $url, array $args = [], array $options = []): Repository
     {
-        $process = static::getProcess('clone', array_merge(['-q'], $args, [$url, $path]), $options);
+        $process = self::getProcess('clone', array_merge(['-q'], $args, [$url, $path]), $options);
 
         $process->run();
 
         if (!$process->isSuccessFul()) {
-            throw new RuntimeException(sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
+            throw new RuntimeException(\sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
         }
 
         return new Repository($path, $options);
@@ -161,11 +161,11 @@ final class Admin
      */
     private static function getProcess(string $command, array $args = [], array $options = []): Process
     {
-        $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
+        $is_windows = \defined('PHP_WINDOWS_VERSION_BUILD');
         $options = array_merge([
             'environment_variables' => $is_windows ? ['PATH' => getenv('PATH')] : [],
-            'command'               => 'git',
-            'process_timeout'       => 3600,
+            'command' => 'git',
+            'process_timeout' => 3600,
         ], $options);
 
         $process = new Process(array_merge([$options['command'], $command], $args));

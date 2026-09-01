@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -57,7 +57,7 @@ final class TagParser extends ParserBase
     protected function consumeGPGSignature(): string
     {
         $expected = '-----BEGIN PGP SIGNATURE-----';
-        $length = strlen($expected);
+        $length = \strlen($expected);
         $actual = substr($this->content, $this->cursor, $length);
         if ($actual != $expected) {
             return '';
@@ -76,7 +76,7 @@ final class TagParser extends ParserBase
             throw new RuntimeException('Unable to parse name, email and date');
         }
 
-        $this->cursor += strlen($vars[1]);
+        $this->cursor += \strlen($vars[1]);
 
         return [$vars[2], $vars[3], $vars[4]];
     }
@@ -86,7 +86,7 @@ final class TagParser extends ParserBase
         $date = \DateTime::createFromFormat('U e O', $text.' UTC');
 
         if (!$date instanceof \DateTime) {
-            throw new RuntimeException(sprintf('Unable to convert "%s" to datetime', $text));
+            throw new RuntimeException(\sprintf('Unable to convert "%s" to datetime', $text));
         }
 
         return $date;

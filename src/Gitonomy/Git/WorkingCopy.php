@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -22,7 +22,7 @@ use Gitonomy\Git\Exception\LogicException;
 final readonly class WorkingCopy
 {
     public function __construct(
-        protected readonly Repository $repository,
+        private readonly Repository $repository,
     ) {
         if ($this->repository->isBare()) {
             throw new LogicException('Can\'t create a working copy on a bare repository');
@@ -35,14 +35,13 @@ final readonly class WorkingCopy
     public function getUntrackedFiles(): array
     {
         $lines = explode("\0", $this->run('status', ['--porcelain', '--untracked-files=all', '-z']));
-        $lines = array_filter($lines, function ($l) {
-            return substr($l, 0, 3) === '?? ';
+        $lines = array_filter($lines, static function ($l) {
+            return '?? ' === substr($l, 0, 3);
         });
-        $lines = array_map(function ($l) {
+
+        return array_map(static function ($l) {
             return substr($l, 3);
         }, $lines);
-
-        return $lines;
     }
 
     public function getDiffPending(): Diff
@@ -71,10 +70,10 @@ final readonly class WorkingCopy
             $args[] = $revision->getHash();
         } elseif ($revision instanceof Reference) {
             $args[] = $revision->getFullname();
-        } elseif (is_string($revision)) {
+        } elseif (\is_string($revision)) {
             $args[] = $revision;
         } else {
-            throw new InvalidArgumentException(sprintf('Unknown type "%s"', gettype($revision)));
+            throw new InvalidArgumentException(\sprintf('Unknown type "%s"', \gettype($revision)));
         }
 
         if (null !== $branch) {
@@ -86,7 +85,7 @@ final readonly class WorkingCopy
         return $this;
     }
 
-    protected function run(string $command, array $args = []): ?string
+    private function run(string $command, array $args = []): ?string
     {
         return $this->repository->run($command, $args);
     }

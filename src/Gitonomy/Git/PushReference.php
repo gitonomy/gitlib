@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -22,15 +22,15 @@ use Gitonomy\Git\Exception\LogicException;
  */
 final readonly class PushReference
 {
-    const string ZERO = '0000000000000000000000000000000000000000';
+    public const string ZERO = '0000000000000000000000000000000000000000';
 
     private readonly bool $isForce;
 
     public function __construct(
-        protected readonly Repository $repository,
-        protected readonly string $reference,
-        protected readonly string $before,
-        protected readonly string $after,
+        private readonly Repository $repository,
+        private readonly string $reference,
+        private readonly string $before,
+        private readonly string $after,
     ) {
         $this->isForce = $this->getForce();
     }
@@ -62,7 +62,7 @@ final readonly class PushReference
     {
         return $this->repository->getLog(array_merge(
             [$this->getRevision()],
-            array_map(function ($e) {
+            array_map(static function ($e) {
                 return '^'.$e;
             }, $excludes)
         ));
@@ -101,12 +101,12 @@ final readonly class PushReference
         return !$this->isDelete() && !$this->isCreate() && !$this->isForce();
     }
 
-    protected function isZero(string $reference): bool
+    private function isZero(string $reference): bool
     {
         return self::ZERO === $reference;
     }
 
-    protected function getForce(): bool
+    private function getForce(): bool
     {
         if ($this->isDelete() || $this->isCreate()) {
             return false;

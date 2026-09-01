@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -37,7 +37,7 @@ class LogTest extends AbstractTestCase
 
         $this->assertCount(3, $commits, '3 commits in log');
         $this->assertEquals(self::LONGFILE_COMMIT, $commits[0]->getHash(), 'First is requested one');
-        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commits[1]->getHash(), "Second is longfile parent\'s");
+        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commits[1]->getHash(), "Second is longfile parent\\'s");
     }
 
     #[DataProvider('provideFoobar')]
@@ -65,7 +65,7 @@ class LogTest extends AbstractTestCase
         foreach ($log as $entry) {
             $hash = array_shift($expectedHashes);
             $this->assertEquals($hash, $entry->getHash());
-            if (count($expectedHashes) == 0) {
+            if (0 == \count($expectedHashes)) {
                 break;
             }
         }
@@ -89,31 +89,31 @@ class LogTest extends AbstractTestCase
     public function testParsesCommitsWithAndWithoutGitButlerHeaders(): void
     {
         $logContent = <<<'EOT'
-  commit 1111111111111111111111111111111111111111
-  tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
-  author John Doe <john@example.com> 1620000000 +0000
-  committer John Doe <john@example.com> 1620000000 +0000
+            commit 1111111111111111111111111111111111111111
+            tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
+            author John Doe <john@example.com> 1620000000 +0000
+            committer John Doe <john@example.com> 1620000000 +0000
 
-      First commit message
+                First commit message
 
-  commit 2222222222222222222222222222222222222222
-  tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
-  parent 1111111111111111111111111111111111111111
-  author Jane Smith <jane@example.com> 1620003600 +0000
-  committer Jane Smith <jane@example.com> 1620003600 +0000
-  gitbutler-headers-version: 2
-  gitbutler-change-id: a7bd485c-bae6-45b2-910f-163c78aace81
+            commit 2222222222222222222222222222222222222222
+            tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
+            parent 1111111111111111111111111111111111111111
+            author Jane Smith <jane@example.com> 1620003600 +0000
+            committer Jane Smith <jane@example.com> 1620003600 +0000
+            gitbutler-headers-version: 2
+            gitbutler-change-id: a7bd485c-bae6-45b2-910f-163c78aace81
 
-      Commit with GitButler headers
+                Commit with GitButler headers
 
-  commit 3333333333333333333333333333333333333333
-  tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
-  author John Doe <john@example.com> 1620007200 +0000
-  committer Jane Smith <jane@example.com> 1620007200 +0000
+            commit 3333333333333333333333333333333333333333
+            tree abcdefabcdefabcdefabcdefabcdefabcdefabcd
+            author John Doe <john@example.com> 1620007200 +0000
+            committer Jane Smith <jane@example.com> 1620007200 +0000
 
-      Another commit without GitButler headers
+                Another commit without GitButler headers
 
-  EOT;
+            EOT;
 
         $parser = new LogParser();
         $parser->parse($logContent);

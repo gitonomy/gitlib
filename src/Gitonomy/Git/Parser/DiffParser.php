@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -39,19 +39,19 @@ final class DiffParser extends ParserBase
             }
             $this->consumeNewLine();
         } elseif (!$this->isFinished()) {
-            trigger_error('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.', E_USER_DEPRECATED);
+            @trigger_error('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.', \E_USER_DEPRECATED);
         }
 
         $fileIndex = 0;
         while (!$this->isFinished()) {
             // 1. title
-            $vars = $this->consumeRegexp("/diff --git \"?(a\/.*?)\"? \"?(b\/.*?)\"?\n/");
+            $vars = $this->consumeRegexp("/diff --git \"?(a\\/.*?)\"? \"?(b\\/.*?)\"?\n/");
             $oldName = $vars[1];
             $newName = $vars[2];
             // Get indexes from raw if it exists
             $oldIndex = isset($indexes[$fileIndex]) ? $indexes[$fileIndex][0] : null;
             $newIndex = isset($indexes[$fileIndex]) ? $indexes[$fileIndex][1] : null;
-            $fileIndex++;
+            ++$fileIndex;
             $oldMode = null;
             $newMode = null;
 
@@ -98,12 +98,12 @@ final class DiffParser extends ParserBase
                 }
                 $this->consumeNewLine();
 
-                //verifying if the file was deleted or created
+                // verifying if the file was deleted or created
                 if ($this->expects('--- ')) {
-                    $oldName = $this->consumeTo("\n") === '/dev/null' ? '/dev/null' : $oldName;
+                    $oldName = '/dev/null' === $this->consumeTo("\n") ? '/dev/null' : $oldName;
                     $this->consumeNewLine();
                     $this->consume('+++ ');
-                    $newName = $this->consumeTo("\n") === '/dev/null' ? '/dev/null' : $newName;
+                    $newName = '/dev/null' === $this->consumeTo("\n") ? '/dev/null' : $newName;
                     $this->consumeNewLine();
                 } elseif ($this->expects('Binary files ')) {
                     $vars = $this->consumeRegexp('/"?(.*?)"? and "?(.*?)"? differ\n/');
@@ -113,11 +113,11 @@ final class DiffParser extends ParserBase
                 }
             }
 
-            $oldName = $oldName === '/dev/null' ? null : substr($oldName, 2);
-            $newName = $newName === '/dev/null' ? null : substr($newName, 2);
+            $oldName = '/dev/null' === $oldName ? null : substr($oldName, 2);
+            $newName = '/dev/null' === $newName ? null : substr($newName, 2);
 
-            $oldIndex = $oldIndex === null ? '' : $oldIndex;
-            $newIndex = $newIndex === null ? '' : $newIndex;
+            $oldIndex = null === $oldIndex ? '' : $oldIndex;
+            $newIndex = null === $newIndex ? '' : $newIndex;
             $oldIndex = preg_match('/^0+$/', $oldIndex) ? null : $oldIndex;
             $newIndex = preg_match('/^0+$/', $newIndex) ? null : $newIndex;
             $file = new File($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary);
@@ -142,7 +142,7 @@ final class DiffParser extends ParserBase
                         $lines[] = [FileChange::LINE_ADD, $this->consumeTo("\n")];
                     } elseif ($this->expects('-')) {
                         $lines[] = [FileChange::LINE_REMOVE, $this->consumeTo("\n")];
-                    } elseif ($this->expects("\ No newline at end of file")) {
+                    } elseif ($this->expects('\ No newline at end of file')) {
                         // Ignore this case...
                     } else {
                         break;

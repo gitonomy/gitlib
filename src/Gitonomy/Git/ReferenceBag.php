@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -31,36 +31,36 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      *
      * @var array<string, Reference>
      */
-    protected array $references = [];
+    private array $references = [];
 
     /**
      * List with all tags.
      *
      * @var Tag[]
      */
-    protected array $tags = [];
+    private array $tags = [];
 
     /**
      * List with all branches.
      *
      * @var Branch[]
      */
-    protected array $branches = [];
+    private array $branches = [];
 
     /**
      * A boolean indicating if the bag is already initialized.
      */
-    protected bool $initialized = false;
+    private bool $initialized = false;
 
     public function __construct(
-        protected readonly Repository $repository,
+        private readonly Repository $repository,
     ) {
     }
 
     /**
      * Returns a reference, by name.
      *
-     * @param string $fullname Fullname of the reference (refs/heads/master, for example).
+     * @param string $fullname fullname of the reference (refs/heads/master, for example)
      */
     public function get(string $fullname): Reference
     {
@@ -80,6 +80,13 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
         return isset($this->references[$fullname]);
     }
 
+    /**
+     * @template T of Reference
+     *
+     * @param T $reference
+     *
+     * @return T
+     */
     public function update(Reference $reference): Reference
     {
         $fullname = $reference->getFullname();
@@ -117,7 +124,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     {
         $this->initialize();
 
-        return count($this->branches) > 0;
+        return \count($this->branches) > 0;
     }
 
     public function hasBranch(string $name): bool
@@ -156,7 +163,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
 
         $tags = [];
         foreach ($this->references as $reference) {
-            if ($reference instanceof Reference\Tag && $reference->getCommitHash() === $hash) {
+            if ($reference instanceof Tag && $reference->getCommitHash() === $hash) {
                 $tags[] = $reference;
             }
         }
@@ -177,7 +184,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
 
         $branches = [];
         foreach ($this->references as $reference) {
-            if ($reference instanceof Reference\Branch && $reference->getCommitHash() === $hash) {
+            if ($reference instanceof Branch && $reference->getCommitHash() === $hash) {
                 $branches[] = $reference;
             }
         }
@@ -207,7 +214,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @return Tag[] All tags.
+     * @return Tag[] all tags
      */
     public function getTags(): array
     {
@@ -217,7 +224,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @return Branch[] All branches.
+     * @return Branch[] all branches
      */
     public function getBranches(): array
     {
@@ -225,7 +232,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
 
         $result = [];
         foreach ($this->references as $reference) {
-            if ($reference instanceof Reference\Branch) {
+            if ($reference instanceof Branch) {
                 $result[] = $reference;
             }
         }
@@ -234,7 +241,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @return Branch[] All local branches.
+     * @return Branch[] all local branches
      */
     public function getLocalBranches(): array
     {
@@ -249,7 +256,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @return Branch[] All remote branches.
+     * @return Branch[] all remote branches
      */
     public function getRemoteBranches(): array
     {
@@ -277,24 +284,62 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     {
         $this->initialize();
 
-        return $this->get('refs/tags/'.$name);
+        return $this->getAs('refs/tags/'.$name, Tag::class);
     }
 
     public function getBranch(string $name): Branch
     {
         $this->initialize();
 
-        return $this->get('refs/heads/'.$name);
+        return $this->getAs('refs/heads/'.$name, Branch::class);
     }
 
     public function getRemoteBranch(string $name): Branch
     {
         $this->initialize();
 
-        return $this->get('refs/remotes/'.$name);
+        return $this->getAs('refs/remotes/'.$name, Branch::class);
     }
 
-    protected function initialize(): void
+    /**
+     * @see Countable
+     */
+    public function count(): int
+    {
+        $this->initialize();
+
+        return \count($this->references);
+    }
+
+    /**
+     * @see IteratorAggregate
+     */
+    public function getIterator(): \ArrayIterator
+    {
+        $this->initialize();
+
+        return new \ArrayIterator($this->references);
+    }
+
+    /**
+     * @template T of Reference
+     *
+     * @param class-string<T> $class
+     *
+     * @return T
+     */
+    private function getAs(string $fullname, string $class): Reference
+    {
+        $reference = $this->get($fullname);
+
+        if (!$reference instanceof $class) {
+            throw new ReferenceNotFoundException($fullname);
+        }
+
+        return $reference;
+    }
+
+    private function initialize(): void
     {
         if (true === $this->initialized) {
             return;
@@ -310,7 +355,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
         $parser->parse($output);
 
         foreach ($parser->references as $row) {
-            list($commitHash, $fullname) = $row;
+            [$commitHash, $fullname] = $row;
 
             if (preg_match('#^refs/(heads|remotes)/(.*)$#', $fullname)) {
                 if (preg_match('#.*HEAD$#', $fullname)) {
@@ -323,30 +368,10 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
                 $reference = new Tag($this->repository, $fullname, $commitHash);
                 $this->references[$fullname] = $reference;
                 $this->tags[] = $reference;
-            } elseif ($fullname === 'refs/stash') {
+            } elseif ('refs/stash' === $fullname) {
                 $reference = new Stash($this->repository, $fullname, $commitHash);
                 $this->references[$fullname] = $reference;
             }
         }
-    }
-
-    /**
-     * @see Countable
-     */
-    public function count(): int
-    {
-        $this->initialize();
-
-        return count($this->references);
-    }
-
-    /**
-     * @see IteratorAggregate
-     */
-    public function getIterator(): \ArrayIterator
-    {
-        $this->initialize();
-
-        return new \ArrayIterator($this->references);
     }
 }

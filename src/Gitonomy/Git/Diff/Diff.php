@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -73,8 +73,8 @@ final readonly class Diff
     {
         return [
             'rawDiff' => $this->rawDiff,
-            'files'   => array_map(
-                function (File $file) {
+            'files' => array_map(
+                static function (File $file) {
                     return $file->toArray();
                 },
                 $this->files
@@ -87,9 +87,9 @@ final readonly class Diff
      */
     public static function fromArray(array $array): self
     {
-        return new static(
+        return new self(
             array_map(
-                function ($array) {
+                static function ($array) {
                     return File::fromArray($array);
                 },
                 $array['files']

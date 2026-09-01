@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -25,13 +25,13 @@ class HooksTest extends AbstractTestCase
     #[BeforeClass]
     public static function setUpWindows(): void
     {
-        if (defined('PHP_WINDOWS_VERSION_MAJOR')) {
+        if (\defined('PHP_WINDOWS_VERSION_MAJOR')) {
             self::$symlinkOnWindows = true;
             $originDir = tempnam(sys_get_temp_dir(), 'sl');
             $targetDir = tempnam(sys_get_temp_dir(), 'sl');
             if (true !== @symlink($originDir, $targetDir)) {
                 $report = error_get_last();
-                if (is_array($report) && false !== strpos($report['message'], 'error code(1314)')) {
+                if (\is_array($report) && str_contains($report['message'], 'error code(1314)')) {
                     self::$symlinkOnWindows = false;
                 }
             }
@@ -55,17 +55,17 @@ class HooksTest extends AbstractTestCase
     {
         $file = $this->hookPath($repository, $hook);
 
-        $this->assertTrue($repository->getHooks()->has($hook), "hook $hook in repository");
+        $this->assertTrue($repository->getHooks()->has($hook), "hook {$hook} in repository");
 
-        $this->assertFileExists($file, "Hook $hook is present");
+        $this->assertFileExists($file, "Hook {$hook} is present");
     }
 
     public function assertNoHook(Repository $repository, string $hook): void
     {
         $file = $this->hookPath($repository, $hook);
 
-        $this->assertFalse($repository->getHooks()->has($hook), "No hook $hook in repository");
-        $this->assertFileDoesNotExist($file, "Hook $hook is not present");
+        $this->assertFalse($repository->getHooks()->has($hook), "No hook {$hook} in repository");
+        $this->assertFileDoesNotExist($file, "Hook {$hook} is not present");
     }
 
     #[DataProvider('provideFoobar')]
@@ -77,7 +77,7 @@ class HooksTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGet_InvalidName_ThrowsException(Repository $repository): void
+    public function testGetInvalidNameThrowsException(Repository $repository): void
     {
         $this->expectException(InvalidArgumentException::class);
 
@@ -110,7 +110,7 @@ class HooksTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testSymlink_WithExisting_ThrowsLogicException(Repository $repository): void
+    public function testSymlinkWithExistingThrowsLogicException(Repository $repository): void
     {
         $this->expectException(LogicException::class);
 
@@ -134,11 +134,11 @@ class HooksTest extends AbstractTestCase
         $this->assertEquals('bar', file_get_contents($file), 'Hook content is correct');
 
         $perms = fileperms($file);
-        $this->assertEquals(defined('PHP_WINDOWS_VERSION_BUILD') ? 0666 : 0777, $perms & 0777, 'Hook permissions are correct');
+        $this->assertEquals(\defined('PHP_WINDOWS_VERSION_BUILD') ? 0o666 : 0o777, $perms & 0o777, 'Hook permissions are correct');
     }
 
     #[DataProvider('provideFoobar')]
-    public function testSet_Existing_ThrowsLogicException(Repository $repository): void
+    public function testSetExistingThrowsLogicException(Repository $repository): void
     {
         $repository->getHooks()->set('foo', 'bar');
 
@@ -159,7 +159,7 @@ class HooksTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testRemove_NotExisting_ThrowsLogicException(Repository $repository): void
+    public function testRemoveNotExistingThrowsLogicException(Repository $repository): void
     {
         $this->expectException(LogicException::class);
 
@@ -168,11 +168,11 @@ class HooksTest extends AbstractTestCase
 
     private function markAsSkippedIfSymlinkIsMissing(): void
     {
-        if (!function_exists('symlink')) {
+        if (!\function_exists('symlink')) {
             $this->markTestSkipped('symlink is not supported');
         }
 
-        if (defined('PHP_WINDOWS_VERSION_MAJOR') && false === self::$symlinkOnWindows) {
+        if (\defined('PHP_WINDOWS_VERSION_MAJOR') && false === self::$symlinkOnWindows) {
             $this->markTestSkipped('symlink requires "Create symbolic links" privilege on windows');
         }
     }

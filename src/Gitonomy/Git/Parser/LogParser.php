@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -40,12 +40,12 @@ final class LogParser extends CommitParser
             }
 
             $this->consume('author ');
-            list($commit['authorName'], $commit['authorEmail'], $authorDate) = $this->consumeNameEmailDate();
+            [$commit['authorName'], $commit['authorEmail'], $authorDate] = $this->consumeNameEmailDate();
             $commit['authorDate'] = $this->parseDate($authorDate);
             $this->consumeNewLine();
 
             $this->consume('committer ');
-            list($commit['committerName'], $commit['committerEmail'], $committerDate) = $this->consumeNameEmailDate();
+            [$commit['committerName'], $commit['committerEmail'], $committerDate] = $this->consumeNameEmailDate();
             $commit['committerDate'] = $this->parseDate($committerDate);
 
             $this->consumeMergeTag();
@@ -55,20 +55,20 @@ final class LogParser extends CommitParser
 
             $this->consumeNewLine();
             $this->consumeUnsupportedLinesToNewLine();
-            if ($this->cursor < strlen($this->content)) {
+            if ($this->cursor < \strlen($this->content)) {
                 $this->consumeNewLine();
             }
 
             $message = '';
             if ($this->expects('    ')) {
-                $this->cursor -= strlen('    ');
+                $this->cursor -= \strlen('    ');
 
                 while ($this->expects('    ')) {
                     $message .= $this->consumeTo("\n")."\n";
                     $this->consumeNewLine();
                 }
             } else {
-                $this->cursor--;
+                --$this->cursor;
             }
 
             if (!$this->isFinished()) {
@@ -86,7 +86,7 @@ final class LogParser extends CommitParser
         // Consume any unsupported lines that may appear in the log output. For
         // example, gitbutler headers or other custom metadata but this should
         // work regardless of the content.
-        while (!$this->isFinished() && substr($this->content, $this->cursor, 1) !== "\n") {
+        while (!$this->isFinished() && "\n" !== substr($this->content, $this->cursor, 1)) {
             $this->consumeTo("\n");
             $this->consumeNewLine();
         }

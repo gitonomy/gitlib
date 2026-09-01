@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -72,7 +72,7 @@ class CommitParser extends ParserBase
             throw new RuntimeException('Unable to parse name, email and date');
         }
 
-        $this->cursor += strlen($vars[1]);
+        $this->cursor += \strlen($vars[1]);
 
         return [$vars[2], $vars[3], $vars[4]];
     }
@@ -82,7 +82,7 @@ class CommitParser extends ParserBase
         $date = \DateTime::createFromFormat('U e O', $text.' UTC');
 
         if (!$date instanceof \DateTime) {
-            throw new RuntimeException(sprintf('Unable to convert "%s" to datetime', $text));
+            throw new RuntimeException(\sprintf('Unable to convert "%s" to datetime', $text));
         }
 
         return $date;

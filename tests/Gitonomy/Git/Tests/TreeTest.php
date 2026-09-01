@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -19,7 +19,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 class TreeTest extends AbstractTestCase
 {
-    const PATH_RESOLVING_COMMIT = 'cc06ac171d884282202dff88c1ded499a1f89420';
+    public const PATH_RESOLVING_COMMIT = 'cc06ac171d884282202dff88c1ded499a1f89420';
 
     #[DataProvider('provideFoobar')]
     public function testGetEntries(Repository $repository): void

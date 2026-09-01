@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -59,10 +59,12 @@ class RepositoryTest extends AbstractTestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())
             ->method('info')
-            ->with('run command: remote "" ');
+            ->with('run command: remote "" ')
+        ;
         $logger->expects($this->exactly(3)) // duration, return code and output
             ->method('debug')
-            ->with($this->isString());
+            ->with($this->isString())
+        ;
 
         $repository->setLogger($logger);
 
@@ -77,13 +79,16 @@ class RepositoryTest extends AbstractTestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())
             ->method('info')
-            ->with($this->isString());
+            ->with($this->isString())
+        ;
         $logger->expects($this->exactly(3)) // duration, return code and output
             ->method('debug')
-            ->with($this->isString());
+            ->with($this->isString())
+        ;
         $logger->expects($this->once())
             ->method('error')
-            ->with($this->isString());
+            ->with($this->isString())
+        ;
 
         $repository->setLogger($logger);
 

@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -127,9 +127,9 @@ final class Commit extends Revision
         return $this->getData('tree');
     }
 
-    public function getLastModification(?string $path = null): Commit
+    public function getLastModification(?string $path = null): self
     {
-        if (null !== $path && 0 === strpos($path, '/')) {
+        if (null !== $path && str_starts_with($path, '/')) {
             $path = StringHelper::substr($path, 1);
         }
 
@@ -188,7 +188,7 @@ final class Commit extends Revision
             $arguments[] = '-a';
         } elseif (!$local && $remote) {
             $arguments[] = '-r';
-        } elseif (!$local && !$remote) {
+        } elseif (!$local) {
             throw new InvalidArgumentException('You should a least set one argument to true');
         }
 
@@ -203,7 +203,7 @@ final class Commit extends Revision
         }
 
         $branchesName = explode("\n", trim(str_replace('*', '', $result)));
-        $branchesName = array_filter($branchesName, function ($v) {
+        $branchesName = array_filter($branchesName, static function ($v) {
             return false === StringHelper::strpos($v, '->');
         });
         $branchesName = array_map('trim', $branchesName);
@@ -296,7 +296,7 @@ final class Commit extends Revision
         return $this->getData('bodyMessage');
     }
 
-    public function getCommit(): Commit
+    public function getCommit(): self
     {
         return $this;
     }
@@ -307,26 +307,26 @@ final class Commit extends Revision
             return $this->data[$name];
         }
 
-        if ($name === 'shortHash') {
+        if ('shortHash' === $name) {
             $this->data['shortHash'] = trim($this->repository->run('log', ['--abbrev-commit', '--format=%h', '-n', 1, $this->revision]));
 
             return $this->data['shortHash'];
         }
 
-        if ($name === 'tree') {
+        if ('tree' === $name) {
             $this->data['tree'] = $this->repository->getTree($this->getData('treeHash'));
 
             return $this->data['tree'];
         }
 
-        if ($name === 'subjectMessage') {
+        if ('subjectMessage' === $name) {
             $lines = explode("\n", $this->getData('message'));
             $this->data['subjectMessage'] = reset($lines);
 
             return $this->data['subjectMessage'];
         }
 
-        if ($name === 'bodyMessage') {
+        if ('bodyMessage' === $name) {
             $message = $this->getData('message');
 
             $lines = explode("\n", $message);
@@ -344,7 +344,7 @@ final class Commit extends Revision
         try {
             $result = $this->repository->run('cat-file', ['commit', $this->revision]);
         } catch (ProcessException $e) {
-            throw new ReferenceNotFoundException(sprintf('Can not find reference "%s"', $this->revision));
+            throw new ReferenceNotFoundException(\sprintf('Can not find reference "%s"', $this->revision));
         }
 
         $parser->parse($result);
@@ -360,7 +360,7 @@ final class Commit extends Revision
         $this->data['message'] = $parser->message;
 
         if (!isset($this->data[$name])) {
-            throw new \InvalidArgumentException(sprintf('No data named "%s" in Commit.', $name));
+            throw new \InvalidArgumentException(\sprintf('No data named "%s" in Commit.', $name));
         }
 
         return $this->data[$name];

@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -19,11 +19,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 class DiffTest extends AbstractTestCase
 {
-    const DELETE_COMMIT = '519d5693c72c925cd59205d9f11e9fa1d550028b';
-    const CREATE_COMMIT = 'e6fa3c792facc06faa049a6938c84c411954deb5';
-    const RENAME_COMMIT = '6640e0ef31518054847a1876328e26ee64083e0a';
-    const CHANGEMODE_COMMIT = '93da965f58170f13017477b9a608657e87e23230';
-    const FILE_WITH_UMLAUTS_COMMIT = '8defb9217692dc1f4c18e05e343ca91cf5047702';
+    public const DELETE_COMMIT = '519d5693c72c925cd59205d9f11e9fa1d550028b';
+    public const CREATE_COMMIT = 'e6fa3c792facc06faa049a6938c84c411954deb5';
+    public const RENAME_COMMIT = '6640e0ef31518054847a1876328e26ee64083e0a';
+    public const CHANGEMODE_COMMIT = '93da965f58170f13017477b9a608657e87e23230';
+    public const FILE_WITH_UMLAUTS_COMMIT = '8defb9217692dc1f4c18e05e343ca91cf5047702';
 
     #[DataProvider('provideFoobar')]
     public function testSerialization(Repository $repository): void
@@ -35,31 +35,14 @@ class DiffTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGetFiles_Addition(Repository $repository): void
+    public function testGetFilesAddition(Repository $repository): void
     {
         $diff = $repository->getCommit(self::CREATE_COMMIT)->getDiff();
         $this->verifyCreateCommitDiff($diff);
     }
 
-    protected function verifyCreateCommitDiff(Diff $diff): void
-    {
-        $files = $diff->getFiles();
-
-        $this->assertCount(2, $files, '1 file in diff');
-
-        $this->assertTrue($files[0]->isCreation(), 'script_A.php created');
-
-        $this->assertEquals(null, $files[0]->getOldName(), 'First file name is a new file');
-        $this->assertEquals('script_A.php', $files[0]->getNewName(), 'First file name is script_A.php');
-        $this->assertEquals(null, $files[0]->getOldMode(), 'First file mode is a new file');
-        $this->assertEquals('100644', $files[0]->getNewMode(), 'First file mode is correct');
-
-        $this->assertEquals(1, $files[0]->getAdditions(), '1 line added');
-        $this->assertEquals(0, $files[0]->getDeletions(), '0 lines deleted');
-    }
-
     #[DataProvider('provideFoobar')]
-    public function testGetFiles_Modification(Repository $repository): void
+    public function testGetFilesModification(Repository $repository): void
     {
         $files = $repository->getCommit(self::BEFORE_LONGFILE_COMMIT)->getDiff()->getFiles();
 
@@ -78,7 +61,7 @@ class DiffTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGetFiles_Deletion(Repository $repository): void
+    public function testGetFilesDeletion(Repository $repository): void
     {
         $files = $repository->getCommit(self::DELETE_COMMIT)->getDiff()->getFiles();
 
@@ -90,7 +73,7 @@ class DiffTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGetFiles_Rename(Repository $repository): void
+    public function testGetFilesRename(Repository $repository): void
     {
         $files = $repository->getCommit(self::RENAME_COMMIT)->getDiff()->getFiles();
 
@@ -104,7 +87,7 @@ class DiffTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGetFiles_Changemode(Repository $repository): void
+    public function testGetFilesChangemode(Repository $repository): void
     {
         $files = $repository->getCommit(self::CHANGEMODE_COMMIT)->getDiff()->getFiles();
 
@@ -143,11 +126,11 @@ class DiffTest extends AbstractTestCase
         $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
 
         $diff = Diff::parse(<<<'DIFF'
-        diff --git a/test b/test
-        deleted file mode 100644
-        index e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..0000000000000000000000000000000000000000
+            diff --git a/test b/test
+            deleted file mode 100644
+            index e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..0000000000000000000000000000000000000000
 
-        DIFF);
+            DIFF);
         $firstFile = $diff->getFiles()[0];
 
         $this->assertFalse($firstFile->isCreation());
@@ -162,11 +145,11 @@ class DiffTest extends AbstractTestCase
         $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
 
         $diff = Diff::parse(<<<'DIFF'
-        diff --git a/a.out b/a.out
-        old mode 100755
-        new mode 100644
+            diff --git a/a.out b/a.out
+            old mode 100755
+            new mode 100644
 
-        DIFF);
+            DIFF);
         $firstFile = $diff->getFiles()[0];
 
         $this->assertFalse($firstFile->isCreation());
@@ -179,22 +162,22 @@ class DiffTest extends AbstractTestCase
     public function testModeChangeFileWithRaw(): void
     {
         $deprecationCalled = false;
-        set_error_handler(function (int $errno, string $errstr) use (&$deprecationCalled): void {
+        set_error_handler(static function (int $errno, string $errstr) use (&$deprecationCalled): void {
             $deprecationCalled = true;
-        }, E_USER_DEPRECATED);
+        }, \E_USER_DEPRECATED);
 
         $diff = Diff::parse(<<<'DIFF'
-        :100644 100755 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 M        testfile
-        :100644 100755 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82 M        testfile2
+            :100644 100755 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 M        testfile
+            :100644 100755 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82 M        testfile2
 
-        diff --git a/testfile b/testfile
-        old mode 100644
-        new mode 100755
-        diff --git a/testfile2 b/testfile2
-        old mode 100644
-        new mode 100755
+            diff --git a/testfile b/testfile
+            old mode 100644
+            new mode 100755
+            diff --git a/testfile2 b/testfile2
+            old mode 100644
+            new mode 100755
 
-        DIFF);
+            DIFF);
         $files = $diff->getFiles();
         $firstFile = $files[0];
         $secondFile = $files[1];
@@ -265,5 +248,22 @@ class DiffTest extends AbstractTestCase
         $this->assertTrue($firstFile->isDeletion());
         $this->assertNull($firstFile->getNewName());
         $this->assertSame('test', $firstFile->getOldName());
+    }
+
+    protected function verifyCreateCommitDiff(Diff $diff): void
+    {
+        $files = $diff->getFiles();
+
+        $this->assertCount(2, $files, '1 file in diff');
+
+        $this->assertTrue($files[0]->isCreation(), 'script_A.php created');
+
+        $this->assertNull($files[0]->getOldName(), 'First file name is a new file');
+        $this->assertEquals('script_A.php', $files[0]->getNewName(), 'First file name is script_A.php');
+        $this->assertNull($files[0]->getOldMode(), 'First file mode is a new file');
+        $this->assertEquals('100644', $files[0]->getNewMode(), 'First file mode is correct');
+
+        $this->assertEquals(1, $files[0]->getAdditions(), '1 line added');
+        $this->assertEquals(0, $files[0]->getDeletions(), '0 lines deleted');
     }
 }

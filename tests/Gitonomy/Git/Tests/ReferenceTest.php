@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -51,7 +51,7 @@ class ReferenceTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGetBranch_NotExisting_Error(Repository $repository): void
+    public function testGetBranchNotExistingError(Repository $repository): void
     {
         $this->expectException(ReferenceNotFoundException::class);
 
@@ -95,7 +95,7 @@ class ReferenceTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testGetTag_NotExisting_Error(Repository $repository): void
+    public function testGetTagNotExistingError(Repository $repository): void
     {
         $this->expectException(ReferenceNotFoundException::class);
 
@@ -141,7 +141,7 @@ class ReferenceTest extends AbstractTestCase
     #[DataProvider('provideFoobar')]
     public function testCountable(Repository $repository): void
     {
-        $this->assertGreaterThanOrEqual(2, count($repository->getReferences()), 'At least two references in repository');
+        $this->assertGreaterThanOrEqual(2, \count($repository->getReferences()), 'At least two references in repository');
     }
 
     #[DataProvider('provideFoobar')]
@@ -149,7 +149,7 @@ class ReferenceTest extends AbstractTestCase
     {
         $i = 0;
         foreach ($repository->getReferences() as $ref) {
-            $i++;
+            ++$i;
         }
         $this->assertGreaterThanOrEqual(2, $i, 'At least two references in repository');
     }

@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -24,7 +24,7 @@ final class Blame implements \Countable
     /**
      * @var Line[]|null
      */
-    protected ?array $lines = null;
+    private ?array $lines = null;
 
     /**
      * @param string      $file      the file the blame is about
@@ -33,10 +33,10 @@ final class Blame implements \Countable
      *                               or a regexp ('/^function$/')
      */
     public function __construct(
-        protected readonly Repository $repository,
-        protected readonly Revision $revision,
-        protected readonly string $file,
-        protected readonly ?string $lineRange = null,
+        private readonly Repository $repository,
+        private readonly Revision $revision,
+        private readonly string $file,
+        private readonly ?string $lineRange = null,
     ) {
     }
 
@@ -68,7 +68,7 @@ final class Blame implements \Countable
 
         foreach ($this->getLines() as $lineNumber => $line) {
             if ($commit !== $line->getCommit()) {
-                if (count($current)) {
+                if (\count($current)) {
                     $result[] = [$commit, $current];
                 }
                 $commit = $line->getCommit();
@@ -78,7 +78,7 @@ final class Blame implements \Countable
             $current[$lineNumber] = $line;
         }
 
-        if (count($current)) {
+        if (\count($current)) {
             $result[] = [$commit, $current];
         }
 
@@ -86,7 +86,7 @@ final class Blame implements \Countable
     }
 
     /**
-     * @return Line[] All lines of the blame.
+     * @return Line[] all lines of the blame
      */
     public function getLines(): array
     {
@@ -114,6 +114,6 @@ final class Blame implements \Countable
 
     public function count(): int
     {
-        return count($this->getLines());
+        return \count($this->getLines());
     }
 }

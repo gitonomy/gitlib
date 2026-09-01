@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -20,7 +20,7 @@ final readonly class RevisionList implements \IteratorAggregate, \Countable
     /**
      * @var Revision[]
      */
-    protected array $revisions;
+    private array $revisions;
 
     /**
      * Constructs a revision list from a variety of types.
@@ -29,25 +29,28 @@ final readonly class RevisionList implements \IteratorAggregate, \Countable
      */
     public function __construct(Repository $repository, string|Revision|array $revisions)
     {
-        if (is_string($revisions)) {
+        if (\is_string($revisions)) {
             $revisions = [$repository->getRevision($revisions)];
         } elseif ($revisions instanceof Revision) {
             $revisions = [$revisions];
         }
 
-        if (count($revisions) == 0) {
+        if (0 == \count($revisions)) {
             throw new \InvalidArgumentException('Empty revision list not allowed');
         }
 
-        foreach ($revisions as $i => $revision) {
-            if (is_string($revision)) {
-                $revisions[$i] = new Revision($repository, $revision);
+        $normalizedRevisions = [];
+        foreach ($revisions as $revision) {
+            if (\is_string($revision)) {
+                $revision = new Revision($repository, $revision);
             } elseif (!$revision instanceof Revision) {
-                throw new \InvalidArgumentException(sprintf('Expected a "Revision", got a "%s".', is_object($revision) ? get_class($revision) : gettype($revision)));
+                throw new \InvalidArgumentException(\sprintf('Expected a "Revision", got a "%s".', \is_object($revision) ? $revision::class : \gettype($revision)));
             }
+
+            $normalizedRevisions[] = $revision;
         }
 
-        $this->revisions = $revisions;
+        $this->revisions = $normalizedRevisions;
     }
 
     /**
@@ -65,7 +68,7 @@ final readonly class RevisionList implements \IteratorAggregate, \Countable
 
     public function count(): int
     {
-        return count($this->revisions);
+        return \count($this->revisions);
     }
 
     /**
@@ -73,7 +76,7 @@ final readonly class RevisionList implements \IteratorAggregate, \Countable
      */
     public function getAsTextArray(): array
     {
-        return array_map(function (Revision $revision) {
+        return array_map(static function (Revision $revision) {
             return $revision->getRevision();
         }, $this->revisions);
     }

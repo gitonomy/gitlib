@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -22,25 +22,25 @@ use Gitonomy\Git\Util\StringHelper;
  */
 final class Log implements \Countable, \IteratorAggregate
 {
-    protected ?RevisionList $revisions;
+    private ?RevisionList $revisions;
 
-    protected array $paths;
+    private array $paths;
 
-    protected ?int $offset;
+    private ?int $offset;
 
-    protected ?int $limit;
+    private ?int $limit;
 
     /**
      * Instanciates a git log object.
      *
      * @param Repository                              $repository the repository where log occurs
      * @param RevisionList|Revision|string|array|null $revisions  a list of revisions or null if you want all history
-     * @param array|string|null                        $paths      paths to filter on
-     * @param int|null                                 $offset     start list from a given position
-     * @param int|null                                 $limit      limit number of fetched elements
+     * @param array|string|null                       $paths      paths to filter on
+     * @param int|null                                $offset     start list from a given position
+     * @param int|null                                $limit      limit number of fetched elements
      */
     public function __construct(
-        protected readonly Repository $repository,
+        private readonly Repository $repository,
         RevisionList|Revision|string|array|null $revisions = null,
         array|string|null $paths = null,
         ?int $offset = null,
@@ -52,7 +52,7 @@ final class Log implements \Countable, \IteratorAggregate
 
         if (null === $paths) {
             $paths = [];
-        } elseif (is_string($paths)) {
+        } elseif (\is_string($paths)) {
             $paths = [$paths];
         }
 
@@ -108,7 +108,7 @@ final class Log implements \Countable, \IteratorAggregate
         $commits = $this->getCommits();
         $this->setLimit($limit);
 
-        if (count($commits) === 0) {
+        if (0 === \count($commits)) {
             throw new ReferenceNotFoundException('The log is empty');
         }
 
@@ -144,7 +144,9 @@ final class Log implements \Countable, \IteratorAggregate
         try {
             $output = $this->repository->run('log', $args);
         } catch (ProcessException $e) {
-            throw new ReferenceNotFoundException(sprintf('Can not find revision "%s"', implode(' ', $this->revisions->getAsTextArray())), 0, $e);
+            $revisionsText = null !== $this->revisions ? implode(' ', $this->revisions->getAsTextArray()) : '--all';
+
+            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $revisionsText), 0, $e);
         }
 
         $parser = new Parser\LogParser();
@@ -185,7 +187,7 @@ final class Log implements \Countable, \IteratorAggregate
      */
     public function countCommits(): int
     {
-        if (null !== $this->revisions && count($this->revisions)) {
+        if (null !== $this->revisions && \count($this->revisions)) {
             $output = $this->repository->run('rev-list', array_merge(['--count'], $this->revisions->getAsTextArray(), ['--'], $this->paths));
         } else {
             $output = $this->repository->run('rev-list', array_merge(['--count', '--all', '--'], $this->paths));

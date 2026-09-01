@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -18,16 +18,16 @@ use PHPUnit\Framework\TestCase;
 
 abstract class AbstractTestCase extends TestCase
 {
-    const REPOSITORY_URL = 'https://github.com/gitonomy/foobar.git';
+    public const REPOSITORY_URL = 'https://github.com/gitonomy/foobar.git';
 
-    const NO_MESSAGE_COMMIT = '011cd0c1625190d2959ee9a8f9f822006d94b661';
-    const LONGFILE_COMMIT = '4f17752acc9b7c54ba679291bf24cb7d354f0f4f';
-    const BEFORE_LONGFILE_COMMIT = 'e0ec50e2af75fa35485513f60b2e658e245227e9';
-    const LONGMESSAGE_COMMIT = '3febd664b6886344a9b32d70657687ea4b1b4fab';
-    const INITIAL_COMMIT = '74acd054c8ec873ae6be044041d3a85a4f890ba5';
-    const MERGE_COMMIT = '2f5b9d0a4e6e7173d7816e417805709c708674f8';
-    const ENCODING_COMMIT = '779420b9b936f18a0b6579e1499a85b14270802e';
-    const SIGNED_COMMIT = 'e1a83f16ed61ae3807e5652c7ef894692c813513';
+    public const NO_MESSAGE_COMMIT = '011cd0c1625190d2959ee9a8f9f822006d94b661';
+    public const LONGFILE_COMMIT = '4f17752acc9b7c54ba679291bf24cb7d354f0f4f';
+    public const BEFORE_LONGFILE_COMMIT = 'e0ec50e2af75fa35485513f60b2e658e245227e9';
+    public const LONGMESSAGE_COMMIT = '3febd664b6886344a9b32d70657687ea4b1b4fab';
+    public const INITIAL_COMMIT = '74acd054c8ec873ae6be044041d3a85a4f890ba5';
+    public const MERGE_COMMIT = '2f5b9d0a4e6e7173d7816e417805709c708674f8';
+    public const ENCODING_COMMIT = '779420b9b936f18a0b6579e1499a85b14270802e';
+    public const SIGNED_COMMIT = 'e1a83f16ed61ae3807e5652c7ef894692c813513';
 
     /**
      * Local clone of remote URL. Avoids network call on each test.
@@ -85,7 +85,7 @@ abstract class AbstractTestCase extends TestCase
 
     public static function registerDeletion(Repository $repository): void
     {
-        register_shutdown_function(function () use ($repository): void {
+        register_shutdown_function(static function () use ($repository): void {
             if ($repository->getWorkingDir()) {
                 $dir = $repository->getWorkingDir();
             } else {
@@ -116,7 +116,7 @@ abstract class AbstractTestCase extends TestCase
         $iterator = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $file) {
             if (!is_link($file)) {
-                chmod($file, 0777);
+                chmod($file, 0o777);
             }
             if (is_dir($file)) {
                 rmdir($file);
@@ -125,7 +125,7 @@ abstract class AbstractTestCase extends TestCase
             }
         }
 
-        chmod($dir, 0777);
+        chmod($dir, 0o777);
         rmdir($dir);
     }
 
@@ -135,9 +135,9 @@ abstract class AbstractTestCase extends TestCase
         $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : [];
 
         return [
-            'command'               => $command,
+            'command' => $command,
             'environment_variables' => $envs,
-            'process_timeout'       => 60,
+            'process_timeout' => 60,
         ];
     }
 }

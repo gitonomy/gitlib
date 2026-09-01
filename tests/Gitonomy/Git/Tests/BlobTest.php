@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -19,7 +19,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 class BlobTest extends AbstractTestCase
 {
-    const README_FRAGMENT = 'Foo Bar project';
+    public const README_FRAGMENT = 'Foo Bar project';
 
     public function getReadmeBlob(Repository $repository): Blob
     {

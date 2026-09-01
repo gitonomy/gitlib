@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -16,6 +16,6 @@ final class ReferenceNotFoundException extends \InvalidArgumentException impleme
 {
     public function __construct(string $reference, int $code = 0, ?\Throwable $previous = null)
     {
-        parent::__construct(sprintf('Reference not found: "%s"', $reference), $code, $previous);
+        parent::__construct(\sprintf('Reference not found: "%s"', $reference), $code, $previous);
     }
 }

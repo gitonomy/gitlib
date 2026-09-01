@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -20,60 +20,27 @@ use Gitonomy\Git\Exception\UnexpectedValueException;
  */
 final class Tree
 {
-    protected bool $isInitialized = false;
+    private bool $isInitialized = false;
 
     /**
      * @var array<string, array{string, CommitReference|Tree|Blob}>
      */
-    protected array $entries;
+    private array $entries;
 
     /**
      * @var array{blob: array<string, array{string, Blob}>, tree: array<string, array{string, Tree}>, commit: array<string, array{string, CommitReference}>}
      */
-    protected array $entriesByType;
+    private array $entriesByType;
 
     public function __construct(
-        protected readonly Repository $repository,
-        protected readonly string $hash,
+        private readonly Repository $repository,
+        private readonly string $hash,
     ) {
     }
 
     public function getHash(): string
     {
         return $this->hash;
-    }
-
-    protected function initialize(): void
-    {
-        if (true === $this->isInitialized) {
-            return;
-        }
-
-        $output = $this->repository->run('cat-file', ['-p', $this->hash]);
-        $parser = new Parser\TreeParser();
-        $parser->parse($output);
-
-        $this->entries = [];
-        $this->entriesByType = [
-            'blob'   => [],
-            'tree'   => [],
-            'commit' => [],
-        ];
-
-        foreach ($parser->entries as $entry) {
-            list($mode, $type, $hash, $name) = $entry;
-            if ($type == 'blob') {
-                $treeEntry = [$mode, $this->repository->getBlob($hash)];
-            } elseif ($type == 'tree') {
-                $treeEntry = [$mode, $this->repository->getTree($hash)];
-            } else {
-                $treeEntry = [$mode, new CommitReference($hash)];
-            }
-            $this->entries[$name] = $treeEntry;
-            $this->entriesByType[$type][$name] = $treeEntry;
-        }
-
-        $this->isInitialized = true;
     }
 
     /**
@@ -129,7 +96,7 @@ final class Tree
 
     public function resolvePath(string $path): CommitReference|self|Blob
     {
-        if ($path == '') {
+        if ('' == $path) {
             return $this;
         }
 
@@ -148,5 +115,40 @@ final class Tree
         }
 
         return $element;
+    }
+
+    private function initialize(): void
+    {
+        if (true === $this->isInitialized) {
+            return;
+        }
+
+        $output = $this->repository->run('cat-file', ['-p', $this->hash]);
+        $parser = new Parser\TreeParser();
+        $parser->parse($output);
+
+        $this->entries = [];
+        $this->entriesByType = [
+            'blob' => [],
+            'tree' => [],
+            'commit' => [],
+        ];
+
+        foreach ($parser->entries as $entry) {
+            [$mode, $type, $hash, $name] = $entry;
+            if ('blob' == $type) {
+                $treeEntry = [$mode, $this->repository->getBlob($hash)];
+                $this->entriesByType['blob'][$name] = $treeEntry;
+            } elseif ('tree' == $type) {
+                $treeEntry = [$mode, $this->repository->getTree($hash)];
+                $this->entriesByType['tree'][$name] = $treeEntry;
+            } else {
+                $treeEntry = [$mode, new CommitReference($hash)];
+                $this->entriesByType['commit'][$name] = $treeEntry;
+            }
+            $this->entries[$name] = $treeEntry;
+        }
+
+        $this->isInitialized = true;
     }
 }

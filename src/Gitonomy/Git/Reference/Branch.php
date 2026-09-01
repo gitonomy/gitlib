@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -38,7 +38,7 @@ final class Branch extends Reference
             return $vars['remote'].'/'.$vars['name'];
         }
 
-        throw new RuntimeException(sprintf('Cannot extract branch name from "%s"', $fullname));
+        throw new RuntimeException(\sprintf('Cannot extract branch name from "%s"', $fullname));
     }
 
     public function isRemote(): bool
@@ -73,11 +73,7 @@ final class Branch extends Reference
         try {
             $result = $this->repository->run('branch', $arguments);
         } catch (ProcessException $e) {
-            throw new RuntimeException(
-                sprintf('Cannot determine if merged to the branch "%s"', $destinationBranchName),
-                $e->getCode(),
-                $e
-            );
+            throw new RuntimeException(\sprintf('Cannot determine if merged to the branch "%s"', $destinationBranchName), $e->getCode(), $e);
         }
 
         if (!$result) {
@@ -90,7 +86,7 @@ final class Branch extends Reference
         });
         $trimmed_output = array_map('trim', $filtered_output);
 
-        return in_array($this->getName(), $trimmed_output, true);
+        return \in_array($this->getName(), $trimmed_output, true);
     }
 
     private function detectBranchType(): void
