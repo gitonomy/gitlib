@@ -15,11 +15,14 @@ namespace Gitonomy\Git\Parser;
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Diff\FileChange;
 
-class DiffParser extends ParserBase
+final class DiffParser extends ParserBase
 {
-    public $files;
+    /**
+     * @var File[]
+     */
+    public array $files = [];
 
-    protected function doParse()
+    protected function doParse(): void
     {
         $this->files = [];
         $indexes = [];

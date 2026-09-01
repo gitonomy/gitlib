@@ -15,27 +15,28 @@ namespace Gitonomy\Git;
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class RevisionList implements \IteratorAggregate, \Countable
+final readonly class RevisionList implements \IteratorAggregate, \Countable
 {
-    protected $revisions;
+    /**
+     * @var Revision[]
+     */
+    protected array $revisions;
 
     /**
      * Constructs a revision list from a variety of types.
      *
-     * @param mixed $revisions can be a string, an array of strings or an array of Revision, Branch, Tag, Commit
+     * @param string|Revision|array $revisions can be a string, a Revision, an array of strings or an array of Revision, Branch, Tag, Commit
      */
-    public function __construct(Repository $repository, $revisions)
+    public function __construct(Repository $repository, string|Revision|array $revisions)
     {
         if (is_string($revisions)) {
             $revisions = [$repository->getRevision($revisions)];
         } elseif ($revisions instanceof Revision) {
             $revisions = [$revisions];
-        } elseif (!is_array($revisions)) {
-            throw new \InvalidArgumentException(sprintf('Expected a string, a Revision or an array, got a "%s".', is_object($revisions) ? get_class($revisions) : gettype($revisions)));
         }
 
         if (count($revisions) == 0) {
-            throw new \InvalidArgumentException(sprintf('Empty revision list not allowed'));
+            throw new \InvalidArgumentException('Empty revision list not allowed');
         }
 
         foreach ($revisions as $i => $revision) {
@@ -52,26 +53,27 @@ class RevisionList implements \IteratorAggregate, \Countable
     /**
      * @return Revision[]
      */
-    public function getAll()
+    public function getAll(): array
     {
         return $this->revisions;
     }
 
-    #[\ReturnTypeWillChange]
-    public function getIterator()
+    public function getIterator(): \ArrayIterator
     {
         return new \ArrayIterator($this->revisions);
     }
 
-    #[\ReturnTypeWillChange]
-    public function count()
+    public function count(): int
     {
         return count($this->revisions);
     }
 
-    public function getAsTextArray()
+    /**
+     * @return string[]
+     */
+    public function getAsTextArray(): array
     {
-        return array_map(function ($revision) {
+        return array_map(function (Revision $revision) {
             return $revision->getRevision();
         }, $this->revisions);
     }

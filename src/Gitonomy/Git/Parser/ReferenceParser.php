@@ -12,11 +12,14 @@
 
 namespace Gitonomy\Git\Parser;
 
-class ReferenceParser extends ParserBase
+final class ReferenceParser extends ParserBase
 {
-    public $references;
+    /**
+     * @var array<int, array{string, string}>
+     */
+    public array $references = [];
 
-    protected function doParse()
+    protected function doParse(): void
     {
         $this->references = [];
 

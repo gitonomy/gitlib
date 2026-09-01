@@ -2,6 +2,6 @@
 
 namespace Gitonomy\Git\Exception;
 
-class InvalidArgumentException extends \InvalidArgumentException implements GitExceptionInterface
+final class InvalidArgumentException extends \InvalidArgumentException implements GitExceptionInterface
 {
 }

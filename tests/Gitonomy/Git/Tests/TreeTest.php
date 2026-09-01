@@ -14,15 +14,15 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\CommitReference;
+use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class TreeTest extends AbstractTest
+class TreeTest extends AbstractTestCase
 {
     const PATH_RESOLVING_COMMIT = 'cc06ac171d884282202dff88c1ded499a1f89420';
 
-    /**
-     * @dataProvider provideFooBar
-     */
-    public function testGetEntries($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetEntries(Repository $repository): void
     {
         $tree = $repository->getCommit(self::LONGFILE_COMMIT)->getTree();
 
@@ -35,10 +35,8 @@ class TreeTest extends AbstractTest
         $this->assertTrue($entries['README.md'][1] instanceof Blob, 'README.md is a Blob');
     }
 
-    /**
-     * @dataProvider provideFooBar
-     */
-    public function testGetCommitReferenceEntries($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetCommitReferenceEntries(Repository $repository): void
     {
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
@@ -48,10 +46,8 @@ class TreeTest extends AbstractTest
         $this->assertTrue($commits['barbaz'][1] instanceof CommitReference, 'barbaz is a Commit');
     }
 
-    /**
-     * @dataProvider provideFooBar
-     */
-    public function testGetTreeEntries($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetTreeEntries(Repository $repository): void
     {
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
@@ -60,10 +56,8 @@ class TreeTest extends AbstractTest
         $this->assertEmpty($trees);
     }
 
-    /**
-     * @dataProvider provideFooBar
-     */
-    public function testGetBlobEntries($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetBlobEntries(Repository $repository): void
     {
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
@@ -73,10 +67,8 @@ class TreeTest extends AbstractTest
         $this->assertTrue($blobs['README.md'][1] instanceof Blob, 'README.md is a blob');
     }
 
-    /**
-     * @dataProvider provideFooBar
-     */
-    public function testResolvePath($repository)
+    #[DataProvider('provideFoobar')]
+    public function testResolvePath(Repository $repository): void
     {
         $tree = $repository->getCommit(self::PATH_RESOLVING_COMMIT)->getTree();
         $path = 'test/a/b/c';

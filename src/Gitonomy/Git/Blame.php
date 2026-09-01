@@ -19,50 +19,28 @@ use Gitonomy\Git\Parser\BlameParser;
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Blame implements \Countable
+final class Blame implements \Countable
 {
     /**
-     * @var Repository
+     * @var Line[]|null
      */
-    protected $repository;
+    protected ?array $lines = null;
 
     /**
-     * @var Revision
+     * @param string      $file      the file the blame is about
+     * @param string|null $lineRange argument to pass to git blame (-L).
+     *                               Can be a line range (40,60 or 40,+21)
+     *                               or a regexp ('/^function$/')
      */
-    protected $revision;
-
-    /**
-     * @var string
-     */
-    protected $file;
-
-    /**
-     * @var string|null
-     */
-    protected $lineRange;
-
-    /**
-     * @var array|null
-     */
-    protected $lines;
-
-    /**
-     * @param string $lineRange Argument to pass to git blame (-L).
-     *                          Can be a line range (40,60 or 40,+21)
-     *                          or a regexp ('/^function$/')
-     */
-    public function __construct(Repository $repository, Revision $revision, $file, $lineRange = null)
-    {
-        $this->repository = $repository;
-        $this->revision = $revision;
-        $this->lineRange = $lineRange;
-        $this->file = $file;
+    public function __construct(
+        protected readonly Repository $repository,
+        protected readonly Revision $revision,
+        protected readonly string $file,
+        protected readonly ?string $lineRange = null,
+    ) {
     }
 
-    /**
-     * @return Line
-     */
-    public function getLine($number)
+    public function getLine(int $number): Line
     {
         if ($number < 1) {
             throw new InvalidArgumentException('Line number should be at least 1');
@@ -82,7 +60,7 @@ class Blame implements \Countable
      *
      * @return array a list of two-elements array (commit, lines)
      */
-    public function getGroupedLines()
+    public function getGroupedLines(): array
     {
         $result = [];
         $commit = null;
@@ -110,7 +88,7 @@ class Blame implements \Countable
     /**
      * @return Line[] All lines of the blame.
      */
-    public function getLines()
+    public function getLines(): array
     {
         if (null !== $this->lines) {
             return $this->lines;
@@ -134,11 +112,7 @@ class Blame implements \Countable
         return $this->lines;
     }
 
-    /**
-     * @return int
-     */
-    #[\ReturnTypeWillChange]
-    public function count()
+    public function count(): int
     {
         return count($this->getLines());
     }

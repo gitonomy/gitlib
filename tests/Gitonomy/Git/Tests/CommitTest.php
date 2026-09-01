@@ -18,13 +18,12 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Repository;
 use Gitonomy\Git\Tree;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class CommitTest extends AbstractTest
+class CommitTest extends AbstractTestCase
 {
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetDiff($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetDiff(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
@@ -33,20 +32,16 @@ class CommitTest extends AbstractTest
         $this->assertInstanceOf(Diff::class, $diff, 'getDiff() returns a Diff object');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetHash($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetHash(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals(self::LONGFILE_COMMIT, $commit->getHash());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testInvalideHashThrowException($repository)
+    #[DataProvider('provideFoobar')]
+    public function testInvalideHashThrowException(Repository $repository): void
     {
         $this->expectException(ReferenceNotFoundException::class);
         $this->expectExceptionMessage('Reference not found: "that-hash-doest-not-exists"');
@@ -54,30 +49,24 @@ class CommitTest extends AbstractTest
         new Commit($repository, 'that-hash-doest-not-exists');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetShortHash($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetShortHash(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('4f17752', $commit->getShortHash(), 'Short hash');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetParentHashes_WithNoParent($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetParentHashes_WithNoParent(Repository $repository): void
     {
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
         $this->assertCount(0, $commit->getParentHashes(), 'No parent on initial commit');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetParentHashes_WithOneParent($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetParentHashes_WithOneParent(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
         $parents = $commit->getParentHashes();
@@ -86,10 +75,8 @@ class CommitTest extends AbstractTest
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $parents[0], 'Parent hash is correct');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetParents_WithOneParent($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetParents_WithOneParent(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
         $parents = $commit->getParents();
@@ -99,20 +86,16 @@ class CommitTest extends AbstractTest
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $parents[0]->getHash(), "First parents's hash is correct");
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetTreeHash($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetTreeHash(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('b06890c7b10904979d2f69613c2ccda30aafe262', $commit->getTreeHash(), 'Tree hash is correct');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetTree($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetTree(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
@@ -120,94 +103,72 @@ class CommitTest extends AbstractTest
         $this->assertEquals('b06890c7b10904979d2f69613c2ccda30aafe262', $commit->getTree()->getHash(), 'Tree hash is correct');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetAuthorName($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetAuthorName(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('alice', $commit->getAuthorName(), 'Author name');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetAuthorEmail($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetAuthorEmail(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('alice@example.org', $commit->getAuthorEmail(), 'Author email');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetAuthorDate($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetAuthorDate(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('2012-12-31 14:21:03', $commit->getAuthorDate()->format('Y-m-d H:i:s'), 'Author date');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetCommitterName($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetCommitterName(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('alice', $commit->getCommitterName(), 'Committer name');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetCommitterEmail($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetCommitterEmail(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('alice@example.org', $commit->getCommitterEmail(), 'Committer email');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetCommitterDate($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetCommitterDate(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('2012-12-31 14:21:03', $commit->getCommitterDate()->format('Y-m-d H:i:s'), 'Committer date');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetMessage($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetMessage(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertEquals('add a long file'."\n", $commit->getMessage());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     *
-     * @param $repository Repository
-     */
-    public function testGetEmptyMessage($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetEmptyMessage(Repository $repository): void
     {
         $commit = $repository->getCommit(self::NO_MESSAGE_COMMIT);
 
         $this->assertEquals('', $commit->getMessage());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     *
-     * @param $repository Repository
-     */
-    public function testGetEmptyMessageFromLog($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetEmptyMessageFromLog(Repository $repository): void
     {
         $commit = $repository->getCommit(self::NO_MESSAGE_COMMIT);
         $commitMessageFromLog = $commit->getLog()->getCommits()[0]->getMessage();
@@ -218,19 +179,16 @@ class CommitTest extends AbstractTest
     /**
      * This test ensures that GPG signed commits does not break the reading of a commit
      * message.
-     *
-     * @dataProvider provideFoobar
      */
-    public function testGetSignedMessage($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetSignedMessage(Repository $repository): void
     {
         $commit = $repository->getCommit(self::SIGNED_COMMIT);
         $this->assertEquals('signed commit'."\n", $commit->getMessage());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetShortMessage($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetShortMessage(Repository $repository): void
     {
         // tests with a multi-line message
         $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
@@ -247,10 +205,8 @@ class CommitTest extends AbstractTest
         $this->assertEquals('Add!!!', $commit->getShortMessage(1, true, '!!!'));
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetBodyMessage($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetBodyMessage(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
         $nl = chr(10);
@@ -262,10 +218,8 @@ class CommitTest extends AbstractTest
         $this->assertEquals('', $commit->getBodyMessage());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetIncludingBranchesException($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetIncludingBranchesException(Repository $repository): void
     {
         $this->expectException(InvalidArgumentException::class);
 
@@ -274,10 +228,8 @@ class CommitTest extends AbstractTest
         $commit->getIncludingBranches(false, false);
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetIncludingBranches($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetIncludingBranches(Repository $repository): void
     {
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
@@ -291,10 +243,8 @@ class CommitTest extends AbstractTest
         $this->assertCount(count($repository->getReferences()->getRemoteBranches()), $branches);
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetLastModification($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetLastModification(Repository $repository): void
     {
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
@@ -304,20 +254,16 @@ class CommitTest extends AbstractTest
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $lastModification->getHash(), 'Last modification is current commit');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testMergeCommit($repository)
+    #[DataProvider('provideFoobar')]
+    public function testMergeCommit(Repository $repository): void
     {
         $commit = $repository->getCommit(self::MERGE_COMMIT);
 
         $this->assertEquals("Merge branch 'authors'", $commit->getSubjectMessage());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testEncoding($repository)
+    #[DataProvider('provideFoobar')]
+    public function testEncoding(Repository $repository): void
     {
         $commit = $repository->getCommit(self::ENCODING_COMMIT);
 

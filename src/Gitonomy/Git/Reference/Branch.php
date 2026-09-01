@@ -22,11 +22,11 @@ use Gitonomy\Git\Util\StringHelper;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Branch extends Reference
+final class Branch extends Reference
 {
-    private $local = null;
+    private ?bool $local = null;
 
-    public function getName()
+    public function getName(): string
     {
         $fullname = $this->getFullname();
 
@@ -41,14 +41,14 @@ class Branch extends Reference
         throw new RuntimeException(sprintf('Cannot extract branch name from "%s"', $fullname));
     }
 
-    public function isRemote()
+    public function isRemote(): bool
     {
         $this->detectBranchType();
 
         return !$this->local;
     }
 
-    public function isLocal()
+    public function isLocal(): bool
     {
         $this->detectBranchType();
 
@@ -58,13 +58,8 @@ class Branch extends Reference
     /**
      * Check if this branch is merged to a destination branch
      * Optionally, check only with remote branches.
-     *
-     * @param string $destinationBranchName
-     * @param bool   $compareOnlyWithRemote
-     *
-     * @return null|bool
      */
-    public function isMergedTo($destinationBranchName = 'master', $compareOnlyWithRemote = false)
+    public function isMergedTo(string $destinationBranchName = 'master', bool $compareOnlyWithRemote = false): bool
     {
         $arguments = ['-a'];
 
@@ -98,7 +93,7 @@ class Branch extends Reference
         return in_array($this->getName(), $trimmed_output, true);
     }
 
-    private function detectBranchType()
+    private function detectBranchType(): void
     {
         if (null === $this->local) {
             $this->local = !preg_match('#^refs/remotes/(?<remote>[^/]*)/(?<name>.*)$#', $this->getFullname());

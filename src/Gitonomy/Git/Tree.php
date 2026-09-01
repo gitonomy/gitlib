@@ -18,26 +18,32 @@ use Gitonomy\Git\Exception\UnexpectedValueException;
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Tree
+final class Tree
 {
-    protected $repository;
-    protected $hash;
-    protected $isInitialized = false;
-    protected $entries;
-    protected $entriesByType;
+    protected bool $isInitialized = false;
 
-    public function __construct(Repository $repository, $hash)
-    {
-        $this->repository = $repository;
-        $this->hash = $hash;
+    /**
+     * @var array<string, array{string, CommitReference|Tree|Blob}>
+     */
+    protected array $entries;
+
+    /**
+     * @var array{blob: array<string, array{string, Blob}>, tree: array<string, array{string, Tree}>, commit: array<string, array{string, CommitReference}>}
+     */
+    protected array $entriesByType;
+
+    public function __construct(
+        protected readonly Repository $repository,
+        protected readonly string $hash,
+    ) {
     }
 
-    public function getHash()
+    public function getHash(): string
     {
         return $this->hash;
     }
 
-    protected function initialize()
+    protected function initialize(): void
     {
         if (true === $this->isInitialized) {
             return;
@@ -110,7 +116,7 @@ class Tree
         return $this->entriesByType['blob'];
     }
 
-    public function getEntry($name)
+    public function getEntry(string $name): CommitReference|self|Blob
     {
         $this->initialize();
 
@@ -121,7 +127,7 @@ class Tree
         return $this->entries[$name][1];
     }
 
-    public function resolvePath($path)
+    public function resolvePath(string $path): CommitReference|self|Blob
     {
         if ($path == '') {
             return $this;

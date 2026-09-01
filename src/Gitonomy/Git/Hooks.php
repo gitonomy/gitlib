@@ -21,29 +21,19 @@ use Gitonomy\Git\Exception\RuntimeException;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Hooks
+final readonly class Hooks
 {
-    /**
-     * @var \Gitonomy\Git\Repository
-     */
-    protected $repository;
-
-    /**
-     * @var Repository
-     */
-    public function __construct(Repository $repository)
-    {
-        $this->repository = $repository;
+    public function __construct(
+        protected readonly Repository $repository,
+    ) {
     }
 
     /**
      * Tests if repository has a given hook.
      *
      * @param string $name Name of the hook
-     *
-     * @return bool
      */
-    public function has($name)
+    public function has(string $name): bool
     {
         return file_exists($this->getPath($name));
     }
@@ -57,7 +47,7 @@ class Hooks
      *
      * @return string Content of the hook
      */
-    public function get($name)
+    public function get(string $name): string
     {
         if (!$this->has($name)) {
             throw new InvalidArgumentException(sprintf('Hook named "%s" is not present', $name));
@@ -75,7 +65,7 @@ class Hooks
      * @throws LogicException   Hook is already present
      * @throws RuntimeException Error on symlink creation
      */
-    public function setSymlink($name, $file)
+    public function setSymlink(string $name, string $file): void
     {
         if ($this->has($name)) {
             throw new LogicException(sprintf('A hook "%s" is already defined', $name));
@@ -95,7 +85,7 @@ class Hooks
      *
      * @throws LogicException The hook is already defined
      */
-    public function set($name, $content)
+    public function set(string $name, string $content): void
     {
         if ($this->has($name)) {
             throw new LogicException(sprintf('A hook "%s" is already defined', $name));
@@ -113,7 +103,7 @@ class Hooks
      *
      * @throws LogicException The hook is not present
      */
-    public function remove($name)
+    public function remove(string $name): void
     {
         if (!$this->has($name)) {
             throw new LogicException(sprintf('The hook "%s" was not found', $name));
@@ -122,10 +112,7 @@ class Hooks
         unlink($this->getPath($name));
     }
 
-    /**
-     * @return string
-     */
-    protected function getPath($name)
+    protected function getPath(string $name): string
     {
         return $this->repository->getGitDir().'/hooks/'.$name;
     }

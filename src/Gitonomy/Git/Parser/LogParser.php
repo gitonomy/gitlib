@@ -12,11 +12,14 @@
 
 namespace Gitonomy\Git\Parser;
 
-class LogParser extends CommitParser
+final class LogParser extends CommitParser
 {
-    public $log = [];
+    /**
+     * @var array[]
+     */
+    public array $log = [];
 
-    protected function doParse()
+    protected function doParse(): void
     {
         $this->log = [];
 
@@ -78,7 +81,7 @@ class LogParser extends CommitParser
         }
     }
 
-    protected function consumeUnsupportedLinesToNewLine()
+    protected function consumeUnsupportedLinesToNewLine(): void
     {
         // Consume any unsupported lines that may appear in the log output. For
         // example, gitbutler headers or other custom metadata but this should

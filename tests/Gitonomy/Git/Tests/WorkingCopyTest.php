@@ -17,9 +17,9 @@ use Gitonomy\Git\Exception\LogicException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 
-class WorkingCopyTest extends AbstractTest
+class WorkingCopyTest extends AbstractTestCase
 {
-    public function testNoWorkingCopyInBare()
+    public function testNoWorkingCopyInBare(): void
     {
         $this->expectException(LogicException::class);
 
@@ -29,7 +29,7 @@ class WorkingCopyTest extends AbstractTest
         $repo->getWorkingCopy();
     }
 
-    public function testCheckout()
+    public function testCheckout(): void
     {
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();
@@ -40,7 +40,7 @@ class WorkingCopyTest extends AbstractTest
         $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
     }
 
-    public function testDiffStaged()
+    public function testDiffStaged(): void
     {
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();
@@ -56,7 +56,7 @@ class WorkingCopyTest extends AbstractTest
         $this->assertCount(1, $diffStaged->getFiles());
     }
 
-    public function testDiffPending()
+    public function testDiffPending(): void
     {
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();
@@ -71,14 +71,14 @@ class WorkingCopyTest extends AbstractTest
         $this->assertCount(1, $diffPending->getFiles());
     }
 
-    public function testCheckoutUnexisting()
+    public function testCheckoutUnexisting(): void
     {
         $this->expectException(RuntimeException::class);
 
         self::createFoobarRepository(false)->getWorkingCopy()->checkout('foobar');
     }
 
-    public function testAttachedHead()
+    public function testAttachedHead(): void
     {
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();
@@ -89,7 +89,7 @@ class WorkingCopyTest extends AbstractTest
         $this->assertFalse($repository->isHeadDetached(), 'HEAD is not detached');
     }
 
-    public function testDetachedHead()
+    public function testDetachedHead(): void
     {
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();
@@ -100,7 +100,7 @@ class WorkingCopyTest extends AbstractTest
         $this->assertTrue($repository->isHeadDetached(), 'HEAD is detached');
     }
 
-    public function testGetUntracked()
+    public function testGetUntracked(): void
     {
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();

@@ -20,7 +20,7 @@ use Symfony\Component\Process\Process;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Admin
+final class Admin
 {
     /**
      * Initializes a repository and returns the instance.
@@ -30,10 +30,8 @@ class Admin
      * @param array  $options options for Repository creation
      *
      * @throws RuntimeException Directory exists or not writable (only if debug=true)
-     *
-     * @return Repository
      */
-    public static function init($path, $bare = true, array $options = [])
+    public static function init(string $path, bool $bare = true, array $options = []): Repository
     {
         $process = static::getProcess('init', array_merge(['-q'], $bare ? ['--bare'] : [], [$path]), $options);
 
@@ -58,7 +56,7 @@ class Admin
      *
      * @return bool true if url is valid
      */
-    public static function isValidRepository($url, array $options = [])
+    public static function isValidRepository(string $url, array $options = []): bool
     {
         $process = static::getProcess('ls-remote', [$url], $options);
 
@@ -81,7 +79,7 @@ class Admin
      *
      * @return bool true if url is valid and branch exists
      */
-    public static function isValidRepositoryAndBranch($url, $branchName, array $options = [])
+    public static function isValidRepositoryAndBranch(string $url, string $branchName, array $options = []): bool
     {
         $process = static::getProcess('ls-remote', ['--heads', $url, $branchName], $options);
 
@@ -98,10 +96,8 @@ class Admin
      * @param string $url     url of repository to clone
      * @param bool   $bare    indicates if repository should be bare or have a working copy
      * @param array  $options options for Repository creation
-     *
-     * @return Repository
      */
-    public static function cloneTo($path, $url, $bare = true, array $options = [])
+    public static function cloneTo(string $path, string $url, bool $bare = true, array $options = []): Repository
     {
         $args = $bare ? ['--bare'] : [];
 
@@ -116,10 +112,8 @@ class Admin
      * @param string $branch  branch to clone
      * @param bool   $bare    indicates if repository should be bare or have a working copy
      * @param array  $options options for Repository creation
-     *
-     * @return Repository
      */
-    public static function cloneBranchTo($path, $url, $branch, $bare = true, $options = [])
+    public static function cloneBranchTo(string $path, string $url, string $branch, bool $bare = true, array $options = []): Repository
     {
         $args = ['--branch', $branch];
         if ($bare) {
@@ -135,10 +129,8 @@ class Admin
      * @param string $path    indicates where to clone repository
      * @param string $url     url of repository to clone
      * @param array  $options options for Repository creation
-     *
-     * @return Repository
      */
-    public static function mirrorTo($path, $url, array $options = [])
+    public static function mirrorTo(string $path, string $url, array $options = []): Repository
     {
         return static::cloneRepository($path, $url, ['--mirror'], $options);
     }
@@ -150,10 +142,8 @@ class Admin
      * @param string $url     url of repository to clone
      * @param array  $args    arguments to be added to the command-line
      * @param array  $options options for Repository creation
-     *
-     * @return Repository
      */
-    public static function cloneRepository($path, $url, array $args = [], array $options = [])
+    public static function cloneRepository(string $path, string $url, array $args = [], array $options = []): Repository
     {
         $process = static::getProcess('clone', array_merge(['-q'], $args, [$url, $path]), $options);
 
@@ -169,7 +159,7 @@ class Admin
     /**
      * This internal method is used to create a process object.
      */
-    private static function getProcess($command, array $args = [], array $options = [])
+    private static function getProcess(string $command, array $args = [], array $options = []): Process
     {
         $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
         $options = array_merge([

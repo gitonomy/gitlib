@@ -12,11 +12,14 @@
 
 namespace Gitonomy\Git\Parser;
 
-class TreeParser extends ParserBase
+final class TreeParser extends ParserBase
 {
-    public $entries = [];
+    /**
+     * @var array<int, array{string, string, string, string}>
+     */
+    public array $entries = [];
 
-    protected function doParse()
+    protected function doParse(): void
     {
         while (!$this->isFinished()) {
             $vars = $this->consumeRegexp('/\d{6}/A');

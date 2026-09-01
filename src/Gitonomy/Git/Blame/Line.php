@@ -17,40 +17,31 @@ use Gitonomy\Git\Commit;
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Line
+final readonly class Line
 {
-    /**
-     * @var Commit
-     */
-    protected $commit;
-    protected $sourceLine;
-    protected $targetLine;
-    protected $blockLine;
-    protected $content;
-
     /**
      * Instanciates a new Line object.
      */
-    public function __construct(Commit $commit, $sourceLine, $targetLine, $blockLine, $content)
-    {
-        $this->commit = $commit;
-        $this->sourceLine = $sourceLine;
-        $this->targetLine = $targetLine;
-        $this->blockLine = $blockLine;
-        $this->content = $content;
+    public function __construct(
+        protected readonly Commit $commit,
+        protected readonly string $sourceLine,
+        protected readonly string $targetLine,
+        protected readonly ?string $blockLine,
+        protected readonly string $content,
+    ) {
     }
 
-    public function getContent()
+    public function getContent(): string
     {
         return $this->content;
     }
 
-    public function getLine()
+    public function getLine(): string
     {
         return $this->sourceLine;
     }
 
-    public function getCommit()
+    public function getCommit(): Commit
     {
         return $this->commit;
     }

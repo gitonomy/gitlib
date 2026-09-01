@@ -14,15 +14,16 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\BeforeClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class HooksTest extends AbstractTest
+class HooksTest extends AbstractTestCase
 {
-    private static $symlinkOnWindows = null;
+    private static ?bool $symlinkOnWindows = null;
 
-    /**
-     * @beforeClass
-     */
-    public static function setUpWindows()
+    #[BeforeClass]
+    public static function setUpWindows(): void
     {
         if (defined('PHP_WINDOWS_VERSION_MAJOR')) {
             self::$symlinkOnWindows = true;
@@ -37,12 +38,12 @@ class HooksTest extends AbstractTest
         }
     }
 
-    public function hookPath($repository, $hook)
+    public function hookPath(Repository $repository, string $hook): string
     {
         return $repository->getGitDir().'/hooks/'.$hook;
     }
 
-    public function touchHook($repository, $hook, $content = '')
+    public function touchHook(Repository $repository, string $hook, string $content = ''): string
     {
         $path = $this->hookPath($repository, $hook);
         file_put_contents($path, $content);
@@ -50,7 +51,7 @@ class HooksTest extends AbstractTest
         return $path;
     }
 
-    public function assertHasHook($repository, $hook)
+    public function assertHasHook(Repository $repository, string $hook): void
     {
         $file = $this->hookPath($repository, $hook);
 
@@ -59,53 +60,40 @@ class HooksTest extends AbstractTest
         $this->assertFileExists($file, "Hook $hook is present");
     }
 
-    public function assertNoHook($repository, $hook)
+    public function assertNoHook(Repository $repository, string $hook): void
     {
         $file = $this->hookPath($repository, $hook);
 
         $this->assertFalse($repository->getHooks()->has($hook), "No hook $hook in repository");
-
-        if (method_exists($this, 'assertFileDoesNotExist')) {
-            $this->assertFileDoesNotExist($file, "Hook $hook is not present");
-        } else {
-            $this->assertFileNotExists($file, "Hook $hook is not present");
-        }
+        $this->assertFileDoesNotExist($file, "Hook $hook is not present");
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testHas($repository)
+    #[DataProvider('provideFoobar')]
+    public function testHas(Repository $repository): void
     {
         $this->assertNoHook($repository, 'foo');
         $this->touchHook($repository, 'foo');
         $this->assertHasHook($repository, 'foo');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGet_InvalidName_ThrowsException($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGet_InvalidName_ThrowsException(Repository $repository): void
     {
         $this->expectException(InvalidArgumentException::class);
 
         $repository->getHooks()->get('foo');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGet($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGet(Repository $repository): void
     {
         $this->touchHook($repository, 'foo', 'foobar');
 
         $this->assertEquals('foobar', $repository->getHooks()->get('foo'));
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testSymlink($repository)
+    #[DataProvider('provideFoobar')]
+    public function testSymlink(Repository $repository): void
     {
         $this->markAsSkippedIfSymlinkIsMissing();
 
@@ -121,10 +109,8 @@ class HooksTest extends AbstractTest
         );
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testSymlink_WithExisting_ThrowsLogicException($repository)
+    #[DataProvider('provideFoobar')]
+    public function testSymlink_WithExisting_ThrowsLogicException(Repository $repository): void
     {
         $this->expectException(LogicException::class);
 
@@ -139,10 +125,8 @@ class HooksTest extends AbstractTest
         $repository->getHooks()->setSymlink('foo', $file);
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testSet($repository)
+    #[DataProvider('provideFoobar')]
+    public function testSet(Repository $repository): void
     {
         $file = $this->hookPath($repository, 'foo');
         $repository->getHooks()->set('foo', 'bar');
@@ -153,10 +137,8 @@ class HooksTest extends AbstractTest
         $this->assertEquals(defined('PHP_WINDOWS_VERSION_BUILD') ? 0666 : 0777, $perms & 0777, 'Hook permissions are correct');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testSet_Existing_ThrowsLogicException($repository)
+    #[DataProvider('provideFoobar')]
+    public function testSet_Existing_ThrowsLogicException(Repository $repository): void
     {
         $repository->getHooks()->set('foo', 'bar');
 
@@ -165,34 +147,26 @@ class HooksTest extends AbstractTest
         $repository->getHooks()->set('foo', 'bar');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testRemove($repository)
+    #[DataProvider('provideFoobar')]
+    public function testRemove(Repository $repository): void
     {
         $file = $this->hookPath($repository, 'foo');
         touch($file);
 
         $repository->getHooks()->remove('foo');
 
-        if (method_exists($this, 'assertFileDoesNotExist')) {
-            $this->assertFileDoesNotExist($file);
-        } else {
-            $this->assertFileNotExists($file);
-        }
+        $this->assertFileDoesNotExist($file);
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testRemove_NotExisting_ThrowsLogicException($repository)
+    #[DataProvider('provideFoobar')]
+    public function testRemove_NotExisting_ThrowsLogicException(Repository $repository): void
     {
         $this->expectException(LogicException::class);
 
         $repository->getHooks()->remove('foo');
     }
 
-    private function markAsSkippedIfSymlinkIsMissing()
+    private function markAsSkippedIfSymlinkIsMissing(): void
     {
         if (!function_exists('symlink')) {
             $this->markTestSkipped('symlink is not supported');

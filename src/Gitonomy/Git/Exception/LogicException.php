@@ -2,6 +2,6 @@
 
 namespace Gitonomy\Git\Exception;
 
-class LogicException extends \LogicException implements GitExceptionInterface
+final class LogicException extends \LogicException implements GitExceptionInterface
 {
 }

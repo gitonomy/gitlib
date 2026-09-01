@@ -16,7 +16,7 @@ use Gitonomy\Git\Admin;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\TestCase;
 
-abstract class AbstractTest extends TestCase
+abstract class AbstractTestCase extends TestCase
 {
     const REPOSITORY_URL = 'https://github.com/gitonomy/foobar.git';
 
@@ -32,14 +32,12 @@ abstract class AbstractTest extends TestCase
     /**
      * Local clone of remote URL. Avoids network call on each test.
      */
-    private static $localRepository;
+    private static ?Repository $localRepository = null;
 
     /**
      * Creates an empty git repository and returns instance.
-     *
-     * @return Repository
      */
-    public static function createEmptyRepository($bare = true)
+    public static function createEmptyRepository(bool $bare = true): Repository
     {
         $dir = self::createTempDir();
         $repository = Admin::init($dir, $bare, self::getOptions());
@@ -51,7 +49,7 @@ abstract class AbstractTest extends TestCase
     /**
      * Can be used as data provider to get bare/not-bare repositories.
      */
-    public static function provideFoobar()
+    public static function provideFoobar(): array
     {
         return [
             [self::createFoobarRepository()],
@@ -62,7 +60,7 @@ abstract class AbstractTest extends TestCase
     /**
      * Can be used as data provider to get bare/not-bare repositories.
      */
-    public static function provideEmpty()
+    public static function provideEmpty(): array
     {
         return [
             [self::createEmptyRepository()],
@@ -72,10 +70,8 @@ abstract class AbstractTest extends TestCase
 
     /**
      * Creates a fixture test repository.
-     *
-     * @return Repository
      */
-    public static function createFoobarRepository($bare = true)
+    public static function createFoobarRepository(bool $bare = true): Repository
     {
         if (null === self::$localRepository) {
             self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, self::getOptions());
@@ -87,9 +83,9 @@ abstract class AbstractTest extends TestCase
         return $repository;
     }
 
-    public static function registerDeletion(Repository $repository)
+    public static function registerDeletion(Repository $repository): void
     {
-        register_shutdown_function(function () use ($repository) {
+        register_shutdown_function(function () use ($repository): void {
             if ($repository->getWorkingDir()) {
                 $dir = $repository->getWorkingDir();
             } else {
@@ -101,10 +97,8 @@ abstract class AbstractTest extends TestCase
 
     /**
      * Created an empty directory and return path to it.
-     *
-     * @return string a fullpath
      */
-    public static function createTempDir()
+    public static function createTempDir(): string
     {
         $tmpDir = tempnam(sys_get_temp_dir(), 'gitlib_');
         unlink($tmpDir);
@@ -115,10 +109,8 @@ abstract class AbstractTest extends TestCase
 
     /**
      * Deletes a directory recursively.
-     *
-     * @param string $dir directory to delete
      */
-    protected static function deleteDir($dir)
+    protected static function deleteDir(string $dir): void
     {
         $iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS);
         $iterator = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::CHILD_FIRST);
@@ -137,9 +129,9 @@ abstract class AbstractTest extends TestCase
         rmdir($dir);
     }
 
-    protected static function getOptions()
+    protected static function getOptions(): array
     {
-        $command = isset($_SERVER['GIT_COMMAND']) ? $_SERVER['GIT_COMMAND'] : 'git';
+        $command = $_SERVER['GIT_COMMAND'] ?? 'git';
         $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : [];
 
         return [

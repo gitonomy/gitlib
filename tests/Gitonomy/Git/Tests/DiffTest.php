@@ -15,8 +15,9 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class DiffTest extends AbstractTest
+class DiffTest extends AbstractTestCase
 {
     const DELETE_COMMIT = '519d5693c72c925cd59205d9f11e9fa1d550028b';
     const CREATE_COMMIT = 'e6fa3c792facc06faa049a6938c84c411954deb5';
@@ -24,10 +25,8 @@ class DiffTest extends AbstractTest
     const CHANGEMODE_COMMIT = '93da965f58170f13017477b9a608657e87e23230';
     const FILE_WITH_UMLAUTS_COMMIT = '8defb9217692dc1f4c18e05e343ca91cf5047702';
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testSerialization($repository)
+    #[DataProvider('provideFoobar')]
+    public function testSerialization(Repository $repository): void
     {
         $data = $repository->getCommit(self::CREATE_COMMIT)->getDiff()->toArray();
         $diff = Diff::fromArray($data);
@@ -35,16 +34,14 @@ class DiffTest extends AbstractTest
         $this->verifyCreateCommitDiff($diff);
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetFiles_Addition($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetFiles_Addition(Repository $repository): void
     {
         $diff = $repository->getCommit(self::CREATE_COMMIT)->getDiff();
         $this->verifyCreateCommitDiff($diff);
     }
 
-    protected function verifyCreateCommitDiff(Diff $diff)
+    protected function verifyCreateCommitDiff(Diff $diff): void
     {
         $files = $diff->getFiles();
 
@@ -61,10 +58,8 @@ class DiffTest extends AbstractTest
         $this->assertEquals(0, $files[0]->getDeletions(), '0 lines deleted');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetFiles_Modification($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetFiles_Modification(Repository $repository): void
     {
         $files = $repository->getCommit(self::BEFORE_LONGFILE_COMMIT)->getDiff()->getFiles();
 
@@ -82,10 +77,8 @@ class DiffTest extends AbstractTest
         $this->assertEquals(0, $files[0]->getDeletions(), '0 lines deleted');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetFiles_Deletion($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetFiles_Deletion(Repository $repository): void
     {
         $files = $repository->getCommit(self::DELETE_COMMIT)->getDiff()->getFiles();
 
@@ -96,10 +89,8 @@ class DiffTest extends AbstractTest
         $this->assertEquals(1, $files[0]->getDeletions(), '1 line deleted');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetFiles_Rename($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetFiles_Rename(Repository $repository): void
     {
         $files = $repository->getCommit(self::RENAME_COMMIT)->getDiff()->getFiles();
 
@@ -112,10 +103,8 @@ class DiffTest extends AbstractTest
         $this->assertFalse($files[0]->isChangeMode());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetFiles_Changemode($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetFiles_Changemode(Repository $repository): void
     {
         $files = $repository->getCommit(self::CHANGEMODE_COMMIT)->getDiff()->getFiles();
 
@@ -128,10 +117,8 @@ class DiffTest extends AbstractTest
         $this->assertFalse($files[0]->isRename());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testDiffRangeParse($repository)
+    #[DataProvider('provideFoobar')]
+    public function testDiffRangeParse(Repository $repository): void
     {
         $files = $repository->getCommit(self::CREATE_COMMIT)->getDiff()->getFiles();
 
@@ -144,23 +131,16 @@ class DiffTest extends AbstractTest
         $this->assertSame(1, $changes[0]->getRangeNewCount());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testWorksWithUmlauts($repository)
+    #[DataProvider('provideFoobar')]
+    public function testWorksWithUmlauts(Repository $repository): void
     {
         $files = $repository->getCommit(self::FILE_WITH_UMLAUTS_COMMIT)->getDiff()->getFiles();
         $this->assertSame('file_with_umlauts_\303\244\303\266\303\274', $files[0]->getNewName());
     }
 
-    public function testDeleteFileWithoutRaw()
+    public function testDeleteFileWithoutRaw(): void
     {
-        $deprecationCalled = false;
-        $self = $this;
-        set_error_handler(function (int $errno, string $errstr) use ($self, &$deprecationCalled): void {
-            $deprecationCalled = true;
-            $self->assertSame('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.', $errstr);
-        }, E_USER_DEPRECATED);
+        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
 
         $diff = Diff::parse(<<<'DIFF'
         diff --git a/test b/test
@@ -170,9 +150,6 @@ class DiffTest extends AbstractTest
         DIFF);
         $firstFile = $diff->getFiles()[0];
 
-        restore_exception_handler();
-
-        $this->assertTrue($deprecationCalled);
         $this->assertFalse($firstFile->isCreation());
         $this->assertTrue($firstFile->isDeletion());
         $this->assertFalse($firstFile->isChangeMode());
@@ -180,14 +157,9 @@ class DiffTest extends AbstractTest
         $this->assertNull($firstFile->getNewIndex());
     }
 
-    public function testModeChangeFileWithoutRaw()
+    public function testModeChangeFileWithoutRaw(): void
     {
-        $deprecationCalled = false;
-        $self = $this;
-        set_error_handler(function (int $errno, string $errstr) use ($self, &$deprecationCalled): void {
-            $deprecationCalled = true;
-            $self->assertSame('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.', $errstr);
-        }, E_USER_DEPRECATED);
+        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
 
         $diff = Diff::parse(<<<'DIFF'
         diff --git a/a.out b/a.out
@@ -197,9 +169,6 @@ class DiffTest extends AbstractTest
         DIFF);
         $firstFile = $diff->getFiles()[0];
 
-        restore_exception_handler();
-
-        $this->assertTrue($deprecationCalled);
         $this->assertFalse($firstFile->isCreation());
         $this->assertFalse($firstFile->isDeletion());
         $this->assertTrue($firstFile->isChangeMode());
@@ -207,7 +176,7 @@ class DiffTest extends AbstractTest
         $this->assertSame('', $firstFile->getNewIndex());
     }
 
-    public function testModeChangeFileWithRaw()
+    public function testModeChangeFileWithRaw(): void
     {
         $deprecationCalled = false;
         set_error_handler(function (int $errno, string $errstr) use (&$deprecationCalled): void {
@@ -230,7 +199,7 @@ class DiffTest extends AbstractTest
         $firstFile = $files[0];
         $secondFile = $files[1];
 
-        restore_exception_handler();
+        restore_error_handler();
 
         $this->assertFalse($deprecationCalled);
 
@@ -247,21 +216,21 @@ class DiffTest extends AbstractTest
         $this->assertSame('d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82', $secondFile->getNewIndex());
     }
 
-    public function testThrowErrorOnBlobGetWithoutIndex()
+    public function testThrowErrorOnBlobGetWithoutIndex(): void
     {
-        $repository = $this->getMockBuilder(Repository::class)->disableOriginalConstructor()->getMock();
+        $repository = self::createEmptyRepository();
         $file = new File('oldName', 'newName', '100755', '100644', '', '', false);
         $file->setRepository($repository);
 
         try {
             $file->getOldBlob();
-        } catch(\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('Index is missing to return Blob object.', $exception->getMessage());
         }
 
         try {
             $file->getNewBlob();
-        } catch(\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertSame('Index is missing to return Blob object.', $exception->getMessage());
         }
 
@@ -272,8 +241,10 @@ class DiffTest extends AbstractTest
         $this->assertSame('', $file->getNewIndex());
     }
 
-    public function testEmptyNewFile()
+    public function testEmptyNewFile(): void
     {
+        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
+
         $diff = Diff::parse("diff --git a/test b/test\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391\n");
         $firstFile = $diff->getFiles()[0];
 
@@ -283,8 +254,10 @@ class DiffTest extends AbstractTest
         $this->assertNull($firstFile->getOldName());
     }
 
-    public function testEmptyOldFile()
+    public function testEmptyOldFile(): void
     {
+        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
+
         $diff = Diff::parse("diff --git a/test b/test\ndeleted file mode 100644\nindex e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..0000000000000000000000000000000000000000\n");
         $firstFile = $diff->getFiles()[0];
 

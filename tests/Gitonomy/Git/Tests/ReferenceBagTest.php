@@ -13,13 +13,12 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class ReferenceBagTest extends AbstractTest
+class ReferenceBagTest extends AbstractTestCase
 {
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testUnknownReference(Repository $repository)
+    #[DataProvider('provideFoobar')]
+    public function testUnknownReference(Repository $repository): void
     {
         $hash = $repository->getLog()->getSingleCommit()->getHash();
 
@@ -29,11 +28,7 @@ class ReferenceBagTest extends AbstractTest
         $repository->run('update-ref', ['refs/notes/gtm-data', $hash]);
 
         $refs = $repository->getReferences()->getAll();
-        if (method_exists($this, 'assertIsArray')) {
-            $this->assertIsArray($refs);
-        } else {
-            $this->assertInternalType('array', $refs);
-        }
+        $this->assertIsArray($refs);
 
         // Check that at least it has the master ref
         $this->assertArrayHasKey('refs/heads/master', $refs);
@@ -45,10 +40,8 @@ class ReferenceBagTest extends AbstractTest
         $this->assertArrayNotHasKey('refs/notes/gtm-data', $refs);
     }
 
-    /**
-     * @dataProvider provideEmpty
-     */
-    public function testEmptyRepo(Repository $repository)
+    #[DataProvider('provideEmpty')]
+    public function testEmptyRepo(Repository $repository): void
     {
         $refs = $repository->getReferences()->getAll();
         $this->assertSame([], $refs);

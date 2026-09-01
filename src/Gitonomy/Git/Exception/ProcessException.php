@@ -4,11 +4,9 @@ namespace Gitonomy\Git\Exception;
 
 use Symfony\Component\Process\Process;
 
-class ProcessException extends RuntimeException implements GitExceptionInterface
+final class ProcessException extends RuntimeException implements GitExceptionInterface
 {
-    protected $process;
-
-    public function __construct(Process $process)
+    public function __construct(private readonly Process $process)
     {
         parent::__construct(
             "Error while running git command:\n".
@@ -18,16 +16,14 @@ class ProcessException extends RuntimeException implements GitExceptionInterface
             "\n".
             $process->getOutput()
         );
-
-        $this->process = $process;
     }
 
-    public function getErrorOutput()
+    public function getErrorOutput(): string
     {
         return $this->process->getErrorOutput();
     }
 
-    public function getOutput()
+    public function getOutput(): string
     {
         return $this->process->getOutput();
     }

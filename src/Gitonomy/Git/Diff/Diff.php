@@ -20,34 +20,20 @@ use Gitonomy\Git\Repository;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Diff
+final readonly class Diff
 {
-    /**
-     * @var File[]
-     */
-    protected $files;
-
-    /**
-     * @var string
-     */
-    protected $rawDiff;
-
     /**
      * Constructs a new diff for a given revision.
      *
-     * @param array  $files   The files
-     * @param string $rawDiff The raw diff
+     * @param File[] $files The files
      */
-    public function __construct(array $files, $rawDiff)
-    {
-        $this->files = $files;
-        $this->rawDiff = $rawDiff;
+    public function __construct(
+        private readonly array $files,
+        private readonly string $rawDiff,
+    ) {
     }
 
-    /**
-     * @return Diff
-     */
-    public static function parse($rawDiff)
+    public static function parse(string $rawDiff): self
     {
         $parser = new DiffParser();
         $parser->parse($rawDiff);
@@ -55,7 +41,7 @@ class Diff
         return new self($parser->files, $rawDiff);
     }
 
-    public function setRepository(Repository $repository)
+    public function setRepository(Repository $repository): void
     {
         foreach ($this->files as $file) {
             $file->setRepository($repository);
@@ -67,27 +53,23 @@ class Diff
      *
      * @return File[] An array of Diff\File objects
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return $this->files;
     }
 
     /**
      * Returns the raw diff.
-     *
-     * @return string The raw diff
      */
-    public function getRawDiff()
+    public function getRawDiff(): string
     {
         return $this->rawDiff;
     }
 
     /**
      * Export a diff as array.
-     *
-     * @return array The array
      */
-    public function toArray()
+    public function toArray(): array
     {
         return [
             'rawDiff' => $this->rawDiff,
@@ -102,12 +84,8 @@ class Diff
 
     /**
      * Create a new instance of Diff from an array.
-     *
-     * @param array $array The array
-     *
-     * @return Diff The new instance
      */
-    public static function fromArray(array $array)
+    public static function fromArray(array $array): self
     {
         return new static(
             array_map(

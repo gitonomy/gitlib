@@ -20,44 +20,32 @@ use Gitonomy\Git\Util\StringHelper;
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Log implements \Countable, \IteratorAggregate
+final class Log implements \Countable, \IteratorAggregate
 {
-    /**
-     * @var Repository
-     */
-    protected $repository;
+    protected ?RevisionList $revisions;
 
-    /**
-     * @var null|RevisionList
-     */
-    protected $revisions;
+    protected array $paths;
 
-    /**
-     * @var array
-     */
-    protected $paths;
+    protected ?int $offset;
 
-    /**
-     * @var int
-     */
-    protected $offset;
-
-    /**
-     * @var int
-     */
-    protected $limit;
+    protected ?int $limit;
 
     /**
      * Instanciates a git log object.
      *
-     * @param Repository                       $repository the repository where log occurs
-     * @param RevisionList|Revision|array|null $revisions  a list of revisions or null if you want all history
-     * @param array                            $paths      paths to filter on
-     * @param int|null                         $offset     start list from a given position
-     * @param int|null                         $limit      limit number of fetched elements
+     * @param Repository                              $repository the repository where log occurs
+     * @param RevisionList|Revision|string|array|null $revisions  a list of revisions or null if you want all history
+     * @param array|string|null                        $paths      paths to filter on
+     * @param int|null                                 $offset     start list from a given position
+     * @param int|null                                 $limit      limit number of fetched elements
      */
-    public function __construct(Repository $repository, $revisions = null, $paths = null, $offset = null, $limit = null)
-    {
+    public function __construct(
+        protected readonly Repository $repository,
+        RevisionList|Revision|string|array|null $revisions = null,
+        array|string|null $paths = null,
+        ?int $offset = null,
+        ?int $limit = null,
+    ) {
         if (null !== $revisions && !$revisions instanceof RevisionList) {
             $revisions = new RevisionList($repository, $revisions);
         }
@@ -66,81 +54,54 @@ class Log implements \Countable, \IteratorAggregate
             $paths = [];
         } elseif (is_string($paths)) {
             $paths = [$paths];
-        } elseif (!is_array($paths)) {
-            throw new \InvalidArgumentException(sprintf('Expected a string or an array, got a "%s".', is_object($paths) ? get_class($paths) : gettype($paths)));
         }
 
-        $this->repository = $repository;
         $this->revisions = $revisions;
         $this->paths = $paths;
         $this->offset = $offset;
         $this->limit = $limit;
     }
 
-    /**
-     * @return Diff
-     */
-    public function getDiff()
+    public function getDiff(): Diff
     {
         return $this->repository->getDiff($this->revisions);
     }
 
-    /**
-     * @return RevisionList
-     */
-    public function getRevisions()
+    public function getRevisions(): ?RevisionList
     {
         return $this->revisions;
     }
 
-    /**
-     * @return array
-     */
-    public function getPaths()
+    public function getPaths(): array
     {
         return $this->paths;
     }
 
-    /**
-     * @return int
-     */
-    public function getOffset()
+    public function getOffset(): ?int
     {
         return $this->offset;
     }
 
-    /**
-     * @param int $offset
-     */
-    public function setOffset($offset)
+    public function setOffset(?int $offset): static
     {
         $this->offset = $offset;
 
         return $this;
     }
 
-    /**
-     * @return int
-     */
-    public function getLimit()
+    public function getLimit(): ?int
     {
         return $this->limit;
     }
 
-    /**
-     * @param int $limit
-     */
-    public function setLimit($limit)
+    public function setLimit(?int $limit): static
     {
         $this->limit = $limit;
 
         return $this;
     }
 
-    /**
-     * @return Commit
-     */
-    public function getSingleCommit()
+    public function getSingleCommit(): Commit
     {
         $limit = $this->limit;
         $this->limit = 1;
@@ -157,17 +118,17 @@ class Log implements \Countable, \IteratorAggregate
     /**
      * @return Commit[]
      */
-    public function getCommits()
+    public function getCommits(): array
     {
         $args = ['--encoding='.StringHelper::getEncoding(), '--format=raw'];
 
         if (null !== $this->offset) {
-            $args[] = '--skip='.((int) $this->offset);
+            $args[] = '--skip='.$this->offset;
         }
 
         if (null !== $this->limit) {
             $args[] = '-n';
-            $args[] = (int) $this->limit;
+            $args[] = $this->limit;
         }
 
         if (null !== $this->revisions) {
@@ -183,7 +144,7 @@ class Log implements \Countable, \IteratorAggregate
         try {
             $output = $this->repository->run('log', $args);
         } catch (ProcessException $e) {
-            throw new ReferenceNotFoundException(sprintf('Can not find revision "%s"', implode(' ', $this->revisions->getAsTextArray())), null, $e);
+            throw new ReferenceNotFoundException(sprintf('Can not find revision "%s"', implode(' ', $this->revisions->getAsTextArray())), 0, $e);
         }
 
         $parser = new Parser\LogParser();
@@ -206,8 +167,7 @@ class Log implements \Countable, \IteratorAggregate
     /**
      * @see Countable
      */
-    #[\ReturnTypeWillChange]
-    public function count()
+    public function count(): int
     {
         return $this->countCommits();
     }
@@ -215,18 +175,15 @@ class Log implements \Countable, \IteratorAggregate
     /**
      * @see IteratorAggregate
      */
-    #[\ReturnTypeWillChange]
-    public function getIterator()
+    public function getIterator(): \ArrayIterator
     {
         return new \ArrayIterator($this->getCommits());
     }
 
     /**
      * Count commits, without offset or limit.
-     *
-     * @return int
      */
-    public function countCommits()
+    public function countCommits(): int
     {
         if (null !== $this->revisions && count($this->revisions)) {
             $output = $this->repository->run('rev-list', array_merge(['--count'], $this->revisions->getAsTextArray(), ['--'], $this->paths));

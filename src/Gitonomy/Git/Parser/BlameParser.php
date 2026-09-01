@@ -15,18 +15,19 @@ namespace Gitonomy\Git\Parser;
 use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Repository;
 
-class BlameParser extends ParserBase
+final class BlameParser extends ParserBase
 {
-    public $lines;
+    /**
+     * @var Line[]
+     */
+    public array $lines = [];
 
-    protected $repository;
-
-    public function __construct(Repository $repository)
-    {
-        $this->repository = $repository;
+    public function __construct(
+        protected readonly Repository $repository,
+    ) {
     }
 
-    protected function doParse()
+    protected function doParse(): void
     {
         $this->lines = [];
 

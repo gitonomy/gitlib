@@ -25,11 +25,14 @@ use Gitonomy\Git\Reference;
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  * @author Bruce Wells <brucekwells@gmail.com>
  */
-class Tag extends Reference
+final class Tag extends Reference
 {
-    protected $data;
+    /**
+     * @var array<string, mixed>|null
+     */
+    private ?array $data = null;
 
-    public function getName()
+    public function getName(): string
     {
         if (!preg_match('#^refs/tags/(.*)$#', $this->revision, $vars)) {
             throw new RuntimeException(sprintf('Cannot extract tag name from "%s"', $this->revision));
@@ -40,10 +43,8 @@ class Tag extends Reference
 
     /**
      * Check if tag is annotated.
-     *
-     * @return bool
      */
-    public function isAnnotated()
+    public function isAnnotated(): bool
     {
         try {
             $this->repository->run('cat-file', ['tag', $this->revision]);
@@ -56,10 +57,8 @@ class Tag extends Reference
 
     /**
      * Returns the actual commit associated with the tag, and not the hash of the tag if annotated.
-     *
-     * @return Commit
      */
-    public function getCommit()
+    public function getCommit(): Commit
     {
         if ($this->isAnnotated()) {
             try {
@@ -82,80 +81,64 @@ class Tag extends Reference
 
     /**
      * Returns the tagger name.
-     *
-     * @return string A name
      */
-    public function getTaggerName()
+    public function getTaggerName(): string|false
     {
         return $this->getData('taggerName');
     }
 
     /**
      * Returns the comitter email.
-     *
-     * @return string An email
      */
-    public function getTaggerEmail()
+    public function getTaggerEmail(): string|false
     {
         return $this->getData('taggerEmail');
     }
 
     /**
      * Returns the authoring date.
-     *
-     * @return \DateTime A time object
      */
-    public function getTaggerDate()
+    public function getTaggerDate(): \DateTime|false
     {
         return $this->getData('taggerDate');
     }
 
     /**
      * Returns the message of the commit.
-     *
-     * @return string A tag message
      */
-    public function getMessage()
+    public function getMessage(): string|false
     {
         return $this->getData('message');
     }
 
     /**
      * Returns the subject message (the first line).
-     *
-     * @return string The subject message
      */
-    public function getSubjectMessage()
+    public function getSubjectMessage(): string|false
     {
         return $this->getData('subjectMessage');
     }
 
     /**
      * Return the body message.
-     *
-     * @return string The body message
      */
-    public function getBodyMessage()
+    public function getBodyMessage(): string|false
     {
         return $this->getData('bodyMessage');
     }
 
     /**
      * Return the GPG signature.
-     *
-     * @return string The GPG signature
      */
-    public function getGPGSignature()
+    public function getGPGSignature(): string|false
     {
         return $this->getData('gpgSignature');
     }
 
     /**
      * Check whether tag is signed.
-     *
-     * @return bool
      */
-    public function isSigned()
+    public function isSigned(): bool
     {
         try {
             $this->getGPGSignature();
@@ -166,7 +149,7 @@ class Tag extends Reference
         }
     }
 
-    private function getData($name)
+    private function getData(string $name): mixed
     {
         if (!$this->isAnnotated()) {
             return false;

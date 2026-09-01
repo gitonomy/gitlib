@@ -12,40 +12,25 @@
 
 namespace Gitonomy\Git\Diff;
 
-class FileChange
+final readonly class FileChange
 {
-    const LINE_CONTEXT = 0;
-    const LINE_REMOVE = -1;
-    const LINE_ADD = 1;
-
-    protected $rangeOldStart;
-    protected $rangeOldCount;
-    protected $rangeNewStart;
-    protected $rangeNewCount;
-    protected $lines;
+    public const int LINE_CONTEXT = 0;
+    public const int LINE_REMOVE = -1;
+    public const int LINE_ADD = 1;
 
     /**
-     * @param int   $rangeOldStart
-     * @param int   $rangeOldCount
-     * @param int   $rangeNewStart
-     * @param int   $rangeNewCount
-     * @param array $lines
-     *
-     * @return void
+     * @param array<int, array{int, string}> $lines
      */
-    public function __construct($rangeOldStart, $rangeOldCount, $rangeNewStart, $rangeNewCount, $lines)
-    {
-        $this->rangeOldStart = $rangeOldStart;
-        $this->rangeOldCount = $rangeOldCount;
-        $this->rangeNewStart = $rangeNewStart;
-        $this->rangeNewCount = $rangeNewCount;
-        $this->lines = $lines;
+    public function __construct(
+        private readonly int $rangeOldStart,
+        private readonly int $rangeOldCount,
+        private readonly int $rangeNewStart,
+        private readonly int $rangeNewCount,
+        private readonly array $lines,
+    ) {
     }
 
-    /**
-     * @return int
-     */
-    public function getCount($type)
+    public function getCount(int $type): int
     {
         $result = 0;
         foreach ($this->lines as $line) {
@@ -57,50 +42,35 @@ class FileChange
         return $result;
     }
 
-    /**
-     * @return int
-     */
-    public function getRangeOldStart()
+    public function getRangeOldStart(): int
     {
         return $this->rangeOldStart;
     }
 
-    /**
-     * @return int
-     */
-    public function getRangeOldCount()
+    public function getRangeOldCount(): int
     {
         return $this->rangeOldCount;
     }
 
-    /**
-     * @return int
-     */
-    public function getRangeNewStart()
+    public function getRangeNewStart(): int
     {
         return $this->rangeNewStart;
     }
 
-    /**
-     * @return int
-     */
-    public function getRangeNewCount()
+    public function getRangeNewCount(): int
     {
         return $this->rangeNewCount;
     }
 
     /**
-     * @return array
+     * @return array<int, array{int, string}>
      */
-    public function getLines()
+    public function getLines(): array
     {
         return $this->lines;
     }
 
-    /**
-     * @return array
-     */
-    public function toArray()
+    public function toArray(): array
     {
         return [
             'range_old_start' => $this->rangeOldStart,
@@ -111,12 +81,7 @@ class FileChange
         ];
     }
 
-    /**
-     * @param array $array
-     *
-     * @return self
-     */
-    public static function fromArray(array $array)
+    public static function fromArray(array $array): self
     {
         return new self($array['range_old_start'], $array['range_old_count'], $array['range_new_start'], $array['range_new_count'], $array['lines']);
     }

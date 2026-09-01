@@ -24,22 +24,20 @@ use Gitonomy\Git\Util\StringHelper;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Commit extends Revision
+final class Commit extends Revision
 {
     /**
      * Associative array of commit data.
      *
-     * @var array
+     * @var array<string, mixed>
      */
-    private $data = [];
+    private array $data = [];
 
     /**
-     * Constructor.
-     *
      * @param Repository $repository Repository of the commit
      * @param string     $hash       Hash of the commit
      */
-    public function __construct(Repository $repository, $hash, array $data = [])
+    public function __construct(Repository $repository, string $hash, array $data = [])
     {
         if (!preg_match('/^[a-f0-9]{40}$/', $hash)) {
             throw new ReferenceNotFoundException($hash);
@@ -50,17 +48,14 @@ class Commit extends Revision
         $this->setData($data);
     }
 
-    public function setData(array $data)
+    public function setData(array $data): void
     {
         foreach ($data as $name => $value) {
             $this->data[$name] = $value;
         }
     }
 
-    /**
-     * @return Diff
-     */
-    public function getDiff()
+    public function getDiff(): Diff
     {
         $args = ['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index', $this->revision];
 
@@ -72,30 +67,24 @@ class Commit extends Revision
 
     /**
      * Returns the commit hash.
-     *
-     * @return string A SHA1 hash
      */
-    public function getHash()
+    public function getHash(): string
     {
         return $this->revision;
     }
 
     /**
      * Returns the short commit hash.
-     *
-     * @return string A SHA1 hash
      */
-    public function getShortHash()
+    public function getShortHash(): string
     {
         return $this->getData('shortHash');
     }
 
     /**
      * Returns a fixed-with short hash.
-     *
-     * @return string Short hash
      */
-    public function getFixedShortHash($length = 6)
+    public function getFixedShortHash(int $length = 6): string
     {
         return StringHelper::substr($this->revision, 0, $length);
     }
@@ -105,7 +94,7 @@ class Commit extends Revision
      *
      * @return string[] An array of SHA1 hashes
      */
-    public function getParentHashes()
+    public function getParentHashes(): array
     {
         return $this->getData('parentHashes');
     }
@@ -115,7 +104,7 @@ class Commit extends Revision
      *
      * @return Commit[] An array of Commit objects
      */
-    public function getParents()
+    public function getParents(): array
     {
         $result = [];
         foreach ($this->getData('parentHashes') as $parentHash) {
@@ -127,28 +116,20 @@ class Commit extends Revision
 
     /**
      * Returns the tree hash.
-     *
-     * @return string A SHA1 hash
      */
-    public function getTreeHash()
+    public function getTreeHash(): string
     {
         return $this->getData('treeHash');
     }
 
-    /**
-     * @return Tree
-     */
-    public function getTree()
+    public function getTree(): Tree
     {
         return $this->getData('tree');
     }
 
-    /**
-     * @return Commit
-     */
-    public function getLastModification($path = null)
+    public function getLastModification(?string $path = null): Commit
     {
-        if (0 === strpos($path, '/')) {
+        if (null !== $path && 0 === strpos($path, '/')) {
             $path = StringHelper::substr($path, 1);
         }
 
@@ -165,14 +146,8 @@ class Commit extends Revision
      * Returns the first line of the commit, and the first 50 characters.
      *
      * Ported from https://github.com/fabpot/Twig-extensions/blob/d67bc7e69788795d7905b52d31188bbc1d390e01/lib/Twig/Extensions/Extension/Text.php#L52-L109
-     *
-     * @param int    $length
-     * @param bool   $preserve
-     * @param string $separator
-     *
-     * @return string
      */
-    public function getShortMessage($length = 50, $preserve = false, $separator = '...')
+    public function getShortMessage(int $length = 50, bool $preserve = false, string $separator = '...'): string
     {
         $message = $this->getData('subjectMessage');
 
@@ -192,7 +167,7 @@ class Commit extends Revision
      *
      * @return Reference[] An array of references (Branch, Tag, Squash)
      */
-    public function resolveReferences()
+    public function resolveReferences(): array
     {
         return $this->repository->getReferences()->resolve($this);
     }
@@ -205,7 +180,7 @@ class Commit extends Revision
      *
      * @return Reference[]|Branch[] An array of Reference\Branch
      */
-    public function getIncludingBranches($local = true, $remote = true)
+    public function getIncludingBranches(bool $local = true, bool $remote = true): array
     {
         $arguments = ['--contains', $this->revision];
 
@@ -251,103 +226,82 @@ class Commit extends Revision
 
     /**
      * Returns the author name.
-     *
-     * @return string A name
      */
-    public function getAuthorName()
+    public function getAuthorName(): string
     {
         return $this->getData('authorName');
     }
 
     /**
      * Returns the author email.
-     *
-     * @return string An email
      */
-    public function getAuthorEmail()
+    public function getAuthorEmail(): string
     {
         return $this->getData('authorEmail');
     }
 
     /**
      * Returns the authoring date.
-     *
-     * @return \DateTime A time object
      */
-    public function getAuthorDate()
+    public function getAuthorDate(): \DateTime
     {
         return $this->getData('authorDate');
     }
 
     /**
      * Returns the committer name.
-     *
-     * @return string A name
      */
-    public function getCommitterName()
+    public function getCommitterName(): string
     {
         return $this->getData('committerName');
     }
 
     /**
      * Returns the comitter email.
-     *
-     * @return string An email
      */
-    public function getCommitterEmail()
+    public function getCommitterEmail(): string
     {
         return $this->getData('committerEmail');
     }
 
     /**
      * Returns the authoring date.
-     *
-     * @return \DateTime A time object
      */
-    public function getCommitterDate()
+    public function getCommitterDate(): \DateTime
     {
         return $this->getData('committerDate');
     }
 
     /**
      * Returns the message of the commit.
-     *
-     * @return string A commit message
      */
-    public function getMessage()
+    public function getMessage(): string
     {
         return $this->getData('message');
     }
 
     /**
      * Returns the subject message (the first line).
-     *
-     * @return string The subject message
      */
-    public function getSubjectMessage()
+    public function getSubjectMessage(): string
     {
         return $this->getData('subjectMessage');
     }
 
     /**
      * Return the body message.
-     *
-     * @return string The body message
      */
-    public function getBodyMessage()
+    public function getBodyMessage(): string
     {
         return $this->getData('bodyMessage');
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getCommit()
+    public function getCommit(): Commit
     {
         return $this;
     }
 
-    private function getData($name)
+    private function getData(string $name): mixed
     {
         if (isset($this->data[$name])) {
             return $this->data[$name];

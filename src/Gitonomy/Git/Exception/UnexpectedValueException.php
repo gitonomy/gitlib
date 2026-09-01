@@ -2,6 +2,6 @@
 
 namespace Gitonomy\Git\Exception;
 
-class UnexpectedValueException extends \UnexpectedValueException implements GitExceptionInterface
+final class UnexpectedValueException extends \UnexpectedValueException implements GitExceptionInterface
 {
 }

@@ -14,18 +14,18 @@ namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Exception\RuntimeException;
 
-class TagParser extends ParserBase
+final class TagParser extends ParserBase
 {
-    public $object;
-    public $type;
-    public $tag;
-    public $taggerName;
-    public $taggerEmail;
-    public $taggerDate;
-    public $gpgSignature;
-    public $message;
+    public string $object;
+    public string $type;
+    public string $tag;
+    public string $taggerName;
+    public string $taggerEmail;
+    public \DateTime $taggerDate;
+    public ?string $gpgSignature = null;
+    public string $message;
 
-    protected function doParse()
+    protected function doParse(): void
     {
         $this->consume('object ');
         $this->object = $this->consumeHash();
@@ -40,7 +40,7 @@ class TagParser extends ParserBase
         $this->consumeNewLine();
 
         $this->consume('tagger ');
-        list($this->taggerName, $this->taggerEmail, $taggerDate) = $this->consumeNameEmailDate();
+        [$this->taggerName, $this->taggerEmail, $taggerDate] = $this->consumeNameEmailDate();
         $this->taggerDate = $this->parseDate($taggerDate);
 
         $this->consumeNewLine();
@@ -54,7 +54,7 @@ class TagParser extends ParserBase
         }
     }
 
-    protected function consumeGPGSignature()
+    protected function consumeGPGSignature(): string
     {
         $expected = '-----BEGIN PGP SIGNATURE-----';
         $length = strlen($expected);
@@ -67,7 +67,10 @@ class TagParser extends ParserBase
         return $this->consumeTo('-----END PGP SIGNATURE-----');
     }
 
-    protected function consumeNameEmailDate()
+    /**
+     * @return string[] A tuple of [name, email, date]
+     */
+    protected function consumeNameEmailDate(): array
     {
         if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+ [+-]\d{4}))/A', $this->content, $vars, 0, $this->cursor)) {
             throw new RuntimeException('Unable to parse name, email and date');
@@ -78,7 +81,7 @@ class TagParser extends ParserBase
         return [$vars[2], $vars[3], $vars[4]];
     }
 
-    protected function parseDate($text)
+    protected function parseDate(string $text): \DateTime
     {
         $date = \DateTime::createFromFormat('U e O', $text.' UTC');
 

@@ -17,52 +17,31 @@ namespace Gitonomy\Git;
  */
 class Revision
 {
-    /**
-     * @var Repository
-     */
-    protected $repository;
-
-    /**
-     * @var string
-     */
-    protected $revision;
-
-    public function __construct(Repository $repository, $revision)
-    {
-        $this->repository = $repository;
-        $this->revision = $revision;
+    public function __construct(
+        protected readonly Repository $repository,
+        protected readonly string $revision,
+    ) {
     }
 
-    /**
-     * @return Log
-     */
-    public function getLog($paths = null, $offset = null, $limit = null)
+    public function getLog(array|string|null $paths = null, ?int $offset = null, ?int $limit = null): Log
     {
         return $this->repository->getLog($this, $paths, $offset, $limit);
     }
 
     /**
      * Returns the last modification date of the reference.
-     *
-     * @return Commit
      */
-    public function getCommit()
+    public function getCommit(): Commit
     {
         return $this->getLog()->getSingleCommit();
     }
 
-    /**
-     * @return string
-     */
-    public function getRevision()
+    public function getRevision(): string
     {
         return $this->revision;
     }
 
-    /**
-     * @return Repository
-     */
-    public function getRepository()
+    public function getRepository(): Repository
     {
         return $this->repository;
     }
