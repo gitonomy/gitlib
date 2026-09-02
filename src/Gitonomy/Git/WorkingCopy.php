@@ -15,6 +15,7 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\RuntimeException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -34,7 +35,12 @@ final readonly class WorkingCopy
      */
     public function getUntrackedFiles(): array
     {
-        $lines = explode("\0", $this->run('status', ['--porcelain', '--untracked-files=all', '-z']));
+        $output = $this->run('status', ['--porcelain', '--untracked-files=all', '-z']);
+        if (null === $output) {
+            return [];
+        }
+
+        $lines = explode("\0", $output);
         $lines = array_filter($lines, static function ($l) {
             return '?? ' === substr($l, 0, 3);
         });
@@ -46,7 +52,12 @@ final readonly class WorkingCopy
 
     public function getDiffPending(): Diff
     {
-        $diff = Diff::parse($this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index']));
+        $result = $this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index']);
+        if (null === $result) {
+            throw new RuntimeException('Unable to compute pending diff.');
+        }
+
+        $diff = Diff::parse($result);
         $diff->setRepository($this->repository);
 
         return $diff;
@@ -54,7 +65,12 @@ final readonly class WorkingCopy
 
     public function getDiffStaged(): Diff
     {
-        $diff = Diff::parse($this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index', '--staged']));
+        $result = $this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index', '--staged']);
+        if (null === $result) {
+            throw new RuntimeException('Unable to compute staged diff.');
+        }
+
+        $diff = Diff::parse($result);
         $diff->setRepository($this->repository);
 
         return $diff;

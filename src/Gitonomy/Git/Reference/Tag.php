@@ -27,10 +27,17 @@ use Gitonomy\Git\Reference;
  */
 final class Tag extends Reference
 {
-    /**
-     * @var array<string, mixed>|null
-     */
-    private ?array $data = null;
+    private bool $loaded = false;
+
+    private ?string $taggerName = null;
+    private ?string $taggerEmail = null;
+    private ?\DateTime $taggerDate = null;
+    private ?string $message = null;
+    private ?string $gpgSignature = null;
+
+    // Values derived from the fields above, computed and cached independently.
+    private ?string $subjectMessage = null;
+    private ?string $bodyMessage = null;
 
     public function getName(): string
     {
@@ -47,12 +54,13 @@ final class Tag extends Reference
     public function isAnnotated(): bool
     {
         try {
-            $this->repository->run('cat-file', ['tag', $this->revision]);
+            $result = $this->repository->run('cat-file', ['tag', $this->revision]);
         } catch (ProcessException $e) {
             return false; // Is not an annotated tag
         }
 
-        return true;
+        // In non-debug mode, a failed command returns null instead of throwing.
+        return null !== $result;
     }
 
     /**
@@ -87,7 +95,12 @@ final class Tag extends Reference
      */
     public function getTaggerName(): string|false
     {
-        return $this->getData('taggerName');
+        if (!$this->isAnnotated()) {
+            return false;
+        }
+        $this->ensureLoaded();
+
+        return $this->taggerName ?? throw new \InvalidArgumentException('No data named "taggerName" in Tag.');
     }
 
     /**
@@ -95,7 +108,12 @@ final class Tag extends Reference
      */
     public function getTaggerEmail(): string|false
     {
-        return $this->getData('taggerEmail');
+        if (!$this->isAnnotated()) {
+            return false;
+        }
+        $this->ensureLoaded();
+
+        return $this->taggerEmail ?? throw new \InvalidArgumentException('No data named "taggerEmail" in Tag.');
     }
 
     /**
@@ -103,7 +121,12 @@ final class Tag extends Reference
      */
     public function getTaggerDate(): \DateTime|false
     {
-        return $this->getData('taggerDate');
+        if (!$this->isAnnotated()) {
+            return false;
+        }
+        $this->ensureLoaded();
+
+        return $this->taggerDate ?? throw new \InvalidArgumentException('No data named "taggerDate" in Tag.');
     }
 
     /**
@@ -111,7 +134,12 @@ final class Tag extends Reference
      */
     public function getMessage(): string|false
     {
-        return $this->getData('message');
+        if (!$this->isAnnotated()) {
+            return false;
+        }
+        $this->ensureLoaded();
+
+        return $this->message ?? throw new \InvalidArgumentException('No data named "message" in Tag.');
     }
 
     /**
@@ -119,7 +147,16 @@ final class Tag extends Reference
      */
     public function getSubjectMessage(): string|false
     {
-        return $this->getData('subjectMessage');
+        if (!$this->isAnnotated()) {
+            return false;
+        }
+
+        if (null === $this->subjectMessage) {
+            $lines = explode("\n", $this->getMessageOrThrow());
+            $this->subjectMessage = reset($lines);
+        }
+
+        return $this->subjectMessage;
     }
 
     /**
@@ -127,7 +164,27 @@ final class Tag extends Reference
      */
     public function getBodyMessage(): string|false
     {
-        return $this->getData('bodyMessage');
+        if (!$this->isAnnotated()) {
+            return false;
+        }
+
+        if (null === $this->bodyMessage) {
+            $lines = explode("\n", $this->getMessageOrThrow());
+
+            // Drop the subject line, then the blank separator line if the
+            // message follows the "subject\n\nbody" convention.
+            array_shift($lines);
+            if (isset($lines[0]) && '' === $lines[0]) {
+                array_shift($lines);
+            }
+            if ([] !== $lines && '' === end($lines)) {
+                array_pop($lines);
+            }
+
+            $this->bodyMessage = implode("\n", $lines);
+        }
+
+        return $this->bodyMessage;
     }
 
     /**
@@ -135,7 +192,12 @@ final class Tag extends Reference
      */
     public function getGPGSignature(): string|false
     {
-        return $this->getData('gpgSignature');
+        if (!$this->isAnnotated()) {
+            return false;
+        }
+        $this->ensureLoaded();
+
+        return $this->gpgSignature ?? throw new \InvalidArgumentException('No data named "gpgSignature" in Tag.');
     }
 
     /**
@@ -152,51 +214,34 @@ final class Tag extends Reference
         }
     }
 
-    private function getData(string $name): mixed
+    private function getMessageOrThrow(): string
     {
-        if (!$this->isAnnotated()) {
-            return false;
-        }
+        $this->ensureLoaded();
 
-        if (isset($this->data[$name])) {
-            return $this->data[$name];
-        }
+        return $this->message ?? throw new \InvalidArgumentException('No data named "message" in Tag.');
+    }
 
-        if ('subjectMessage' === $name) {
-            $lines = explode("\n", $this->getData('message'));
-            $this->data['subjectMessage'] = reset($lines);
-
-            return $this->data['subjectMessage'];
-        }
-
-        if ('bodyMessage' === $name) {
-            $message = $this->getData('message');
-
-            $lines = explode("\n", $message);
-
-            array_shift($lines);
-            array_pop($lines);
-
-            $this->data['bodyMessage'] = implode("\n", $lines);
-
-            return $this->data['bodyMessage'];
+    private function ensureLoaded(): void
+    {
+        if ($this->loaded) {
+            return;
         }
 
         $parser = new TagParser();
         $result = $this->repository->run('cat-file', ['tag', $this->revision]);
 
-        $parser->parse($result);
-
-        $this->data['taggerName'] = $parser->taggerName;
-        $this->data['taggerEmail'] = $parser->taggerEmail;
-        $this->data['taggerDate'] = $parser->taggerDate;
-        $this->data['message'] = $parser->message;
-        $this->data['gpgSignature'] = $parser->gpgSignature;
-
-        if (!isset($this->data[$name])) {
-            throw new \InvalidArgumentException(\sprintf('No data named "%s" in Tag.', $name));
+        if (null === $result) {
+            throw new \InvalidArgumentException('Unable to read tag data.');
         }
 
-        return $this->data[$name];
+        $parser->parse($result);
+
+        $this->taggerName = $parser->taggerName;
+        $this->taggerEmail = $parser->taggerEmail;
+        $this->taggerDate = $parser->taggerDate;
+        $this->message = $parser->message;
+        $this->gpgSignature = $parser->gpgSignature;
+
+        $this->loaded = true;
     }
 }

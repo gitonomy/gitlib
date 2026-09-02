@@ -27,15 +27,36 @@ use Gitonomy\Git\Util\StringHelper;
 final class Commit extends Revision
 {
     /**
-     * Associative array of commit data.
-     *
-     * @var array<string, mixed>
+     * Whether the fields below have been populated (either lazily fetched
+     * from the repository, or provided upfront through setData()).
      */
-    private array $data = [];
+    private bool $loaded = false;
+
+    private ?string $treeHash = null;
 
     /**
-     * @param Repository $repository Repository of the commit
-     * @param string     $hash       Hash of the commit
+     * @var string[]|null
+     */
+    private ?array $parentHashes = null;
+
+    private ?string $authorName = null;
+    private ?string $authorEmail = null;
+    private ?\DateTime $authorDate = null;
+    private ?string $committerName = null;
+    private ?string $committerEmail = null;
+    private ?\DateTime $committerDate = null;
+    private ?string $message = null;
+
+    // Values derived from the fields above, computed and cached independently.
+    private ?string $shortHash = null;
+    private ?Tree $tree = null;
+    private ?string $subjectMessage = null;
+    private ?string $bodyMessage = null;
+
+    /**
+     * @param Repository           $repository Repository of the commit
+     * @param string               $hash       Hash of the commit
+     * @param array<string, mixed> $data
      */
     public function __construct(Repository $repository, string $hash, array $data = [])
     {
@@ -48,10 +69,28 @@ final class Commit extends Revision
         $this->setData($data);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function setData(array $data): void
     {
         foreach ($data as $name => $value) {
-            $this->data[$name] = $value;
+            match ($name) {
+                'treeHash' => $this->treeHash = self::asString($name, $value),
+                'parentHashes' => $this->parentHashes = self::asStringList($name, $value),
+                'authorName' => $this->authorName = self::asString($name, $value),
+                'authorEmail' => $this->authorEmail = self::asString($name, $value),
+                'authorDate' => $this->authorDate = self::asDateTime($name, $value),
+                'committerName' => $this->committerName = self::asString($name, $value),
+                'committerEmail' => $this->committerEmail = self::asString($name, $value),
+                'committerDate' => $this->committerDate = self::asDateTime($name, $value),
+                'message' => $this->message = self::asString($name, $value),
+                default => throw new InvalidArgumentException(\sprintf('Unknown commit data "%s".', $name)),
+            };
+        }
+
+        if ([] !== $data) {
+            $this->loaded = true;
         }
     }
 
@@ -59,7 +98,12 @@ final class Commit extends Revision
     {
         $args = ['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index', $this->revision];
 
-        $diff = Diff::parse($this->repository->run('diff-tree', $args));
+        $result = $this->repository->run('diff-tree', $args);
+        if (null === $result) {
+            throw new ReferenceNotFoundException($this->revision);
+        }
+
+        $diff = Diff::parse($result);
         $diff->setRepository($this->repository);
 
         return $diff;
@@ -78,7 +122,16 @@ final class Commit extends Revision
      */
     public function getShortHash(): string
     {
-        return $this->getData('shortHash');
+        if (null === $this->shortHash) {
+            $result = $this->repository->run('log', ['--abbrev-commit', '--format=%h', '-n', 1, $this->revision]);
+            if (null === $result) {
+                throw new ReferenceNotFoundException($this->revision);
+            }
+
+            $this->shortHash = trim($result);
+        }
+
+        return $this->shortHash;
     }
 
     /**
@@ -96,7 +149,9 @@ final class Commit extends Revision
      */
     public function getParentHashes(): array
     {
-        return $this->getData('parentHashes');
+        $this->ensureLoaded();
+
+        return $this->parentHashes ?? throw new ReferenceNotFoundException($this->revision);
     }
 
     /**
@@ -107,7 +162,7 @@ final class Commit extends Revision
     public function getParents(): array
     {
         $result = [];
-        foreach ($this->getData('parentHashes') as $parentHash) {
+        foreach ($this->getParentHashes() as $parentHash) {
             $result[] = $this->repository->getCommit($parentHash);
         }
 
@@ -119,12 +174,18 @@ final class Commit extends Revision
      */
     public function getTreeHash(): string
     {
-        return $this->getData('treeHash');
+        $this->ensureLoaded();
+
+        return $this->treeHash ?? throw new ReferenceNotFoundException($this->revision);
     }
 
     public function getTree(): Tree
     {
-        return $this->getData('tree');
+        if (null === $this->tree) {
+            $this->tree = $this->repository->getTree($this->getTreeHash());
+        }
+
+        return $this->tree;
     }
 
     public function getLastModification(?string $path = null): self
@@ -139,6 +200,10 @@ final class Commit extends Revision
 
         $result = $this->repository->run('log', ['--format=%H', '-n', 1, $this->revision, '--', $path]);
 
+        if (null === $result) {
+            throw new ReferenceNotFoundException($this->revision);
+        }
+
         return $this->repository->getCommit(trim($result));
     }
 
@@ -149,7 +214,7 @@ final class Commit extends Revision
      */
     public function getShortMessage(int $length = 50, bool $preserve = false, string $separator = '...'): string
     {
-        $message = $this->getData('subjectMessage');
+        $message = $this->getSubjectMessage();
 
         if (StringHelper::strlen($message) > $length) {
             if ($preserve && false !== ($breakpoint = StringHelper::strpos($message, ' ', $length))) {
@@ -229,7 +294,9 @@ final class Commit extends Revision
      */
     public function getAuthorName(): string
     {
-        return $this->getData('authorName');
+        $this->ensureLoaded();
+
+        return $this->authorName ?? throw new ReferenceNotFoundException($this->revision);
     }
 
     /**
@@ -237,7 +304,9 @@ final class Commit extends Revision
      */
     public function getAuthorEmail(): string
     {
-        return $this->getData('authorEmail');
+        $this->ensureLoaded();
+
+        return $this->authorEmail ?? throw new ReferenceNotFoundException($this->revision);
     }
 
     /**
@@ -245,7 +314,9 @@ final class Commit extends Revision
      */
     public function getAuthorDate(): \DateTime
     {
-        return $this->getData('authorDate');
+        $this->ensureLoaded();
+
+        return $this->authorDate ?? throw new ReferenceNotFoundException($this->revision);
     }
 
     /**
@@ -253,7 +324,9 @@ final class Commit extends Revision
      */
     public function getCommitterName(): string
     {
-        return $this->getData('committerName');
+        $this->ensureLoaded();
+
+        return $this->committerName ?? throw new ReferenceNotFoundException($this->revision);
     }
 
     /**
@@ -261,7 +334,9 @@ final class Commit extends Revision
      */
     public function getCommitterEmail(): string
     {
-        return $this->getData('committerEmail');
+        $this->ensureLoaded();
+
+        return $this->committerEmail ?? throw new ReferenceNotFoundException($this->revision);
     }
 
     /**
@@ -269,7 +344,9 @@ final class Commit extends Revision
      */
     public function getCommitterDate(): \DateTime
     {
-        return $this->getData('committerDate');
+        $this->ensureLoaded();
+
+        return $this->committerDate ?? throw new ReferenceNotFoundException($this->revision);
     }
 
     /**
@@ -277,7 +354,9 @@ final class Commit extends Revision
      */
     public function getMessage(): string
     {
-        return $this->getData('message');
+        $this->ensureLoaded();
+
+        return $this->message ?? throw new ReferenceNotFoundException($this->revision);
     }
 
     /**
@@ -285,7 +364,12 @@ final class Commit extends Revision
      */
     public function getSubjectMessage(): string
     {
-        return $this->getData('subjectMessage');
+        if (null === $this->subjectMessage) {
+            $lines = explode("\n", $this->getMessage());
+            $this->subjectMessage = reset($lines);
+        }
+
+        return $this->subjectMessage;
     }
 
     /**
@@ -293,7 +377,16 @@ final class Commit extends Revision
      */
     public function getBodyMessage(): string
     {
-        return $this->getData('bodyMessage');
+        if (null === $this->bodyMessage) {
+            $lines = explode("\n", $this->getMessage());
+
+            array_shift($lines);
+            array_shift($lines);
+
+            $this->bodyMessage = implode("\n", $lines);
+        }
+
+        return $this->bodyMessage;
     }
 
     public function getCommit(): self
@@ -301,42 +394,10 @@ final class Commit extends Revision
         return $this;
     }
 
-    private function getData(string $name): mixed
+    private function ensureLoaded(): void
     {
-        if (isset($this->data[$name])) {
-            return $this->data[$name];
-        }
-
-        if ('shortHash' === $name) {
-            $this->data['shortHash'] = trim($this->repository->run('log', ['--abbrev-commit', '--format=%h', '-n', 1, $this->revision]));
-
-            return $this->data['shortHash'];
-        }
-
-        if ('tree' === $name) {
-            $this->data['tree'] = $this->repository->getTree($this->getData('treeHash'));
-
-            return $this->data['tree'];
-        }
-
-        if ('subjectMessage' === $name) {
-            $lines = explode("\n", $this->getData('message'));
-            $this->data['subjectMessage'] = reset($lines);
-
-            return $this->data['subjectMessage'];
-        }
-
-        if ('bodyMessage' === $name) {
-            $message = $this->getData('message');
-
-            $lines = explode("\n", $message);
-
-            array_shift($lines);
-            array_shift($lines);
-
-            $this->data['bodyMessage'] = implode("\n", $lines);
-
-            return $this->data['bodyMessage'];
+        if ($this->loaded) {
+            return;
         }
 
         $parser = new Parser\CommitParser();
@@ -347,22 +408,61 @@ final class Commit extends Revision
             throw new ReferenceNotFoundException(\sprintf('Can not find reference "%s"', $this->revision));
         }
 
-        $parser->parse($result);
-
-        $this->data['treeHash'] = $parser->tree;
-        $this->data['parentHashes'] = $parser->parents;
-        $this->data['authorName'] = $parser->authorName;
-        $this->data['authorEmail'] = $parser->authorEmail;
-        $this->data['authorDate'] = $parser->authorDate;
-        $this->data['committerName'] = $parser->committerName;
-        $this->data['committerEmail'] = $parser->committerEmail;
-        $this->data['committerDate'] = $parser->committerDate;
-        $this->data['message'] = $parser->message;
-
-        if (!isset($this->data[$name])) {
-            throw new \InvalidArgumentException(\sprintf('No data named "%s" in Commit.', $name));
+        if (null === $result) {
+            throw new ReferenceNotFoundException(\sprintf('Can not find reference "%s"', $this->revision));
         }
 
-        return $this->data[$name];
+        $parser->parse($result);
+
+        $this->treeHash = $parser->tree;
+        $this->parentHashes = $parser->parents;
+        $this->authorName = $parser->authorName;
+        $this->authorEmail = $parser->authorEmail;
+        $this->authorDate = $parser->authorDate;
+        $this->committerName = $parser->committerName;
+        $this->committerEmail = $parser->committerEmail;
+        $this->committerDate = $parser->committerDate;
+        $this->message = $parser->message;
+
+        $this->loaded = true;
+    }
+
+    private static function asString(string $name, mixed $value): string
+    {
+        if (!\is_string($value)) {
+            throw new InvalidArgumentException(\sprintf('Commit data "%s" must be a string.', $name));
+        }
+
+        return $value;
+    }
+
+    private static function asDateTime(string $name, mixed $value): \DateTime
+    {
+        if (!$value instanceof \DateTime) {
+            throw new InvalidArgumentException(\sprintf('Commit data "%s" must be a DateTime.', $name));
+        }
+
+        return $value;
+    }
+
+    /**
+     * @return string[]
+     */
+    private static function asStringList(string $name, mixed $value): array
+    {
+        if (!\is_array($value)) {
+            throw new InvalidArgumentException(\sprintf('Commit data "%s" must be an array.', $name));
+        }
+
+        $result = [];
+        foreach ($value as $item) {
+            if (!\is_string($item)) {
+                throw new InvalidArgumentException(\sprintf('Commit data "%s" must be an array of strings.', $name));
+            }
+
+            $result[] = $item;
+        }
+
+        return $result;
     }
 }

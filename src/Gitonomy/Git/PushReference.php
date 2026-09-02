@@ -117,6 +117,11 @@ final readonly class PushReference
             $this->after,
         ]);
 
+        if (null === $result) {
+            // No common ancestor could be established: treat it as a force update.
+            return true;
+        }
+
         return $this->before !== trim($result);
     }
 }

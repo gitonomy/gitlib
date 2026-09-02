@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
+
 /**
  * Representation of a Blob commit.
  *
@@ -53,7 +55,12 @@ final class Blob
     public function getContent(): string
     {
         if (null === $this->content) {
-            $this->content = $this->repository->run('cat-file', ['-p', $this->hash]);
+            $content = $this->repository->run('cat-file', ['-p', $this->hash]);
+            if (null === $content) {
+                throw new ReferenceNotFoundException($this->hash);
+            }
+
+            $this->content = $content;
         }
 
         return $this->content;

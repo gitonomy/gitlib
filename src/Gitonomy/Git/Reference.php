@@ -54,6 +54,10 @@ abstract class Reference extends Revision
             throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $this->revision));
         }
 
+        if (null === $result) {
+            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $this->revision));
+        }
+
         return $this->commitHash = trim($result);
     }
 

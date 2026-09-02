@@ -361,7 +361,12 @@ final class Repository
 
         $args = array_merge(['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index'], $revisions->getAsTextArray());
 
-        $diff = Diff::parse($this->run('diff', $args));
+        $result = $this->run('diff', $args);
+        if (null === $result) {
+            throw new RuntimeException('Unable to compute diff.');
+        }
+
+        $diff = Diff::parse($result);
         $diff->setRepository($this);
 
         return $diff;
@@ -393,7 +398,7 @@ final class Repository
      */
     public function shell(string $command, array $env = []): void
     {
-        $argument = \sprintf('%s \'%s\'', $command, $this->gitDir);
+        $argument = \sprintf('%s %s', $command, escapeshellarg($this->gitDir));
 
         $prefix = '';
         foreach ($env as $name => $value) {
