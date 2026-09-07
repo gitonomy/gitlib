@@ -488,7 +488,7 @@ final class Repository
 
         $process->run();
 
-        $output = $process->getOutput();
+        $output = $process->getOutput() ?: $process->getErrorOutput();
 
         if ($this->logger && $this->debug) {
             $duration = microtime(true) - $before;
