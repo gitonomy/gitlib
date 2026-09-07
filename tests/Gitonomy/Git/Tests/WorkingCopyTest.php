@@ -114,6 +114,8 @@ class WorkingCopyTest extends AbstractTestCase
     public function testMerge(): void
     {
         $repository = self::createFoobarRepository(false);
+        $repository->run('config', ['--local', 'user.name', '"Unit Test"']);
+        $repository->run('config', ['--local', 'user.email', '"unit_test@unit-test.com"']);
         $wc = $repository->getWorkingCopy();
         $wc->checkout('master');
 
