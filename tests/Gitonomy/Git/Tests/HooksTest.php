@@ -134,7 +134,7 @@ class HooksTest extends AbstractTestCase
         $this->assertEquals('bar', file_get_contents($file), 'Hook content is correct');
 
         $perms = fileperms($file);
-        $this->assertEquals(\defined('PHP_WINDOWS_VERSION_BUILD') ? 0o666 : 0o777, $perms & 0o777, 'Hook permissions are correct');
+        $this->assertEquals(\defined('PHP_WINDOWS_VERSION_BUILD') ? 0o666 : 0o700, $perms & 0o777, 'Hook permissions are correct');
     }
 
     #[DataProvider('provideFoobar')]

@@ -71,6 +71,16 @@ class ReferenceTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
+    public function testIsAnnotatedIsFalseForLightweightTagWhenDebugIsFalse(Repository $repository): void
+    {
+        $repository = new Repository($repository->getPath(), array_merge(self::getOptions(), ['debug' => false]));
+
+        $tag = $repository->getReferences()->getTag('0.1');
+
+        $this->assertFalse($tag->isAnnotated(), 'Lightweight tag must not be reported as annotated');
+    }
+
+    #[DataProvider('provideFoobar')]
     public function testAnnotatedTag(Repository $repository): void
     {
         $tag = $repository->getReferences()->getTag('annotated');
@@ -92,6 +102,21 @@ class ReferenceTest extends AbstractTestCase
         $parentCommit = $closure->bindTo($tag, Tag::class);
         $this->assertNotEquals($parentCommit()->getHash(), $tag->getCommit()->getHash(), 'Tag commit is not the same as main commit');
         $this->assertEquals('fbde681b329a39e08b63dc54b341a3274c0380c0', $tag->getCommit()->getHash(), 'Tag commit is correct');
+    }
+
+    #[DataProvider('provideFoobar')]
+    public function testAnnotatedTagBodyMessageWithBlankLineSeparator(Repository $repository): void
+    {
+        $repository->run('config', ['user.email', 'test@example.com']);
+        $repository->run('config', ['user.name', 'Test']);
+
+        $hash = $repository->getLog()->getSingleCommit()->getHash();
+        $repository->run('tag', ['-a', 'blank-sep', '-m', 'Subject line', '-m', "Body line 1\nBody line 2", $hash]);
+
+        $tag = $repository->getReferences()->getTag('blank-sep');
+
+        $this->assertEquals('Subject line', $tag->getSubjectMessage(), 'Message subject is correct');
+        $this->assertEquals("Body line 1\nBody line 2", $tag->getBodyMessage(), 'Message body has no leading blank line');
     }
 
     #[DataProvider('provideFoobar')]

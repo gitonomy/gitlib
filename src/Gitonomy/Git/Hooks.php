@@ -93,7 +93,7 @@ final readonly class Hooks
 
         $path = $this->getPath($name);
         file_put_contents($path, $content);
-        chmod($path, 0o777);
+        chmod($path, 0o700);
     }
 
     /**

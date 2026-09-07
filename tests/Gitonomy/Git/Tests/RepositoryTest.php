@@ -13,6 +13,8 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
+use Gitonomy\Git\Commit;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -20,6 +22,26 @@ use Psr\Log\LoggerInterface;
 
 class RepositoryTest extends AbstractTestCase
 {
+    public function testRunReturnsNullInsteadOfThrowingWhenDebugIsFalse(): void
+    {
+        $repository = self::createFoobarRepository(true);
+        $repository = new Repository($repository->getPath(), array_merge(self::getOptions(), ['debug' => false]));
+
+        $this->assertNull($repository->run('not-a-command'));
+    }
+
+    public function testGetShortHashThrowsCleanExceptionWhenDebugIsFalse(): void
+    {
+        $repository = self::createFoobarRepository(true);
+        $repository = new Repository($repository->getPath(), array_merge(self::getOptions(), ['debug' => false]));
+
+        $commit = new Commit($repository, str_repeat('a', 40));
+
+        $this->expectException(ReferenceNotFoundException::class);
+
+        $commit->getShortHash();
+    }
+
     #[DataProvider('provideFoobar')]
     public function testGetBlobWithExistingWorks(Repository $repository): void
     {

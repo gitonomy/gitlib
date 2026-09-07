@@ -145,9 +145,8 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     public function getFirstBranch(): Reference|false
     {
         $this->initialize();
-        reset($this->branches);
 
-        return current($this->references);
+        return reset($this->branches);
     }
 
     /**

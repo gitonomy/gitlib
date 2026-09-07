@@ -37,7 +37,7 @@ final class Admin
 
         $process->run();
 
-        if (!$process->isSuccessFul()) {
+        if (!$process->isSuccessful()) {
             throw new RuntimeException(\sprintf("Error on repository initialization, command wasn't successful (%s). Error output:\n%s", $process->getCommandLine(), $process->getErrorOutput()));
         }
 
@@ -62,7 +62,7 @@ final class Admin
 
         $process->run();
 
-        return $process->isSuccessFul();
+        return $process->isSuccessful();
     }
 
     /**
@@ -86,7 +86,7 @@ final class Admin
         $process->run();
         $processOutput = $process->getOutput();
 
-        return $process->isSuccessFul() && str_contains($processOutput, $branchName);
+        return $process->isSuccessful() && str_contains($processOutput, $branchName);
     }
 
     /**
@@ -149,7 +149,7 @@ final class Admin
 
         $process->run();
 
-        if (!$process->isSuccessFul()) {
+        if (!$process->isSuccessful()) {
             throw new RuntimeException(\sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
         }
 
