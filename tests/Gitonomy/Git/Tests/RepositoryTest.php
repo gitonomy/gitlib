@@ -116,4 +116,38 @@ class RepositoryTest extends AbstractTestCase
 
         $repository->run('not-work');
     }
+
+    /**
+     * @see https://github.com/gitonomy/gitlib/issues/67
+     */
+    public function testRunResolvesRelativePathsAgainstTheRepositoryRegardlessOfCwd(): void
+    {
+        $repository = self::createFoobarRepository(false);
+
+        $file = $repository->getWorkingDir().'/README.md';
+        $original = file_get_contents($file);
+        file_put_contents($file, $original."Applied line.\n");
+
+        $patch = $repository->run('diff', ['--', 'README.md']);
+        file_put_contents($file, $original);
+
+        $patchFile = tempnam(sys_get_temp_dir(), 'gitlib_patch_');
+        file_put_contents($patchFile, $patch);
+
+        $previousCwd = getcwd();
+        $this->assertIsString($previousCwd);
+        chdir(sys_get_temp_dir());
+
+        try {
+            // "README.md" is relative to the repository work-tree, not to the
+            // process cwd (which is an unrelated directory here). This only
+            // works if the git process is run with its cwd set to the repository.
+            $repository->run('apply', [$patchFile]);
+        } finally {
+            chdir($previousCwd);
+            unlink($patchFile);
+        }
+
+        $this->assertSame($original."Applied line.\n", file_get_contents($file));
+    }
 }
