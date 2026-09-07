@@ -26,6 +26,24 @@ $wc->checkout('origin/master', 'master');
 
 You can also pass a *Reference* or a *Commit*.
 
+Merge a revision
+----------------
+
+You can merge any revision into the current branch using the *merge* method.
+A second argument can be used to pass extra options to the underlying
+`git merge` command:
+
+```php
+// git merge origin/develop
+$wc->merge('origin/develop');
+
+// git merge --no-ff origin/develop
+$wc->merge('origin/develop', ['--no-ff']);
+```
+
+You can also pass a *Reference* or a *Commit*. A `RuntimeException` is thrown
+if the merge fails (for instance because of a conflict).
+
 Staged modifications
 --------------------
 

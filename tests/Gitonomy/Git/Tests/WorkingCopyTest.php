@@ -110,4 +110,30 @@ class WorkingCopyTest extends AbstractTestCase
 
         $this->assertContains('untracked.txt', $wc->getUntrackedFiles());
     }
+
+    public function testMerge(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $repository->run('config', ['--local', 'user.name', '"Unit Test"']);
+        $repository->run('config', ['--local', 'user.email', '"unit_test@unit-test.com"']);
+        $wc = $repository->getWorkingCopy();
+        $wc->checkout('master');
+
+        $wc->merge('origin/diff-features');
+
+        $head = $repository->getHeadCommit();
+        $this->assertCount(2, $head->getParents(), 'Merge produced a merge commit');
+        $this->assertFileExists($repository->getWorkingDir().'/script_A.php');
+    }
+
+    public function testMergeConflict(): void
+    {
+        $this->expectException(RuntimeException::class);
+
+        $repository = self::createFoobarRepository(false);
+        $wc = $repository->getWorkingCopy();
+        $wc->checkout('master');
+
+        $wc->merge('origin/new-feature');
+    }
 }
