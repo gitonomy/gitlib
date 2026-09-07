@@ -615,6 +615,7 @@ final class Repository
         $base[] = $command;
 
         $process = new Process(array_merge($base, $args));
+        $process->setWorkingDirectory($this->getPath());
 
         if ($this->inheritEnvironmentVariables) {
             $process->setEnv(array_replace($_SERVER, $this->environmentVariables));
