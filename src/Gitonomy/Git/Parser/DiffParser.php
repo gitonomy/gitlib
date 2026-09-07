@@ -76,12 +76,16 @@ final class DiffParser extends ParserBase
                 $this->consumeNewLine();
             }
 
+            $isCopy = false;
             if ($this->expects('similarity index ')) {
                 $this->consumeRegexp('/\d{1,3}%\n/');
-                $this->consume('rename from ');
+                $isCopy = $this->expects('copy from ');
+                if (!$isCopy) {
+                    $this->consume('rename from ');
+                }
                 $this->consumeTo("\n");
                 $this->consumeNewLine();
-                $this->consume('rename to ');
+                $this->consume($isCopy ? 'copy to ' : 'rename to ');
                 $this->consumeTo("\n");
                 $this->consumeNewLine();
             }
@@ -120,7 +124,7 @@ final class DiffParser extends ParserBase
             $newIndex = null === $newIndex ? '' : $newIndex;
             $oldIndex = preg_match('/^0+$/', $oldIndex) ? null : $oldIndex;
             $newIndex = preg_match('/^0+$/', $newIndex) ? null : $newIndex;
-            $file = new File($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary);
+            $file = new File($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary, $isCopy);
 
             // 5. Diff
             while ($this->expects('@@ ')) {

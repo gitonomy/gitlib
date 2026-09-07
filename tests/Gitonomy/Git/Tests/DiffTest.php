@@ -199,6 +199,55 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82', $secondFile->getNewIndex());
     }
 
+    public function testCopyFileWithoutRaw(): void
+    {
+        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
+
+        $diff = Diff::parse(<<<'DIFF'
+            diff --git a/style.css b/common.css
+            similarity index 97%
+            copy from style.css
+            copy to common.css
+            index 1234567..89abcde 100644
+            --- a/style.css
+            +++ b/common.css
+            @@ -1,3 +1,4 @@
+             body {
+            +  color: red;
+             }
+
+            DIFF);
+        $firstFile = $diff->getFiles()[0];
+
+        $this->assertTrue($firstFile->isModification());
+        $this->assertTrue($firstFile->isCopy());
+        $this->assertFalse($firstFile->isRename());
+        $this->assertFalse($firstFile->isDeletion());
+        $this->assertFalse($firstFile->isCreation());
+        $this->assertSame('style.css', $firstFile->getOldName());
+        $this->assertSame('common.css', $firstFile->getNewName());
+        $this->assertSame(1, $firstFile->getAdditions());
+    }
+
+    public function testPureCopyFileWithoutRaw(): void
+    {
+        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
+
+        $diff = Diff::parse(<<<'DIFF'
+            diff --git a/style.css b/common.css
+            similarity index 100%
+            copy from style.css
+            copy to common.css
+
+            DIFF);
+        $firstFile = $diff->getFiles()[0];
+
+        $this->assertTrue($firstFile->isCopy());
+        $this->assertFalse($firstFile->isRename());
+        $this->assertSame('style.css', $firstFile->getOldName());
+        $this->assertSame('common.css', $firstFile->getNewName());
+    }
+
     public function testThrowErrorOnBlobGetWithoutIndex(): void
     {
         $repository = self::createEmptyRepository();
