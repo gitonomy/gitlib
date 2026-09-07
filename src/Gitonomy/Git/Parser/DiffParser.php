@@ -45,7 +45,10 @@ final class DiffParser extends ParserBase
         $fileIndex = 0;
         while (!$this->isFinished()) {
             // 1. title
-            $vars = $this->consumeRegexp("/diff --git \"?(a\\/.*?)\"? \"?(b\\/.*?)\"?\n/");
+            // The prefix is normally "a" and "b", but git's diff.mnemonicPrefix option
+            // (used by tools such as GrumPHP) can produce other single-letter prefixes
+            // ("c"ommit, "i"ndex, "o"bject, "w"ork tree), or "1"/"2" with --no-index.
+            $vars = $this->consumeRegexp("/diff --git \"?([^\\/\\s]\\/.*?)\"? \"?([^\\/\\s]\\/.*?)\"?\n/");
             $oldName = $vars[1];
             $newName = $vars[2];
             // Get indexes from raw if it exists
