@@ -40,6 +40,21 @@ class BlobTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
+    public function testGetContentSiblingToSubmodule(Repository $repository): void
+    {
+        // Regression test for https://github.com/gitonomy/gitlib/issues/12:
+        // a submodule entry in a tree used to break parsing of that tree,
+        // making sibling blobs unreadable.
+        $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $this->assertNotEmpty($tree->getCommitReferenceEntries(), 'Tree contains a submodule entry');
+
+        $blob = $tree->resolvePath('README.md');
+
+        $this->assertStringContainsString(self::README_FRAGMENT, $blob->getContent());
+    }
+
+    #[DataProvider('provideFoobar')]
     public function testNotExisting(Repository $repository): void
     {
         $this->expectException(RuntimeException::class);
