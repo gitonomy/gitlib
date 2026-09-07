@@ -97,20 +97,22 @@ final class DiffParser extends ParserBase
                     $newMode = $oldMode = $vars[0];
                 }
                 $this->consumeNewLine();
+            }
 
-                // verifying if the file was deleted or created
-                if ($this->expects('--- ')) {
-                    $oldName = '/dev/null' === $this->consumeTo("\n") ? '/dev/null' : $oldName;
-                    $this->consumeNewLine();
-                    $this->consume('+++ ');
-                    $newName = '/dev/null' === $this->consumeTo("\n") ? '/dev/null' : $newName;
-                    $this->consumeNewLine();
-                } elseif ($this->expects('Binary files ')) {
-                    $vars = $this->consumeRegexp('/"?(.*?)"? and "?(.*?)"? differ\n/');
-                    $isBinary = true;
-                    $oldName = $vars[1];
-                    $newName = $vars[2];
-                }
+            // verifying if the file was deleted or created
+            // Note: a dirty submodule diff has no "index " line, so this must
+            // not be nested inside the block above.
+            if ($this->expects('--- ')) {
+                $oldName = '/dev/null' === $this->consumeTo("\n") ? '/dev/null' : $oldName;
+                $this->consumeNewLine();
+                $this->consume('+++ ');
+                $newName = '/dev/null' === $this->consumeTo("\n") ? '/dev/null' : $newName;
+                $this->consumeNewLine();
+            } elseif ($this->expects('Binary files ')) {
+                $vars = $this->consumeRegexp('/"?(.*?)"? and "?(.*?)"? differ\n/');
+                $isBinary = true;
+                $oldName = $vars[1];
+                $newName = $vars[2];
             }
 
             $oldName = '/dev/null' === $oldName ? null : substr($oldName, 2);

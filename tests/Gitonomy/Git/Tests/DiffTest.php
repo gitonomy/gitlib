@@ -250,6 +250,27 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('test', $firstFile->getOldName());
     }
 
+    public function testDirtySubmoduleWithoutRaw(): void
+    {
+        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
+
+        $diff = Diff::parse(<<<'DIFF'
+            diff --git a/sub b/sub
+            --- a/sub
+            +++ b/sub
+            @@ -1 +1 @@
+            -Subproject commit e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+            +Subproject commit e69de29bb2d1d6434b8b29ae775ad8c2e48c5391-dirty
+
+            DIFF);
+        $firstFile = $diff->getFiles()[0];
+
+        $this->assertFalse($firstFile->isCreation());
+        $this->assertFalse($firstFile->isDeletion());
+        $this->assertSame('sub', $firstFile->getOldName());
+        $this->assertSame('sub', $firstFile->getNewName());
+    }
+
     protected function verifyCreateCommitDiff(Diff $diff): void
     {
         $files = $diff->getFiles();
