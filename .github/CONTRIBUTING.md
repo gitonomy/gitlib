@@ -37,7 +37,7 @@ Then run [PHPUnit](https://phpunit.de/):
 $ vendor/bin/phpunit
 ```
 
-* A script `test-git-versions.sh` is available in repository to test gitlib against many git versions.
+* A script `test-git-versions.php` is available in repository to test gitlib against many git versions: `php test-git-versions.php build` compiles them, then `php test-git-versions.php test` runs the suite against each.
 * The tests will be automatically run by [GitHub Actions](https://github.com/features/actions) against pull requests.
 * Tests run fully offline: no network access is required.
 
