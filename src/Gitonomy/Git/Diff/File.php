@@ -38,6 +38,7 @@ final class File
         private readonly ?string $oldIndex,
         private readonly ?string $newIndex,
         private readonly bool $isBinary,
+        private readonly bool $isCopy = false,
     ) {
     }
 
@@ -65,11 +66,21 @@ final class File
     /**
      * Indicates if it's a rename.
      *
-     * A rename can only occurs if it's a modification (not a creation or a deletion).
+     * A rename can only occurs if it's a modification (not a creation or a deletion), and is not a copy.
      */
     public function isRename(): bool
     {
-        return $this->isModification() && $this->oldName !== $this->newName;
+        return $this->isModification() && $this->oldName !== $this->newName && !$this->isCopy;
+    }
+
+    /**
+     * Indicates if it's a copy.
+     *
+     * Unlike a rename, the source file of a copy still exists after the change.
+     */
+    public function isCopy(): bool
+    {
+        return $this->isCopy;
     }
 
     /**
@@ -184,6 +195,7 @@ final class File
             'old_index' => $this->oldIndex,
             'new_index' => $this->newIndex,
             'is_binary' => $this->isBinary,
+            'is_copy' => $this->isCopy,
             'changes' => array_map(static function (FileChange $change) {
                 return $change->toArray();
             }, $this->changes),
@@ -192,7 +204,7 @@ final class File
 
     public static function fromArray(array $array): self
     {
-        $file = new self($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary']);
+        $file = new self($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary'], $array['is_copy'] ?? false);
 
         foreach ($array['changes'] as $change) {
             $file->addChange(FileChange::fromArray($change));
