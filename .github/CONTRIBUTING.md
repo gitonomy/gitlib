@@ -39,6 +39,35 @@ $ vendor/bin/phpunit
 
 * A script `test-git-versions.sh` is available in repository to test gitlib against many git versions.
 * The tests will be automatically run by [GitHub Actions](https://github.com/features/actions) against pull requests.
+* Tests run fully offline: no network access is required.
+
+## Test fixtures
+
+Most tests run against a fixture repository cloned from `tests/fixtures/foobar.bundle`,
+a local git bundle. Using a bundle instead of a network clone keeps the tests fast and
+fully offline.
+
+If you need a new fixture scenario (a specific merge, encoding, or signed-commit shape,
+for example), regenerate the bundle locally, entirely from the one already in the repo:
+
+```bash
+$ git clone tests/fixtures/foobar.bundle /tmp/foobar-fixture && cd /tmp/foobar-fixture
+$ for b in $(git branch -r | grep -v HEAD | sed 's#origin/##'); do
+$     git branch --track "$b" "origin/$b"
+$ done
+# ... add your commits, branches or tags ...
+$ git bundle create foobar.bundle \
+    HEAD refs/heads/master refs/heads/new-feature refs/heads/diff-features \
+    refs/heads/pagination refs/heads/path-resolving refs/tags/0.1 refs/tags/annotated
+$ cp foobar.bundle /path/to/gitlib/tests/fixtures/foobar.bundle
+```
+
+Then update the commit SHA constants in `AbstractTestCase` to match, and run
+`tests/fixtures/verify-bundle.sh`. It checks the bundle's integrity, its ref list against
+an allow-list, and its size, since GitHub renders any change to this binary file as an
+opaque diff. If your change intentionally adds a ref or grows the file, update
+`ALLOWED_REFS` or `MAX_SIZE_KB` in that script as part of the same pull request, so the
+reason for the change is explicit and reviewable rather than a silent binary diff.
 
 ## Standard code
 

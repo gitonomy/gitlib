@@ -6,6 +6,16 @@ on:
   pull_request:
 
 jobs:
+  verify-fixture:
+    name: Verify Test Fixture Bundle
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Verify fixture bundle integrity, refs and size
+        run: tests/fixtures/verify-bundle.sh
+
   check-cs:
     name: Check Coding Standards
     runs-on: ubuntu-24.04
