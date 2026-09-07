@@ -44,16 +44,17 @@ $ vendor/bin/phpunit
 ## Test fixtures
 
 Most tests run against a fixture repository cloned from `tests/fixtures/foobar.bundle`,
-a git bundle of [gitonomy/foobar](https://github.com/gitonomy/foobar). Using a local
-bundle instead of cloning the repository over the network keeps the tests fast, offline,
-and independent of that repository's history.
+a local git bundle. Using a bundle instead of a network clone keeps the tests fast and
+fully offline.
 
 If you need a new fixture scenario (a specific merge, encoding, or signed-commit shape,
-for example), regenerate the bundle from a clone of `gitonomy/foobar` with your changes
-added, using the same set of refs already in the bundle:
+for example), regenerate the bundle locally, entirely from the one already in the repo:
 
 ```bash
-$ git clone https://github.com/gitonomy/foobar.git /tmp/foobar && cd /tmp/foobar
+$ git clone tests/fixtures/foobar.bundle /tmp/foobar-fixture && cd /tmp/foobar-fixture
+$ for b in $(git branch -r | grep -v HEAD | sed 's#origin/##'); do
+$     git branch --track "$b" "origin/$b"
+$ done
 # ... add your commits, branches or tags ...
 $ git bundle create foobar.bundle \
     HEAD refs/heads/master refs/heads/new-feature refs/heads/diff-features \

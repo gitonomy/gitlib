@@ -4,7 +4,7 @@
 # request touching it should be reviewed by hand (see CONTRIBUTING.md), but
 # this catches the obvious cases automatically:
 #   - a corrupted or incomplete bundle
-#   - refs that were not in the original gitonomy/foobar fixture
+#   - refs that were not in the original fixture
 #   - a file that has silently grown well past its expected size
 #
 # Run it locally with: tests/fixtures/verify-bundle.sh
