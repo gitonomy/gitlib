@@ -15,7 +15,6 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
-use Gitonomy\Git\Util\StringHelper;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -120,7 +119,7 @@ final class Log implements \Countable, \IteratorAggregate
      */
     public function getCommits(): array
     {
-        $args = ['--encoding='.StringHelper::getEncoding(), '--format=raw'];
+        $args = ['--encoding=UTF-8', '--format=raw'];
 
         if (null !== $this->offset) {
             $args[] = '--skip='.$this->offset;

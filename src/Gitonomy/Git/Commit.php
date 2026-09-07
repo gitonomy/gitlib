@@ -17,7 +17,7 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
-use Gitonomy\Git\Util\StringHelper;
+use Symfony\Component\String\CodePointString;
 
 /**
  * Representation of a Git commit.
@@ -139,7 +139,7 @@ final class Commit extends Revision
      */
     public function getFixedShortHash(int $length = 6): string
     {
-        return StringHelper::substr($this->revision, 0, $length);
+        return new CodePointString($this->revision)->slice(0, $length)->toString();
     }
 
     /**
@@ -191,7 +191,7 @@ final class Commit extends Revision
     public function getLastModification(?string $path = null): self
     {
         if (null !== $path && str_starts_with($path, '/')) {
-            $path = StringHelper::substr($path, 1);
+            $path = new CodePointString($path)->slice(1)->toString();
         }
 
         if ($getWorkingDir = $this->repository->getWorkingDir()) {
@@ -216,12 +216,14 @@ final class Commit extends Revision
     {
         $message = $this->getSubjectMessage();
 
-        if (StringHelper::strlen($message) > $length) {
-            if ($preserve && false !== ($breakpoint = StringHelper::strpos($message, ' ', $length))) {
+        $codePointMessage = new CodePointString($message);
+
+        if ($codePointMessage->length() > $length) {
+            if ($preserve && null !== ($breakpoint = $codePointMessage->indexOf(' ', $length))) {
                 $length = $breakpoint;
             }
 
-            return rtrim(StringHelper::substr($message, 0, $length)).$separator;
+            return rtrim($codePointMessage->slice(0, $length)->toString()).$separator;
         }
 
         return $message;
@@ -269,7 +271,7 @@ final class Commit extends Revision
 
         $branchesName = explode("\n", trim(str_replace('*', '', $result)));
         $branchesName = array_filter($branchesName, static function ($v) {
-            return false === StringHelper::strpos($v, '->');
+            return null === new CodePointString($v)->indexOf('->');
         });
         $branchesName = array_map('trim', $branchesName);
 
@@ -279,7 +281,7 @@ final class Commit extends Revision
         foreach ($branchesName as $branchName) {
             if (false === $local) {
                 $branches[] = $references->getRemoteBranch($branchName);
-            } elseif (0 === StringHelper::strrpos($branchName, 'remotes/')) {
+            } elseif (0 === new CodePointString($branchName)->indexOfLast('remotes/')) {
                 $branches[] = $references->getRemoteBranch(str_replace('remotes/', '', $branchName));
             } else {
                 $branches[] = $references->getBranch($branchName);
