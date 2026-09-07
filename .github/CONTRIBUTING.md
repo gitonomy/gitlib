@@ -48,26 +48,27 @@ a local git bundle. Using a bundle instead of a network clone keeps the tests fa
 fully offline.
 
 If you need a new fixture scenario (a specific merge, encoding, or signed-commit shape,
-for example), regenerate the bundle locally, entirely from the one already in the repo:
+for example), regenerate the bundle with `tests/fixtures/generate-bundle.php`, entirely
+from the one already in the repo:
 
 ```bash
-$ git clone tests/fixtures/foobar.bundle /tmp/foobar-fixture && cd /tmp/foobar-fixture
-$ for b in $(git branch -r | grep -v HEAD | sed 's#origin/##'); do
-$     git branch --track "$b" "origin/$b"
-$ done
-# ... add your commits, branches or tags ...
-$ git bundle create foobar.bundle \
-    HEAD refs/heads/master refs/heads/new-feature refs/heads/diff-features \
-    refs/heads/pagination refs/heads/path-resolving refs/tags/0.1 refs/tags/annotated
-$ cp foobar.bundle /path/to/gitlib/tests/fixtures/foobar.bundle
+$ php tests/fixtures/generate-bundle.php extract
+# ... add your commits, branches or tags in the printed directory ...
+$ php tests/fixtures/generate-bundle.php build /path/printed/above
 ```
+
+`extract` clones the current bundle to a working directory with every branch checked out
+locally, ready to receive new commits. `build` rebuilds `tests/fixtures/foobar.bundle`
+from that directory, restricted to the refs listed in `tests/fixtures/bundle-refs.txt` —
+add your new branch or tag there first if you introduced one.
 
 Then update the commit SHA constants in `AbstractTestCase` to match, and run
 `tests/fixtures/verify-bundle.sh`. It checks the bundle's integrity, its ref list against
-an allow-list, and its size, since GitHub renders any change to this binary file as an
+`bundle-refs.txt`, and its size, since GitHub renders any change to this binary file as an
 opaque diff. If your change intentionally adds a ref or grows the file, update
-`ALLOWED_REFS` or `MAX_SIZE_KB` in that script as part of the same pull request, so the
-reason for the change is explicit and reviewable rather than a silent binary diff.
+`tests/fixtures/bundle-refs.txt` or `MAX_SIZE_KB` in that script as part of the same pull
+request, so the reason for the change is explicit and reviewable rather than a silent
+binary diff.
 
 ## Standard code
 
