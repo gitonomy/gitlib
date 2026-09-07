@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -12,10 +12,10 @@
 
 namespace Gitonomy\Git\Exception;
 
-class ReferenceNotFoundException extends \InvalidArgumentException implements GitExceptionInterface
+final class ReferenceNotFoundException extends \InvalidArgumentException implements GitExceptionInterface
 {
-    public function __construct($reference)
+    public function __construct(string $reference, int $code = 0, ?\Throwable $previous = null)
     {
-        parent::__construct(sprintf('Reference not found: "%s"', $reference));
+        parent::__construct(\sprintf('Reference not found: "%s"', $reference), $code, $previous);
     }
 }

@@ -1,0 +1,535 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:cloneBranchTo\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:cloneRepository\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:cloneRepository\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:cloneTo\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:getProcess\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:getProcess\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:init\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:isValidRepository\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:isValidRepositoryAndBranch\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Admin\:\:mirrorTo\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Admin.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Blame\:\:getGroupedLines\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Blame.php
+
+		-
+			message: '#^Property Gitonomy\\Git\\Blame\\Line\:\:\$blockLine is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Gitonomy/Git/Blame/Line.php
+
+		-
+			message: '#^Property Gitonomy\\Git\\Blame\\Line\:\:\$targetLine is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Gitonomy/Git/Blame/Line.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Blob\:\:getContent\(\) should return string but returns string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Blob.php
+
+		-
+			message: '#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\.$#'
+			identifier: foreach.nonIterable
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:__construct\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getAuthorDate\(\) should return DateTime but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getAuthorEmail\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getAuthorName\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getBodyMessage\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getCommitterDate\(\) should return DateTime but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getCommitterEmail\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getCommitterName\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getMessage\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getParentHashes\(\) should return array\<string\> but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getShortHash\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getShortMessage\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getSubjectMessage\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getTree\(\) should return Gitonomy\\Git\\Tree but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:getTreeHash\(\) should return string but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Commit\:\:setData\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Parameter \#1 \$hash of method Gitonomy\\Git\\Repository\:\:getCommit\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Parameter \#1 \$hash of method Gitonomy\\Git\\Repository\:\:getTree\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Parameter \#1 \$haystack of static method Gitonomy\\Git\\Util\\StringHelper\:\:strpos\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Parameter \#1 \$rawDiff of static method Gitonomy\\Git\\Diff\\Diff\:\:parse\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Parameter \#1 \$string of function trim expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Parameter \#1 \$string of static method Gitonomy\\Git\\Util\\StringHelper\:\:strlen\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Parameter \#1 \$string of static method Gitonomy\\Git\\Util\\StringHelper\:\:substr\(\) expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Parameter \#2 \$string of function explode expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Gitonomy/Git/Commit.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Diff\\Diff\:\:fromArray\(\) has parameter \$array with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Diff/Diff.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Diff\\Diff\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Diff/Diff.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Diff\\File\:\:fromArray\(\) has parameter \$array with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Diff/File.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Diff\\File\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Diff/File.php
+
+		-
+			message: '#^Parameter \#1 \$hash of method Gitonomy\\Git\\Repository\:\:getBlob\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Gitonomy/Git/Diff/File.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Diff\\FileChange\:\:fromArray\(\) has parameter \$array with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Diff/FileChange.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Diff\\FileChange\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Diff/FileChange.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Hooks\:\:get\(\) should return string but returns string\|false\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Hooks.php
+
+		-
+			message: '#^Class Gitonomy\\Git\\Log implements generic interface IteratorAggregate but does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Gitonomy/Git/Log.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Log\:\:__construct\(\) has parameter \$paths with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Log.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Log\:\:__construct\(\) has parameter \$revisions with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Log.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Log\:\:count\(\) should return int\<0, max\> but returns int\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Log.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Log\:\:getIterator\(\) return type with generic class ArrayIterator does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Gitonomy/Git/Log.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Log\:\:getPaths\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Log.php
+
+		-
+			message: '#^Property Gitonomy\\Git\\Log\:\:\$paths type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Log.php
+
+		-
+			message: '#^Property Gitonomy\\Git\\Parser\\LogParser\:\:\$log type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Parser/LogParser.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Parser\\ParserBase\:\:consumeRegexp\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Parser/ParserBase.php
+
+		-
+			message: '#^Parameter \#1 \$string of function trim expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/PushReference.php
+
+		-
+			message: '#^Parameter \#1 \$string of function trim expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Reference.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Reference\\Branch\:\:isLocal\(\) should return bool but returns bool\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Reference/Branch.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Reference\\Tag\:\:getBodyMessage\(\) should return string\|false but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Reference/Tag.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Reference\\Tag\:\:getGPGSignature\(\) should return string\|false but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Reference/Tag.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Reference\\Tag\:\:getMessage\(\) should return string\|false but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Reference/Tag.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Reference\\Tag\:\:getSubjectMessage\(\) should return string\|false but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Reference/Tag.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Reference\\Tag\:\:getTaggerDate\(\) should return DateTime\|false but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Reference/Tag.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Reference\\Tag\:\:getTaggerEmail\(\) should return string\|false but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Reference/Tag.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Reference\\Tag\:\:getTaggerName\(\) should return string\|false but returns mixed\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Reference/Tag.php
+
+		-
+			message: '#^Parameter \#2 \$string of function explode expects string, mixed given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Gitonomy/Git/Reference/Tag.php
+
+		-
+			message: '#^Class Gitonomy\\Git\\ReferenceBag implements generic interface IteratorAggregate but does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Gitonomy/Git/ReferenceBag.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\ReferenceBag\:\:getIterator\(\) return type with generic class ArrayIterator does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Gitonomy/Git/ReferenceBag.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Repository\:\:__construct\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Repository\:\:cloneTo\(\) has parameter \$options with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Repository\:\:getDescription\(\) should return string but returns string\|false\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Repository\:\:getDiff\(\) has parameter \$revisions with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Repository\:\:getLog\(\) has parameter \$paths with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Repository\:\:getLog\(\) has parameter \$revisions with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Repository\:\:getProcess\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Repository\:\:run\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Repository\:\:shell\(\) has parameter \$env with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Parameter \#1 \$rawDiff of static method Gitonomy\\Git\\Diff\\Diff\:\:parse\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Parameter \#1 \$string of function trim expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Property Gitonomy\\Git\\Repository\:\:\$environmentVariables type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Repository.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\Revision\:\:getLog\(\) has parameter \$paths with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/Revision.php
+
+		-
+			message: '#^Class Gitonomy\\Git\\RevisionList implements generic interface IteratorAggregate but does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Gitonomy/Git/RevisionList.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\RevisionList\:\:__construct\(\) has parameter \$revisions with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/RevisionList.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\RevisionList\:\:getIterator\(\) return type with generic class ArrayIterator does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: src/Gitonomy/Git/RevisionList.php
+
+		-
+			message: '#^Parameter \#2 \$string of function explode expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/Tree.php
+
+		-
+			message: '#^Method Gitonomy\\Git\\WorkingCopy\:\:run\(\) has parameter \$args with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: src/Gitonomy/Git/WorkingCopy.php
+
+		-
+			message: '#^Parameter \#1 \$rawDiff of static method Gitonomy\\Git\\Diff\\Diff\:\:parse\(\) expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: src/Gitonomy/Git/WorkingCopy.php
+
+		-
+			message: '#^Parameter \#2 \$string of function explode expects string, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Gitonomy/Git/WorkingCopy.php

@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -16,17 +16,22 @@ use Gitonomy\Git\Exception\RuntimeException;
 
 class CommitParser extends ParserBase
 {
-    public $tree;
-    public $parents;
-    public $authorName;
-    public $authorEmail;
-    public $authorDate;
-    public $committerName;
-    public $committerEmail;
-    public $committerDate;
-    public $message;
+    public string $tree;
 
-    protected function doParse()
+    /**
+     * @var string[]
+     */
+    public array $parents;
+
+    public string $authorName;
+    public string $authorEmail;
+    public \DateTime $authorDate;
+    public string $committerName;
+    public string $committerEmail;
+    public \DateTime $committerDate;
+    public string $message;
+
+    protected function doParse(): void
     {
         $this->consume('tree ');
         $this->tree = $this->consumeHash();
@@ -39,12 +44,12 @@ class CommitParser extends ParserBase
         }
 
         $this->consume('author ');
-        list($this->authorName, $this->authorEmail, $this->authorDate) = $this->consumeNameEmailDate();
-        $this->authorDate = $this->parseDate($this->authorDate);
+        [$this->authorName, $this->authorEmail, $authorDate] = $this->consumeNameEmailDate();
+        $this->authorDate = $this->parseDate($authorDate);
         $this->consumeNewLine();
 
         $this->consume('committer ');
-        list($this->committerName, $this->committerEmail, $committerDate) = $this->consumeNameEmailDate();
+        [$this->committerName, $this->committerEmail, $committerDate] = $this->consumeNameEmailDate();
         $this->committerDate = $this->parseDate($committerDate);
 
         $this->consumeMergeTag();
@@ -58,23 +63,26 @@ class CommitParser extends ParserBase
         $this->message = $this->consumeAll();
     }
 
-    protected function consumeNameEmailDate()
+    /**
+     * @return string[] A tuple of [name, email, date]
+     */
+    protected function consumeNameEmailDate(): array
     {
         if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+ [+-]\d{4}))/A', $this->content, $vars, 0, $this->cursor)) {
             throw new RuntimeException('Unable to parse name, email and date');
         }
 
-        $this->cursor += strlen($vars[1]);
+        $this->cursor += \strlen($vars[1]);
 
         return [$vars[2], $vars[3], $vars[4]];
     }
 
-    protected function parseDate($text)
+    protected function parseDate(string $text): \DateTime
     {
         $date = \DateTime::createFromFormat('U e O', $text.' UTC');
 
         if (!$date instanceof \DateTime) {
-            throw new RuntimeException(sprintf('Unable to convert "%s" to datetime', $text));
+            throw new RuntimeException(\sprintf('Unable to convert "%s" to datetime', $text));
         }
 
         return $date;

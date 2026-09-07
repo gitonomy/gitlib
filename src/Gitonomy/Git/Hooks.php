@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -21,29 +21,19 @@ use Gitonomy\Git\Exception\RuntimeException;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Hooks
+final readonly class Hooks
 {
-    /**
-     * @var \Gitonomy\Git\Repository
-     */
-    protected $repository;
-
-    /**
-     * @var Repository
-     */
-    public function __construct(Repository $repository)
-    {
-        $this->repository = $repository;
+    public function __construct(
+        private Repository $repository,
+    ) {
     }
 
     /**
      * Tests if repository has a given hook.
      *
      * @param string $name Name of the hook
-     *
-     * @return bool
      */
-    public function has($name)
+    public function has(string $name): bool
     {
         return file_exists($this->getPath($name));
     }
@@ -53,14 +43,14 @@ class Hooks
      *
      * @param string $name Name of the hook
      *
-     * @throws InvalidArgumentException Hook does not exist
-     *
      * @return string Content of the hook
+     *
+     * @throws InvalidArgumentException Hook does not exist
      */
-    public function get($name)
+    public function get(string $name): string
     {
         if (!$this->has($name)) {
-            throw new InvalidArgumentException(sprintf('Hook named "%s" is not present', $name));
+            throw new InvalidArgumentException(\sprintf('Hook named "%s" is not present', $name));
         }
 
         return file_get_contents($this->getPath($name));
@@ -75,15 +65,15 @@ class Hooks
      * @throws LogicException   Hook is already present
      * @throws RuntimeException Error on symlink creation
      */
-    public function setSymlink($name, $file)
+    public function setSymlink(string $name, string $file): void
     {
         if ($this->has($name)) {
-            throw new LogicException(sprintf('A hook "%s" is already defined', $name));
+            throw new LogicException(\sprintf('A hook "%s" is already defined', $name));
         }
 
         $path = $this->getPath($name);
         if (false === symlink($file, $path)) {
-            throw new RuntimeException(sprintf('Unable to create hook "%s" (%s)', $name, $path));
+            throw new RuntimeException(\sprintf('Unable to create hook "%s" (%s)', $name, $path));
         }
     }
 
@@ -95,15 +85,15 @@ class Hooks
      *
      * @throws LogicException The hook is already defined
      */
-    public function set($name, $content)
+    public function set(string $name, string $content): void
     {
         if ($this->has($name)) {
-            throw new LogicException(sprintf('A hook "%s" is already defined', $name));
+            throw new LogicException(\sprintf('A hook "%s" is already defined', $name));
         }
 
         $path = $this->getPath($name);
         file_put_contents($path, $content);
-        chmod($path, 0777);
+        chmod($path, 0o777);
     }
 
     /**
@@ -113,19 +103,16 @@ class Hooks
      *
      * @throws LogicException The hook is not present
      */
-    public function remove($name)
+    public function remove(string $name): void
     {
         if (!$this->has($name)) {
-            throw new LogicException(sprintf('The hook "%s" was not found', $name));
+            throw new LogicException(\sprintf('The hook "%s" was not found', $name));
         }
 
         unlink($this->getPath($name));
     }
 
-    /**
-     * @return string
-     */
-    protected function getPath($name)
+    private function getPath(string $name): string
     {
         return $this->repository->getGitDir().'/hooks/'.$name;
     }

@@ -6,17 +6,56 @@ on:
   pull_request:
 
 jobs:
+  check-cs:
+    name: Check Coding Standards
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Setup Castor
+        uses: castor-php/setup-castor@2a495b8c91f00be6768ad8a040ba8634c797d386 # v1.1.0
+
+      - name: Run CS check
+        run: castor cs --dry-run
+
+  phpstan:
+    name: Static Analysis
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Setup Castor
+        uses: castor-php/setup-castor@2a495b8c91f00be6768ad8a040ba8634c797d386 # v1.1.0
+
+      - name: Install dependencies
+        run: castor install
+
+      - name: Run PHPStan
+        run: castor phpstan
+
   tests:
     name: Test PHP ${{ matrix.php }} ${{ matrix.name }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.1', '8.2', '8.3', '8.4']
+        php: ['8.4', '8.5']
         composer-flags: ['']
         name: ['']
         include:
-          - php: '8.0'
+          - php: '8.4'
             composer-flags: '--prefer-lowest'
             name: '(prefer lowest dependencies)'
 
@@ -31,6 +70,9 @@ jobs:
 
       - name: Setup Problem Matchers
         run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Validate composer.json
+        run: composer validate --strict
 
       - name: Install Composer dependencies
         run: |

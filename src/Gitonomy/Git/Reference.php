@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -23,35 +23,26 @@ use Gitonomy\Git\Exception\ReferenceNotFoundException;
  */
 abstract class Reference extends Revision
 {
-    protected $commitHash;
+    protected ?string $commitHash;
 
-    public function __construct(Repository $repository, $revision, $commitHash = null)
+    public function __construct(Repository $repository, string $revision, ?string $commitHash = null)
     {
-        $this->repository = $repository;
-        $this->revision = $revision;
+        parent::__construct($repository, $revision);
+
         $this->commitHash = $commitHash;
     }
 
-    /**
-     * @return string
-     */
-    public function getFullname()
+    public function getFullname(): string
     {
         return $this->revision;
     }
 
-    /**
-     * @return void
-     */
-    public function delete()
+    public function delete(): void
     {
         $this->repository->getReferences()->delete($this->getFullname());
     }
 
-    /**
-     * @return string
-     */
-    public function getCommitHash()
+    public function getCommitHash(): string
     {
         if (null !== $this->commitHash) {
             return $this->commitHash;
@@ -60,24 +51,21 @@ abstract class Reference extends Revision
         try {
             $result = $this->repository->run('rev-parse', ['--verify', $this->revision]);
         } catch (ProcessException $e) {
-            throw new ReferenceNotFoundException(sprintf('Can not find revision "%s"', $this->revision));
+            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $this->revision));
         }
 
         return $this->commitHash = trim($result);
     }
 
     /**
-     * @return Commit Commit associated to the reference.
+     * Returns the commit associated to the reference.
      */
-    public function getCommit()
+    public function getCommit(): Commit
     {
         return $this->repository->getCommit($this->getCommitHash());
     }
 
-    /**
-     * @return Commit
-     */
-    public function getLastModification($path = null)
+    public function getLastModification(?string $path = null): Commit
     {
         return $this->getCommit()->getLastModification($path);
     }

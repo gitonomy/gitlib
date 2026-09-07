@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -15,14 +15,14 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Log;
+use Gitonomy\Git\Repository;
 use Gitonomy\Git\Revision;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class RevisionTest extends AbstractTest
+class RevisionTest extends AbstractTestCase
 {
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetCommit($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetCommit(Repository $repository): void
     {
         $revision = $repository->getRevision(self::LONGFILE_COMMIT.'^');
 
@@ -35,10 +35,8 @@ class RevisionTest extends AbstractTest
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commit->getHash(), 'Resolution is correct');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetFailingReference($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetFailingReference(Repository $repository): void
     {
         $this->expectException(ReferenceNotFoundException::class);
         $this->expectExceptionMessage('Can not find revision "non-existent-commit"');
@@ -46,10 +44,8 @@ class RevisionTest extends AbstractTest
         $repository->getRevision('non-existent-commit')->getCommit();
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGetLog($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGetLog(Repository $repository): void
     {
         $revision = $repository->getRevision(self::LONGFILE_COMMIT);
 

@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -13,15 +13,27 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\PushReference;
+use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class PushReferenceTest extends AbstractTest
+class PushReferenceTest extends AbstractTestCase
 {
-    const CREATE = 1;
-    const DELETE = 2;
-    const FORCE = 4;
-    const FAST_FORWARD = 8;
+    public const CREATE = 1;
+    public const DELETE = 2;
+    public const FORCE = 4;
+    public const FAST_FORWARD = 8;
 
-    public function provideIsers()
+    #[DataProvider('provideIsers')]
+    public function testIsers(string $reference, string $before, string $after, int $mask): void
+    {
+        $reference = new PushReference(self::createFoobarRepository(), $reference, $before, $after);
+        $this->assertEquals($mask & self::CREATE, $reference->isCreate(), 'Create value is correct.');
+        $this->assertEquals($mask & self::DELETE, $reference->isDelete(), 'Delete value is correct.');
+        $this->assertEquals($mask & self::FORCE, $reference->isForce(), 'Force value is correct.');
+        $this->assertEquals($mask & self::FAST_FORWARD, $reference->isFastForward(), 'FastForward value is correct.');
+    }
+
+    public static function provideIsers(): array
     {
         // mask: force fastforward create delete
         return [
@@ -32,22 +44,8 @@ class PushReferenceTest extends AbstractTest
         ];
     }
 
-    /**
-     * @dataProvider provideIsers
-     */
-    public function testIsers($reference, $before, $after, $mask)
-    {
-        $reference = new PushReference(self::createFoobarRepository(), $reference, $before, $after);
-        $this->assertEquals($mask & self::CREATE, $reference->isCreate(), 'Create value is correct.');
-        $this->assertEquals($mask & self::DELETE, $reference->isDelete(), 'Delete value is correct.');
-        $this->assertEquals($mask & self::FORCE, $reference->isForce(), 'Force value is correct.');
-        $this->assertEquals($mask & self::FAST_FORWARD, $reference->isFastForward(), 'FastForward value is correct.');
-    }
-
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testLog($repository)
+    #[DataProvider('provideFoobar')]
+    public function testLog(Repository $repository): void
     {
         $ref = new PushReference($repository, 'foo', self::INITIAL_COMMIT, self::LONGFILE_COMMIT);
 
@@ -58,10 +56,9 @@ class PushReferenceTest extends AbstractTest
 
     /**
      * This test ensures that GPG signed requests does not break the reading of commit logs.
-     *
-     * @dataProvider provideFoobar
      */
-    public function testSignedLog($repository)
+    #[DataProvider('provideFoobar')]
+    public function testSignedLog(Repository $repository): void
     {
         $ref = new PushReference($repository, 'foo', self::INITIAL_COMMIT, self::SIGNED_COMMIT);
         $log = $ref->getLog()->getCommits();
@@ -69,10 +66,8 @@ class PushReferenceTest extends AbstractTest
         $this->assertEquals('signed commit', $log[0]->getShortMessage(), 'Last commit is correct');
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testLogWithExclude($repository)
+    #[DataProvider('provideFoobar')]
+    public function testLogWithExclude(Repository $repository): void
     {
         $ref = new PushReference($repository, 'foo', PushReference::ZERO, self::LONGFILE_COMMIT);
 

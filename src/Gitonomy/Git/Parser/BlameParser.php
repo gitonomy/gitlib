@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -15,18 +15,19 @@ namespace Gitonomy\Git\Parser;
 use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Repository;
 
-class BlameParser extends ParserBase
+final class BlameParser extends ParserBase
 {
-    public $lines;
+    /**
+     * @var Line[]
+     */
+    public array $lines = [];
 
-    protected $repository;
-
-    public function __construct(Repository $repository)
-    {
-        $this->repository = $repository;
+    public function __construct(
+        protected readonly Repository $repository,
+    ) {
     }
 
-    protected function doParse()
+    protected function doParse(): void
     {
         $this->lines = [];
 
@@ -39,7 +40,7 @@ class BlameParser extends ParserBase
             $vars = $this->consumeRegexp('/(\d+) (\d+)( (\d+))?/A');
             $sourceLine = $vars[1];
             $targetLine = $vars[2];
-            $blockLine = isset($vars[4]) ? $vars[4] : null;
+            $blockLine = $vars[4] ?? null;
             $this->consumeTo("\n");
             $this->consumeNewLine();
 
@@ -69,7 +70,7 @@ class BlameParser extends ParserBase
             $this->consumeNewLine();
 
             $this->lines[$line] = new Line($memory[$hash], $sourceLine, $targetLine, $blockLine, $content);
-            $line++;
+            ++$line;
         }
     }
 }

@@ -6,12 +6,22 @@ We accept contributions via pull requests on GitHub. Please review these guideli
 
 ## Guidelines
 
-* Please follow the [PSR-12 Coding Style Guide](https://www.php-fig.org/psr/psr-12/), enforced by [StyleCI](https://styleci.io/).
+* Please follow the [PSR-12 Coding Style Guide](https://www.php-fig.org/psr/psr-12/).
 * Ensure that the current tests pass, and if you've added something new, add the tests where relevant.
 * Send a coherent commit history, making sure each commit in your pull request is meaningful.
 * You may need to [rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing) to avoid merge conflicts.
 * If you are changing or adding to the behaviour or public API, you may need to update the docs.
 * Please remember that we follow [Semantic Versioning](https://semver.org/).
+
+You will need [Castor](https://castor.jolicode.com/) to run the tests, fix CS
+violations and run the static analysis. See [Castor's documentation](https://castor.jolicode.com/getting-started/installation/)
+for installation instructions.
+
+To install all the dependencies and tools, run:
+
+```bash
+$ castor install
+```
 
 ## Running Tests
 
@@ -27,6 +37,23 @@ Then run [PHPUnit](https://phpunit.de/):
 $ vendor/bin/phpunit
 ```
 
-* A script `test-git-version.sh` is available in repository to test gitlib against many git versions.
+* A script `test-git-versions.sh` is available in repository to test gitlib against many git versions.
 * The tests will be automatically run by [GitHub Actions](https://github.com/features/actions) against pull requests.
-* We also have [StyleCI](https://styleci.io/) set up to automatically fix any code style issues.
+
+## Standard code
+
+Use PHP-CS-Fixer to make your code compliant with gitlib's coding standards:
+
+```bash
+$ castor cs
+```
+
+## Static analysis
+
+Use PHPStan to ensure the code is free of errors:
+
+```bash
+$ castor phpstan
+```
+
+Both checks run automatically via GitHub Actions against pull requests.

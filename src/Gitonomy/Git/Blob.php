@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -17,62 +17,40 @@ namespace Gitonomy\Git;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
-class Blob
+final class Blob
 {
     /**
-     * @var int Size that git uses to look for NULL byte: https://git.kernel.org/pub/scm/git/git.git/tree/xdiff-interface.c?h=v2.44.0#n193
+     * Size that git uses to look for NULL byte: https://git.kernel.org/pub/scm/git/git.git/tree/xdiff-interface.c?h=v2.44.0#n193.
      */
-    private const FIRST_FEW_BYTES = 8000;
+    private const int FIRST_FEW_BYTES = 8000;
 
-    /**
-     * @var Repository
-     */
-    protected $repository;
+    private ?string $content = null;
 
-    /**
-     * @var string
-     */
-    protected $hash;
+    private string|false|null $mimetype = null;
 
-    /**
-     * @var string
-     */
-    protected $content;
-
-    /**
-     * @var string
-     */
-    protected $mimetype;
-
-    /**
-     * @var bool
-     */
-    protected $text;
+    private ?bool $text = null;
 
     /**
      * @param Repository $repository Repository where the blob is located
      * @param string     $hash       Hash of the blob
      */
-    public function __construct(Repository $repository, $hash)
-    {
-        $this->repository = $repository;
-        $this->hash = $hash;
+    public function __construct(
+        private readonly Repository $repository,
+        private readonly string $hash,
+    ) {
     }
 
-    /**
-     * @return string
-     */
-    public function getHash()
+    public function getHash(): string
     {
         return $this->hash;
     }
 
     /**
-     * @throws ProcessException Error occurred while getting content of blob
+     * @return string content of the blob
      *
-     * @return string Content of the blob.
+     * @throws Exception\ProcessException Error occurred while getting content of blob
      */
-    public function getContent()
+    public function getContent(): string
     {
         if (null === $this->content) {
             $this->content = $this->repository->run('cat-file', ['-p', $this->hash]);
@@ -83,13 +61,11 @@ class Blob
 
     /**
      * Determine the mimetype of the blob.
-     *
-     * @return string A mimetype
      */
-    public function getMimetype()
+    public function getMimetype(): string|false
     {
         if (null === $this->mimetype) {
-            $finfo = new \finfo(FILEINFO_MIME);
+            $finfo = new \finfo(\FILEINFO_MIME);
             $this->mimetype = $finfo->buffer($this->getContent());
         }
 
@@ -101,10 +77,8 @@ class Blob
      *
      * Uses the same check that git uses to determine if a file is binary or not
      * https://git.kernel.org/pub/scm/git/git.git/tree/xdiff-interface.c?h=v2.44.0#n193
-     *
-     * @return bool
      */
-    public function isBinary()
+    public function isBinary(): bool
     {
         return !$this->isText();
     }
@@ -114,13 +88,11 @@ class Blob
      *
      * Uses the same check that git uses to determine if a file is binary or not
      * https://git.kernel.org/pub/scm/git/git.git/tree/xdiff-interface.c?h=v2.44.0#n193
-     *
-     * @return bool
      */
-    public function isText()
+    public function isText(): bool
     {
         if (null === $this->text) {
-            $this->text = !str_contains(substr($this->getContent(), 0, self::FIRST_FEW_BYTES), chr(0));
+            $this->text = !str_contains(substr($this->getContent(), 0, self::FIRST_FEW_BYTES), \chr(0));
         }
 
         return $this->text;

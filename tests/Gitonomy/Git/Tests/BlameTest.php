@@ -1,6 +1,6 @@
 <?php
 
-/**
+/*
  * This file is part of Gitonomy.
  *
  * (c) Alexandre Salomé <alexandre.salome@gmail.com>
@@ -12,12 +12,13 @@
 
 namespace Gitonomy\Git\Tests;
 
-class BlameTest extends AbstractTest
+use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\DataProvider;
+
+class BlameTest extends AbstractTestCase
 {
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testBlame($repository)
+    #[DataProvider('provideFoobar')]
+    public function testBlame(Repository $repository): void
     {
         $blame = $repository->getBlame(self::LONGFILE_COMMIT, 'README.md');
 
@@ -30,10 +31,8 @@ class BlameTest extends AbstractTest
         $this->assertNotEquals(self::INITIAL_COMMIT, $blame->getLine(5)->getCommit()->getHash());
     }
 
-    /**
-     * @dataProvider provideFoobar
-     */
-    public function testGroupedBlame($repository)
+    #[DataProvider('provideFoobar')]
+    public function testGroupedBlame(Repository $repository): void
     {
         $blame = $repository->getBlame(self::LONGFILE_COMMIT, 'README.md')->getGroupedLines();
 
