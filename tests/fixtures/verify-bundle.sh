@@ -15,17 +15,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null
 
 BUNDLE="foobar.bundle"
 MAX_SIZE_KB=200
-
-ALLOWED_REFS="
-HEAD
-refs/heads/diff-features
-refs/heads/master
-refs/heads/new-feature
-refs/heads/pagination
-refs/heads/path-resolving
-refs/tags/0.1
-refs/tags/annotated
-"
+ALLOWED_REFS="$(cat bundle-refs.txt)"
 
 echo "== Verifying $BUNDLE =="
 
@@ -46,7 +36,7 @@ UNEXPECTED_REFS="$(comm -23 <(echo "$ACTUAL_REFS") <(sort -u <<< "$ALLOWED_REFS"
 if [ -n "$UNEXPECTED_REFS" ]; then
     echo "ERROR: $BUNDLE contains refs that are not in the allow-list:" >&2
     echo "$UNEXPECTED_REFS" >&2
-    echo "If this is expected, update ALLOWED_REFS in $0 as part of the same PR." >&2
+    echo "If this is expected, update tests/fixtures/bundle-refs.txt as part of the same PR." >&2
     exit 1
 fi
 

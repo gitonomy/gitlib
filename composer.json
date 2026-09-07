@@ -43,7 +43,8 @@
     "require-dev": {
         "ext-fileinfo": "*",
         "phpunit/phpunit": "^12.0",
-        "psr/log": "^3.0"
+        "psr/log": "^3.0",
+        "symfony/console": "^8.1"
     },
     "config": {
         "preferred-install": "dist",
