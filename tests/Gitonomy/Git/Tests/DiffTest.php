@@ -224,6 +224,26 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('', $file->getNewIndex());
     }
 
+    public function testMnemonicPrefix(): void
+    {
+        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
+
+        // With `diff.mnemonicPrefix` enabled, git replaces the default "a/" and "b/"
+        // prefixes with context-specific ones, e.g. "c/" (commit) and "i/" (index)
+        // for `git diff --cached`. See https://github.com/gitonomy/gitlib/issues/114.
+        $diff = Diff::parse(<<<'DIFF'
+            diff --git c/composer.json i/composer.json
+            index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 100644
+            --- c/composer.json
+            +++ i/composer.json
+
+            DIFF);
+        $firstFile = $diff->getFiles()[0];
+
+        $this->assertSame('composer.json', $firstFile->getOldName());
+        $this->assertSame('composer.json', $firstFile->getNewName());
+    }
+
     public function testEmptyNewFile(): void
     {
         $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
