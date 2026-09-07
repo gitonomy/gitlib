@@ -30,6 +30,27 @@ class RepositoryTest extends AbstractTestCase
         $this->assertNull($repository->run('not-a-command'));
     }
 
+    public function testRunProcessGivesAccessToStderrOnSuccess(): void
+    {
+        $repository = self::createFoobarRepository(false);
+
+        // `git checkout` reports the switched branch on stderr, even on success.
+        $process = $repository->runProcess('checkout', ['master']);
+
+        $this->assertTrue($process->isSuccessful());
+        $this->assertStringContainsString('master', $process->getErrorOutput());
+    }
+
+    public function testRunProcessReturnsFailedProcessInsteadOfThrowingWhenDebugIsFalse(): void
+    {
+        $repository = self::createFoobarRepository(true);
+        $repository = new Repository($repository->getPath(), array_merge(self::getOptions(), ['debug' => false]));
+
+        $process = $repository->runProcess('not-a-command');
+
+        $this->assertFalse($process->isSuccessful());
+    }
+
     public function testGetShortHashThrowsCleanExceptionWhenDebugIsFalse(): void
     {
         $repository = self::createFoobarRepository(true);

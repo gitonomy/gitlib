@@ -470,6 +470,11 @@ final class Repository
      * This command is a facility command. You can run any command
      * directly on git repository.
      *
+     * Note that this only returns the standard output of the process. Some
+     * git commands (`push`, for instance) write their meaningful output to
+     * stderr even when they succeed: use {@see runProcess()} instead if you
+     * need access to it.
+     *
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
@@ -478,6 +483,26 @@ final class Repository
      * @throws RuntimeException Error while executing git command (debug-mode only)
      */
     public function run(string $command, array $args = []): ?string
+    {
+        $process = $this->runProcess($command, $args);
+
+        return $process->isSuccessful() ? $process->getOutput() : null;
+    }
+
+    /**
+     * Same as {@see run()}, but returns the full, already-run process
+     * instead of only its standard output on success.
+     *
+     * This is useful for commands like `push`, which write their
+     * meaningful output to stderr even when they succeed, so it can't be
+     * read through run().
+     *
+     * @param string $command Git command to run (checkout, branch, tag)
+     * @param array  $args    Arguments of git command
+     *
+     * @throws RuntimeException Error while executing git command (debug-mode only)
+     */
+    public function runProcess(string $command, array $args = []): Process
     {
         $process = $this->getProcess($command, $args);
 
@@ -488,13 +513,11 @@ final class Repository
 
         $process->run();
 
-        $output = $process->getOutput();
-
         if ($this->logger && $this->debug) {
             $duration = microtime(true) - $before;
             $this->logger->debug(\sprintf('last command (%s) duration: %sms', $command, \sprintf('%.2f', $duration * 1000)));
             $this->logger->debug(\sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
-            $this->logger->debug(\sprintf('last command (%s) output: %s', $command, $output));
+            $this->logger->debug(\sprintf('last command (%s) output: %s', $command, $process->getOutput()));
         }
 
         if (!$process->isSuccessful()) {
@@ -507,11 +530,9 @@ final class Repository
             if ($this->debug) {
                 throw new ProcessException($process);
             }
-
-            return null;
         }
 
-        return $output;
+        return $process;
     }
 
     /**
