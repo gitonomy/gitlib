@@ -101,6 +101,29 @@ final readonly class WorkingCopy
         return $this;
     }
 
+    /**
+     * Merges a revision into the current branch.
+     *
+     * @param Commit|Reference|string $revision
+     * @param string[]                $args     extra arguments for the merge command (e.g. ``['--no-ff']``)
+     */
+    public function merge($revision, array $args = []): static
+    {
+        if ($revision instanceof Commit) {
+            $args[] = $revision->getHash();
+        } elseif ($revision instanceof Reference) {
+            $args[] = $revision->getFullname();
+        } elseif (\is_string($revision)) {
+            $args[] = $revision;
+        } else {
+            throw new InvalidArgumentException(\sprintf('Unknown type "%s"', \gettype($revision)));
+        }
+
+        $this->run('merge', $args);
+
+        return $this;
+    }
+
     private function run(string $command, array $args = []): ?string
     {
         return $this->repository->run($command, $args);
