@@ -1,0 +1,8 @@
+HEAD
+refs/heads/master
+refs/heads/new-feature
+refs/heads/diff-features
+refs/heads/pagination
+refs/heads/path-resolving
+refs/tags/0.1
+refs/tags/annotated
