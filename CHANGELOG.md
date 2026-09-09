@@ -54,6 +54,11 @@ Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0).
 
 ### Minor
 
+- Replace `Gitonomy\Git\Util\StringHelper` with `symfony/string`'s `CodePointString`, which
+  covers the same UTF-8-aware `strlen`/`substr`/`strpos`/`strrpos` operations.
+  **Breaking:** `StringHelper` is removed, along with its configurable encoding
+  (`getEncoding()`/`setEncoding()`); the library now consistently targets `UTF-8`.
+  ([#252](https://github.com/gitonomy/gitlib/pull/252))
 - Modernize for PHP 8.4+, Symfony 6.4/7.4/8.1+ and PHPUnit 12: full property/parameter/return
   type coverage, `readonly`/`final` where applicable, PHPUnit 12 attributes, and new
   php-cs-fixer/PHPStan/Castor tooling.

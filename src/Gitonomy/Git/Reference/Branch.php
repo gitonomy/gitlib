@@ -15,7 +15,7 @@ namespace Gitonomy\Git\Reference;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference;
-use Gitonomy\Git\Util\StringHelper;
+use Symfony\Component\String\CodePointString;
 
 /**
  * Representation of a branch reference.
@@ -82,7 +82,7 @@ final class Branch extends Reference
 
         $output = explode("\n", trim(str_replace(['*', 'remotes/'], '', $result)));
         $filtered_output = array_filter($output, static function ($v) {
-            return false === StringHelper::strpos($v, '->');
+            return null === new CodePointString($v)->indexOf('->');
         });
         $trimmed_output = array_map('trim', $filtered_output);
 

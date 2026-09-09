@@ -37,8 +37,8 @@
     "require": {
         "php": "^8.4",
         "ext-pcre": "*",
-        "symfony/polyfill-mbstring": "^1.7",
-        "symfony/process": "^6.4 || ^7.4 || ^8.1"
+        "symfony/process": "^6.4 || ^7.4 || ^8.1",
+        "symfony/string": "^7.4.6 || ^8.0.6"
     },
     "require-dev": {
         "ext-fileinfo": "*",
