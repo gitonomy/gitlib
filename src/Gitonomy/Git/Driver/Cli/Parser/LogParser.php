@@ -10,43 +10,46 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Gitonomy\Git\Parser;
+namespace Gitonomy\Git\Driver\Cli\Parser;
 
-final class LogParser extends CommitParser
+use Gitonomy\Git\Driver\Data\CommitData;
+use Gitonomy\Git\Parser\ParserBase;
+
+/**
+ * Parses the output of ``git log --format=raw``.
+ */
+final class LogParser extends ParserBase
 {
     /**
-     * @var array[]
+     * @var array<string, CommitData> Indexed by hash
      */
-    public array $log = [];
+    public array $commits = [];
 
     protected function doParse(): void
     {
-        $this->log = [];
+        $this->commits = [];
 
         while (!$this->isFinished()) {
-            $commit = [];
             $this->consume('commit ');
-            $commit['id'] = $this->consumeHash();
+            $hash = $this->consumeHash();
             $this->consumeNewLine();
 
             $this->consume('tree ');
-            $commit['treeHash'] = $this->consumeHash();
+            $treeHash = $this->consumeHash();
             $this->consumeNewLine();
 
-            $commit['parentHashes'] = [];
+            $parentHashes = [];
             while ($this->expects('parent ')) {
-                $commit['parentHashes'][] = $this->consumeHash();
+                $parentHashes[] = $this->consumeHash();
                 $this->consumeNewLine();
             }
 
             $this->consume('author ');
-            [$commit['authorName'], $commit['authorEmail'], $authorDate] = $this->consumeNameEmailDate();
-            $commit['authorDate'] = $this->parseDate($authorDate);
+            [$authorName, $authorEmail, $authorDate] = $this->consumeNameEmailDate();
             $this->consumeNewLine();
 
             $this->consume('committer ');
-            [$commit['committerName'], $commit['committerEmail'], $committerDate] = $this->consumeNameEmailDate();
-            $commit['committerDate'] = $this->parseDate($committerDate);
+            [$committerName, $committerEmail, $committerDate] = $this->consumeNameEmailDate();
 
             $this->consumeMergeTag();
 
@@ -75,13 +78,11 @@ final class LogParser extends CommitParser
                 $this->consumeNewLine();
             }
 
-            $commit['message'] = $message;
-
-            $this->log[] = $commit;
+            $this->commits[$hash] = new CommitData($treeHash, $parentHashes, $authorName, $authorEmail, $authorDate, $committerName, $committerEmail, $committerDate, $message);
         }
     }
 
-    protected function consumeUnsupportedLinesToNewLine(): void
+    private function consumeUnsupportedLinesToNewLine(): void
     {
         // Consume any unsupported lines that may appear in the log output. For
         // example, gitbutler headers or other custom metadata but this should

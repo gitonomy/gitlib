@@ -13,7 +13,6 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
-use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Stash;
 use Gitonomy\Git\Reference\Tag;
@@ -92,7 +91,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
         $fullname = $reference->getFullname();
 
         $this->initialize();
-        $this->repository->run('update-ref', [$fullname, $reference->getCommitHash()]);
+        $this->repository->getRepositoryDriver()->updateReference($fullname, $reference->getCommitHash());
 
         $this->references[$fullname] = $reference;
 
@@ -115,7 +114,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
 
     public function delete(string $fullname): void
     {
-        $this->repository->run('update-ref', ['-d', $fullname]);
+        $this->repository->getRepositoryDriver()->deleteReference($fullname);
 
         unset($this->references[$fullname]);
     }
@@ -345,16 +344,9 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
         }
         $this->initialized = true;
 
-        try {
-            $parser = new Parser\ReferenceParser();
-            $output = $this->repository->run('show-ref');
-        } catch (RuntimeException $e) {
-            return;
-        }
-        $parser->parse($output);
-
-        foreach ($parser->references as $row) {
-            [$commitHash, $fullname] = $row;
+        foreach ($this->repository->getRepositoryDriver()->getReferences() as $reference) {
+            $commitHash = $reference->commitHash;
+            $fullname = $reference->fullname;
 
             if (preg_match('#^refs/(heads|remotes)/(.*)$#', $fullname)) {
                 if (preg_match('#.*HEAD$#', $fullname)) {

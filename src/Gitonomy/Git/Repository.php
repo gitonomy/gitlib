@@ -13,9 +13,14 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Driver\Cli\CliRepositoryDriver;
+use Gitonomy\Git\Driver\DriverInterface;
+use Gitonomy\Git\Driver\RepositoryDriverInterface;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 
@@ -72,26 +77,14 @@ final class Repository
     private ?LoggerInterface $logger;
 
     /**
-     * Path to git command.
+     * Backend used to run operations.
      */
-    private readonly string $command;
+    private readonly DriverInterface $driver;
 
     /**
-     * Debug flag, indicating if errors should be thrown.
+     * Operations on this repository, opened by the driver.
      */
-    private readonly bool $debug;
-
-    /**
-     * Environment variables that should be set for every running process.
-     */
-    private readonly array $environmentVariables;
-
-    private readonly bool $inheritEnvironmentVariables;
-
-    /**
-     * Timeout that should be set for every running process.
-     */
-    private readonly int $processTimeout;
+    private RepositoryDriverInterface $repositoryDriver;
 
     /**
      * Constructs a new repository.
@@ -100,27 +93,25 @@ final class Repository
      *
      * * working_dir : specify where working copy is located (option --work-tree)
      *
-     * * debug : (default: true) enable/disable minimize errors and reduce log level
-     *
      * * logger : a logger to use for logging actions (Psr\Log\LoggerInterface)
      *
-     * * environment_variables : define environment variables for every ran process
+     * @param string          $dir     path to git repository
+     * @param array           $options array of options values
+     * @param DriverInterface $driver  backend used to run operations
      *
-     * @param string $dir     path to git repository
-     * @param array  $options array of options values
-     *
-     * @throws InvalidArgumentException The folder does not exists
+     * @throws InvalidArgumentException The folder does not exists, or an option is unknown
      */
-    public function __construct(string $dir, array $options = [])
+    public function __construct(string $dir, array $options = [], DriverInterface $driver = new CliDriver())
     {
+        // The options of 1.x configuring git are now arguments of the driver.
+        $unknownOptions = array_diff(array_keys($options), ['logger', 'working_dir']);
+        if ([] !== $unknownOptions) {
+            throw new InvalidArgumentException(\sprintf('Unknown options "%s": expected "logger" or "working_dir". Configure git through the driver argument, a CliDriver by default.', implode('", "', $unknownOptions)));
+        }
+
         $options = array_merge([
             'working_dir' => null,
-            'debug' => true,
             'logger' => null,
-            'command' => 'git',
-            'environment_variables' => [],
-            'inherit_environment_variables' => false,
-            'process_timeout' => 3600,
         ], $options);
 
         if (null !== $options['logger'] && !$options['logger'] instanceof LoggerInterface) {
@@ -130,20 +121,20 @@ final class Repository
         $this->logger = $options['logger'];
         [$this->gitDir, $this->workingDir] = self::resolveDir($dir, $options['working_dir']);
 
-        $this->command = $options['command'];
-        $this->debug = (bool) $options['debug'];
-        $this->processTimeout = $options['process_timeout'];
+        $this->driver = $driver;
+        $this->repositoryDriver = $driver->open($this->gitDir, $this->workingDir, $this->logger);
 
-        if (\defined('PHP_WINDOWS_VERSION_BUILD') && isset($_SERVER['PATH']) && !isset($options['environment_variables']['PATH'])) {
-            $options['environment_variables']['PATH'] = $_SERVER['PATH'];
-        }
+        $this->logger?->debug(\sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ?? 'none'));
+    }
 
-        $this->environmentVariables = $options['environment_variables'];
-        $this->inheritEnvironmentVariables = $options['inherit_environment_variables'];
-
-        if (true === $this->debug && null !== $this->logger) {
-            $this->logger->debug(\sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ?: 'none'));
-        }
+    /**
+     * Returns the operations on this repository, opened by the driver.
+     *
+     * @internal
+     */
+    public function getRepositoryDriver(): RepositoryDriverInterface
+    {
+        return $this->repositoryDriver;
     }
 
     /**
@@ -156,10 +147,8 @@ final class Repository
 
     /**
      * Returns the HEAD resolved as a commit.
-     *
-     * @return Commit|null returns a Commit or ``null`` if repository is empty
      */
-    public function getHeadCommit(): ?Commit
+    public function getHeadCommit(): Commit
     {
         $head = $this->getHead();
 
@@ -171,31 +160,21 @@ final class Repository
     }
 
     /**
-     * @return Reference|Commit|null current HEAD object or null if error occurs
+     * @return Reference|Commit current HEAD object
      *
-     * @throws RuntimeException Unable to find file HEAD (debug-mode only)
+     * @throws RuntimeException Unable to read the HEAD file
      */
-    public function getHead(): Reference|Commit|null
+    public function getHead(): Reference|Commit
     {
         $file = $this->gitDir.'/HEAD';
 
         if (!file_exists($file)) {
-            $message = \sprintf('Unable to find HEAD file ("%s")', $file);
-
-            if (null !== $this->logger) {
-                $this->logger->error($message);
-            }
-
-            if (true === $this->debug) {
-                throw new RuntimeException($message);
-            }
+            throw new RuntimeException(\sprintf('Unable to find HEAD file ("%s").', $file));
         }
 
         $content = trim(file_get_contents($file));
 
-        if (null !== $this->logger) {
-            $this->logger->debug('HEAD file read: '.$content);
-        }
+        $this->logger?->debug('HEAD file read: '.$content);
 
         if (preg_match('/^ref: (.+)$/', $content, $vars)) {
             return $this->getReferences()->get($vars[1]);
@@ -204,17 +183,7 @@ final class Repository
             return $this->getCommit($content);
         }
 
-        $message = \sprintf('Unexpected HEAD file content (file: %s). Content of file: %s', $file, $content);
-
-        if (null !== $this->logger) {
-            $this->logger->error($message);
-        }
-
-        if (true === $this->debug) {
-            throw new RuntimeException($message);
-        }
-
-        return null;
+        throw new RuntimeException(\sprintf('Unexpected HEAD file content (file: %s). Content of file: %s.', $file, $content));
     }
 
     public function isHeadDetached(): bool
@@ -359,15 +328,7 @@ final class Repository
             $revisions = new RevisionList($this, $revisions);
         }
 
-        // --no-abbrev: before git 2.16, --raw abbreviates hashes with a trailing "...".
-        $args = array_merge(['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index', '--no-abbrev'], $revisions->getAsTextArray());
-
-        $result = $this->run('diff', $args);
-        if (null === $result) {
-            throw new RuntimeException('Unable to compute diff.');
-        }
-
-        $diff = Diff::parse($result);
+        $diff = $this->repositoryDriver->getDiff($revisions->getAsTextArray());
         $diff->setRepository($this);
 
         return $diff;
@@ -427,12 +388,10 @@ final class Repository
         $file = $this->gitDir.'/description';
         $exists = is_file($file);
 
-        if (null !== $this->logger && true === $this->debug) {
-            if (false === $exists) {
-                $this->logger->debug(\sprintf('no description file in repository ("%s")', $file));
-            } else {
-                $this->logger->debug(\sprintf('reading description file in repository ("%s")', $file));
-            }
+        if (false === $exists) {
+            $this->logger?->debug(\sprintf('no description file in repository ("%s")', $file));
+        } else {
+            $this->logger?->debug(\sprintf('reading description file in repository ("%s")', $file));
         }
 
         if (false === $exists) {
@@ -459,9 +418,7 @@ final class Repository
     {
         $file = $this->gitDir.'/description';
 
-        if (null !== $this->logger && true === $this->debug) {
-            $this->logger->debug(\sprintf('change description file content to "%s" (file: %s)', $description, $file));
-        }
+        $this->logger?->debug(\sprintf('change description file content to "%s" (file: %s)', $description, $file));
         file_put_contents($file, $description);
 
         return $this;
@@ -479,15 +436,14 @@ final class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @return string|null output of a successful process or null if execution failed and debug-mode is disabled
+     * @return string output of the process
      *
-     * @throws RuntimeException Error while executing git command (debug-mode only)
+     * @throws ProcessException              Error while executing git command
+     * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
-    public function run(string $command, array $args = []): ?string
+    public function run(string $command, array $args = []): string
     {
-        $process = $this->runProcess($command, $args);
-
-        return $process->isSuccessful() ? $process->getOutput() : null;
+        return $this->runProcess($command, $args)->getOutput();
     }
 
     /**
@@ -501,39 +457,16 @@ final class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @throws RuntimeException Error while executing git command (debug-mode only)
+     * @throws ProcessException              Error while executing git command
+     * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
     public function runProcess(string $command, array $args = []): Process
     {
-        $process = $this->getProcess($command, $args);
-
-        if ($this->logger) {
-            $this->logger->info(\sprintf('run command: %s "%s" ', $command, implode(' ', $args)));
-            $before = microtime(true);
+        if (!$this->repositoryDriver instanceof CliRepositoryDriver) {
+            throw new UnsupportedOperationException('Only CliDriver can run git commands.');
         }
 
-        $process->run();
-
-        if ($this->logger && $this->debug) {
-            $duration = microtime(true) - $before;
-            $this->logger->debug(\sprintf('last command (%s) duration: %sms', $command, \sprintf('%.2f', $duration * 1000)));
-            $this->logger->debug(\sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
-            $this->logger->debug(\sprintf('last command (%s) output: %s', $command, $process->getOutput()));
-        }
-
-        if (!$process->isSuccessful()) {
-            $error = \sprintf("error while running %s\n output: \"%s\"", $command, $process->getErrorOutput());
-
-            if ($this->logger) {
-                $this->logger->error($error);
-            }
-
-            if ($this->debug) {
-                throw new ProcessException($process);
-            }
-        }
-
-        return $process;
+        return $this->repositoryDriver->runProcess($command, $args);
     }
 
     /**
@@ -546,6 +479,7 @@ final class Repository
     public function setLogger(LoggerInterface $logger): static
     {
         $this->logger = $logger;
+        $this->repositoryDriver = $this->driver->open($this->gitDir, $this->workingDir, $logger);
 
         return $this;
     }
@@ -561,6 +495,8 @@ final class Repository
     /**
      * Clones the current repository to a new directory and return instance of new repository.
      *
+     * The clone uses the driver of the current repository.
+     *
      * @param string $path path to the new repository in which current repository will be cloned
      * @param bool   $bare flag indicating if repository is bare or has a working-copy
      *
@@ -568,7 +504,7 @@ final class Repository
      */
     public function cloneTo(string $path, bool $bare = true, array $options = []): self
     {
-        return Admin::cloneTo($path, $this->gitDir, $bare, $options);
+        return Admin::cloneTo($path, $this->gitDir, $bare, $options, $this->driver);
     }
 
     /**
@@ -595,38 +531,5 @@ final class Repository
         }
 
         return [$realGitDir, $workingDir];
-    }
-
-    /**
-     * This internal method is used to create a process object.
-     *
-     * Made private to be sure that process creation is handled through the run method.
-     * run method ensures logging and debug.
-     *
-     * @see self::run
-     */
-    private function getProcess(string $command, array $args = []): Process
-    {
-        $base = [$this->command, '--git-dir', $this->gitDir];
-
-        if ($this->workingDir) {
-            $base = array_merge($base, ['--work-tree', $this->workingDir]);
-        }
-
-        $base[] = $command;
-
-        $process = new Process(array_merge($base, $args));
-        $process->setWorkingDirectory($this->getPath());
-
-        if ($this->inheritEnvironmentVariables) {
-            $process->setEnv(array_replace($_SERVER, $this->environmentVariables));
-        } else {
-            $process->setEnv($this->environmentVariables);
-        }
-
-        $process->setTimeout($this->processTimeout);
-        $process->setIdleTimeout($this->processTimeout);
-
-        return $process;
     }
 }

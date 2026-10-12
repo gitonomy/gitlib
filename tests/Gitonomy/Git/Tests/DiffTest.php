@@ -115,10 +115,41 @@ class DiffTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
+    public function testRootCommitDiffListsTheFilesItAdds(Repository $repository): void
+    {
+        $files = $repository->getCommit(self::INITIAL_COMMIT)->getDiff()->getFiles();
+
+        $this->assertCount(1, $files);
+        $this->assertTrue($files[0]->isCreation());
+        $this->assertSame('README', $files[0]->getNewName());
+    }
+
+    #[DataProvider('provideFoobar')]
     public function testWorksWithUmlauts(Repository $repository): void
     {
         $files = $repository->getCommit(self::FILE_WITH_UMLAUTS_COMMIT)->getDiff()->getFiles();
-        $this->assertSame('file_with_umlauts_\303\244\303\266\303\274', $files[0]->getNewName());
+        $this->assertSame('file_with_umlauts_äöü', $files[0]->getNewName());
+    }
+
+    public function testUnquotesNames(): void
+    {
+        $diff = Diff::parse(<<<'DIFF'
+            :000000 100644 0000000000000000000000000000000000000000 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 A	"tab\there"
+            :100644 100644 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 d00491fd7e5bb6fa28c517a0bb32b8b506539d4d M	"caf\303\251 \"au lait\""
+
+            diff --git "a/tab\there" "b/tab\there"
+            new file mode 100644
+            index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+            diff --git "a/caf\303\251 \"au lait\"" "b/caf\303\251 \"au lait\""
+            index e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..d00491fd7e5bb6fa28c517a0bb32b8b506539d4d 100644
+            Binary files "a/caf\303\251 \"au lait\"" and "b/caf\303\251 \"au lait\"" differ
+
+            DIFF);
+        $files = $diff->getFiles();
+
+        $this->assertSame("tab\there", $files[0]->getNewName());
+        $this->assertSame('café "au lait"', $files[1]->getOldName());
+        $this->assertSame('café "au lait"', $files[1]->getNewName());
     }
 
     public function testDeleteFileWithoutRaw(): void

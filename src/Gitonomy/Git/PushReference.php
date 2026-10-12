@@ -112,16 +112,13 @@ final readonly class PushReference
             return false;
         }
 
-        $result = $this->repository->run('merge-base', [
-            $this->before,
-            $this->after,
-        ]);
+        $result = $this->repository->getRepositoryDriver()->getMergeBase($this->before, $this->after);
 
         if (null === $result) {
             // No common ancestor could be established: treat it as a force update.
             return true;
         }
 
-        return $this->before !== trim($result);
+        return $this->before !== $result;
     }
 }

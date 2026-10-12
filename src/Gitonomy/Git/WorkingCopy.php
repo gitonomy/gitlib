@@ -15,7 +15,6 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
-use Gitonomy\Git\Exception\RuntimeException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -35,30 +34,12 @@ final readonly class WorkingCopy
      */
     public function getUntrackedFiles(): array
     {
-        $output = $this->run('status', ['--porcelain', '--untracked-files=all', '-z']);
-        if (null === $output) {
-            return [];
-        }
-
-        $lines = explode("\0", $output);
-        $lines = array_filter($lines, static function ($l) {
-            return '?? ' === substr($l, 0, 3);
-        });
-
-        return array_map(static function ($l) {
-            return substr($l, 3);
-        }, $lines);
+        return $this->repository->getRepositoryDriver()->getUntrackedFiles();
     }
 
     public function getDiffPending(): Diff
     {
-        // --no-abbrev: before git 2.16, --raw abbreviates hashes with a trailing "...".
-        $result = $this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index', '--no-abbrev']);
-        if (null === $result) {
-            throw new RuntimeException('Unable to compute pending diff.');
-        }
-
-        $diff = Diff::parse($result);
+        $diff = $this->repository->getRepositoryDriver()->getDiffPending();
         $diff->setRepository($this->repository);
 
         return $diff;
@@ -66,12 +47,7 @@ final readonly class WorkingCopy
 
     public function getDiffStaged(): Diff
     {
-        $result = $this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index', '--no-abbrev', '--staged']);
-        if (null === $result) {
-            throw new RuntimeException('Unable to compute staged diff.');
-        }
-
-        $diff = Diff::parse($result);
+        $diff = $this->repository->getRepositoryDriver()->getDiffStaged();
         $diff->setRepository($this->repository);
 
         return $diff;
@@ -82,22 +58,11 @@ final readonly class WorkingCopy
      */
     public function checkout($revision, ?string $branch = null): static
     {
-        $args = [];
-        if ($revision instanceof Commit) {
-            $args[] = $revision->getHash();
-        } elseif ($revision instanceof Reference) {
-            $args[] = $revision->getFullname();
-        } elseif (\is_string($revision)) {
-            $args[] = $revision;
+        if (null === $branch) {
+            $this->repository->getRepositoryDriver()->checkout($this->revisionToString($revision));
         } else {
-            throw new InvalidArgumentException(\sprintf('Unknown type "%s"', \gettype($revision)));
+            $this->repository->getRepositoryDriver()->checkoutNewBranch($branch, $this->revisionToString($revision));
         }
-
-        if (null !== $branch) {
-            $args = array_merge($args, ['-b', $branch]);
-        }
-
-        $this->run('checkout', $args);
 
         return $this;
     }
@@ -110,23 +75,26 @@ final readonly class WorkingCopy
      */
     public function merge($revision, array $args = []): static
     {
-        if ($revision instanceof Commit) {
-            $args[] = $revision->getHash();
-        } elseif ($revision instanceof Reference) {
-            $args[] = $revision->getFullname();
-        } elseif (\is_string($revision)) {
-            $args[] = $revision;
-        } else {
-            throw new InvalidArgumentException(\sprintf('Unknown type "%s"', \gettype($revision)));
-        }
-
-        $this->run('merge', $args);
+        $this->repository->getRepositoryDriver()->merge($this->revisionToString($revision), $args);
 
         return $this;
     }
 
-    private function run(string $command, array $args = []): ?string
+    /**
+     * @param Commit|Reference|string $revision
+     */
+    private function revisionToString($revision): string
     {
-        return $this->repository->run($command, $args);
+        if ($revision instanceof Commit) {
+            $result = $revision->getHash();
+        } elseif ($revision instanceof Reference) {
+            $result = $revision->getFullname();
+        } elseif (\is_string($revision)) {
+            $result = $revision;
+        } else {
+            throw new InvalidArgumentException(\sprintf('Unknown type "%s"', \gettype($revision)));
+        }
+
+        return $result;
     }
 }

@@ -14,20 +14,37 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\Commit;
+use Gitonomy\Git\Driver\Data\ReferenceData;
+use Gitonomy\Git\Driver\DriverInterface;
+use Gitonomy\Git\Driver\RepositoryDriverInterface;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Log\LoggerInterface;
 
 class RepositoryTest extends AbstractTestCase
 {
-    public function testRunReturnsNullInsteadOfThrowingWhenDebugIsFalse(): void
+    public function testNullProcessTimeoutDisablesTheTimeout(): void
     {
         $repository = self::createFoobarRepository(true);
-        $repository = new Repository($repository->getPath(), array_merge(self::getOptions(), ['debug' => false]));
+        $repository = new Repository($repository->getPath(), driver: self::getDriver(processTimeout: null));
 
-        $this->assertNull($repository->run('not-a-command'));
+        $process = $repository->runProcess('rev-parse', ['HEAD']);
+        $this->assertNull($process->getTimeout());
+        $this->assertNull($process->getIdleTimeout());
+    }
+
+    public function testRunThrowsWhenTheCommandFails(): void
+    {
+        $repository = self::createFoobarRepository(true);
+
+        $this->expectException(ProcessException::class);
+
+        $repository->run('not-a-command');
     }
 
     public function testRunProcessGivesAccessToStderrOnSuccess(): void
@@ -41,20 +58,9 @@ class RepositoryTest extends AbstractTestCase
         $this->assertStringContainsString('master', $process->getErrorOutput());
     }
 
-    public function testRunProcessReturnsFailedProcessInsteadOfThrowingWhenDebugIsFalse(): void
+    public function testGetShortHashOfAnUnknownCommitThrowsReferenceNotFound(): void
     {
         $repository = self::createFoobarRepository(true);
-        $repository = new Repository($repository->getPath(), array_merge(self::getOptions(), ['debug' => false]));
-
-        $process = $repository->runProcess('not-a-command');
-
-        $this->assertFalse($process->isSuccessful());
-    }
-
-    public function testGetShortHashThrowsCleanExceptionWhenDebugIsFalse(): void
-    {
-        $repository = self::createFoobarRepository(true);
-        $repository = new Repository($repository->getPath(), array_merge(self::getOptions(), ['debug' => false]));
 
         $commit = new Commit($repository, str_repeat('a', 40));
 
@@ -124,13 +130,13 @@ class RepositoryTest extends AbstractTestCase
             ->method('info')
             ->with($this->isString())
         ;
-        $logger->expects($this->exactly(3)) // duration, return code and output
+        $logger->expects($this->exactly(4)) // duration, return code, output and error output
             ->method('debug')
             ->with($this->isString())
         ;
-        $logger->expects($this->once())
+        // The exception reports the failure: the caller may well expect it.
+        $logger->expects($this->never())
             ->method('error')
-            ->with($this->isString())
         ;
 
         $repository->setLogger($logger);
@@ -170,5 +176,53 @@ class RepositoryTest extends AbstractTestCase
         }
 
         $this->assertSame($original."Applied line.\n", file_get_contents($file));
+    }
+
+    public function testRunIsOnlySupportedByCliDriver(): void
+    {
+        $repository = new Repository(self::createTempDir(), driver: $this->createStub(DriverInterface::class));
+
+        $this->expectException(UnsupportedOperationException::class);
+
+        $repository->run('status');
+    }
+
+    public function testDriverOpensTheRepository(): void
+    {
+        $dir = realpath(self::createTempDir());
+        $logger = $this->createStub(LoggerInterface::class);
+        $repositoryDriver = $this->createStub(RepositoryDriverInterface::class);
+        $repositoryDriver->method('getReferences')->willReturn([new ReferenceData('refs/heads/main', self::INITIAL_COMMIT)]);
+
+        $driver = $this->createMock(DriverInterface::class);
+        $driver->expects($this->once())->method('open')->with($dir, null, $logger)->willReturn($repositoryDriver);
+
+        $repository = new Repository($dir, ['logger' => $logger], $driver);
+
+        $this->assertSame(self::INITIAL_COMMIT, $repository->getReferences()->getBranch('main')->getCommitHash());
+    }
+
+    public function testSetLoggerReopensTheRepositoryWithIt(): void
+    {
+        $loggers = [];
+        $driver = $this->createStub(DriverInterface::class);
+        $driver->method('open')->willReturnCallback(function (string $gitDir, ?string $workingDir, ?LoggerInterface $logger) use (&$loggers): RepositoryDriverInterface {
+            $loggers[] = $logger;
+
+            return $this->createStub(RepositoryDriverInterface::class);
+        });
+        $logger = $this->createStub(LoggerInterface::class);
+
+        new Repository(self::createTempDir(), driver: $driver)->setLogger($logger);
+
+        $this->assertSame([null, $logger], $loggers);
+    }
+
+    public function testUnknownOptionsAreRefused(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown options "command", "process_timeout": expected "logger" or "working_dir". Configure git through the driver argument, a CliDriver by default.');
+
+        new Repository(self::createTempDir(), ['command' => 'git', 'process_timeout' => 60]);
     }
 }

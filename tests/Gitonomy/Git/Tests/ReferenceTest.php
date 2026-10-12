@@ -71,16 +71,6 @@ class ReferenceTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
-    public function testIsAnnotatedIsFalseForLightweightTagWhenDebugIsFalse(Repository $repository): void
-    {
-        $repository = new Repository($repository->getPath(), array_merge(self::getOptions(), ['debug' => false]));
-
-        $tag = $repository->getReferences()->getTag('0.1');
-
-        $this->assertFalse($tag->isAnnotated(), 'Lightweight tag must not be reported as annotated');
-    }
-
-    #[DataProvider('provideFoobar')]
     public function testAnnotatedTag(Repository $repository): void
     {
         $tag = $repository->getReferences()->getTag('annotated');
@@ -107,11 +97,11 @@ class ReferenceTest extends AbstractTestCase
     #[DataProvider('provideFoobar')]
     public function testAnnotatedTagBodyMessageWithBlankLineSeparator(Repository $repository): void
     {
-        $repository->run('config', ['user.email', 'test@example.com']);
-        $repository->run('config', ['user.name', 'Test']);
+        self::git($repository, 'config', ['user.email', 'test@example.com']);
+        self::git($repository, 'config', ['user.name', 'Test']);
 
         $hash = $repository->getLog()->getSingleCommit()->getHash();
-        $repository->run('tag', ['-a', 'blank-sep', '-m', 'Subject line', '-m', "Body line 1\nBody line 2", $hash]);
+        self::git($repository, 'tag', ['-a', 'blank-sep', '-m', 'Subject line', '-m', "Body line 1\nBody line 2", $hash]);
 
         $tag = $repository->getReferences()->getTag('blank-sep');
 
@@ -211,8 +201,8 @@ class ReferenceTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository(false);
 
-        $repository->run('config', ['--local', 'user.name', '"Unit Test"']);
-        $repository->run('config', ['--local', 'user.email', '"unit_test@unit-test.com"']);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
 
         $master = $repository->getReferences()->getBranch('master');
         $references = $repository->getReferences();
@@ -226,9 +216,37 @@ class ReferenceTest extends AbstractTestCase
 
         $file = $repository->getWorkingDir().'/foobar-test.txt';
         file_put_contents($file, 'test');
-        $repository->run('add', [$file]);
-        $repository->run('commit', ['-m', 'foobar-test.txt updated']);
+        self::git($repository, 'add', [$file]);
+        self::git($repository, 'commit', ['-m', 'foobar-test.txt updated']);
 
         $this->assertFalse($branch->isMergedTo('master'));
+    }
+
+    /**
+     * Old tags (e.g. in git.git or linux) have no "tagger" line.
+     */
+    public function testAnnotatedTagWithoutTagger(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $hash = self::writeObject($repository, 'tag', \sprintf("object %s\ntype commit\ntag notagger\n\nNo tagger.\n", self::LONGFILE_COMMIT));
+        self::git($repository, 'update-ref', ['refs/tags/notagger', $hash]);
+
+        $tag = $repository->getReferences()->getTag('notagger');
+
+        $this->assertTrue($tag->isAnnotated());
+        $this->assertSame(self::LONGFILE_COMMIT, $tag->getCommit()->getHash());
+    }
+
+    public function testSignedTag(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $hash = self::writeObject($repository, 'tag', \sprintf("object %s\ntype commit\ntag signed\ntagger Alice <alice@example.com> 1471428000 +0000\n\nSigned.\n-----BEGIN PGP SIGNATURE-----\n\nsignature\n-----END PGP SIGNATURE-----\n", self::LONGFILE_COMMIT));
+        self::git($repository, 'update-ref', ['refs/tags/signed', $hash]);
+
+        $tag = $repository->getReferences()->getTag('signed');
+
+        $this->assertTrue($tag->isSigned());
+        $this->assertSame("\n\nsignature\n", $tag->getGPGSignature());
+        $this->assertSame("Signed.\n", $tag->getMessage());
     }
 }

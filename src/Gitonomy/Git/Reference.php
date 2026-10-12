@@ -12,7 +12,7 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 
 /**
@@ -49,16 +49,12 @@ abstract class Reference extends Revision
         }
 
         try {
-            $result = $this->repository->run('rev-parse', ['--verify', $this->revision]);
-        } catch (ProcessException $e) {
-            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $this->revision));
+            $hash = $this->repository->getRepositoryDriver()->resolveRevision($this->revision);
+        } catch (DriverException $e) {
+            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $this->revision), 0, $e);
         }
 
-        if (null === $result) {
-            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $this->revision));
-        }
-
-        return $this->commitHash = trim($result);
+        return $this->commitHash = $hash;
     }
 
     /**

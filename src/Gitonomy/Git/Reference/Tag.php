@@ -13,10 +13,11 @@
 namespace Gitonomy\Git\Reference;
 
 use Gitonomy\Git\Commit;
-use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Driver\Data\TagData;
+use Gitonomy\Git\Exception\DriverException;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
-use Gitonomy\Git\Parser\ReferenceParser;
-use Gitonomy\Git\Parser\TagParser;
 use Gitonomy\Git\Reference;
 
 /**
@@ -27,13 +28,12 @@ use Gitonomy\Git\Reference;
  */
 final class Tag extends Reference
 {
-    private bool $loaded = false;
+    /**
+     * Raw annotated-tag data, as returned by the Driver. Lazily loaded.
+     */
+    private ?TagData $data = null;
 
-    private ?string $taggerName = null;
-    private ?string $taggerEmail = null;
-    private ?\DateTime $taggerDate = null;
-    private ?string $message = null;
-    private ?string $gpgSignature = null;
+    private ?bool $annotated = null;
 
     // Values derived from the fields above, computed and cached independently.
     private ?string $subjectMessage = null;
@@ -53,14 +53,7 @@ final class Tag extends Reference
      */
     public function isAnnotated(): bool
     {
-        try {
-            $result = $this->repository->run('cat-file', ['tag', $this->revision]);
-        } catch (ProcessException $e) {
-            return false; // Is not an annotated tag
-        }
-
-        // In non-debug mode, a failed command returns null instead of throwing.
-        return null !== $result;
+        return $this->annotated ??= 'tag' === $this->repository->getRepositoryDriver()->getObjectType($this->revision);
     }
 
     /**
@@ -68,26 +61,13 @@ final class Tag extends Reference
      */
     public function getCommit(): Commit
     {
-        if ($this->isAnnotated()) {
-            try {
-                $output = $this->repository->run('show-ref', ['-d', '--tag', $this->revision]);
-                $parser = new ReferenceParser();
-                $parser->parse($output);
-
-                $commitHash = null;
-                foreach ($parser->references as [$row]) {
-                    $commitHash = $row;
-                }
-
-                if (null !== $commitHash) {
-                    return $this->repository->getCommit($commitHash);
-                }
-            } catch (ProcessException $e) {
-                // ignore the exception
-            }
+        try {
+            $hash = $this->repository->getRepositoryDriver()->resolveRevision($this->revision.'^{commit}');
+        } catch (DriverException $e) {
+            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $this->revision), 0, $e);
         }
 
-        return parent::getCommit();
+        return $this->repository->getCommit($hash);
     }
 
     /**
@@ -98,9 +78,8 @@ final class Tag extends Reference
         if (!$this->isAnnotated()) {
             return false;
         }
-        $this->ensureLoaded();
 
-        return $this->taggerName ?? throw new \InvalidArgumentException('No data named "taggerName" in Tag.');
+        return $this->data()->taggerName;
     }
 
     /**
@@ -111,22 +90,20 @@ final class Tag extends Reference
         if (!$this->isAnnotated()) {
             return false;
         }
-        $this->ensureLoaded();
 
-        return $this->taggerEmail ?? throw new \InvalidArgumentException('No data named "taggerEmail" in Tag.');
+        return $this->data()->taggerEmail;
     }
 
     /**
      * Returns the authoring date.
      */
-    public function getTaggerDate(): \DateTime|false
+    public function getTaggerDate(): \DateTimeImmutable|false
     {
         if (!$this->isAnnotated()) {
             return false;
         }
-        $this->ensureLoaded();
 
-        return $this->taggerDate ?? throw new \InvalidArgumentException('No data named "taggerDate" in Tag.');
+        return $this->data()->taggerDate;
     }
 
     /**
@@ -137,9 +114,8 @@ final class Tag extends Reference
         if (!$this->isAnnotated()) {
             return false;
         }
-        $this->ensureLoaded();
 
-        return $this->message ?? throw new \InvalidArgumentException('No data named "message" in Tag.');
+        return $this->data()->message;
     }
 
     /**
@@ -152,7 +128,7 @@ final class Tag extends Reference
         }
 
         if (null === $this->subjectMessage) {
-            $lines = explode("\n", $this->getMessageOrThrow());
+            $lines = explode("\n", $this->data()->message);
             $this->subjectMessage = reset($lines);
         }
 
@@ -169,7 +145,7 @@ final class Tag extends Reference
         }
 
         if (null === $this->bodyMessage) {
-            $lines = explode("\n", $this->getMessageOrThrow());
+            $lines = explode("\n", $this->data()->message);
 
             // Drop the subject line, then the blank separator line if the
             // message follows the "subject\n\nbody" convention.
@@ -189,15 +165,16 @@ final class Tag extends Reference
 
     /**
      * Return the GPG signature.
+     *
+     * @throws InvalidArgumentException The tag isn't signed
      */
     public function getGPGSignature(): string|false
     {
         if (!$this->isAnnotated()) {
             return false;
         }
-        $this->ensureLoaded();
 
-        return $this->gpgSignature ?? throw new \InvalidArgumentException('No data named "gpgSignature" in Tag.');
+        return $this->data()->gpgSignature ?? throw new InvalidArgumentException(\sprintf('Tag "%s" is not signed.', $this->getName()));
     }
 
     /**
@@ -205,43 +182,15 @@ final class Tag extends Reference
      */
     public function isSigned(): bool
     {
-        try {
-            $this->getGPGSignature();
-
-            return true;
-        } catch (\InvalidArgumentException $e) {
-            return false;
-        }
+        return $this->isAnnotated() && null !== $this->data()->gpgSignature;
     }
 
-    private function getMessageOrThrow(): string
+    private function data(): TagData
     {
-        $this->ensureLoaded();
-
-        return $this->message ?? throw new \InvalidArgumentException('No data named "message" in Tag.');
-    }
-
-    private function ensureLoaded(): void
-    {
-        if ($this->loaded) {
-            return;
+        if (null === $this->data) {
+            $this->data = $this->repository->getRepositoryDriver()->getTagData($this->revision);
         }
 
-        $parser = new TagParser();
-        $result = $this->repository->run('cat-file', ['tag', $this->revision]);
-
-        if (null === $result) {
-            throw new \InvalidArgumentException('Unable to read tag data.');
-        }
-
-        $parser->parse($result);
-
-        $this->taggerName = $parser->taggerName;
-        $this->taggerEmail = $parser->taggerEmail;
-        $this->taggerDate = $parser->taggerDate;
-        $this->message = $parser->message;
-        $this->gpgSignature = $parser->gpgSignature;
-
-        $this->loaded = true;
+        return $this->data;
     }
 }

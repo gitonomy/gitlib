@@ -46,10 +46,10 @@ class ReferenceBagTest extends AbstractTestCase
     {
         $hash = $repository->getLog()->getSingleCommit()->getHash();
 
-        $repository->run('update-ref', ['refs/pipelines/1', $hash]);
-        $repository->run('update-ref', ['refs/merge-request/1/head', $hash]);
-        $repository->run('update-ref', ['refs/pull/1/head', $hash]);
-        $repository->run('update-ref', ['refs/notes/gtm-data', $hash]);
+        self::git($repository, 'update-ref', ['refs/pipelines/1', $hash]);
+        self::git($repository, 'update-ref', ['refs/merge-request/1/head', $hash]);
+        self::git($repository, 'update-ref', ['refs/pull/1/head', $hash]);
+        self::git($repository, 'update-ref', ['refs/notes/gtm-data', $hash]);
 
         $refs = $repository->getReferences()->getAll();
         $this->assertIsArray($refs);

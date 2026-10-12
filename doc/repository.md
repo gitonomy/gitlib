@@ -16,12 +16,8 @@ This parameter can be used used to tune behavior of library.
 
 Available options are:
 
--   **debug** (default: true): Enables exception when edge cases are met
--   **environment\_variables**: (default: none) An array of environment
-    variables to be set in sub-process
 -   **logger**: (default: none) Logger to use for reporting of execution
     (a `Psr\Log\LoggerInterface`)
--   **command**: (default: `git`) Specify command to execute to run git
 -   **working\_dir**: If you are using multiple working directories,
     this option is for you
 
@@ -29,10 +25,12 @@ An example:
 
 ```php
 $repository = new Repository('/path/to/repo', [
-    'debug'  => true,
     'logger' => new Monolog\Logger(),
 ]);
 ```
+
+Its last parameter, `$driver`, is the backend running git operations: see
+"Configuring `CliDriver`" below.
 
 Test if a repository is bare
 ----------------------------
@@ -81,10 +79,50 @@ if ($repository->isHeadDetached()) {
 Options for repository
 ----------------------
 
+### Configuring `CliDriver`
+
+By default, gitlib spawns a `git` process for every operation, with
+`CliDriver`, which requires git 1.8.4 or later. A driver holds no state of a
+repository: create it once, and pass it to every `Repository` and `Admin`
+call, as a service of your container for instance.
+
+The arguments of `CliDriver` set the git binary to run (`command`), the
+environment variables to pass to it (`environmentVariables`, where `false`
+removes an inherited one), whether git inherits the environment variables of
+PHP (`inheritEnvironmentVariables`), and the timeout of every git process,
+in seconds (`processTimeout`, `null` for none):
+
+```php
+use Gitonomy\Git\Driver\Cli\CliDriver;
+
+$repository = new Gitonomy\Git\Repository('/tmp/foo', driver: new CliDriver(
+    command: '/home/alice/bin/git',
+    environmentVariables: ['GIT_SSH_COMMAND' => 'ssh -i /home/alice/.ssh/deploy'],
+    processTimeout: 60,
+));
+```
+
+### Using your own driver
+
+`$driver` accepts any `Gitonomy\Git\Driver\DriverInterface` implementation:
+its `open()` method returns the `Gitonomy\Git\Driver\RepositoryDriverInterface`
+the repository runs its operations with. In tests, a stub of both lets you
+exercise code built on gitlib without any git repository:
+
+```php
+$repositoryDriver = $this->createStub(RepositoryDriverInterface::class);
+$repositoryDriver->method('getReferences')->willReturn([new ReferenceData('refs/heads/main', $hash)]);
+
+$driver = $this->createStub(DriverInterface::class);
+$driver->method('open')->willReturn($repositoryDriver);
+
+$repository = new Repository('/path/to/any/directory', driver: $driver);
+```
+
 ### Logger
 
 If you are developing, you may appreciate to have a logger inside
-repository, telling you every executed command.
+repository, telling you every executed command (`CliDriver` only).
 
 You call method `setLogger` as an option on repository creation:
 
@@ -111,37 +149,13 @@ debug last command (fetch) return code: 0
 debug last command (fetch) output: Fetching origin
 ```
 
-### Disable debug-mode
+A failing command also logs its error output, at the `debug` level: the
+exception it throws reports the failure.
 
-Gitlib throws an exception when something seems wrong. If a `git` command exits
-with a non-zero code, then execution will be stopped, and a `RuntimeException`
-will be thrown. If you want to prevent this, set the `debug` option to` false`.
-This will make `Repository` log errors and return empty data instead of
-throwing exceptions. 
+### Errors
 
-```php
-$repository = new Repository('/tmp/foo', ['debug' => false, 'logger' => $logger]);
-```
-
-> **note**
->
-> If you plan to disable debug, you should rely on the logger to keep a trace
-> of the failing cases.
-
-### Specify git command to use
-
-You can pass the option `command` to specify which command to use to run git
-calls. If you have a git binary located somewhere else, use this option to
-specify to gitlib path to your git binary:
-
-```php
-$repository = new Gitonomy\Git\Repository('/tmp/foo', ['command' => '/home/alice/bin/git']); 
-```
-
-### Environment variables
-
-It is possible to send environment variables to the `git` commands.
-
-```php
-$repository = new Gitonomy\Git\Repository('/tmp/foo', ['environment_variables' => ['GIT_']])
-```
+Gitlib throws an exception when git reports a failure: a
+`Gitonomy\Git\Exception\DriverException` (a `ProcessException` with
+`CliDriver`), or a more specific one where it makes sense, like a
+`ReferenceNotFoundException` for an unknown revision. Operations never return
+empty data instead.

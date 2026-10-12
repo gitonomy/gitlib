@@ -121,6 +121,20 @@ abstract class ParserBase
         return $this->consume("\n");
     }
 
+    /**
+     * @return array{string, string, \DateTimeImmutable} The name, email and date of an author, committer or tagger
+     */
+    protected function consumeNameEmailDate(): array
+    {
+        if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+) [+-]\d{4})/A', $this->content, $vars, 0, $this->cursor)) {
+            throw new RuntimeException('Unable to parse name, email and date.');
+        }
+
+        $this->cursor += \strlen($vars[1]);
+
+        return [$vars[2], $vars[3], new \DateTimeImmutable('@'.$vars[4])->setTimezone(new \DateTimeZone('UTC'))];
+    }
+
     protected function consumeGPGSignature(): string
     {
         $expected = "\ngpgsig ";

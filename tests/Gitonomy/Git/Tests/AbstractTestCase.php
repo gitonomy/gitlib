@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
+use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\TestCase;
 
@@ -44,7 +45,7 @@ abstract class AbstractTestCase extends TestCase
     public static function createEmptyRepository(bool $bare = true): Repository
     {
         $dir = self::createTempDir();
-        $repository = Admin::init($dir, $bare, self::getOptions());
+        $repository = Admin::init($dir, $bare, driver: self::getDriver());
         self::registerDeletion($repository);
 
         return $repository;
@@ -78,10 +79,10 @@ abstract class AbstractTestCase extends TestCase
     public static function createFoobarRepository(bool $bare = true): Repository
     {
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, self::getOptions());
+            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, driver: self::getDriver());
         }
 
-        $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare, self::getOptions());
+        $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare);
         self::registerDeletion($repository);
 
         return $repository;
@@ -133,15 +134,44 @@ abstract class AbstractTestCase extends TestCase
         rmdir($dir);
     }
 
-    protected static function getOptions(): array
+    /**
+     * Runs a git command on $repository: for setup (committing, staging,
+     * tagging...) that no method of gitlib covers.
+     *
+     * @param array<int|string, int|string> $args
+     */
+    protected static function git(Repository $repository, string $command, array $args = []): string
     {
-        $command = $_SERVER['GIT_COMMAND'] ?? 'git';
+        return $repository->run($command, $args);
+    }
+
+    /**
+     * Writes a loose object, without the checks recent git versions apply to
+     * it (e.g. to a tag without tagger), nor the --literally option old ones lack.
+     *
+     * @return string The hash of the object
+     */
+    protected static function writeObject(Repository $repository, string $type, string $content): string
+    {
+        $object = $type.' '.\strlen($content)."\0".$content;
+        $hash = sha1($object);
+
+        $dir = $repository->getGitDir().'/objects/'.substr($hash, 0, 2);
+        if (!is_dir($dir)) {
+            mkdir($dir);
+        }
+        file_put_contents($dir.'/'.substr($hash, 2), gzcompress($object));
+
+        return $hash;
+    }
+
+    /**
+     * @param array<string, string> $environmentVariables Set on git processes, in addition to the GIT_ENVS environment variable
+     */
+    protected static function getDriver(array $environmentVariables = [], ?float $processTimeout = 60): CliDriver
+    {
         $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : [];
 
-        return [
-            'command' => $command,
-            'environment_variables' => $envs,
-            'process_timeout' => 60,
-        ];
+        return new CliDriver($_SERVER['GIT_COMMAND'] ?? 'git', [...$envs, ...$environmentVariables], processTimeout: $processTimeout);
     }
 }

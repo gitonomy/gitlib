@@ -12,8 +12,6 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Exception\ReferenceNotFoundException;
-
 /**
  * Representation of a Blob commit.
  *
@@ -50,17 +48,12 @@ final class Blob
     /**
      * @return string content of the blob
      *
-     * @throws Exception\ProcessException Error occurred while getting content of blob
+     * @throws Exception\DriverException Error occurred while getting content of blob
      */
     public function getContent(): string
     {
         if (null === $this->content) {
-            $content = $this->repository->run('cat-file', ['-p', $this->hash]);
-            if (null === $content) {
-                throw new ReferenceNotFoundException($this->hash);
-            }
-
-            $this->content = $content;
+            $this->content = $this->repository->getRepositoryDriver()->getBlobContent($this->hash);
         }
 
         return $this->content;

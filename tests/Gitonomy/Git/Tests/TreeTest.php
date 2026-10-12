@@ -36,6 +36,28 @@ class TreeTest extends AbstractTestCase
     }
 
     #[DataProvider('provideFoobar')]
+    public function testGetEntriesWithNonAsciiNames(Repository $repository): void
+    {
+        $entries = $repository->getCommit(DiffTest::FILE_WITH_UMLAUTS_COMMIT)->getTree()->getEntries();
+
+        $this->assertArrayHasKey('file_with_umlauts_äöü', $entries);
+    }
+
+    public function testGetEntriesWithSpecialCharactersInNames(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        file_put_contents($repository->getWorkingDir().'/tab\t"quote"', 'special');
+        self::git($repository, 'add', ['--all']);
+        self::git($repository, 'commit', ['-m', 'Add a file with special characters in its name']);
+
+        $entries = $repository->getHeadCommit()->getTree()->getEntries();
+
+        $this->assertArrayHasKey('tab\t"quote"', $entries);
+    }
+
+    #[DataProvider('provideFoobar')]
     public function testGetCommitReferenceEntries(Repository $repository): void
     {
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();

@@ -13,7 +13,7 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
-use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 
 /**
@@ -119,43 +119,18 @@ final class Log implements \Countable, \IteratorAggregate
      */
     public function getCommits(): array
     {
-        $args = ['--encoding=UTF-8', '--format=raw'];
-
-        if (null !== $this->offset) {
-            $args[] = '--skip='.$this->offset;
-        }
-
-        if (null !== $this->limit) {
-            $args[] = '-n';
-            $args[] = $this->limit;
-        }
-
-        if (null !== $this->revisions) {
-            $args = array_merge($args, $this->revisions->getAsTextArray());
-        } else {
-            $args[] = '--all';
-        }
-
-        $args[] = '--';
-
-        $args = array_merge($args, $this->paths);
+        $revisions = $this->revisions?->getAsTextArray();
 
         try {
-            $output = $this->repository->run('log', $args);
-        } catch (ProcessException $e) {
-            $revisionsText = null !== $this->revisions ? implode(' ', $this->revisions->getAsTextArray()) : '--all';
+            $commitLog = $this->repository->getRepositoryDriver()->getCommitLog($revisions, $this->paths, $this->offset, $this->limit);
+        } catch (DriverException $e) {
+            $revisionsText = null !== $revisions ? implode(' ', $revisions) : '--all';
 
             throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $revisionsText), 0, $e);
         }
 
-        $parser = new Parser\LogParser();
-        $parser->parse($output);
-
         $result = [];
-        foreach ($parser->log as $commitData) {
-            $hash = $commitData['id'];
-            unset($commitData['id']);
-
+        foreach ($commitLog as $hash => $commitData) {
             $commit = $this->repository->getCommit($hash);
             $commit->setData($commitData);
 
@@ -186,12 +161,6 @@ final class Log implements \Countable, \IteratorAggregate
      */
     public function countCommits(): int
     {
-        if (null !== $this->revisions && \count($this->revisions)) {
-            $output = $this->repository->run('rev-list', array_merge(['--count'], $this->revisions->getAsTextArray(), ['--'], $this->paths));
-        } else {
-            $output = $this->repository->run('rev-list', array_merge(['--count', '--all', '--'], $this->paths));
-        }
-
-        return (int) $output;
+        return $this->repository->getRepositoryDriver()->countCommits($this->revisions?->getAsTextArray(), $this->paths);
     }
 }

@@ -4,8 +4,9 @@ Hooks
 It's possible to define custom hooks on any repository with git. Those
 hooks are located in the *.git/hooks* folder.
 
-Those files need to be executable. For convenience, gitlib will set them
-to *777*.
+Those files need to be executable: gitlib makes them executable by their
+owner only (*0700*). If another user runs them (a git daemon, a web
+server...), change their permissions yourself.
 
 With *gitlib*, you can manage hooks over a repository using the *Hooks*
 object.

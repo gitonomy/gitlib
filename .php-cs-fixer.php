@@ -26,6 +26,7 @@ $finder = PhpCsFixer\Finder::create()
         __FILE__,
         'castor.php',
     ])
+    ->notPath('git-builds')
     ->notPath('var')
 ;
 

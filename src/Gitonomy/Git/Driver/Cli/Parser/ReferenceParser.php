@@ -10,12 +10,18 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Gitonomy\Git\Parser;
+namespace Gitonomy\Git\Driver\Cli\Parser;
 
+use Gitonomy\Git\Driver\Data\ReferenceData;
+use Gitonomy\Git\Parser\ParserBase;
+
+/**
+ * Parses ``<hash> <full name>`` lines.
+ */
 final class ReferenceParser extends ParserBase
 {
     /**
-     * @var array<int, array{string, string}>
+     * @var ReferenceData[]
      */
     public array $references = [];
 
@@ -26,9 +32,9 @@ final class ReferenceParser extends ParserBase
         while (!$this->isFinished()) {
             $hash = $this->consumeHash();
             $this->consume(' ');
-            $name = $this->consumeTo("\n");
+            $fullname = $this->consumeTo("\n");
             $this->consumeNewLine();
-            $this->references[] = [$hash, $name];
+            $this->references[] = new ReferenceData($fullname, $hash);
         }
     }
 }

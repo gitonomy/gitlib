@@ -88,4 +88,12 @@ class BlobTest extends AbstractTestCase
         $imageBlob = $this->getImageBlob($repository);
         $this->assertTrue($imageBlob->isBinary());
     }
+
+    #[DataProvider('provideFoobar')]
+    public function testAbbreviatedHash(Repository $repository): void
+    {
+        $hash = '412a0dad051163dcf9f9ce2fc04a141ffcb69479';
+
+        $this->assertSame($repository->getBlob($hash)->getContent(), $repository->getBlob(substr($hash, 0, 8))->getContent());
+    }
 }

@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
@@ -38,7 +39,7 @@ class AdminTest extends AbstractTestCase
 
     public function testBare(): void
     {
-        $repository = Admin::init($this->tmpDir, true, self::getOptions());
+        $repository = Admin::init($this->tmpDir, true, driver: self::getDriver());
 
         $objectDir = $this->tmpDir.'/objects';
 
@@ -51,7 +52,7 @@ class AdminTest extends AbstractTestCase
 
     public function testNotBare(): void
     {
-        $repository = Admin::init($this->tmpDir, false, self::getOptions());
+        $repository = Admin::init($this->tmpDir, false, driver: self::getDriver());
 
         $objectDir = $this->tmpDir.'/.git/objects';
 
@@ -66,7 +67,7 @@ class AdminTest extends AbstractTestCase
     public function testClone(Repository $repository): void
     {
         $newDir = self::createTempDir();
-        $new = $repository->cloneTo($newDir, $repository->isBare(), self::getOptions());
+        $new = $repository->cloneTo($newDir, $repository->isBare());
         self::registerDeletion($new);
 
         $newRefs = array_keys($new->getReferences()->getAll());
@@ -77,6 +78,8 @@ class AdminTest extends AbstractTestCase
         if ($repository->isBare()) {
             $this->assertEquals($newDir, $new->getGitDir());
             $this->assertContains('refs/heads/new-feature', $newRefs);
+            // Like `git clone --bare`: the remote has no fetch refspec.
+            $this->assertStringNotContainsString('fetch', file_get_contents($newDir.'/config'));
         } else {
             $this->assertEquals($newDir.'/.git', $new->getGitDir());
             $this->assertEquals($newDir, $new->getWorkingDir());
@@ -90,7 +93,7 @@ class AdminTest extends AbstractTestCase
         // so we test it directly against the remote repository
 
         $newDir = self::createTempDir();
-        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature');
+        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature', true, driver: self::getDriver());
         self::registerDeletion($new);
 
         $head = $new->getHead();
@@ -105,7 +108,7 @@ class AdminTest extends AbstractTestCase
         // so we test it directly against remote repository
 
         $newDir = self::createTempDir();
-        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature', false);
+        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature', false, driver: self::getDriver());
         self::registerDeletion($new);
 
         $head = $new->getHead();
@@ -117,7 +120,7 @@ class AdminTest extends AbstractTestCase
     public function testMirror(Repository $repository): void
     {
         $newDir = self::createTempDir();
-        $new = Admin::mirrorTo($newDir, $repository->getGitDir(), self::getOptions());
+        $new = Admin::mirrorTo($newDir, $repository->getGitDir(), driver: self::getDriver());
         self::registerDeletion($new);
 
         $newRefs = array_keys($new->getReferences()->getAll());
@@ -131,13 +134,24 @@ class AdminTest extends AbstractTestCase
         } else {
             $this->assertContains('refs/remotes/origin/new-feature', $newRefs);
         }
+
+        $this->assertSame('true', trim(self::git($new, 'config', ['remote.origin.mirror'])));
+        $this->assertSame('+refs/*:refs/*', trim(self::git($new, 'config', ['remote.origin.fetch'])));
+        $this->assertSame('refs/heads/master', trim(self::git($new, 'symbolic-ref', ['HEAD'])));
+    }
+
+    public function testCloneUnknownBranchFails(): void
+    {
+        $this->expectException(DriverException::class);
+
+        Admin::cloneBranchTo(self::createTempDir().'/clone', self::REPOSITORY_URL, 'unknown', true, driver: self::getDriver());
     }
 
     #[DataProvider('provideFoobar')]
     public function testCheckValidRepository(Repository $repository): void
     {
         $url = $repository->getGitDir();
-        $this->assertTrue(Admin::isValidRepository($url));
+        $this->assertTrue(Admin::isValidRepository($url, driver: self::getDriver()));
     }
 
     public function testCheckInvalidRepository(): void
@@ -145,21 +159,21 @@ class AdminTest extends AbstractTestCase
         $url = $this->tmpDir.'/invalid.git';
         mkdir($url);
 
-        $this->assertFalse(Admin::isValidRepository($url));
+        $this->assertFalse(Admin::isValidRepository($url, driver: self::getDriver()));
     }
 
     #[DataProvider('provideFoobar')]
     public function testCheckValidRepositoryAndBranch(Repository $repository): void
     {
         $url = $repository->getGitDir();
-        $this->assertTrue(Admin::isValidRepositoryAndBranch($url, 'master'));
+        $this->assertTrue(Admin::isValidRepositoryAndBranch($url, 'master', driver: self::getDriver()));
     }
 
     #[DataProvider('provideFoobar')]
     public function testCheckInvalidRepositoryAndBranch(Repository $repository): void
     {
         $url = $repository->getGitDir();
-        $this->assertFalse(Admin::isValidRepositoryAndBranch($url, 'invalid-branch-name'));
+        $this->assertFalse(Admin::isValidRepositoryAndBranch($url, 'invalid-branch-name', driver: self::getDriver()));
     }
 
     public function testExistingFile(): void
@@ -169,7 +183,7 @@ class AdminTest extends AbstractTestCase
         $file = $this->tmpDir.'/test';
         touch($file);
 
-        Admin::init($file, true, self::getOptions());
+        Admin::init($file, true, driver: self::getDriver());
     }
 
     public function testCloneRepository(): void
@@ -177,7 +191,7 @@ class AdminTest extends AbstractTestCase
         $newDir = self::createTempDir();
         $args = [];
 
-        $new = Admin::cloneRepository($newDir, self::REPOSITORY_URL, $args, self::getOptions());
+        $new = Admin::cloneRepository($newDir, self::REPOSITORY_URL, $args, driver: self::getDriver());
         self::registerDeletion($new);
 
         $newRefs = array_keys($new->getReferences()->getAll());
@@ -187,5 +201,13 @@ class AdminTest extends AbstractTestCase
 
         $this->assertEquals($newDir.'/.git', $new->getGitDir());
         $this->assertEquals($newDir, $new->getWorkingDir());
+    }
+
+    #[DataProvider('provideFoobar')]
+    public function testCheckRepositoryAndBranchOnlyMatchesBranches(Repository $repository): void
+    {
+        foreach (['0.1', 'HEAD', 'feature'] as $name) {
+            $this->assertFalse(Admin::isValidRepositoryAndBranch($repository->getGitDir(), $name, driver: self::getDriver()), $name);
+        }
     }
 }

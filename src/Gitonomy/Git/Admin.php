@@ -12,8 +12,8 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Exception\RuntimeException;
-use Symfony\Component\Process\Process;
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Driver\DriverInterface;
 
 /**
  * Administration class for Git repositories.
@@ -25,23 +25,22 @@ final class Admin
     /**
      * Initializes a repository and returns the instance.
      *
-     * @param string $path    path to the repository
-     * @param bool   $bare    indicate to create a bare repository
-     * @param array  $options options for Repository creation
+     * @param string          $path    path to the repository
+     * @param bool            $bare    indicate to create a bare repository
+     * @param array           $options options for Repository creation
+     * @param DriverInterface $driver  backend used to run operations
      *
-     * @throws RuntimeException Directory exists or not writable (only if debug=true)
+     * @throws Exception\DriverException Directory exists or not writable
      */
-    public static function init(string $path, bool $bare = true, array $options = []): Repository
+    public static function init(string $path, bool $bare = true, array $options = [], DriverInterface $driver = new CliDriver()): Repository
     {
-        $process = self::getProcess('init', array_merge(['-q'], $bare ? ['--bare'] : [], [$path]), $options);
-
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new RuntimeException(\sprintf("Error on repository initialization, command wasn't successful (%s). Error output:\n%s", $process->getCommandLine(), $process->getErrorOutput()));
+        if ($bare) {
+            $driver->initBare($path);
+        } else {
+            $driver->init($path);
         }
 
-        return new Repository($path, $options);
+        return new Repository($path, $options, $driver);
     }
 
     /**
@@ -51,18 +50,14 @@ final class Admin
      * Usually, this command returns 0 when successful, and 128 when the
      * repository is not found.
      *
-     * @param string $url     url of repository to check
-     * @param array  $options options for Repository creation
+     * @param string          $url    url of repository to check
+     * @param DriverInterface $driver backend used to run operations
      *
      * @return bool true if url is valid
      */
-    public static function isValidRepository(string $url, array $options = []): bool
+    public static function isValidRepository(string $url, DriverInterface $driver = new CliDriver()): bool
     {
-        $process = self::getProcess('ls-remote', [$url], $options);
-
-        $process->run();
-
-        return $process->isSuccessful();
+        return $driver->isValidRepository($url);
     }
 
     /**
@@ -73,106 +68,79 @@ final class Admin
      * Usually, this command returns 0 when successful, and 128 when the
      * repository is not found.
      *
-     * @param string $url        url of repository to check
-     * @param string $branchName name of branch to check
-     * @param array  $options    options for Repository creation
+     * @param string          $url        url of repository to check
+     * @param string          $branchName name of branch to check
+     * @param DriverInterface $driver     backend used to run operations
      *
      * @return bool true if url is valid and branch exists
      */
-    public static function isValidRepositoryAndBranch(string $url, string $branchName, array $options = []): bool
+    public static function isValidRepositoryAndBranch(string $url, string $branchName, DriverInterface $driver = new CliDriver()): bool
     {
-        $process = self::getProcess('ls-remote', ['--heads', $url, $branchName], $options);
-
-        $process->run();
-        $processOutput = $process->getOutput();
-
-        return $process->isSuccessful() && str_contains($processOutput, $branchName);
+        return $driver->isValidRepositoryAndBranch($url, $branchName);
     }
 
     /**
      * Clone a repository to a local path.
      *
-     * @param string $path    indicates where to clone repository
-     * @param string $url     url of repository to clone
-     * @param bool   $bare    indicates if repository should be bare or have a working copy
-     * @param array  $options options for Repository creation
+     * @param string          $path    indicates where to clone repository
+     * @param string          $url     url of repository to clone
+     * @param bool            $bare    indicates if repository should be bare or have a working copy
+     * @param array           $options options for Repository creation
+     * @param DriverInterface $driver  backend used to run operations
      */
-    public static function cloneTo(string $path, string $url, bool $bare = true, array $options = []): Repository
+    public static function cloneTo(string $path, string $url, bool $bare = true, array $options = [], DriverInterface $driver = new CliDriver()): Repository
     {
         $args = $bare ? ['--bare'] : [];
 
-        return self::cloneRepository($path, $url, $args, $options);
+        return self::cloneRepository($path, $url, $args, $options, $driver);
     }
 
     /**
      * Clone a repository branch to a local path.
      *
-     * @param string $path    indicates where to clone repository
-     * @param string $url     url of repository to clone
-     * @param string $branch  branch to clone
-     * @param bool   $bare    indicates if repository should be bare or have a working copy
-     * @param array  $options options for Repository creation
+     * @param string          $path    indicates where to clone repository
+     * @param string          $url     url of repository to clone
+     * @param string          $branch  branch to clone
+     * @param bool            $bare    indicates if repository should be bare or have a working copy
+     * @param array           $options options for Repository creation
+     * @param DriverInterface $driver  backend used to run operations
      */
-    public static function cloneBranchTo(string $path, string $url, string $branch, bool $bare = true, array $options = []): Repository
+    public static function cloneBranchTo(string $path, string $url, string $branch, bool $bare = true, array $options = [], DriverInterface $driver = new CliDriver()): Repository
     {
         $args = ['--branch', $branch];
         if ($bare) {
             $args[] = '--bare';
         }
 
-        return self::cloneRepository($path, $url, $args, $options);
+        return self::cloneRepository($path, $url, $args, $options, $driver);
     }
 
     /**
      * Mirrors a repository (fetch all revisions, not only branches).
      *
-     * @param string $path    indicates where to clone repository
-     * @param string $url     url of repository to clone
-     * @param array  $options options for Repository creation
+     * @param string          $path    indicates where to clone repository
+     * @param string          $url     url of repository to clone
+     * @param array           $options options for Repository creation
+     * @param DriverInterface $driver  backend used to run operations
      */
-    public static function mirrorTo(string $path, string $url, array $options = []): Repository
+    public static function mirrorTo(string $path, string $url, array $options = [], DriverInterface $driver = new CliDriver()): Repository
     {
-        return self::cloneRepository($path, $url, ['--mirror'], $options);
+        return self::cloneRepository($path, $url, ['--mirror'], $options, $driver);
     }
 
     /**
      * Internal method to launch effective ``git clone`` command.
      *
-     * @param string $path    indicates where to clone repository
-     * @param string $url     url of repository to clone
-     * @param array  $args    arguments to be added to the command-line
-     * @param array  $options options for Repository creation
+     * @param string          $path    indicates where to clone repository
+     * @param string          $url     url of repository to clone
+     * @param array           $args    arguments to be added to the command-line
+     * @param array           $options options for Repository creation
+     * @param DriverInterface $driver  backend used to run operations
      */
-    public static function cloneRepository(string $path, string $url, array $args = [], array $options = []): Repository
+    public static function cloneRepository(string $path, string $url, array $args = [], array $options = [], DriverInterface $driver = new CliDriver()): Repository
     {
-        $process = self::getProcess('clone', array_merge(['-q'], $args, [$url, $path]), $options);
+        $driver->cloneRepository($path, $url, $args);
 
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new RuntimeException(\sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
-        }
-
-        return new Repository($path, $options);
-    }
-
-    /**
-     * This internal method is used to create a process object.
-     */
-    private static function getProcess(string $command, array $args = [], array $options = []): Process
-    {
-        $is_windows = \defined('PHP_WINDOWS_VERSION_BUILD');
-        $options = array_merge([
-            'environment_variables' => $is_windows ? ['PATH' => getenv('PATH')] : [],
-            'command' => 'git',
-            'process_timeout' => 3600,
-        ], $options);
-
-        $process = new Process(array_merge([$options['command'], $command], $args));
-        $process->setEnv($options['environment_variables']);
-        $process->setTimeout($options['process_timeout']);
-        $process->setIdleTimeout($options['process_timeout']);
-
-        return $process;
+        return new Repository($path, $options, $driver);
     }
 }

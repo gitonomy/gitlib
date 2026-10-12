@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\PushReference;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -42,6 +43,13 @@ class PushReferenceTest extends AbstractTestCase
             ['foo', self::LONGFILE_COMMIT,        self::BEFORE_LONGFILE_COMMIT, self::FORCE],
             ['foo', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT,        self::FAST_FORWARD],
         ];
+    }
+
+    public function testUnknownBeforeIsAnErrorNotAForcePush(): void
+    {
+        $this->expectException(DriverException::class);
+
+        new PushReference(self::createFoobarRepository(), 'foo', str_repeat('1', 40), self::LONGFILE_COMMIT);
     }
 
     #[DataProvider('provideFoobar')]

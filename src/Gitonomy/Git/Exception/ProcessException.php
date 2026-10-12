@@ -14,7 +14,7 @@ namespace Gitonomy\Git\Exception;
 
 use Symfony\Component\Process\Process;
 
-final class ProcessException extends RuntimeException implements GitExceptionInterface
+final class ProcessException extends DriverException implements GitExceptionInterface
 {
     public function __construct(private readonly Process $process)
     {

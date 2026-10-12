@@ -12,10 +12,9 @@
 
 namespace Gitonomy\Git\Reference;
 
-use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference;
-use Symfony\Component\String\CodePointString;
 
 /**
  * Representation of a branch reference.
@@ -61,32 +60,19 @@ final class Branch extends Reference
      */
     public function isMergedTo(string $destinationBranchName = 'master', bool $compareOnlyWithRemote = false): bool
     {
-        $arguments = ['-a'];
-
-        if ($compareOnlyWithRemote) {
-            $arguments = ['-r'];
-        }
-
-        $arguments[] = '--merged';
-        $arguments[] = $destinationBranchName;
-
-        try {
-            $result = $this->repository->run('branch', $arguments);
-        } catch (ProcessException $e) {
-            throw new RuntimeException(\sprintf('Cannot determine if merged to the branch "%s"', $destinationBranchName), $e->getCode(), $e);
-        }
-
-        if (!$result) {
+        if ($compareOnlyWithRemote && $this->isLocal()) {
             return false;
         }
 
-        $output = explode("\n", trim(str_replace(['*', 'remotes/'], '', $result)));
-        $filtered_output = array_filter($output, static function ($v) {
-            return null === new CodePointString($v)->indexOf('->');
-        });
-        $trimmed_output = array_map('trim', $filtered_output);
+        try {
+            // The commit hash this object holds may be outdated.
+            $tip = $this->repository->getRepositoryDriver()->resolveRevision($this->getFullname());
 
-        return \in_array($this->getName(), $trimmed_output, true);
+            // Merged: the destination contains the tip of this branch.
+            return $tip === $this->repository->getRepositoryDriver()->getMergeBase($tip, $destinationBranchName);
+        } catch (DriverException $e) {
+            throw new RuntimeException(\sprintf('Cannot determine if merged to the branch "%s"', $destinationBranchName), $e->getCode(), $e);
+        }
     }
 
     private function detectBranchType(): void

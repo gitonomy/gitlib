@@ -14,7 +14,6 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Parser\BlameParser;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -94,20 +93,19 @@ final class Blame implements \Countable
             return $this->lines;
         }
 
-        $args = ['-p'];
+        $lineDataList = $this->repository->getRepositoryDriver()->getBlameLines($this->revision->getRevision(), $this->file, $this->lineRange);
 
-        if (null !== $this->lineRange) {
-            $args[] = '-L';
-            $args[] = $this->lineRange;
+        $this->lines = [];
+        $commits = [];
+        $lineNumber = 1;
+        foreach ($lineDataList as $lineData) {
+            if (!isset($commits[$lineData->commitHash])) {
+                $commits[$lineData->commitHash] = $this->repository->getCommit($lineData->commitHash);
+            }
+
+            $this->lines[$lineNumber] = new Line($commits[$lineData->commitHash], $lineData->sourceLine, $lineData->targetLine, $lineData->blockLine, $lineData->content);
+            ++$lineNumber;
         }
-
-        $args[] = $this->revision->getRevision();
-        $args[] = '--';
-        $args[] = $this->file;
-
-        $parser = new BlameParser($this->repository);
-        $parser->parse($this->repository->run('blame', $args));
-        $this->lines = $parser->lines;
 
         return $this->lines;
     }

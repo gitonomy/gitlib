@@ -25,31 +25,7 @@ parameters:
 			path: src/Gitonomy/Git/Admin.php
 
 		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:getProcess\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:getProcess\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
 			message: '#^Method Gitonomy\\Git\\Admin\:\:init\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:isValidRepository\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:isValidRepositoryAndBranch\(\) has parameter \$options with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Gitonomy/Git/Admin.php
@@ -169,12 +145,6 @@ parameters:
 			path: src/Gitonomy/Git/Log.php
 
 		-
-			message: '#^Property Gitonomy\\Git\\Parser\\LogParser\:\:\$log type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Parser/LogParser.php
-
-		-
 			message: '#^Method Gitonomy\\Git\\Parser\\ParserBase\:\:consumeRegexp\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -235,12 +205,6 @@ parameters:
 			path: src/Gitonomy/Git/Repository.php
 
 		-
-			message: '#^Method Gitonomy\\Git\\Repository\:\:getProcess\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Repository.php
-
-		-
 			message: '#^Method Gitonomy\\Git\\Repository\:\:run\(\) has parameter \$args with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -261,12 +225,6 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$string of function trim expects string, string\|false given\.$#'
 			identifier: argument.type
-			count: 1
-			path: src/Gitonomy/Git/Repository.php
-
-		-
-			message: '#^Property Gitonomy\\Git\\Repository\:\:\$environmentVariables type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
 			count: 1
 			path: src/Gitonomy/Git/Repository.php
 
@@ -300,8 +258,3 @@ parameters:
 			count: 1
 			path: src/Gitonomy/Git/Tree.php
 
-		-
-			message: '#^Method Gitonomy\\Git\\WorkingCopy\:\:run\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/WorkingCopy.php

@@ -71,6 +71,18 @@ $mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitono
 $mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitonomy/gitlib.git', false);
 ```
 
+Options
+-------
+
+Every method on this page also accepts the driver running git as its last
+argument, and the methods returning a `Repository` the same `$options` array
+as its constructor before it — see
+[Repository options](repository.md#options-for-repository).
+
+```php
+$repository = Gitonomy\Git\Admin::init('/path/to/repository', true, driver: new Gitonomy\Git\Driver\Cli\CliDriver(processTimeout: 300));
+```
+
 ### References
 
 -   <http://linux.die.net/man/1/git-init>

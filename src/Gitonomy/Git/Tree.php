@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Driver\Data\TreeEntryType;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\UnexpectedValueException;
 
@@ -123,9 +124,7 @@ final class Tree
             return;
         }
 
-        $output = $this->repository->run('cat-file', ['-p', $this->hash]);
-        $parser = new Parser\TreeParser();
-        $parser->parse($output);
+        $entries = $this->repository->getRepositoryDriver()->getTreeEntries($this->hash);
 
         $this->entries = [];
         $this->entriesByType = [
@@ -134,19 +133,18 @@ final class Tree
             'commit' => [],
         ];
 
-        foreach ($parser->entries as $entry) {
-            [$mode, $type, $hash, $name] = $entry;
-            if ('blob' == $type) {
-                $treeEntry = [$mode, $this->repository->getBlob($hash)];
-                $this->entriesByType['blob'][$name] = $treeEntry;
-            } elseif ('tree' == $type) {
-                $treeEntry = [$mode, $this->repository->getTree($hash)];
-                $this->entriesByType['tree'][$name] = $treeEntry;
+        foreach ($entries as $entry) {
+            if (TreeEntryType::Blob === $entry->type) {
+                $treeEntry = [$entry->mode, $this->repository->getBlob($entry->hash)];
+                $this->entriesByType['blob'][$entry->name] = $treeEntry;
+            } elseif (TreeEntryType::Tree === $entry->type) {
+                $treeEntry = [$entry->mode, $this->repository->getTree($entry->hash)];
+                $this->entriesByType['tree'][$entry->name] = $treeEntry;
             } else {
-                $treeEntry = [$mode, new CommitReference($hash)];
-                $this->entriesByType['commit'][$name] = $treeEntry;
+                $treeEntry = [$entry->mode, new CommitReference($entry->hash)];
+                $this->entriesByType['commit'][$entry->name] = $treeEntry;
             }
-            $this->entries[$name] = $treeEntry;
+            $this->entries[$entry->name] = $treeEntry;
         }
 
         $this->isInitialized = true;

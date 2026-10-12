@@ -18,6 +18,12 @@ use Gitonomy\Git\Diff\FileChange;
 final class DiffParser extends ParserBase
 {
     /**
+     * git quotes the names holding special or non-ASCII characters (unless
+     * core.quotePath is false, for the latter) like C strings.
+     */
+    private const string QUOTED_NAME = '"(?:[^"\\\]|\\\.)*"';
+
+    /**
      * @var File[]
      */
     public array $files = [];
@@ -48,9 +54,9 @@ final class DiffParser extends ParserBase
             // The prefix is normally "a" and "b", but git's diff.mnemonicPrefix option
             // (used by tools such as GrumPHP) can produce other single-letter prefixes
             // ("c"ommit, "i"ndex, "o"bject, "w"ork tree), or "1"/"2" with --no-index.
-            $vars = $this->consumeRegexp("/diff --git \"?([^\\/\\s]\\/.*?)\"? \"?([^\\/\\s]\\/.*?)\"?\n/");
-            $oldName = $vars[1];
-            $newName = $vars[2];
+            $vars = $this->consumeRegexp('/diff --git ('.self::QUOTED_NAME.'|[^\/\s"]\/.*?) ('.self::QUOTED_NAME.'|[^\/\s"]\/.*?)\n/');
+            $oldName = self::unquote($vars[1]);
+            $newName = self::unquote($vars[2]);
             // Get indexes from raw if it exists
             $oldIndex = isset($indexes[$fileIndex]) ? $indexes[$fileIndex][0] : null;
             $newIndex = isset($indexes[$fileIndex]) ? $indexes[$fileIndex][1] : null;
@@ -116,10 +122,10 @@ final class DiffParser extends ParserBase
                 $newName = '/dev/null' === $this->consumeTo("\n") ? '/dev/null' : $newName;
                 $this->consumeNewLine();
             } elseif ($this->expects('Binary files ')) {
-                $vars = $this->consumeRegexp('/"?(.*?)"? and "?(.*?)"? differ\n/');
+                $vars = $this->consumeRegexp('/('.self::QUOTED_NAME.'|.*?) and ('.self::QUOTED_NAME.'|.*?) differ\n/');
                 $isBinary = true;
-                $oldName = $vars[1];
-                $newName = $vars[2];
+                $oldName = self::unquote($vars[1]);
+                $newName = self::unquote($vars[2]);
             }
 
             $oldName = '/dev/null' === $oldName ? null : substr($oldName, 2);
@@ -167,5 +173,14 @@ final class DiffParser extends ParserBase
 
             $this->files[] = $file;
         }
+    }
+
+    private static function unquote(string $name): string
+    {
+        if (!str_starts_with($name, '"')) {
+            return $name;
+        }
+
+        return stripcslashes(substr($name, 1, -1));
     }
 }

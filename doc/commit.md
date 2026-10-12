@@ -74,12 +74,12 @@ methods:
 // Author
 $commit->getAuthorName();
 $commit->getAuthorEmail();
-$commit->getAuthorDate(); // returns a DateTime object
+$commit->getAuthorDate(); // returns a DateTimeImmutable object
 
 // Committer
 $commit->getCommitterName();
 $commit->getCommitterEmail();
-$commit->getCommitterDate(); // returns a DateTime object
+$commit->getCommitterDate(); // returns a DateTimeImmutable object
 ```
 
 Commit message and short message

@@ -269,4 +269,35 @@ class CommitTest extends AbstractTestCase
 
         $this->assertEquals('contribute to AUTHORS file', $commit->getSubjectMessage());
     }
+
+    public function testReencodesCommitsToUtf8(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['i18n.commitEncoding', 'ISO-8859-1']);
+        self::git($repository, 'config', ['user.name', "Andr\xe9"]);
+        self::git($repository, 'config', ['user.email', 'andre@example.com']);
+        file_put_contents($repository->getWorkingDir().'/latin1.txt', 'latin1');
+        self::git($repository, 'add', ['latin1.txt']);
+        self::git($repository, 'commit', ['-m', "Caf\xe9"]);
+        $hash = trim(self::git($repository, 'rev-parse', ['HEAD']));
+
+        $commit = new Repository($repository->getPath(), driver: self::getDriver())->getCommit($hash);
+        $this->assertSame("Caf\u{e9}\n", $commit->getMessage());
+        $this->assertSame("Andr\u{e9}", $commit->getAuthorName());
+
+        $commit = new Repository($repository->getPath(), driver: self::getDriver())->getLog($hash, null, null, 1)->getSingleCommit();
+        $this->assertSame("Caf\u{e9}\n", $commit->getMessage());
+        $this->assertSame("Andr\u{e9}", $commit->getAuthorName());
+    }
+
+    public function testMessageIsReadLikeGitLogPrintsIt(): void
+    {
+        $repository = self::createEmptyRepository();
+        $tree = self::writeObject($repository, 'tree', '');
+        // Not cleaned up, unlike what `git commit` writes.
+        $hash = self::writeObject($repository, 'commit', "tree {$tree}\nauthor A <a@example.com> 1000000000 +0000\ncommitter A <a@example.com> 1000000000 +0000\n\n\n \nSubject \t\n\nBody\r\n    indented\n\n\n");
+
+        $this->assertSame("Subject\n\nBody\n    indented\n", $repository->getCommit($hash)->getMessage());
+        $this->assertSame("Subject\n\nBody\n    indented\n", new Repository($repository->getPath(), driver: self::getDriver())->getLog([$hash])->getSingleCommit()->getMessage());
+    }
 }

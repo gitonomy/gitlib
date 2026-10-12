@@ -3,9 +3,8 @@ Gitlib for Gitonomy
 
 This library provides methods to access Git repository from PHP 8.4+.
 
-It makes shell calls, which makes it less performant than any solution.
-
-Anyway, it's convenient and don't need to build anything to use it. That's how we love it.
+It runs the `git` binary (1.8.4 or later) for every operation: convenient, and it doesn't need
+anything built to use.
 
 Quick Start
 -----------
