@@ -2,7 +2,10 @@ UPGRADE FROM 1.x to 2.0
 =======================
 
 gitlib 2.0 runs every git operation through a driver: `CliDriver`, the
-default, runs the `git` binary like 1.x did. Code reading repositories through `Repository`, `Commit`, `Log`... mostly keeps working:
+default, runs the `git` binary like 1.x did, and the experimental
+`LibGit2Driver` runs libgit2 in-process (see
+["Choosing a driver"](doc/repository.md#choosing-a-driver)). Code reading
+repositories through `Repository`, `Commit`, `Log`... mostly keeps working:
 check the points below, starting with the configuration of git, errors,
 dates and classes you extend.
 

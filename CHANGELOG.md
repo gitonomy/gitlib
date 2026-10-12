@@ -9,6 +9,13 @@ Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0). 
 
 ### Features
 
+- Add an experimental `Driver\Ffi\LibGit2Driver`, running libgit2 1.9 in-process through PHP's
+  FFI extension, as an alternative to the default `Driver\Cli\CliDriver`: pass it as the driver of
+  `Repository`/`Admin`. It avoids spawning a `git` process for every operation; see
+  ["Choosing a driver"](doc/repository.md#choosing-a-driver) for its requirements, its
+  differences with `CliDriver`, and when it is faster. `benchmark.php` compares both drivers
+  on a repository. With php-fpm, `LibGit2Driver::preload()` keeps libgit2 loaded from
+  `opcache.preload`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - `Repository` and `Admin` take the driver running git as their last argument: a
   `Driver\Cli\CliDriver` by default, configured through its constructor, or any
   `Driver\DriverInterface`, to replace it in tests; see

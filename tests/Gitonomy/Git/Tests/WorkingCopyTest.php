@@ -75,10 +75,12 @@ class WorkingCopyTest extends AbstractTestCase
 
     public function testDiffPendingWithAbbreviatedHashesLikeOldGit(): void
     {
+        $this->skipUnlessCliDriver();
+
         $repository = self::createFoobarRepository(false);
         file_put_contents($repository->getWorkingDir().'/test.sh', 'test');
         // Before 2.16, git always wrote "..." after the abbreviated hashes of --raw.
-        $repository = new Repository($repository->getPath(), driver: self::getDriver(['GIT_PRINT_SHA1_ELLIPSIS' => 'yes']));
+        $repository = new Repository($repository->getPath(), driver: self::getCliDriver(['GIT_PRINT_SHA1_ELLIPSIS' => 'yes']));
 
         $files = $repository->getWorkingCopy()->getDiffPending()->getFiles();
 

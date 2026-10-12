@@ -8,4 +8,13 @@ parameters:
     tmpDir: 'var/phpstan/tmp'
     inferPrivatePropertyTypeFromConstructor: true
     excludePaths:
-        analyse: []
+        analyse:
+            # PHP FFI is dynamic by design: `$ffi->some_c_function()` and
+            # `$cdata->some_field` are resolved at runtime against the cdef
+            # loaded into that specific FFI/CData instance, not against any
+            # PHP class PHPStan can see. There is no stub format for this, so
+            # every call/property access here reads as "undefined" to static
+            # analysis even though it's correct — verified by actually
+            # exercising this driver against a live libgit2 and the full test
+            # suite (`GITLIB_DRIVER=ffi vendor/bin/phpunit`), not by type-checking it.
+            - src/Gitonomy/Git/Driver/Ffi/*

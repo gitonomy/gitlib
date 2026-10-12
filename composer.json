@@ -47,6 +47,9 @@
         "psr/log": "^3.0",
         "symfony/console": "^8.1"
     },
+    "suggest": {
+        "ext-ffi": "To use the experimental LibGit2Driver (in-process libgit2) instead of the default CliDriver — also requires libgit2 1.9 to be installed on the system."
+    },
     "config": {
         "preferred-install": "dist",
         "sort-packages": true

@@ -30,8 +30,10 @@ class RepositoryTest extends AbstractTestCase
 {
     public function testNullProcessTimeoutDisablesTheTimeout(): void
     {
+        $this->skipUnlessCliDriver();
+
         $repository = self::createFoobarRepository(true);
-        $repository = new Repository($repository->getPath(), driver: self::getDriver(processTimeout: null));
+        $repository = new Repository($repository->getPath(), driver: self::getCliDriver(processTimeout: null));
 
         $process = $repository->runProcess('rev-parse', ['HEAD']);
         $this->assertNull($process->getTimeout());
@@ -40,6 +42,8 @@ class RepositoryTest extends AbstractTestCase
 
     public function testRunThrowsWhenTheCommandFails(): void
     {
+        $this->skipUnlessCliDriver();
+
         $repository = self::createFoobarRepository(true);
 
         $this->expectException(ProcessException::class);
@@ -49,6 +53,8 @@ class RepositoryTest extends AbstractTestCase
 
     public function testRunProcessGivesAccessToStderrOnSuccess(): void
     {
+        $this->skipUnlessCliDriver();
+
         $repository = self::createFoobarRepository(false);
 
         // `git checkout` reports the switched branch on stderr, even on success.
@@ -105,6 +111,8 @@ class RepositoryTest extends AbstractTestCase
     #[DataProvider('provideFoobar')]
     public function testLoggerOk(Repository $repository): void
     {
+        $this->skipUnlessCliDriver();
+
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())
             ->method('info')
@@ -123,6 +131,8 @@ class RepositoryTest extends AbstractTestCase
     #[DataProvider('provideFoobar')]
     public function testLoggerNOk(Repository $repository): void
     {
+        $this->skipUnlessCliDriver();
+
         $this->expectException(RuntimeException::class);
 
         $logger = $this->createMock(LoggerInterface::class);
@@ -149,6 +159,8 @@ class RepositoryTest extends AbstractTestCase
      */
     public function testRunResolvesRelativePathsAgainstTheRepositoryRegardlessOfCwd(): void
     {
+        $this->skipUnlessCliDriver();
+
         $repository = self::createFoobarRepository(false);
 
         $file = $repository->getWorkingDir().'/README.md';

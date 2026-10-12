@@ -3,8 +3,12 @@ Gitlib for Gitonomy
 
 This library provides methods to access Git repository from PHP 8.4+.
 
-It runs the `git` binary (1.8.4 or later) for every operation: convenient, and it doesn't need
-anything built to use.
+By default, it runs the `git` binary (1.8.4 or later) for every operation: convenient, and it
+doesn't need anything built to use. It can instead run [libgit2](https://libgit2.org/) in-process
+via PHP's `FFI` extension, an experimental driver which is faster for small reads but slower on
+long histories: see
+["Choosing a driver"](doc/repository.md#choosing-a-driver) and
+["Performance"](doc/repository.md#performance).
 
 Quick Start
 -----------

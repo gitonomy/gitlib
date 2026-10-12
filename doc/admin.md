@@ -77,10 +77,11 @@ Options
 Every method on this page also accepts the driver running git as its last
 argument, and the methods returning a `Repository` the same `$options` array
 as its constructor before it — see
-[Repository options](repository.md#options-for-repository).
+[Repository options](repository.md#options-for-repository), notably
+["Choosing a driver"](repository.md#choosing-a-driver).
 
 ```php
-$repository = Gitonomy\Git\Admin::init('/path/to/repository', true, driver: new Gitonomy\Git\Driver\Cli\CliDriver(processTimeout: 300));
+$repository = Gitonomy\Git\Admin::init('/path/to/repository', true, driver: new Gitonomy\Git\Driver\Ffi\LibGit2Driver());
 ```
 
 ### References

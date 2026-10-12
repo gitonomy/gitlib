@@ -93,7 +93,7 @@ class AdminTest extends AbstractTestCase
         // so we test it directly against the remote repository
 
         $newDir = self::createTempDir();
-        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature', true, driver: self::getDriver());
+        $new = Admin::cloneBranchTo($newDir, self::repositoryUrl(), 'new-feature', true, driver: self::getDriver());
         self::registerDeletion($new);
 
         $head = $new->getHead();
@@ -108,7 +108,7 @@ class AdminTest extends AbstractTestCase
         // so we test it directly against remote repository
 
         $newDir = self::createTempDir();
-        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature', false, driver: self::getDriver());
+        $new = Admin::cloneBranchTo($newDir, self::repositoryUrl(), 'new-feature', false, driver: self::getDriver());
         self::registerDeletion($new);
 
         $head = $new->getHead();
@@ -144,7 +144,7 @@ class AdminTest extends AbstractTestCase
     {
         $this->expectException(DriverException::class);
 
-        Admin::cloneBranchTo(self::createTempDir().'/clone', self::REPOSITORY_URL, 'unknown', true, driver: self::getDriver());
+        Admin::cloneBranchTo(self::createTempDir().'/clone', self::repositoryUrl(), 'unknown', true, driver: self::getDriver());
     }
 
     #[DataProvider('provideFoobar')]
@@ -191,7 +191,7 @@ class AdminTest extends AbstractTestCase
         $newDir = self::createTempDir();
         $args = [];
 
-        $new = Admin::cloneRepository($newDir, self::REPOSITORY_URL, $args, driver: self::getDriver());
+        $new = Admin::cloneRepository($newDir, self::repositoryUrl(), $args, driver: self::getDriver());
         self::registerDeletion($new);
 
         $newRefs = array_keys($new->getReferences()->getAll());

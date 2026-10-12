@@ -44,6 +44,13 @@ $wc->merge('origin/develop', ['--no-ff']);
 You can also pass a *Reference* or a *Commit*. A `RuntimeException` is thrown
 if the merge fails (for instance because of a conflict).
 
+> **note**
+>
+> With `LibGit2Driver` (see [Choosing a driver](repository.md#choosing-a-driver)),
+> `merge()` only supports fast-forward and conflict-free merges, with `--no-ff`
+> as the only extra argument: a conflict, or any other extra argument, throws
+> instead of leaving conflict markers in the working copy.
+
 Staged modifications
 --------------------
 

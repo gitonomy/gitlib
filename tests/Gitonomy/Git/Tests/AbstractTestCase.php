@@ -14,8 +14,11 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
 use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Driver\DriverInterface;
+use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Process\Process;
 
 abstract class AbstractTestCase extends TestCase
 {
@@ -38,6 +41,14 @@ abstract class AbstractTestCase extends TestCase
      * Local clone of remote URL. Avoids network call on each test.
      */
     private static ?Repository $localRepository = null;
+
+    /**
+     * Materialized (unbundled) copy of REPOSITORY_URL, used in place of the
+     * raw .bundle file for drivers whose clone implementation doesn't
+     * understand the git bundle format (unlike the `git` CLI, which
+     * special-cases it) — currently LibGit2Driver.
+     */
+    private static ?string $materializedRepositoryUrl = null;
 
     /**
      * Creates an empty git repository and returns instance.
@@ -79,7 +90,7 @@ abstract class AbstractTestCase extends TestCase
     public static function createFoobarRepository(bool $bare = true): Repository
     {
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, driver: self::getDriver());
+            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::repositoryUrl(), $bare, driver: self::getDriver());
         }
 
         $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare);
@@ -113,6 +124,28 @@ abstract class AbstractTestCase extends TestCase
     }
 
     /**
+     * Returns the source to clone the fixture from: the raw .bundle file for
+     * drivers that understand it (the `git` CLI does natively), or a
+     * one-time unbundled bare repository otherwise.
+     */
+    protected static function repositoryUrl(): string
+    {
+        if (self::getDriver() instanceof CliDriver) {
+            return self::REPOSITORY_URL;
+        }
+
+        if (null === self::$materializedRepositoryUrl) {
+            $dir = self::createTempDir();
+            $command = $_SERVER['GIT_COMMAND'] ?? 'git';
+            $process = new Process([$command, 'clone', '-q', '--bare', self::REPOSITORY_URL, $dir]);
+            $process->mustRun();
+            self::$materializedRepositoryUrl = $dir;
+        }
+
+        return self::$materializedRepositoryUrl;
+    }
+
+    /**
      * Deletes a directory recursively.
      */
     protected static function deleteDir(string $dir): void
@@ -135,14 +168,29 @@ abstract class AbstractTestCase extends TestCase
     }
 
     /**
-     * Runs a git command on $repository: for setup (committing, staging,
-     * tagging...) that no method of gitlib covers.
+     * Skips the current test under LibGit2Driver: use at the top of tests
+     * whose subject is the CLI-only Repository::run()/runProcess() escape
+     * hatch, or the configuration of CliDriver. For mere setup, use git().
+     */
+    protected function skipUnlessCliDriver(): void
+    {
+        if (!self::getDriver() instanceof CliDriver) {
+            self::markTestSkipped('This test is specific to CliDriver.');
+        }
+    }
+
+    /**
+     * Runs a git command on $repository through CliDriver, whatever the
+     * driver under test: for setup (committing, staging, tagging...) that no
+     * driver method covers.
      *
      * @param array<int|string, int|string> $args
      */
     protected static function git(Repository $repository, string $command, array $args = []): string
     {
-        return $repository->run($command, $args);
+        $cli = new Repository($repository->getPath(), driver: self::getCliDriver());
+
+        return $cli->run($command, $args);
     }
 
     /**
@@ -166,9 +214,18 @@ abstract class AbstractTestCase extends TestCase
     }
 
     /**
+     * Returns the driver under test: LibGit2Driver when the GITLIB_DRIVER
+     * environment variable is "ffi", CliDriver otherwise.
+     */
+    protected static function getDriver(): DriverInterface
+    {
+        return 'ffi' === ($_SERVER['GITLIB_DRIVER'] ?? 'cli') ? new LibGit2Driver() : self::getCliDriver();
+    }
+
+    /**
      * @param array<string, string> $environmentVariables Set on git processes, in addition to the GIT_ENVS environment variable
      */
-    protected static function getDriver(array $environmentVariables = [], ?float $processTimeout = 60): CliDriver
+    protected static function getCliDriver(array $environmentVariables = [], ?float $processTimeout = 60): CliDriver
     {
         $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : [];
 
