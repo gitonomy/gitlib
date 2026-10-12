@@ -52,7 +52,8 @@ final readonly class WorkingCopy
 
     public function getDiffPending(): Diff
     {
-        $result = $this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index']);
+        // --no-abbrev: before git 2.16, --raw abbreviates hashes with a trailing "...".
+        $result = $this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index', '--no-abbrev']);
         if (null === $result) {
             throw new RuntimeException('Unable to compute pending diff.');
         }
@@ -65,7 +66,7 @@ final readonly class WorkingCopy
 
     public function getDiffStaged(): Diff
     {
-        $result = $this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index', '--staged']);
+        $result = $this->run('diff', ['-r', '-p', '--raw', '-m', '-M', '--full-index', '--no-abbrev', '--staged']);
         if (null === $result) {
             throw new RuntimeException('Unable to compute staged diff.');
         }

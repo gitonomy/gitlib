@@ -16,6 +16,7 @@ use Gitonomy\Git\Admin;
 use Gitonomy\Git\Exception\LogicException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
+use Gitonomy\Git\Repository;
 
 class WorkingCopyTest extends AbstractTestCase
 {
@@ -69,6 +70,19 @@ class WorkingCopyTest extends AbstractTestCase
 
         $diffPending = $wc->getDiffPending();
         $this->assertCount(1, $diffPending->getFiles());
+    }
+
+    public function testDiffPendingWithAbbreviatedHashesLikeOldGit(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        file_put_contents($repository->getWorkingDir().'/test.sh', 'test');
+        // Before 2.16, git always wrote "..." after the abbreviated hashes of --raw.
+        $repository = new Repository($repository->getPath(), array_merge(self::getOptions(), ['environment_variables' => ['GIT_PRINT_SHA1_ELLIPSIS' => 'yes']]));
+
+        $files = $repository->getWorkingCopy()->getDiffPending()->getFiles();
+
+        $this->assertCount(1, $files);
+        $this->assertSame(40, \strlen($files[0]->getOldIndex()));
     }
 
     public function testCheckoutUnexisting(): void

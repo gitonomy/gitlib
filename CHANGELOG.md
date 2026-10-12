@@ -28,6 +28,9 @@ Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0).
 
 ### Bug fixes
 
+- Fix `Repository::getDiff()`, `WorkingCopy::getDiffPending()` and `WorkingCopy::getDiffStaged()`
+  failing to parse the output of git before 2.16, which writes "..." after abbreviated hashes.
+  ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Fix relative paths not resolving against the repository in `Repository::run()`: the git
   process spawned by `run()` never had its working directory set, so commands such as
   `apply` resolved paths against the calling script's cwd instead of `--work-tree`, failing

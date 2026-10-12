@@ -359,7 +359,8 @@ final class Repository
             $revisions = new RevisionList($this, $revisions);
         }
 
-        $args = array_merge(['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index'], $revisions->getAsTextArray());
+        // --no-abbrev: before git 2.16, --raw abbreviates hashes with a trailing "...".
+        $args = array_merge(['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index', '--no-abbrev'], $revisions->getAsTextArray());
 
         $result = $this->run('diff', $args);
         if (null === $result) {
