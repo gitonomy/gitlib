@@ -1,24 +1,22 @@
 Create and access git repositories
 ==================================
 
-gitlib provides methods to initialize new repositories.
+The static methods of `Repository` create new repositories, and return them.
+They replace `Admin`, deprecated since 2.0: see
+[UPGRADE-2.0.md](../UPGRADE-2.0.md#creating-repositories).
 
 Create a repository
 -------------------
 
-To initialize a new repository, use method `Admin::init`.
-
 ```php
+use Gitonomy\Git\Repository;
+
+// Initialize a repository with a working directory
+$repository = Repository::init('/path/to/repository');
+
 // Initialize a bare repository
-$repository = Gitonomy\Git\Admin::init('/path/to/repository');
-
-// Initialize a non-bare repository
-$repository = Gitonomy\Git\Admin::init('/path/to/repository', false);
+$repository = Repository::initBare('/path/to/repository');
 ```
-
-Default behavior is to create a bare repository. If you want to
-initialize a repository with a working copy,pass `false` as third
-argument of Repository constructor.
 
 Cloning repositories
 --------------------
@@ -26,62 +24,71 @@ Cloning repositories
 You can clone a repository from an URL by doing:
 
 ```php
-// Clone to a bare repository
-$repository = Gitonomy\Git\Admin::cloneTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git');
+// Clone with a working directory
+$repository = Repository::cloneFrom('https://github.com/gitonomy/gitlib.git', '/tmp/gitlib');
 
-// Clone to a non-bare repository
-$repository = Gitonomy\Git\Admin::cloneTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', false);
+// Clone to a bare repository
+$repository = Repository::cloneBareFrom('https://github.com/gitonomy/gitlib.git', '/tmp/gitlib');
 ```
 
-Default behavior is to clone in a bare repository.
-
-You can also clone a repository and point it to a specific branch. In a
-non-bare repository, this branch will be checked out:
+You can also clone a repository and point it to a specific branch. With a
+working directory, this branch will be checked out:
 
 ```php
-// Clone to a bare repository
-$repository = Gitonomy\Git\Admin::cloneBranchTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', 'a-branch');
-
-// Clone to a non-bare repository
-$repository = Gitonomy\Git\Admin::cloneBranchTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', 'a-branch', false);
+$repository = Repository::cloneFrom('https://github.com/gitonomy/gitlib.git', '/tmp/gitlib', 'a-branch');
 ```
 
-Clone a Repository object
--------------------------
-
-If you already have a Repository instance and want to clone it, you can
-use this shortcut:
+To clone a `Repository` object, use its git directory as URL:
 
 ```php
-$new = $repository->cloneTo('/tmp/clone');
+$new = Repository::cloneBareFrom($repository->getGitDir(), '/tmp/clone');
+```
+
+These methods support no other argument of `git clone`. With `CliDriver`,
+run `git clone` yourself, then open the repository:
+
+```php
+use Symfony\Component\Process\Process;
+
+new Process(['git', 'clone', '--depth', '1', $url, '/tmp/gitlib'])->mustRun();
+
+$repository = new Repository('/tmp/gitlib');
 ```
 
 Mirror a repository
 -------------------
 
 If you want to mirror fully a repository and all references, use the
-`mirrorTo` method. This method takes only two arguments, where to mirror
-and what to mirror:
+`mirrorFrom` method. It clones into a bare repository, set up to mirror the
+remote when fetching, like `git clone --mirror`:
 
 ```php
-// Mirror to a bare repository
-$mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitonomy/gitlib.git');
-
-// Mirror to a non-bare repository
-$mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitonomy/gitlib.git', false);
+$mirror = Repository::mirrorFrom('https://github.com/gitonomy/gitlib.git', '/tmp/mirror');
 ```
 
-Options
--------
+Check a repository URL
+----------------------
 
-Every method on this page also accepts the driver running git as its last
-argument, and the methods returning a `Repository` the same `$options` array
-as its constructor before it — see
-[Repository options](repository.md#options-for-repository), notably
-["Choosing a driver"](repository.md#choosing-a-driver).
+You can check that a repository exists, and that it has a branch, without
+cloning it:
 
 ```php
-$repository = Gitonomy\Git\Admin::init('/path/to/repository', true, driver: new Gitonomy\Git\Driver\Ffi\LibGit2Driver());
+Repository::isValidRepository('https://github.com/gitonomy/gitlib.git'); // true
+Repository::isValidRepositoryAndBranch('https://github.com/gitonomy/gitlib.git', 'main'); // true
+```
+
+They return `false` as well for a repository that can't be reached, or that
+refuses access.
+
+Logger and driver
+-----------------
+
+The methods returning a `Repository` take its [logger](repository.md#logger),
+and all of them the driver running git as their last argument — see
+["Choosing a driver"](repository.md#choosing-a-driver):
+
+```php
+$repository = Repository::initBare('/path/to/repository', driver: new Gitonomy\Git\Driver\Ffi\LibGit2Driver());
 ```
 
 ### References

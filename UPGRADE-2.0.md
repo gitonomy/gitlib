@@ -17,15 +17,17 @@ Requirements
    git simplifies the log of a range filtered by path differently, and it
    can't count commits (`Log::count()`) before 1.7.2.
  * `symfony/process` must be `^6.4`, `^7.4` or `^8.1`.
- * `symfony/string` `^7.4.6` or `^8.0.6` is a new dependency.
+ * `symfony/string` `^7.4.6` or `^8.0.6`, and `symfony/deprecation-contracts`
+   `^2.5` or `^3`, are new dependencies.
 
 Configuring git
 ---------------
 
  * The `command`, `environment_variables`, `inherit_environment_variables`
-   and `process_timeout` options of `Repository` and `Admin` are replaced by
-   the arguments of `Gitonomy\Git\Driver\Cli\CliDriver`, which
-   `Repository` and `Admin` take as their last argument.
+   and `process_timeout` options of `Repository` and `Admin` are deprecated,
+   and will be removed in 3.0: pass a `Gitonomy\Git\Driver\Cli\CliDriver`
+   configured through its arguments as the last argument of `Repository`
+   instead. They can't be combined with this argument.
 
    Before:
 
@@ -44,15 +46,64 @@ Configuring git
    $repository = new Repository($path, driver: new CliDriver(command: '/usr/bin/git', processTimeout: 60));
    ```
 
- * `Admin::isValidRepository()` and `Admin::isValidRepositoryAndBranch()`
-   take the driver instead of options as their last argument.
  * `Repository` throws an `InvalidArgumentException` for an unknown option,
-   like the removed ones, instead of ignoring it.
+   instead of ignoring it.
+
+Creating repositories
+---------------------
+
+ * `Admin` is deprecated, and will be removed in 3.0: use the static methods
+   of `Repository`. They take the URL before the path, and have a method for
+   each kind of repository instead of the `$bare` argument, whose default
+   was a bare repository:
+
+   | 1.x                                                  | 2.0                                                          |
+   |------------------------------------------------------|--------------------------------------------------------------|
+   | `Admin::init($path)`                                 | `Repository::initBare($path)`                                |
+   | `Admin::init($path, false)`                          | `Repository::init($path)`                                    |
+   | `Admin::cloneTo($path, $url)`                        | `Repository::cloneBareFrom($url, $path)`                     |
+   | `Admin::cloneTo($path, $url, false)`                 | `Repository::cloneFrom($url, $path)`                         |
+   | `Admin::cloneBranchTo($path, $url, $branch)`         | `Repository::cloneBareFrom($url, $path, $branch)`            |
+   | `Admin::cloneBranchTo($path, $url, $branch, false)`  | `Repository::cloneFrom($url, $path, $branch)`                |
+   | `Admin::mirrorTo($path, $url)`                       | `Repository::mirrorFrom($url, $path)`                        |
+   | `Admin::isValidRepository($url)`                     | `Repository::isValidRepository($url)`                        |
+   | `Admin::isValidRepositoryAndBranch($url, $branch)`   | `Repository::isValidRepositoryAndBranch($url, $branch)`      |
+   | `$repository->cloneTo($path)`                        | `Repository::cloneBareFrom($repository->getGitDir(), $path)` |
+   | `$repository->cloneTo($path, false)`                 | `Repository::cloneFrom($repository->getGitDir(), $path)`     |
+
+   Until then, `Admin` keeps working like in 1.x, with `CliDriver`.
+ * The new methods take the logger of the repository instead of options,
+   and the driver as their last argument:
+
+   Before:
+
+   ```php
+   $repository = Admin::cloneTo($path, $url, false, [
+       'logger' => $logger,
+       'process_timeout' => 60,
+   ]);
+   ```
+
+   After:
+
+   ```php
+   use Gitonomy\Git\Driver\Cli\CliDriver;
+
+   $repository = Repository::cloneFrom($url, $path, logger: $logger, driver: new CliDriver(processTimeout: 60));
+   ```
+
+ * `Repository::cloneTo()` used the driver of the repository: pass it to
+   `Repository::cloneFrom()` or `Repository::cloneBareFrom()` as well.
+ * `Admin::cloneRepository()` is deprecated, with no replacement for the
+   arguments of `git clone` other than `--bare`, `--branch` and `--mirror`:
+   run `git clone` yourself, then open the repository with
+   `new Repository($path)`.
 
 Errors
 ------
 
- * The `debug` option of `Repository` is removed: a failing git operation
+ * The `debug` option of `Repository` is deprecated, and setting it to
+   `false` throws an `InvalidArgumentException`: a failing git operation
    always throws, a `Gitonomy\Git\Exception\ProcessException` with
    `CliDriver`. Nothing returns `null` or empty data instead anymore:
    `Repository::run()` returns a `string`, and `Repository::getHead()` and

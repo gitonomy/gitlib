@@ -11,15 +11,19 @@ Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0). 
 
 - Add an experimental `Driver\Ffi\LibGit2Driver`, running libgit2 1.9 in-process through PHP's
   FFI extension, as an alternative to the default `Driver\Cli\CliDriver`: pass it as the driver of
-  `Repository`/`Admin`. It avoids spawning a `git` process for every operation; see
+  `Repository`. It avoids spawning a `git` process for every operation; see
   ["Choosing a driver"](doc/repository.md#choosing-a-driver) for its requirements, its
   differences with `CliDriver`, and when it is faster. `benchmark.php` compares both drivers
   on a repository. With php-fpm, `LibGit2Driver::preload()` keeps libgit2 loaded from
   `opcache.preload`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
-- `Repository` and `Admin` take the driver running git as their last argument: a
+- `Repository` takes the driver running git as its last argument: a
   `Driver\Cli\CliDriver` by default, configured through its constructor, or any
   `Driver\DriverInterface`, to replace it in tests; see
   ["Using your own driver"](doc/repository.md#using-your-own-driver). ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- Add static methods to `Repository` creating repositories, `init()`, `initBare()`,
+  `cloneFrom()`, `cloneBareFrom()` and `mirrorFrom()`, and checking a repository URL,
+  `isValidRepository()` and `isValidRepositoryAndBranch()`; see
+  ["Create and access git repositories"](doc/admin.md).
 - Add `WorkingCopy::merge()` to support `git merge`: accepts a `Commit`, `Reference` or
   string revision, plus optional extra CLI args (e.g. `['--no-ff']`), mirroring the existing
   `checkout()` method. ([#248](https://github.com/gitonomy/gitlib/pull/248), fixes #118)
@@ -37,6 +41,17 @@ Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0). 
   flag, and `isRename()` no longer reports `true` for copies, since a copy's source file
   still exists afterward.
   ([#244](https://github.com/gitonomy/gitlib/pull/244), fixes #14)
+
+### Deprecations
+
+- Deprecate `Admin`, use the static methods of `Repository` instead, and
+  `Repository::cloneTo()`, use `Repository::cloneFrom()` or `Repository::cloneBareFrom()`
+  instead; see [UPGRADE-2.0.md](UPGRADE-2.0.md#creating-repositories).
+- Deprecate the `command`, `environment_variables`, `inherit_environment_variables` and
+  `process_timeout` options of `Repository` and `Admin`, pass a `Driver\Cli\CliDriver`
+  configured through its arguments as the driver of `Repository` instead, and the `debug`
+  option, as a failing operation always throws; see
+  [UPGRADE-2.0.md](UPGRADE-2.0.md#configuring-git).
 
 ### Bug fixes
 
@@ -93,12 +108,10 @@ Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0). 
   instead of building processes and parsing their output across the domain classes.
   `CliDriver`, the default, keeps running the `git` binary.
   **Breaking** (see [UPGRADE-2.0.md](UPGRADE-2.0.md) for the complete list):
-  - The `command`, `environment_variables`, `inherit_environment_variables` and
-    `process_timeout` options are replaced by the arguments of `CliDriver`, and `Repository`
-    throws on unknown options.
-  - The `debug` option is removed: a failing operation always throws, an
-    `Exception\DriverException` (`ProcessException` with `CliDriver`) or a more specific
-    exception, and never returns empty data. `Repository::run()` returns a `string`, and
+  - `Repository` throws on unknown options.
+  - The `debug` option set to `false` is not supported anymore: a failing operation always
+    throws, an `Exception\DriverException` (`ProcessException` with `CliDriver`) or a more
+    specific exception, and never returns empty data. `Repository::run()` returns a `string`, and
     `Repository::getHead()` and `Repository::getHeadCommit()` never return `null`.
     `Commit::getIncludingBranches()`, `Tag::isAnnotated()` and `ReferenceBag` throw where they
     returned `false` or an empty result. Failures are no longer logged at the `error` level.

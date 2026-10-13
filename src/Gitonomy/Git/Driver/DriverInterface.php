@@ -14,15 +14,14 @@ namespace Gitonomy\Git\Driver;
 
 use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Exception\DriverException;
-use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Psr\Log\LoggerInterface;
 
 /**
  * A configured git backend: opens repositories, and runs the operations that
  * need no repository yet.
  *
- * Pass one to Repository and Admin, which use {@see CliDriver} by default,
- * to configure the backend, or to replace it in tests.
+ * Pass one to Repository, which uses {@see CliDriver} by default, to
+ * configure the backend, or to replace it in tests.
  *
  * @author Grégoire Pineau <lyrixx@lyrixx.info>
  */
@@ -44,12 +43,29 @@ interface DriverInterface
     public function initBare(string $path): void;
 
     /**
-     * @param string[] $args Arguments of ``git clone``: ``--bare``, ``--mirror`` and ``--branch <name>`` are supported by every driver
+     * Clones $url with a working directory in $path, checking out $branch,
+     * or the default branch of $url when null.
      *
      * @throws DriverException
-     * @throws UnsupportedOperationException An argument the driver doesn't support
      */
-    public function cloneRepository(string $path, string $url, array $args): void;
+    public function cloneFrom(string $url, string $path, ?string $branch): void;
+
+    /**
+     * Clones the branches and the tags of $url into a bare repository in
+     * $path, with HEAD pointing to $branch, or to the default branch of $url
+     * when null.
+     *
+     * @throws DriverException
+     */
+    public function cloneBareFrom(string $url, string $path, ?string $branch): void;
+
+    /**
+     * Clones every reference of $url into a bare repository in $path, set up
+     * to mirror $url when fetching.
+     *
+     * @throws DriverException
+     */
+    public function mirrorFrom(string $url, string $path): void;
 
     public function isValidRepository(string $url): bool;
 

@@ -1,42 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:cloneBranchTo\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:cloneRepository\(\) has parameter \$args with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:cloneRepository\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:cloneTo\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:init\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Admin\:\:mirrorTo\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Admin.php
-
-		-
 			message: '#^Method Gitonomy\\Git\\Blame\:\:getGroupedLines\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -167,18 +131,6 @@ parameters:
 			identifier: missingType.generics
 			count: 1
 			path: src/Gitonomy/Git/ReferenceBag.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Repository\:\:__construct\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Repository.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Repository\:\:cloneTo\(\) has parameter \$options with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Repository.php
 
 		-
 			message: '#^Method Gitonomy\\Git\\Repository\:\:getDescription\(\) should return string but returns string\|false\.$#'

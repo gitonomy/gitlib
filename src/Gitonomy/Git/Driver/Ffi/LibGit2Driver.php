@@ -91,40 +91,36 @@ final readonly class LibGit2Driver implements DriverInterface
         $this->ffi->git_repository_free($this->initRepository($path, true));
     }
 
-    public function cloneRepository(string $path, string $url, array $args): void
+    public function cloneFrom(string $url, string $path, ?string $branch): void
     {
-        $refspec = null;
-        $branch = null;
-        for ($i = 0, $count = \count($args); $i < $count; ++$i) {
-            match ($args[$i]) {
-                // Like git: --mirror fetches every reference, --bare only the branches (and the tags).
-                '--bare' => $refspec ??= '+refs/heads/*:refs/heads/*',
-                '--mirror' => $refspec = '+refs/*:refs/*',
-                '--branch' => $branch = $args[++$i] ?? throw new UnsupportedOperationException('The "--branch" clone argument expects a branch name.'),
-                default => throw new UnsupportedOperationException(\sprintf('LibGit2Driver does not support the "%s" clone argument; use CliDriver.', $args[$i])),
-            };
+        $options = $this->ffi->new('git_clone_options');
+        LibGit2::check($this->ffi, $this->ffi->git_clone_options_init(\FFI::addr($options), 1), 'Unable to initialize clone options');
+
+        // The buffer must stay alive until git_clone() returns.
+        $branchBuffer = null;
+        if (null !== $branch) {
+            $branchBuffer = LibGit2::cString($this->ffi, $branch);
+            $options->checkout_branch = $this->ffi->cast('const char *', $branchBuffer);
         }
 
-        if (null === $refspec) {
-            $this->cloneWithWorkingTree($path, $url, $branch);
+        $repository = $this->ffi->new('git_repository*');
+        LibGit2::check($this->ffi, $this->ffi->git_clone(\FFI::addr($repository), $url, $path, \FFI::addr($options)), \sprintf('Unable to clone "%s"', $url));
+        $this->ffi->git_repository_free($repository);
+    }
 
-            return;
-        }
+    public function cloneBareFrom(string $url, string $path, ?string $branch): void
+    {
+        // Like git, only the branches (and the tags).
+        $this->fetchInto($path, $url, '+refs/heads/*:refs/heads/*', $branch, ['remote.origin.url' => $url]);
+    }
 
-        $repository = $this->initRepository($path, true);
-
-        try {
-            $this->fetch($repository, $url, $refspec, $branch);
-
-            $config = ['remote.origin.url' => $url];
-            if ('+refs/*:refs/*' === $refspec) {
-                $config['remote.origin.fetch'] = $refspec;
-                $config['remote.origin.mirror'] = 'true';
-            }
-            $this->setConfig($repository, $config);
-        } finally {
-            $this->ffi->git_repository_free($repository);
-        }
+    public function mirrorFrom(string $url, string $path): void
+    {
+        $this->fetchInto($path, $url, '+refs/*:refs/*', null, [
+            'remote.origin.url' => $url,
+            'remote.origin.fetch' => '+refs/*:refs/*',
+            'remote.origin.mirror' => 'true',
+        ]);
     }
 
     public function isValidRepository(string $url): bool
@@ -153,21 +149,22 @@ final readonly class LibGit2Driver implements DriverInterface
         return $repository;
     }
 
-    private function cloneWithWorkingTree(string $path, string $url, ?string $branch): void
+    /**
+     * Initializes a bare repository in $path, and fetches $refspec from $url
+     * into it.
+     *
+     * @param array<string, string> $config
+     */
+    private function fetchInto(string $path, string $url, string $refspec, ?string $branch, array $config): void
     {
-        $options = $this->ffi->new('git_clone_options');
-        LibGit2::check($this->ffi, $this->ffi->git_clone_options_init(\FFI::addr($options), 1), 'Unable to initialize clone options');
+        $repository = $this->initRepository($path, true);
 
-        // The buffer must stay alive until git_clone() returns.
-        $branchBuffer = null;
-        if (null !== $branch) {
-            $branchBuffer = LibGit2::cString($this->ffi, $branch);
-            $options->checkout_branch = $this->ffi->cast('const char *', $branchBuffer);
+        try {
+            $this->fetch($repository, $url, $refspec, $branch);
+            $this->setConfig($repository, $config);
+        } finally {
+            $this->ffi->git_repository_free($repository);
         }
-
-        $repository = $this->ffi->new('git_repository*');
-        LibGit2::check($this->ffi, $this->ffi->git_clone(\FFI::addr($repository), $url, $path, \FFI::addr($options)), \sprintf('Unable to clone "%s"', $url));
-        $this->ffi->git_repository_free($repository);
     }
 
     /**

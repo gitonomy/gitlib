@@ -12,7 +12,6 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Admin;
 use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
@@ -56,7 +55,7 @@ abstract class AbstractTestCase extends TestCase
     public static function createEmptyRepository(bool $bare = true): Repository
     {
         $dir = self::createTempDir();
-        $repository = Admin::init($dir, $bare, driver: self::getDriver());
+        $repository = $bare ? Repository::initBare($dir, driver: self::getDriver()) : Repository::init($dir, driver: self::getDriver());
         self::registerDeletion($repository);
 
         return $repository;
@@ -90,10 +89,10 @@ abstract class AbstractTestCase extends TestCase
     public static function createFoobarRepository(bool $bare = true): Repository
     {
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::repositoryUrl(), $bare, driver: self::getDriver());
+            self::$localRepository = self::cloneIntoTempDir(self::repositoryUrl(), $bare);
         }
 
-        $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare);
+        $repository = self::cloneIntoTempDir(self::$localRepository->getGitDir(), $bare);
         self::registerDeletion($repository);
 
         return $repository;
@@ -230,5 +229,15 @@ abstract class AbstractTestCase extends TestCase
         $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : [];
 
         return new CliDriver($_SERVER['GIT_COMMAND'] ?? 'git', [...$envs, ...$environmentVariables], processTimeout: $processTimeout);
+    }
+
+    /**
+     * Clones $url into a new temporary directory, with the driver under test.
+     */
+    private static function cloneIntoTempDir(string $url, bool $bare): Repository
+    {
+        $dir = self::createTempDir();
+
+        return $bare ? Repository::cloneBareFrom($url, $dir, driver: self::getDriver()) : Repository::cloneFrom($url, $dir, driver: self::getDriver());
     }
 }

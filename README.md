@@ -49,11 +49,11 @@ $repository->run('fetch', ['--all']);
 API Documentation
 -----------------
 
-+ [Admin](doc/admin.md)
 + [Blame](doc/blame.md)
 + [Blob](doc/blob.md)
 + [Branch](doc/branch.md)
 + [Commit](doc/commit.md)
++ [Creating repositories](doc/admin.md)
 + [Diff](doc/diff.md)
 + [Hooks](doc/hooks.md)
 + [Log](doc/log.md)

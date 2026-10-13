@@ -12,7 +12,6 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Admin;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\LogicException;
 use Gitonomy\Git\Exception\RuntimeException;
@@ -26,7 +25,7 @@ class WorkingCopyTest extends AbstractTestCase
         $this->expectException(LogicException::class);
 
         $path = self::createTempDir();
-        $repo = Admin::init($path, true, driver: self::getDriver());
+        $repo = Repository::initBare($path, driver: self::getDriver());
 
         $repo->getWorkingCopy();
     }

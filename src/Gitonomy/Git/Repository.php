@@ -15,8 +15,10 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Driver\Cli\CliRepositoryDriver;
+use Gitonomy\Git\Driver\Cli\LegacyOptions;
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\RepositoryDriverInterface;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
@@ -30,6 +32,8 @@ use Symfony\Component\Process\Process;
  * Main entry point for browsing a Git repository.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @phpstan-type Options array{command?: string, debug?: bool, environment_variables?: array<string, string|\Stringable|false>, inherit_environment_variables?: bool, logger?: LoggerInterface|null, process_timeout?: float|null, working_dir?: string|null}
  */
 final class Repository
 {
@@ -95,18 +99,42 @@ final class Repository
      *
      * * logger : a logger to use for logging actions (Psr\Log\LoggerInterface)
      *
+     * The command, environment_variables, inherit_environment_variables and
+     * process_timeout options of 1.x are deprecated: they configure a
+     * CliDriver, as the arguments of its constructor.
+     *
      * @param string          $dir     path to git repository
-     * @param array           $options array of options values
+     * @param Options         $options array of options values
      * @param DriverInterface $driver  backend used to run operations
      *
      * @throws InvalidArgumentException The folder does not exists, or an option is unknown
      */
     public function __construct(string $dir, array $options = [], DriverInterface $driver = new CliDriver())
     {
-        // The options of 1.x configuring git are now arguments of the driver.
+        if (\array_key_exists('debug', $options)) {
+            if (!$options['debug']) {
+                throw new InvalidArgumentException('The "debug" option set to false is not supported anymore: a failing git operation always throws, catch its exception instead.');
+            }
+
+            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing "debug" in the options of "%s()" is deprecated, failing git operations always throw.', __METHOD__);
+            unset($options['debug']);
+        }
+
+        $gitOptions = LegacyOptions::find($options);
+        if ([] !== $gitOptions) {
+            // The driver is the third argument.
+            if (\func_num_args() > 2) {
+                throw new InvalidArgumentException(\sprintf('The driver argument can\'t be combined with "%s" in the options: configure the driver instead.', implode('", "', $gitOptions)));
+            }
+
+            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing "%s" in the options of "%s()" is deprecated, pass a "%s" as driver argument instead.', implode('", "', $gitOptions), __METHOD__, CliDriver::class);
+            $driver = LegacyOptions::createDriver($options);
+            $options = LegacyOptions::remove($options);
+        }
+
         $unknownOptions = array_diff(array_keys($options), ['logger', 'working_dir']);
         if ([] !== $unknownOptions) {
-            throw new InvalidArgumentException(\sprintf('Unknown options "%s": expected "logger" or "working_dir". Configure git through the driver argument, a CliDriver by default.', implode('", "', $unknownOptions)));
+            throw new InvalidArgumentException(\sprintf('Unknown options "%s": expected "logger" or "working_dir".', implode('", "', $unknownOptions)));
         }
 
         $options = array_merge([
@@ -114,8 +142,9 @@ final class Repository
             'logger' => null,
         ], $options);
 
-        if (null !== $options['logger'] && !$options['logger'] instanceof LoggerInterface) {
-            throw new InvalidArgumentException(\sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', \is_object($options['logger']) ? \get_class($options['logger']) : \gettype($options['logger'])));
+        // PHP doesn't check the types of the options, unlike PHPStan.
+        if (null !== $options['logger'] && !$options['logger'] instanceof LoggerInterface) { // @phpstan-ignore instanceof.alwaysTrue, booleanAnd.alwaysFalse
+            throw new InvalidArgumentException(\sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', get_debug_type($options['logger'])));
         }
 
         $this->logger = $options['logger'];
@@ -125,6 +154,89 @@ final class Repository
         $this->repositoryDriver = $driver->open($this->gitDir, $this->workingDir, $this->logger);
 
         $this->logger?->debug(\sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ?? 'none'));
+    }
+
+    /**
+     * Initializes a repository with a working directory in $path.
+     *
+     * @throws DriverException The directory can't be written, or is already a file
+     */
+    public static function init(string $path, ?LoggerInterface $logger = null, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->init($path);
+
+        return new self($path, ['logger' => $logger], $driver);
+    }
+
+    /**
+     * Initializes a bare repository in $path.
+     *
+     * @throws DriverException The directory can't be written, or is already a file
+     */
+    public static function initBare(string $path, ?LoggerInterface $logger = null, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->initBare($path);
+
+        return new self($path, ['logger' => $logger], $driver);
+    }
+
+    /**
+     * Clones $url with a working directory in $path.
+     *
+     * @param string|null $branch The branch to check out, the default branch of $url when null
+     *
+     * @throws DriverException
+     */
+    public static function cloneFrom(string $url, string $path, ?string $branch = null, ?LoggerInterface $logger = null, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->cloneFrom($url, $path, $branch);
+
+        return new self($path, ['logger' => $logger], $driver);
+    }
+
+    /**
+     * Clones the branches and the tags of $url into a bare repository in $path.
+     *
+     * @param string|null $branch The branch HEAD points to, the default branch of $url when null
+     *
+     * @throws DriverException
+     */
+    public static function cloneBareFrom(string $url, string $path, ?string $branch = null, ?LoggerInterface $logger = null, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->cloneBareFrom($url, $path, $branch);
+
+        return new self($path, ['logger' => $logger], $driver);
+    }
+
+    /**
+     * Clones every reference of $url into a bare repository in $path, set up
+     * to mirror $url when fetching.
+     *
+     * @throws DriverException
+     */
+    public static function mirrorFrom(string $url, string $path, ?LoggerInterface $logger = null, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->mirrorFrom($url, $path);
+
+        return new self($path, ['logger' => $logger], $driver);
+    }
+
+    /**
+     * Checks, without cloning it, that $url is a repository the driver can
+     * read: false when it doesn't exist, can't be reached, or refuses access.
+     */
+    public static function isValidRepository(string $url, DriverInterface $driver = new CliDriver()): bool
+    {
+        return $driver->isValidRepository($url);
+    }
+
+    /**
+     * Checks, without cloning it, that $url is a repository the driver can
+     * read, and that it has the $branchName branch.
+     */
+    public static function isValidRepositoryAndBranch(string $url, string $branchName, DriverInterface $driver = new CliDriver()): bool
+    {
+        return $driver->isValidRepositoryAndBranch($url, $branchName);
     }
 
     /**
@@ -497,14 +609,27 @@ final class Repository
      *
      * The clone uses the driver of the current repository.
      *
-     * @param string $path path to the new repository in which current repository will be cloned
-     * @param bool   $bare flag indicating if repository is bare or has a working-copy
+     * @param string  $path    path to the new repository in which current repository will be cloned
+     * @param bool    $bare    flag indicating if repository is bare or has a working-copy
+     * @param Options $options options of the new repository
      *
      * @return Repository the newly created repository
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneBareFrom() or Repository::cloneFrom() with getGitDir() as URL instead
      */
     public function cloneTo(string $path, bool $bare = true, array $options = []): self
     {
-        return Admin::cloneTo($path, $this->gitDir, $bare, $options, $this->driver);
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" with "getGitDir()" as URL instead.', __METHOD__, self::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
+
+        // Like in 1.x, the options configuring git apply to the clone.
+        $driver = [] === LegacyOptions::find($options) ? $this->driver : LegacyOptions::createDriver($options);
+        if ($bare) {
+            $driver->cloneBareFrom($this->gitDir, $path, null);
+        } else {
+            $driver->cloneFrom($this->gitDir, $path, null);
+        }
+
+        return new self($path, LegacyOptions::remove($options), $driver);
     }
 
     /**

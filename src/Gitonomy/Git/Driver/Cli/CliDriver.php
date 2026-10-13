@@ -55,9 +55,19 @@ final readonly class CliDriver implements DriverInterface
         $this->mustRun(['init', '-q', '--bare', $path]);
     }
 
-    public function cloneRepository(string $path, string $url, array $args): void
+    public function cloneFrom(string $url, string $path, ?string $branch): void
     {
-        $this->mustRun(['clone', '-q', ...$args, $url, $path]);
+        $this->cloneRepository($path, $url, null === $branch ? [] : ['--branch', $branch]);
+    }
+
+    public function cloneBareFrom(string $url, string $path, ?string $branch): void
+    {
+        $this->cloneRepository($path, $url, null === $branch ? ['--bare'] : ['--branch', $branch, '--bare']);
+    }
+
+    public function mirrorFrom(string $url, string $path): void
+    {
+        $this->cloneRepository($path, $url, ['--mirror']);
     }
 
     public function isValidRepository(string $url): bool
@@ -71,6 +81,18 @@ final readonly class CliDriver implements DriverInterface
 
         // git only lists the branches matching $branchName.
         return 0 === $process->run() && '' !== $process->getOutput();
+    }
+
+    /**
+     * @internal For the deprecated Admin::cloneRepository(), to be removed in 3.0
+     *
+     * @param string[] $args Arguments of ``git clone``
+     *
+     * @throws ProcessException
+     */
+    public function cloneRepository(string $path, string $url, array $args): void
+    {
+        $this->mustRun(['clone', '-q', ...$args, $url, $path]);
     }
 
     /**

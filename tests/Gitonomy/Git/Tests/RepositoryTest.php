@@ -17,17 +17,197 @@ use Gitonomy\Git\Commit;
 use Gitonomy\Git\Driver\Data\ReferenceData;
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\RepositoryDriverInterface;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
+use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use Psr\Log\LoggerInterface;
 
 class RepositoryTest extends AbstractTestCase
 {
+    public function testInitBare(): void
+    {
+        $dir = self::createTempDir();
+        $repository = Repository::initBare($dir, driver: self::getDriver());
+        self::registerDeletion($repository);
+
+        $this->assertTrue($repository->isBare(), 'Repository is bare');
+        $this->assertDirectoryExists($dir.'/objects', 'objects/ folder is present');
+        $this->assertEquals($dir, $repository->getGitDir(), 'The folder passed as argument is git dir');
+        $this->assertNull($repository->getWorkingDir(), 'No working dir in bare repository');
+    }
+
+    public function testInit(): void
+    {
+        $dir = self::createTempDir();
+        $repository = Repository::init($dir, driver: self::getDriver());
+        self::registerDeletion($repository);
+
+        $this->assertFalse($repository->isBare(), 'Repository is not bare');
+        $this->assertDirectoryExists($dir.'/.git/objects', 'objects/ folder is present');
+        $this->assertEquals($dir.'/.git', $repository->getGitDir(), 'git dir as subfolder of argument');
+        $this->assertEquals($dir, $repository->getWorkingDir(), 'working dir present in bare repository');
+    }
+
+    public function testInitOnAnExistingFileFails(): void
+    {
+        $this->expectException(RuntimeException::class);
+
+        $file = self::createTempDir().'/test';
+        touch($file);
+
+        Repository::initBare($file, driver: self::getDriver());
+    }
+
+    public function testNamedConstructorsGiveTheLoggerToTheRepository(): void
+    {
+        $logger = $this->createStub(LoggerInterface::class);
+
+        $repository = Repository::initBare(self::createTempDir(), $logger, self::getDriver());
+        self::registerDeletion($repository);
+
+        $this->assertSame($logger, $repository->getLogger());
+    }
+
+    public function testCloneBareFrom(): void
+    {
+        $repository = self::createFoobarRepository(true);
+
+        $newDir = self::createTempDir();
+        $new = Repository::cloneBareFrom($repository->getGitDir(), $newDir, driver: self::getDriver());
+        self::registerDeletion($new);
+
+        $newRefs = array_keys($new->getReferences()->getAll());
+
+        $this->assertContains('refs/heads/master', $newRefs);
+        $this->assertContains('refs/tags/0.1', $newRefs);
+        $this->assertEquals($newDir, $new->getGitDir());
+        $this->assertContains('refs/heads/new-feature', $newRefs);
+        // Like `git clone --bare`: the remote has no fetch refspec.
+        $this->assertStringNotContainsString('fetch', file_get_contents($newDir.'/config'));
+    }
+
+    public function testCloneFrom(): void
+    {
+        $repository = self::createFoobarRepository(false);
+
+        $newDir = self::createTempDir();
+        $new = Repository::cloneFrom($repository->getGitDir(), $newDir, driver: self::getDriver());
+        self::registerDeletion($new);
+
+        $newRefs = array_keys($new->getReferences()->getAll());
+
+        $this->assertContains('refs/heads/master', $newRefs);
+        $this->assertContains('refs/tags/0.1', $newRefs);
+        $this->assertEquals($newDir.'/.git', $new->getGitDir());
+        $this->assertEquals($newDir, $new->getWorkingDir());
+    }
+
+    public function testCloneBareFromABranch(): void
+    {
+        // we can't use AbstractTestCase::createFoobarRepository()
+        // because it does not clone other branches than "master"
+        // so we test it directly against the remote repository
+
+        $newDir = self::createTempDir();
+        $new = Repository::cloneBareFrom(self::repositoryUrl(), $newDir, 'new-feature', driver: self::getDriver());
+        self::registerDeletion($new);
+
+        $head = $new->getHead();
+        $this->assertInstanceOf(Branch::class, $head, 'HEAD is a branch');
+        $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
+    }
+
+    public function testCloneFromABranch(): void
+    {
+        // we can't use AbstractTestCase::createFoobarRepository()
+        // because it does not clone other branches than "master"
+        // so we test it directly against remote repository
+
+        $newDir = self::createTempDir();
+        $new = Repository::cloneFrom(self::repositoryUrl(), $newDir, 'new-feature', driver: self::getDriver());
+        self::registerDeletion($new);
+
+        $head = $new->getHead();
+        $this->assertInstanceOf(Branch::class, $head, 'HEAD is a branch');
+        $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
+    }
+
+    public function testCloneFromAnUnknownBranchFails(): void
+    {
+        $this->expectException(DriverException::class);
+
+        Repository::cloneBareFrom(self::repositoryUrl(), self::createTempDir().'/clone', 'unknown', driver: self::getDriver());
+    }
+
+    #[DataProvider('provideFoobar')]
+    public function testMirrorFrom(Repository $repository): void
+    {
+        $newDir = self::createTempDir();
+        $new = Repository::mirrorFrom($repository->getGitDir(), $newDir, driver: self::getDriver());
+        self::registerDeletion($new);
+
+        $newRefs = array_keys($new->getReferences()->getAll());
+
+        $this->assertContains('refs/heads/master', $newRefs);
+        $this->assertContains('refs/tags/0.1', $newRefs);
+        $this->assertEquals($newDir, $new->getGitDir());
+
+        if ($repository->isBare()) {
+            $this->assertContains('refs/heads/new-feature', $newRefs);
+        } else {
+            $this->assertContains('refs/remotes/origin/new-feature', $newRefs);
+        }
+
+        $this->assertSame('true', trim(self::git($new, 'config', ['remote.origin.mirror'])));
+        $this->assertSame('+refs/*:refs/*', trim(self::git($new, 'config', ['remote.origin.fetch'])));
+        $this->assertSame('refs/heads/master', trim(self::git($new, 'symbolic-ref', ['HEAD'])));
+    }
+
+    #[DataProvider('provideFoobar')]
+    public function testCheckValidRepository(Repository $repository): void
+    {
+        $url = $repository->getGitDir();
+        $this->assertTrue(Repository::isValidRepository($url, self::getDriver()));
+    }
+
+    public function testCheckInvalidRepository(): void
+    {
+        $url = self::createTempDir().'/invalid.git';
+        mkdir($url);
+
+        $this->assertFalse(Repository::isValidRepository($url, self::getDriver()));
+    }
+
+    #[DataProvider('provideFoobar')]
+    public function testCheckValidRepositoryAndBranch(Repository $repository): void
+    {
+        $url = $repository->getGitDir();
+        $this->assertTrue(Repository::isValidRepositoryAndBranch($url, 'master', self::getDriver()));
+    }
+
+    #[DataProvider('provideFoobar')]
+    public function testCheckInvalidRepositoryAndBranch(Repository $repository): void
+    {
+        $url = $repository->getGitDir();
+        $this->assertFalse(Repository::isValidRepositoryAndBranch($url, 'invalid-branch-name', self::getDriver()));
+    }
+
+    #[DataProvider('provideFoobar')]
+    public function testCheckRepositoryAndBranchOnlyMatchesBranches(Repository $repository): void
+    {
+        foreach (['0.1', 'HEAD', 'feature'] as $name) {
+            $this->assertFalse(Repository::isValidRepositoryAndBranch($repository->getGitDir(), $name, self::getDriver()), $name);
+        }
+    }
+
     public function testNullProcessTimeoutDisablesTheTimeout(): void
     {
         $this->skipUnlessCliDriver();
@@ -233,8 +413,52 @@ class RepositoryTest extends AbstractTestCase
     public function testUnknownOptionsAreRefused(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown options "command", "process_timeout": expected "logger" or "working_dir". Configure git through the driver argument, a CliDriver by default.');
+        $this->expectExceptionMessage('Unknown options "foo", "bar": expected "logger" or "working_dir".');
 
-        new Repository(self::createTempDir(), ['command' => 'git', 'process_timeout' => 60]);
+        new Repository(self::createTempDir(), ['foo' => 1, 'bar' => 2]);
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGitOptionsConfigureACliDriver(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing "command", "process_timeout" in the options of "Gitonomy\Git\Repository::__construct()" is deprecated, pass a "Gitonomy\Git\Driver\Cli\CliDriver" as driver argument instead.');
+
+        $logger = $this->createStub(LoggerInterface::class);
+        $repository = new Repository(self::createFoobarRepository()->getGitDir(), [
+            'command' => $_SERVER['GIT_COMMAND'] ?? 'git',
+            'logger' => $logger,
+            'process_timeout' => 42,
+        ]);
+
+        $this->assertSame($logger, $repository->getLogger());
+        $this->assertSame(42.0, $repository->runProcess('rev-parse', ['HEAD'])->getTimeout());
+    }
+
+    public function testLegacyGitOptionsCantBeCombinedWithADriver(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The driver argument can\'t be combined with "process_timeout" in the options: configure the driver instead.');
+
+        new Repository(self::createTempDir(), ['process_timeout' => 60], self::getDriver());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyDebugOption(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing "debug" in the options of "Gitonomy\Git\Repository::__construct()" is deprecated, failing git operations always throw.');
+
+        $repository = new Repository(self::createFoobarRepository()->getGitDir(), ['debug' => true], self::getDriver());
+
+        $this->assertSame(self::LONGFILE_COMMIT, $repository->getCommit(self::LONGFILE_COMMIT)->getHash());
+    }
+
+    public function testDebugOptionSetToFalseIsRefused(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The "debug" option set to false is not supported anymore: a failing git operation always throws, catch its exception instead.');
+
+        new Repository(self::createTempDir(), ['debug' => false]);
     }
 }

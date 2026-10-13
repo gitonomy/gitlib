@@ -37,6 +37,7 @@
     "require": {
         "php": "^8.4",
         "ext-pcre": "*",
+        "symfony/deprecation-contracts": "^2.5 || ^3",
         "symfony/process": "^6.4 || ^7.4 || ^8.1",
         "symfony/string": "^7.4.6 || ^8.0.6"
     },

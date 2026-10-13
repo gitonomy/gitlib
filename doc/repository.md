@@ -30,7 +30,10 @@ $repository = new Repository('/path/to/repo', [
 ```
 
 Its last parameter, `$driver`, is the backend running git operations: see
-"Choosing a driver" below.
+"Choosing a driver" below. The `command`, `environment_variables`,
+`inherit_environment_variables` and `process_timeout` options of 1.x are
+deprecated in favor of the arguments of `CliDriver`: see
+["Configuring `CliDriver`"](#configuring-clidriver).
 
 Test if a repository is bare
 ----------------------------
@@ -100,7 +103,7 @@ $repository = new Repository('/path/to/repo', driver: new LibGit2Driver());
 > tests don't cover.
 
 A driver holds no state of a repository: create it once, and pass it to
-every `Repository` and `Admin` call, as a service of your container for
+every `Repository` you open or create, as a service of your container for
 instance.
 
 `LibGit2Driver` avoids spawning a process for every operation. It requires
@@ -134,8 +137,6 @@ Differences with `CliDriver`:
     instead of leaving conflict markers in the working copy.
 -   `WorkingCopy::checkout()` doesn't create a tracking branch for a name
     that only exists on a remote, like `git checkout` does: it throws.
--   `Admin::cloneRepository()` only supports the `--bare`, `--mirror` and
-    `--branch` arguments.
 -   Rename detection in diffs may pair files differently.
 -   Blame line ranges are limited to `<start>,<end>` and `<start>,+<count>`.
 
