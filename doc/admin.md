@@ -5,6 +5,9 @@ The static methods of `Repository` create new repositories, and return them.
 They replace `Admin`, deprecated since 2.0: see
 [UPGRADE-2.0.md](../UPGRADE-2.0.md#creating-repositories).
 
+To open a repository that exists already, use `new Repository($path)`: see
+[Repository](repository.md).
+
 Create a repository
 -------------------
 
@@ -37,6 +40,12 @@ working directory, this branch will be checked out:
 ```php
 $repository = Repository::cloneFrom('https://github.com/gitonomy/gitlib.git', '/tmp/gitlib', 'a-branch');
 ```
+
+Like `git clone --branch`, the branch may also be a tag: the clone checks
+its commit out, `HEAD` detached.
+
+Like `git clone`, the methods refuse a directory with files in it. When a
+clone fails, they remove what they created.
 
 To clone a `Repository` object, use its git directory as URL:
 
@@ -78,20 +87,47 @@ Repository::isValidRepositoryAndBranch('https://github.com/gitonomy/gitlib.git',
 ```
 
 They return `false` as well for a repository that can't be reached, or that
-refuses access.
+refuses access. The branch must have this name exactly: `release` doesn't
+name `feature/release`. A relative path is the path of a repository, never
+the name of a remote.
 
-Logger and driver
+Errors
+------
+
+When git fails (an unknown branch, a directory with files, a network
+error...), the methods creating repositories throw a
+`Gitonomy\Git\Exception\DriverException`: a `ProcessException`, with git's
+error output, when `CliDriver` runs git. With `CliDriver`, every method,
+`isValidRepository()` included, throws a `ProcessException` when git can't
+run, like a missing binary. See [Errors](repository.md#errors).
+
+Driver and logger
 -----------------
 
-The methods returning a `Repository` take its [logger](repository.md#logger),
-and all of them the driver running git as their last argument — see
-["Choosing a driver"](repository.md#choosing-a-driver):
+All these methods take the driver running git as their last argument, see
+["Choosing a driver"](repository.md#choosing-a-driver). The repositories they
+return use it too:
 
 ```php
-$repository = Repository::initBare('/path/to/repository', driver: new Gitonomy\Git\Driver\Ffi\LibGit2Driver());
+use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
+use Gitonomy\Git\Repository;
+
+$repository = Repository::initBare('/path/to/repository', driver: new LibGit2Driver());
+```
+
+They take no logger: the logger is an argument of `CliDriver`, which logs the
+commands initializing and cloning repositories too. See
+[Logger](repository.md#logger):
+
+```php
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Repository;
+
+$repository = Repository::cloneFrom($url, '/tmp/gitlib', driver: new CliDriver(logger: $logger));
 ```
 
 ### References
 
--   <http://linux.die.net/man/1/git-init>
--   <http://linux.die.net/man/1/git-clone>
+-   <https://git-scm.com/docs/git-init>
+-   <https://git-scm.com/docs/git-clone>
+-   <https://git-scm.com/docs/git-ls-remote>

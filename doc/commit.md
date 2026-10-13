@@ -1,171 +1,194 @@
 Commit
 ======
 
-To access a *Commit*, starting from a repository object:
+To get a `Commit`, resolve a revision: a branch, a tag, `HEAD`, `master~2`,
+an abbreviated hash...
 
 ```php
-$repository = new Gitonomy\Git\Repository('/path/to/repository');
-$commit = $repository->getCommit('a7c8d2b4');
+use Gitonomy\Git\Repository;
+
+$repository = new Repository('/path/to/repository');
+$commit = $repository->getRevision('master')->getCommit();
 ```
+
+`Repository::getCommit()` takes the full hash of a commit, its 40
+characters. It throws a `ReferenceNotFoundException` for anything else, an
+abbreviated hash included:
+
+```php
+$commit = $repository->getCommit('7e9ba14939b0ce67ab95d83e03bd64710db91ef4');
+```
+
+The commit is read when you first need it: a hash naming no commit throws a
+`ReferenceNotFoundException` then.
+
+Hashes
+------
+
+```php
+$commit->getHash();      // "7e9ba14939b0ce67ab95d83e03bd64710db91ef4"
+$commit->getShortHash(); // "7e9ba14", abbreviated and unique in the repository
+```
+
+`getFixedShortHash()` is deprecated since 2.0: use
+`substr($commit->getHash(), 0, 6)`.
 
 Browsing parents
 ----------------
 
-A *Commit* can have a natural number of parents:
+A commit has:
 
--   **no parent**: it's an initial commit, the root of a tree
--   **one parent**: it means it's not a merge, just a regular commit
--   **many parents**: it's a merge-commit
-
-You have 2 methods available for accessing parents:
+-   **no parent**: it's a root commit, the first one of a history;
+-   **one parent**: it's a regular commit;
+-   **several parents**: it's a merge commit. Its first parent is the
+    commit the other ones were merged into.
 
 ```php
-// Access parent hashes
+// The hashes of the parents
 $hashes = $commit->getParentHashes();
 
-// Access parent commit objects
-$commits = $commit->getParents();
+// The parents, Commit objects
+$parents = $commit->getParents();
 ```
 
-For example, if you want to display all parents, starting from a commit:
+For example, to display the first parents of a commit, like
+`git log --first-parent`:
 
 ```php
-function displayLog(Gitonomy\Git\Commit $commit) {
-    echo '- '.$commit->getShortMessage().PHP_EOL;
-    foreach ($commit->getParents() as $parent) {
-        displayLog($parent);
-    }
+for ($current = $commit; null !== $current; $current = $current->getParents()[0] ?? null) {
+    echo $current->getShortHash().' '.$current->getSubjectMessage().PHP_EOL;
 }
 ```
 
-Notice that this function will first display all commits from first
-merged branch and then display all commits from next branch, and so on.
+To list a history in order, with every parent, use a log: see
+[log.md](log.md).
 
-Accessing tree
---------------
+Accessing the tree
+------------------
 
-The tree object contains the reference to the files associated to a
-given commit. Every commit has one and only one tree, referencing all
-files and folders of a given state for a project. For more informations
-about the tree, see the chapter dedicated to it.
-
-To access a tree starting from a commit:
+The tree of a commit holds its files and folders, as the commit recorded
+them. Every commit has exactly one tree. See [tree.md](tree.md) to browse
+it.
 
 ```php
-// Returns the tree hash
-$tree = $commit->getTreeHash();
+// The hash of the tree
+$hash = $commit->getTreeHash();
 
-// Returns the tree object
+// The Tree object
 $tree = $commit->getTree();
 ```
 
-Author & Committer informations
--------------------------------
+Author and committer
+--------------------
 
-Each commit has two authoring informations: an author and a committer.
-The author is the creator of the modification, authoring a modification
-in the repository. The committer is responsible of introducing this
-modification to the repository.
-
-You can access informations from author and committer using those
-methods:
+A commit has an author and a committer. The author wrote the change. The
+committer recorded it in the repository: they can differ when a commit is
+rebased, cherry-picked or applied from a patch.
 
 ```php
 // Author
 $commit->getAuthorName();
 $commit->getAuthorEmail();
-$commit->getAuthorDate(); // returns a DateTimeImmutable object
+$commit->getAuthorDate(); // A DateTimeImmutable
 
 // Committer
 $commit->getCommitterName();
 $commit->getCommitterEmail();
-$commit->getCommitterDate(); // returns a DateTimeImmutable object
+$commit->getCommitterDate(); // A DateTimeImmutable
 ```
 
-Commit message and short message
---------------------------------
+Message
+-------
 
-Each commit also has a message, associated to the modification. This
-message can be multilined.
-
-To access the message, you can use the *getMessage* method:
+The message of a commit can have several lines. Like git, gitlib splits it
+in a subject and a body:
 
 ```php
+// The whole message
 $commit->getMessage();
-```
 
-For your convenience, this library provides a shortcut method to keep
-only the first line or first 50 characters if the first line is too
-long:
-
-```php
-$commit->getShortMessage();
-```
-
-You can customize it like this:
-
-```php
-$commit->getShortMessage(45, true, '.');
-```
-
--   The first parameter is the max length of the message.
--   The second parameter determine if the last word should be cut or
-    preserved
--   The third parameter is the separator
-
-There are also two other methods for your convenience:
-
-```php
-// The first line
+// The first paragraph, on one line, like "git log --format=%s"
 $commit->getSubjectMessage();
 
-// The body (rest of the message)
+// What follows the first paragraph and its empty lines, like "git log --format=%b"
 $commit->getBodyMessage();
+```
+
+For a message `"Fix the parser\nof dates\n\nIt failed on leap years.\n"`,
+the subject is `"Fix the parser of dates"`, and the body
+`"It failed on leap years.\n"`. A message without an empty line has no
+body.
+
+`getShortMessage()` is deprecated since 2.0: truncate the subject with
+`symfony/string`, a dependency of gitlib, instead:
+
+```php
+use function Symfony\Component\String\u;
+
+echo u($commit->getSubjectMessage())->truncate(50, '...').PHP_EOL;
 ```
 
 Diff of a commit
 ----------------
 
-You can check the modifications introduced by a commit using the
-*getDiff* method. When you request a diff for a commit, depending of the
-number of parents, the strategy will be different:
+`getDiff()` returns the changes a commit made:
 
--   If you have *no parent*, the diff will be the content of the tree
--   If you only have *one parent*, the diff will be between the commit
-    and his parent
--   If you have *multiple parents*, the diff will be the difference
-    between the commit and the first common ancestor of all parents
-
-For more informations about the diff API, read the related chapter.
-
-To access the *Diff* object of a commit, use the method *getDiff*:
+-   against its first parent, for a regular commit or a merge commit. For a
+    merge, these are the changes it brought into the branch it was merged
+    into, like GitHub shows a merge commit;
+-   against nothing, for a root commit: every file is a creation.
 
 ```php
 $diff = $commit->getDiff();
 ```
 
+To compare any two commits, use `Repository::getDiff($from, $to)`. See
+[diff.md](diff.md) for the diff API.
+
 Last modification of a file
 ---------------------------
 
-To know the last modification of a file, you can use the
-*getLastModification* method on a commit.
-
-Here is a very straightforward example:
+`getLastModification()` returns the last commit, in the history of this
+one, that changed a path. It throws a `ReferenceNotFoundException` when no
+commit changed it. The path is relative to the root of the repository.
 
 ```php
-$last = $commit->getLastModification('README');
+$last = $commit->getLastModification('README.md');
 
-echo 'Last README modification'.PHP_EOL;
+echo 'Last README.md modification'.PHP_EOL;
 echo '  Author: '.$last->getAuthorName().PHP_EOL;
 echo '    Date: '.$last->getAuthorDate()->format('d/m/Y').PHP_EOL;
-echo ' Message: '.$last->getMessage();
+echo ' Message: '.$last->getSubjectMessage().PHP_EOL;
 ```
 
-Find every branches containing a commit
----------------------------------------
+References pointing to a commit
+-------------------------------
+
+`resolveReferences()` returns the branches and tags pointing to the commit,
+annotated tags included:
 
 ```php
-$branches       = $commit->getIncludingBranches($includeLocalBranches, $includeRemoteBranches);
-$localBranches  = $commit->getIncludingBranches(true, false);
-$remoteBranches = $commit->getIncludingBranches(false, true);
+foreach ($commit->resolveReferences() as $reference) {
+    echo $reference->getFullname().PHP_EOL; // "refs/heads/master", "refs/tags/1.0"...
+}
 ```
+
+See [references.md](references.md#resolution-from-a-commit).
+
+Branches containing a commit
+----------------------------
+
+`getIncludingBranches()` returns the local and remote branches whose
+history contains the commit, as `Branch` objects. Filter them with
+`isLocal()` or `isRemote()`:
+
+```php
+use Gitonomy\Git\Reference\Branch;
+
+$branches = $commit->getIncludingBranches();
+$localBranches = array_filter($branches, static fn (Branch $branch): bool => $branch->isLocal());
+$remoteBranches = array_filter($branches, static fn (Branch $branch): bool => $branch->isRemote());
+```
+
+Passing arguments to `getIncludingBranches()`, to keep the local or the
+remote branches only, is deprecated since 2.0.

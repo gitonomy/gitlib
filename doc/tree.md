@@ -1,35 +1,67 @@
 Tree and files
 ==============
 
-To organize folders, git uses trees. In gitlib, those trees are
-represented via *Tree* object.
+Git stores folders as trees. In gitlib, a tree is a `Tree` object.
 
-To get the root tree associated to a commit, use the *getTree* method on
-the commit object:
+The root tree of a commit is the entry point of all its files:
 
 ```php
 $tree = $commit->getTree();
 ```
 
-This tree is the entry point of all of your files.
+`Repository::getTree()` takes the hash of a tree, abbreviated or not.
 
-The main method for a tree is the *getEntries* method. This method will
-return an array, indexed by name. Each of those elements will be the
-entry mode and the entry object.
+Entries of a tree
+-----------------
 
-Let's understand how it works with a concrete example:
+`getEntries()` returns the entries of a tree, keyed by their name. Each one
+is a `TreeEntry` object, with the name of the entry, its mode, and its
+object: a `Blob` for a file (see [blob.md](blob.md)), a `Tree` for a folder,
+or a `Submodule`.
 
 ```php
-function displayTree(Tree $tree, $indent = 0)
+foreach ($tree->getEntries() as $name => $entry) {
+    $entry->getName();   // The name of the file or the folder, the same as $name
+    $entry->getMode();   // The mode git stores: "100644", "100755" (executable), "120000" (symbolic link), "040000" (tree), "160000" (submodule)
+    $entry->getObject(); // A Blob, a Tree or a Submodule
+}
+```
+
+To keep one kind of entries only, also keyed by their name:
+
+```php
+$folders = $tree->getTreeEntries();
+$files = $tree->getBlobEntries();
+$submodules = $tree->getSubmoduleEntries();
+```
+
+To get the object of an entry by its name:
+
+```php
+$readme = $tree->getEntry('README.md'); // A Blob
+```
+
+It throws an `InvalidArgumentException` when the tree has no such entry.
+
+Here is a function displaying a tree and its folders, recursively:
+
+```php
+use Gitonomy\Git\Submodule;
+use Gitonomy\Git\Tree;
+
+function displayTree(Tree $tree, int $depth = 0): void
 {
-    $indent = str_repeat(' ', $indent);
-    foreach ($tree->getEntries() as $name => $data) {
-        list($mode, $entry) = $data;
-        if ($entry instanceof Tree) {
-            echo $indent.$name.'/'.PHP_EOL;
-            displayTree($tree, $indent + 1);
-        } else {
-            echo $indent.$name.PHP_EOL;
+    foreach ($tree->getEntries() as $name => $entry) {
+        $object = $entry->getObject();
+
+        echo str_repeat('    ', $depth).match (true) {
+            $object instanceof Tree => $name.'/',
+            $object instanceof Submodule => $name.' @ '.$object->getHash(),
+            default => $name,
+        }.PHP_EOL;
+
+        if ($object instanceof Tree) {
+            displayTree($object, $depth + 1);
         }
     }
 }
@@ -37,18 +69,38 @@ function displayTree(Tree $tree, $indent = 0)
 displayTree($commit->getTree());
 ```
 
-This method will recursively display all entries of a tree.
+Reading an entry as an array (`[$mode, $object]`) is deprecated since 2.0:
+use `getMode()` and `getObject()`.
+
+Submodules
+----------
+
+A submodule is a commit of another repository. Its `Submodule` object only
+holds the hash of this commit: gitlib doesn't read the submodule. Open it as
+a repository, from its folder in the working tree, to read it.
+
+```php
+foreach ($tree->getSubmoduleEntries() as $name => $entry) {
+    echo $name.' is at '.$entry->getObject()->getHash().PHP_EOL;
+}
+```
+
+`CommitReference` is deprecated since 2.0: it is `Submodule`. So is
+`Tree::getCommitReferenceEntries()`: use `getSubmoduleEntries()`.
 
 Resolve a path
 --------------
 
-To access directly a sub-file, the easier is probably to use the
-*resolvePath* method.
-
-An example:
+To access a file or a folder from its path, use `resolvePath()`. It returns
+a `Blob`, a `Tree` or a `Submodule`:
 
 ```php
-$source = $tree->resolvePath('src/Gitonomy/Git');
-
-$source instanceof Tree;
+$folder = $tree->resolvePath('src/Gitonomy/Git'); // A Tree
+$file = $tree->resolvePath('src/Gitonomy/Git/Repository.php'); // A Blob
 ```
+
+-   The path is relative to the tree.
+-   `""` and `"/"` resolve to the tree itself. Leading, trailing and
+    repeated slashes are ignored.
+-   A path that doesn't exist throws an `InvalidArgumentException`, as a
+    path going through a file or a submodule (`README.md/foo`).

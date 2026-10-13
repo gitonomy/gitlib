@@ -24,10 +24,12 @@ or edit your `composer.json` file by hand:
 ```json
 {
     "require": {
-        "gitonomy/gitlib": "^1.3"
+        "gitonomy/gitlib": "^2.0"
     }
 }
 ```
+
+Upgrading from 1.x? Read [UPGRADE-2.0.md](UPGRADE-2.0.md).
 
 Example Usage
 -------------
@@ -43,7 +45,21 @@ foreach ($repository->getReferences()->getBranches() as $branch) {
     echo '- '.$branch->getName().PHP_EOL;
 }
 
+echo $repository->getHeadCommit()->getSubjectMessage().PHP_EOL;
+
+// Any git command, with the default driver only
 $repository->run('fetch', ['--all']);
+```
+
+The last argument of `Repository` is the driver running git. It is `CliDriver`, which runs the
+`git` binary, by default. To run libgit2 instead, pass a `LibGit2Driver`: everything above works
+the same, except `run()`, which needs the `git` binary.
+
+```php
+use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
+use Gitonomy\Git\Repository;
+
+$repository = new Repository('/path/to/repository', driver: new LibGit2Driver());
 ```
 
 API Documentation
@@ -58,7 +74,7 @@ API Documentation
 + [Hooks](doc/hooks.md)
 + [Log](doc/log.md)
 + [References](doc/references.md)
-+ [Repository](doc/repository.md)
++ [Repository](doc/repository.md): opening a repository, drivers, errors
 + [Revision](doc/revision.md)
 + [Tree](doc/tree.md)
 + [Working Copy](doc/workingcopy.md)

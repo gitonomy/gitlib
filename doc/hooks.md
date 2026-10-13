@@ -2,11 +2,18 @@ Hooks
 =====
 
 It's possible to define custom hooks on any repository with git. Those
-hooks are located in the *.git/hooks* folder.
+hooks are located in the *hooks* folder of the git directory: *.git/hooks*,
+or *hooks* in a bare repository. A linked worktree (`git worktree add`) runs
+the hooks of the repository it belongs to. gitlib ignores the `core.hooksPath`
+setting of git.
 
 Those files need to be executable: gitlib makes them executable by their
 owner only (*0700*). If another user runs them (a git daemon, a web
 server...), change their permissions yourself.
+
+git runs them, when it receives a push for instance, or when `CliDriver`
+checks out or merges. `LibGit2Driver` doesn't run them (see
+["Choosing a driver"](repository.md#choosing-a-driver)).
 
 With *gitlib*, you can manage hooks over a repository using the *Hooks*
 object.
@@ -27,8 +34,9 @@ To read the content of a hook, use the *get* method like this:
 $content = $hooks->get('pre-receive'); // returns a string
 ```
 
-If the hook does not exist, an exception will be thrown
-(*InvalidArgumentException*).
+If the hook does not exist, a `Gitonomy\Git\Exception\InvalidArgumentException`
+is thrown, and a `Gitonomy\Git\Exception\RuntimeException` if it can't be
+read.
 
 You can test if a hook is present using the method *has*:
 
@@ -48,10 +56,6 @@ To create the hook using a symlink:
 $hooks->setSymlink('pre-receive', '/path/to/file-to-link');
 ```
 
-If the hook already exist, a *LogicException* will be thrown. If an
-error occured during symlink creation, a *RuntimeException* will be
-thrown.
-
 If you want to directly create a new file in hooks directory, use the
 method *set*. This method will create a new file, put content in it and
 make it executable:
@@ -69,7 +73,10 @@ HOOK;
 $hooks->set('pre-receive', $content);
 ```
 
-If the hook already exists, a *LogicException* will be thrown.
+Both methods create the hooks directory when the repository has none, like
+one initialized with an empty template. They throw a
+`Gitonomy\Git\Exception\RuntimeException` if the hook already exists, or if
+it can't be created.
 
 Removing hooks
 --------------
@@ -79,3 +86,6 @@ To remove a hook from a repository, use the function *remove*:
 ```php
 $hooks->remove('pre-receive');
 ```
+
+It throws a `Gitonomy\Git\Exception\RuntimeException` if the hook does not
+exist, or if it can't be removed.

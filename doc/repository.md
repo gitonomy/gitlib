@@ -1,88 +1,239 @@
 Repository methods
 ==================
 
-Creating a *Repository* object is possible, providing a *path* argument
-to the constructor:
+A `Repository` object opens a repository on the disk. It is the entry point
+to everything else: commits, references, working copy...
+
+To create a repository, or to clone one, see
+[Creating repositories](admin.md).
+
+Opening a repository
+--------------------
+
+Give the path of the repository to the constructor:
 
 ```php
+use Gitonomy\Git\Repository;
+
 $repository = new Repository('/path/to/repo');
 ```
 
-Repository options
-------------------
+The path may be:
 
-The constructor of Repository takes an additional parameter: `$options`.
-This parameter can be used used to tune behavior of library.
+-   a bare repository;
+-   a working tree, with its `.git` directory;
+-   a working tree whose `.git` is a file pointing to its git directory: a
+    linked worktree (`git worktree add`) or a submodule.
 
-Available options are:
-
--   **logger**: (default: none) Logger to use for reporting of execution
-    (a `Psr\Log\LoggerInterface`)
--   **working\_dir**: If you are using multiple working directories,
-    this option is for you
-
-An example:
+The constructor takes two more arguments:
 
 ```php
-$repository = new Repository('/path/to/repo', [
-    'logger' => new Monolog\Logger(),
-]);
+public function __construct(string $dir, ?string $workingDir = null, DriverInterface $driver = new CliDriver())
 ```
 
-Its last parameter, `$driver`, is the backend running git operations: see
-"Choosing a driver" below. The `command`, `environment_variables`,
-`inherit_environment_variables` and `process_timeout` options of 1.x are
-deprecated in favor of the arguments of `CliDriver`: see
-["Configuring `CliDriver`"](#configuring-clidriver).
-
-Test if a repository is bare
-----------------------------
-
-On a *Repository* object, you can call method *isBare* to test if your
-repository is bare or not:
+-   `$workingDir`: the working tree, when `$dir` is a git directory kept apart
+    from it, like `git --git-dir=$dir --work-tree=$workingDir`;
+-   `$driver`: the backend running git. See
+    ["Choosing a driver"](#choosing-a-driver),
+    ["Configuring `CliDriver`"](#configuring-clidriver) and
+    ["Logger"](#logger).
 
 ```php
-$repository->isBare();
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Repository;
+
+$repository = new Repository('/srv/project.git', '/srv/project', new CliDriver(processTimeout: 60));
 ```
 
-Compute size of a repository
-----------------------------
+An array of options as second argument (`working_dir`, `logger`, `command`,
+`process_timeout`...) is deprecated since 2.0: pass the working directory,
+and configure a `CliDriver` instead. See
+[UPGRADE-2.0.md](../UPGRADE-2.0.md#opening-a-repository).
 
-To know how much size a repository is using on your drive, you can use
-`getSize` method on a *Repository* object.
+A directory that doesn't exist, or that isn't a repository, throws an
+`InvalidArgumentException`.
 
-> **warning**
->
-> This command was only tested with linux.
+gitlib doesn't support the repositories using SHA-256 hashes yet: opening one
+throws an `UnsupportedOperationException`.
 
-The returned size is in kilobytes:
+Paths
+-----
 
 ```php
-$size = $repository->getSize();
-
-echo 'Your repository size is '.$size.'KB';
+$repository->isBare();        // true for a bare repository
+$repository->getGitDir();     // the git directory, "/path/to/repo/.git"
+$repository->getWorkingDir(); // the working tree, "/path/to/repo", or null for a bare repository
+$repository->getPath();       // the working tree, or the git directory of a bare repository
 ```
 
 Access HEAD
 -----------
 
 `HEAD` represents in git the version you are working on (in working
-tree). Your `HEAD` can be attached (using a reference) or detached
-(using a commit).
+tree). Your `HEAD` can be attached (pointing to a branch) or detached
+(pointing to a commit).
 
 ```php
-$head = $repository->getHead(); // Commit or Reference
-$head = $repository->getHeadCommit(); // Commit
+$head = $repository->getHead(); // the Branch HEAD points to, or the Commit when it is detached
+$commit = $repository->getHeadCommit(); // the Commit, in both cases
+
+if ($repository->isHeadAttached()) {
+    echo 'On branch '.$head->getName().PHP_EOL;
+}
 
 if ($repository->isHeadDetached()) {
-    echo 'Sorry man'.PHP_EOL;
+    echo 'HEAD detached at '.$commit->getShortHash().PHP_EOL;
 }
 ```
 
-Options for repository
-----------------------
+In a repository without commits yet, `HEAD` points to a branch that doesn't
+exist yet: `getHead()` and `getHeadCommit()` throw a
+`ReferenceNotFoundException`, and `isHeadAttached()` returns `true`.
 
-### Choosing a driver
+Commits, trees and blobs
+------------------------
+
+```php
+// A revision: a branch, a tag, a hash, "HEAD~2"...
+$commit = $repository->getRevision('master')->getCommit();
+
+// A full hash only
+$commit = $repository->getCommit('7e9ba14939b0ce67ab95d83e03bd64710db91ef4');
+
+// A hash, abbreviated or not
+$tree = $repository->getTree('56953e3');
+$blob = $repository->getBlob('412a0dad');
+```
+
+`getCommit()` only takes a full hash: anything else throws a
+`ReferenceNotFoundException`. Use `getRevision($name)->getCommit()` for a
+name or an abbreviated hash, see [Revision](revision.md). `getTree()` and
+`getBlob()` take a hash, abbreviated or not, and throw for anything else: to
+read a file of a commit, go through its tree, see [Tree](tree.md).
+
+An object that doesn't exist throws a `ReferenceNotFoundException`, at the
+latest when its data is read.
+
+The repository returns the same object for a hash, as long as your
+application uses it:
+
+```php
+$repository->getCommit($hash) === $repository->getCommit($hash); // true
+```
+
+It keeps no reference to the objects your application doesn't use anymore:
+reading a long history doesn't fill the memory.
+
+`getMergeBase()` returns the best common ancestor of two revisions, the
+commit `git diff a...b` compares with, or `null` when they have no common
+history:
+
+```php
+$base = $repository->getMergeBase('master', 'feature'); // Commit|null
+```
+
+References
+----------
+
+`getReferences()` returns the branches, tags... of the repository: see
+[References](references.md).
+
+```php
+$references = $repository->getReferences();
+```
+
+gitlib reads them again after every write it makes: creating or deleting a
+reference, a checkout, a merge, `run()`... It doesn't see the writes of other
+processes (a push to the repository, another worker...): open a new
+`Repository` to see them. The `$reload` argument of `getReferences()` is
+deprecated since 2.0.
+
+Description
+-----------
+
+```php
+$repository->getDescription(); // the content of the "description" file of the git directory
+$repository->hasDescription(); // false while it is git's default one
+$repository->setDescription('My project');
+```
+
+Compute size of a repository
+----------------------------
+
+`getSize()` returns the size of the files of the git directory, working tree
+excluded, in kilobytes (1,000 bytes):
+
+```php
+$size = $repository->getSize();
+
+echo 'Your repository size is '.$size.' KB';
+```
+
+Running git commands
+--------------------
+
+With `CliDriver`, `run()` runs any git command on the repository, and returns
+its standard output:
+
+```php
+$output = $repository->run('log', ['--oneline', '-n', '5']);
+```
+
+Some commands, like `push`, write their meaningful output to the error
+output, even when they succeed. `runProcess()` returns the Symfony `Process`,
+already run:
+
+```php
+$process = $repository->runProcess('push', ['origin', 'main']);
+
+echo $process->getErrorOutput();
+```
+
+Both throw a `ProcessException` when git fails, and an
+`UnsupportedOperationException` with another driver than `CliDriver`. The
+relative paths of the arguments are relative to the repository. gitlib reads
+the references again after the command, which may have written them.
+
+`shell()` is deprecated since 2.0: run `git shell` with Symfony Process
+instead.
+
+Errors
+------
+
+Gitlib throws an exception when an operation fails. It never returns `null`
+or empty data instead. Every exception of gitlib implements
+`Gitonomy\Git\Exception\GitExceptionInterface`, and lives in the
+`Gitonomy\Git\Exception` namespace:
+
+-   `ReferenceNotFoundException`, an `InvalidArgumentException`: a revision,
+    a reference or an object doesn't exist (`getRevision('unknown')->getCommit()`,
+    `getReferences()->getBranch('unknown')`...).
+-   `DriverException`, a `RuntimeException`: git reports a failure, like a
+    merge conflict or a clone of an unknown repository. With `CliDriver`, it
+    is mostly a `ProcessException`, whose `getErrorOutput()` and
+    `getOutput()` return the output of git, or a `ProcessTimedOutException`,
+    when git runs longer than [the timeout](#configuring-clidriver).
+-   `UnsupportedOperationException`, a `RuntimeException`: the driver can't
+    perform the operation at all, where another driver may: `run()` with
+    `LibGit2Driver`, libgit2 that isn't installed...
+-   `InvalidArgumentException`: an argument gitlib doesn't support, like an
+    option of `git log` in the revisions of a log, or a string holding a NUL
+    byte, which git doesn't accept.
+-   `LogicException`: a call that makes no sense, like the working copy of a
+    bare repository.
+
+```php
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
+
+try {
+    $commit = $repository->getRevision($name)->getCommit();
+} catch (ReferenceNotFoundException) {
+    echo 'No commit named '.$name.PHP_EOL;
+}
+```
+
+Choosing a driver
+-----------------
 
 By default, gitlib spawns a `git` process for every operation, with
 `CliDriver`, which requires git 1.8.4 or later. You can instead run
@@ -91,6 +242,7 @@ by passing a `LibGit2Driver`:
 
 ```php
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
+use Gitonomy\Git\Repository;
 
 $repository = new Repository('/path/to/repo', driver: new LibGit2Driver());
 ```
@@ -107,14 +259,16 @@ every `Repository` you open or create, as a service of your container for
 instance.
 
 `LibGit2Driver` avoids spawning a process for every operation. It requires
-the `ext-ffi` PHP extension and libgit2 1.9: libgit2 changes its binary
-interface with every minor version, so any other version is refused. If
+the `ext-ffi` PHP extension and libgit2 1.9, built for SHA-1 only: libgit2
+changes its binary interface with every minor version, and its build
+supporting SHA-256 changes its structures, so any other build is refused. If
 either is missing, constructing the `LibGit2Driver` throws an
 `UnsupportedOperationException` right away — there is no silent fallback to
 `CliDriver`. You can check availability upfront:
 
 ```php
 use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 
 $driver = LibGit2Driver::isSupported() ? new LibGit2Driver() : new CliDriver();
 ```
@@ -131,16 +285,43 @@ Differences with `CliDriver`:
 
 -   `Repository::run()` and `Repository::runProcess()` throw an
     `UnsupportedOperationException`: there is no `git` process to run.
--   Nothing is logged, and there is no timeout on network operations.
--   `WorkingCopy::merge()` only supports fast-forward and conflict-free
-    merges, with `--no-ff` as the only extra argument: a conflict throws
-    instead of leaving conflict markers in the working copy.
+-   Nothing is logged, and nothing times out, not even network operations.
+-   SSH and git's credential helpers aren't supported: clone a private
+    repository through HTTPS, with the credentials in the URL
+    (`https://user:token@example.com/repo.git`).
+-   Bundles (`.bundle` files) can't be cloned.
+-   Repositories storing their references in the reftable format can't be
+    opened.
+-   Neither hooks nor external filters (Git LFS...) are run: a checkout or a
+    merge writes the files without them.
+-   `Diff::getRawDiff()` returns an empty string.
+-   Short hashes (`Commit::getShortHash()`) have 7 characters, more when 7
+    are ambiguous: git adapts their length to the size of the repository.
 -   `WorkingCopy::checkout()` doesn't create a tracking branch for a name
     that only exists on a remote, like `git checkout` does: it throws.
+-   `WorkingCopy::merge()` only supports fast-forward and conflict-free
+    merges: a conflict throws instead of leaving conflict markers in the
+    working copy. A merge commit is never signed, whatever
+    `commit.gpgSign`, and its message never lists the merged commits,
+    whatever `merge.log`.
+-   Blame is much slower on a long history: see
+    ["Performance"](#performance).
 -   Rename detection in diffs may pair files differently.
--   Blame line ranges are limited to `<start>,<end>` and `<start>,+<count>`.
+-   Network operations go through the proxy of `https_proxy`, or of
+    `http.proxy`, for HTTPS only: libgit2 1.9 uses no proxy for a plain
+    `http://` URL.
+-   With php-fpm, libgit2 must be preloaded: see
+    ["With php-fpm"](#with-php-fpm).
 
-#### With php-fpm
+These limits apply to both drivers, so that they behave the same:
+
+-   The revisions of a log are names, ranges (`a..b`, `a...b`), names to
+    exclude (`^a`) or `--all`: any other option of `git log` throws an
+    `InvalidArgumentException`.
+-   A blame takes the numbers of its first and last lines, none of the other
+    forms of `git blame -L`.
+
+### With php-fpm
 
 Call `LibGit2Driver::preload()` from the
 [`opcache.preload`](https://www.php.net/manual/en/opcache.preloading.php)
@@ -156,9 +337,12 @@ Gitonomy\Git\Driver\Ffi\LibGit2Driver::preload();
 libgit2 then stays loaded and initialized for the lifetime of php-fpm,
 instead of every request loading it again (about 10 ms, see below), and the
 driver works with the default `ffi.enable` setting, `preload`: outside the
-CLI, only preloaded code can use FFI. Without preloading, `LibGit2Driver`
-throws an `UnsupportedOperationException` unless `ffi.enable` is `true`,
-which lets any code of the application call C functions.
+CLI, only preloaded code can use FFI.
+
+Without preloading, `LibGit2Driver` throws an `UnsupportedOperationException`
+unless `ffi.enable` is `true`, which lets any code of the application call C
+functions. Even then, don't: every request initializes libgit2 again, and
+leaks its global state, about 700 KB per request.
 
 ### Performance
 
@@ -212,59 +396,49 @@ in a long-running process, and check with your own repository:
 php benchmark.php /path/to/repository path/to/a/file
 ```
 
-### Configuring `CliDriver`
+Configuring `CliDriver`
+-----------------------
 
-The arguments of `CliDriver` set the git binary to run (`command`), the
-environment variables to pass to it (`environmentVariables`, where `false`
-removes an inherited one), whether git inherits the environment variables of
-PHP (`inheritEnvironmentVariables`), and the timeout of every git process,
-in seconds (`processTimeout`, `null` for none):
+The arguments of `CliDriver` are:
+
+-   `command`: the git binary to run, `git` by default;
+-   `environmentVariables`: the environment variables to set on every git
+    process, where `false` removes an inherited one: git inherits the
+    environment variables of PHP;
+-   `processTimeout`: the timeout of every git process, in seconds, for its
+    whole duration and without output, `3600` by default, `null` for none. A
+    git process running longer throws a `ProcessTimedOutException`;
+-   `logger`: see ["Logger"](#logger).
 
 ```php
 use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Repository;
 
-$repository = new Gitonomy\Git\Repository('/tmp/foo', driver: new CliDriver(
+$repository = new Repository('/tmp/foo', driver: new CliDriver(
     command: '/home/alice/bin/git',
     environmentVariables: ['GIT_SSH_COMMAND' => 'ssh -i /home/alice/.ssh/deploy'],
     processTimeout: 60,
 ));
 ```
 
-### Using your own driver
+The `command`, `environment_variables` and `process_timeout` options of
+`Repository` and `Admin`, from 1.x, are deprecated since 2.0 in favor of these
+arguments. So is `inherit_environment_variables`, which passed the entries of
+`$_SERVER` to git, the headers and credentials of an HTTP request included:
+pass the variables git needs to `environmentVariables`.
 
-`$driver` accepts any `Gitonomy\Git\Driver\DriverInterface` implementation:
-its `open()` method returns the `Gitonomy\Git\Driver\RepositoryDriverInterface`
-the repository runs its operations with. In tests, a stub of both lets you
-exercise code built on gitlib without any git repository:
+Logger
+------
 
-```php
-$repositoryDriver = $this->createStub(RepositoryDriverInterface::class);
-$repositoryDriver->method('getReferences')->willReturn([new ReferenceData('refs/heads/main', $hash)]);
-
-$driver = $this->createStub(DriverInterface::class);
-$driver->method('open')->willReturn($repositoryDriver);
-
-$repository = new Repository('/path/to/any/directory', driver: $driver);
-```
-
-### Logger
-
-If you are developing, you may appreciate to have a logger inside
-repository, telling you every executed command (`CliDriver` only).
-
-You call method `setLogger` as an option on repository creation:
+`CliDriver` takes a PSR-3 logger, and logs every git command it runs,
+initializing and cloning repositories included:
 
 ```php
-$repository->setLogger(new Monolog\Logger('repository'));
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Repository;
 
-$repository->run('fetch', ['--all']);
-```
+$repository = new Repository('/path/foo', driver: new CliDriver(logger: new Monolog\Logger('git')));
 
-You can also specify as an option on repository creation:
-
-```php
-$logger = new MonologLogger('repository');
-$repository = new Repository('/path/foo', ['logger' => $logger]);
 $repository->run('fetch', ['--all']);
 ```
 
@@ -278,12 +452,38 @@ debug last command (fetch) output: Fetching origin
 ```
 
 A failing command also logs its error output, at the `debug` level: the
-exception it throws reports the failure.
+exception it throws reports the failure. `LibGit2Driver` logs nothing.
 
-### Errors
+`Repository::setLogger()` and `Repository::getLogger()` are deprecated since
+2.0: give the logger to `CliDriver`.
 
-Gitlib throws an exception when git reports a failure: a
-`Gitonomy\Git\Exception\DriverException` (a `ProcessException` with
-`CliDriver`), or a more specific one where it makes sense, like a
-`ReferenceNotFoundException` for an unknown revision. Operations never return
-empty data instead.
+Using your own driver
+---------------------
+
+`$driver` accepts any `Gitonomy\Git\Driver\DriverInterface` implementation.
+Its `open($dir, $workingDir)` method returns the
+`Gitonomy\Git\Driver\RepositoryDriverInterface` the repository runs its
+operations with: `getGitDir()`, `getWorkingDir()`, `getHeadReference()`,
+`getReferences()`, `getCommitData()`... In tests, a stub of both lets you
+exercise code built on gitlib without any git repository:
+
+```php
+use Gitonomy\Git\Driver\Data\ReferenceData;
+use Gitonomy\Git\Driver\DriverInterface;
+use Gitonomy\Git\Driver\RepositoryDriverInterface;
+use Gitonomy\Git\Repository;
+
+$repositoryDriver = $this->createStub(RepositoryDriverInterface::class);
+$repositoryDriver->method('getGitDir')->willReturn('/path/to/repo.git');
+$repositoryDriver->method('getReferences')->willReturn([new ReferenceData('refs/heads/main', $hash)]);
+
+$driver = $this->createStub(DriverInterface::class);
+$driver->method('open')->willReturn($repositoryDriver);
+
+$repository = new Repository('/path/to/repo.git', driver: $driver);
+$repository->getReferences()->getBranch('main')->getCommitHash(); // $hash
+```
+
+The other methods of `DriverInterface` create repositories: `init()`,
+`initBare()`, `cloneFrom()`, `cloneBareFrom()`, `mirrorFrom()`,
+`isValidRepository()` and `isValidRepositoryAndBranch()`.
