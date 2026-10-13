@@ -396,6 +396,8 @@ Errors
    `getRevision('--output=/path')` writing a file, or
    `isValidRepository('--upload-pack=...')` running a command. A path may
    start with a dash.
+ * An `ext::` URL throws an `InvalidArgumentException`, with both drivers:
+   git runs its command, by default before git 2.12.
  * `Hooks` throws an `InvalidArgumentException` for a name that isn't the one
    of a file of the hooks directory, like `../config` or `.hidden`.
  * The messages of exceptions and the logs hide the credentials of URLs

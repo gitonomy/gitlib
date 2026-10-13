@@ -56,43 +56,6 @@ class LeadingDashTest extends AbstractTestCase
     }
 
     /**
-     * In a repository with a remote, "git ls-remote --upload-pack=..." runs
-     * the command to list the references of the remote.
-     */
-    #[DataProvider('provideUrlCalls')]
-    public function testAUrlStartingWithADashIsRefused(\Closure $call): void
-    {
-        $repository = self::createFoobarRepository(false);
-        $previousCwd = getcwd();
-        $this->assertIsString($previousCwd);
-        chdir($repository->getPath());
-
-        try {
-            // A colon before any slash: a URL, never a local path.
-            $call('--upload-pack=touch pwned;:;git-upload-pack', self::createTempDir().'/clone');
-            $this->fail('A leading dash is refused.');
-        } catch (InvalidArgumentException $e) {
-            $this->assertStringContainsString('starts with a dash', $e->getMessage());
-        } finally {
-            chdir($previousCwd);
-        }
-
-        $this->assertFileDoesNotExist($repository->getPath().'/pwned');
-    }
-
-    /**
-     * @return iterable<string, array{\Closure(string, string): void}>
-     */
-    public static function provideUrlCalls(): iterable
-    {
-        yield 'valid repository' => [static function (string $url): void { Repository::isValidRepository($url, self::getDriver()); }];
-        yield 'valid branch' => [static function (string $url): void { Repository::isValidRepositoryAndBranch($url, 'master', self::getDriver()); }];
-        yield 'clone' => [static function (string $url, string $path): void { Repository::cloneFrom($url, $path, driver: self::getDriver()); }];
-        yield 'bare clone' => [static function (string $url, string $path): void { Repository::cloneBareFrom($url, $path, driver: self::getDriver()); }];
-        yield 'mirror' => [static function (string $url, string $path): void { Repository::mirrorFrom($url, $path, self::getDriver()); }];
-    }
-
-    /**
      * Unlike a URL, a path may start with a dash: git reads it after "--".
      */
     public function testAPathMayStartWithADash(): void

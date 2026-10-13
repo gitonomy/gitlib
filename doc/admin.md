@@ -101,15 +101,17 @@ error output, when `CliDriver` runs git. With `CliDriver`, every method,
 `isValidRepository()` included, throws a `ProcessException` when git can't
 run, like a missing binary. See [Errors](repository.md#errors).
 
-A URL starting with a dash throws an `InvalidArgumentException`, with both
-drivers: git would read it as an option, like `--upload-pack=...`, which
-runs a command. A path may start with one. The message of an exception
-hides the credentials of the URL (`https://***@example.com/repository.git`).
+A URL that makes git run a command throws an `InvalidArgumentException`,
+with both drivers:
 
-gitlib doesn't check the URLs any further. Old git versions run the command
-of an `ext::` URL, which recent ones refuse by default (see the
-`protocol.allow` setting of git): with URLs from your users, use a recent
-git, or check them yourself.
+-   a URL starting with a dash, which git would read as an option, like
+    `--upload-pack=...`; a path may start with one;
+-   an `ext::` URL, like `ext::sh -c ...`, whose command git runs, unless its
+    `protocol.allow` setting forbids it, as it does by default since git 2.12.
+
+The message of an exception hides the credentials of the URL
+(`https://***@example.com/repository.git`). gitlib doesn't check the URLs
+any further: a path, for instance, names a repository of the server.
 
 Driver and logger
 -----------------

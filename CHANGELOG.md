@@ -106,6 +106,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
   option: `getRevision('--output=/path')`, `WorkingCopy::checkout()` or `merge()` could write
   a file, and `Repository::isValidRepository('--upload-pack=...')` run a command. A path may
   start with a dash: `init()` and the clones end the options of git with `--`.
+- Refuse an `ext::` URL, like `ext::sh -c ...`, whose command git runs, by default before git
+  2.12.
 - Hide the credentials of URLs (`https://user:token@host`) in the messages of exceptions and
   in the logs.
 - Refuse a hook name that isn't the one of a file of the hooks directory:

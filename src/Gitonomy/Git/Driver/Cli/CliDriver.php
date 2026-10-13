@@ -15,7 +15,7 @@ namespace Gitonomy\Git\Driver\Cli;
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\RepositoryPaths;
 use Gitonomy\Git\Exception\ProcessException;
-use Gitonomy\Git\Util\LeadingDash;
+use Gitonomy\Git\Util\RemoteUrl;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -77,14 +77,14 @@ final readonly class CliDriver implements DriverInterface
     public function isValidRepository(string $url): bool
     {
         // ls-remote only takes "--" since git 2.8.
-        LeadingDash::assertNone($url);
+        RemoteUrl::assertSafe($url);
 
         return $this->runner()->run('ls-remote', [self::absoluteUrl($url)])->isSuccessful();
     }
 
     public function isValidRepositoryAndBranch(string $url, string $branch): bool
     {
-        LeadingDash::assertNone($url);
+        RemoteUrl::assertSafe($url);
 
         // git lists the branches whose name ends with the pattern: "release" matches "feature/release".
         $process = $this->runner()->run('ls-remote', ['--heads', self::absoluteUrl($url), 'refs/heads/'.$branch]);
@@ -111,7 +111,7 @@ final readonly class CliDriver implements DriverInterface
     public function cloneRepository(string $path, string $url, array $args): void
     {
         // Like isValidRepository(), whose ls-remote can't take "--".
-        LeadingDash::assertNone($url);
+        RemoteUrl::assertSafe($url);
 
         // --: a path may start with a dash.
         $this->mustRun('clone', ['-q', ...$args, '--', $url, $path]);

@@ -220,9 +220,10 @@ or empty data instead. Every exception of gitlib implements
     `LibGit2Driver`, libgit2 that isn't installed...
 -   `InvalidArgumentException`: an argument gitlib doesn't support, like an
     option of `git log` in the revisions of a log, a string holding a NUL
-    byte, which git doesn't accept, or a revision, a reference, a hash or a
-    URL starting with a dash, which git would read as an option
-    (`getRevision('--output=/path')`).
+    byte, which git doesn't accept, a revision, a reference, a hash or a URL
+    starting with a dash, which git would read as an option
+    (`getRevision('--output=/path')`), or an `ext::` URL, whose command git
+    would run.
 -   `LogicException`: a call that makes no sense, like the working copy of a
     bare repository.
 
