@@ -108,6 +108,9 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
   start with a dash: `init()` and the clones end the options of git with `--`.
 - Hide the credentials of URLs (`https://user:token@host`) in the messages of exceptions and
   in the logs.
+- Refuse a hook name that isn't the one of a file of the hooks directory:
+  `Hooks::set('../config', ...)` and `remove('../config')` wrote and deleted the
+  configuration of the repository.
 
 ### Bug fixes
 

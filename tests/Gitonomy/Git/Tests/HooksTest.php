@@ -69,6 +69,52 @@ class HooksTest extends AbstractTestCase
         $this->assertFileDoesNotExist($file, "Hook {$hook} is not present");
     }
 
+    /**
+     * A hook is a file of the hooks directory: "../config" would be the
+     * configuration of the repository.
+     */
+    #[DataProvider('provideInvalidNames')]
+    public function testAnInvalidNameIsRefused(string $name): void
+    {
+        $repository = self::createFoobarRepository();
+        $hooks = $repository->getHooks();
+        $calls = [
+            'has' => static fn () => $hooks->has($name),
+            'get' => static fn () => $hooks->get($name),
+            'set' => static fn () => $hooks->set($name, 'content'),
+            'setSymlink' => static fn () => $hooks->setSymlink($name, __FILE__),
+            'remove' => static fn () => $hooks->remove($name),
+        ];
+
+        foreach ($calls as $method => $call) {
+            try {
+                $call();
+                $this->fail(\sprintf('%s() refuses "%s".', $method, $name));
+            } catch (InvalidArgumentException $e) {
+                $this->assertStringContainsString('is not a valid hook name', $e->getMessage());
+            }
+        }
+
+        $this->assertFileExists($repository->getGitDir().'/config');
+        $this->assertFileDoesNotExist($repository->getGitDir().'/evil');
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideInvalidNames(): iterable
+    {
+        yield 'parent directory' => ['../config'];
+        yield 'new file in the parent directory' => ['../evil'];
+        yield 'Windows separator' => ['..\config'];
+        yield 'sub-directory' => ['sub/pre-commit'];
+        yield 'dot' => ['.'];
+        yield 'dot dot' => ['..'];
+        yield 'empty' => [''];
+        yield 'hidden file' => ['.pre-commit'];
+        yield 'NUL byte' => ["pre-commit\0.sample"];
+    }
+
     #[DataProvider('provideBare')]
     public function testHas(bool $bare): void
     {

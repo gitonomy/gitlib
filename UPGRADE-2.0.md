@@ -396,6 +396,8 @@ Errors
    `getRevision('--output=/path')` writing a file, or
    `isValidRepository('--upload-pack=...')` running a command. A path may
    start with a dash.
+ * `Hooks` throws an `InvalidArgumentException` for a name that isn't the one
+   of a file of the hooks directory, like `../config` or `.hidden`.
  * The messages of exceptions and the logs hide the credentials of URLs
    (`https://***@example.com/repository.git`). `getErrorOutput()` and
    `getOutput()` of `ProcessException` don't.

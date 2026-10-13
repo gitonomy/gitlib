@@ -11,6 +11,11 @@ Those files need to be executable: gitlib makes them executable by their
 owner only (*0700*). If another user runs them (a git daemon, a web
 server...), change their permissions yourself.
 
+A hook is a file of the hooks directory: its name, like `pre-receive`, is
+made of letters, digits, `-`, `_` and `.`, and doesn't start with a dot. Any
+other name, like `../config`, throws a
+`Gitonomy\Git\Exception\InvalidArgumentException`.
+
 git runs them, when it receives a push for instance, or when `CliDriver`
 checks out or merges. `LibGit2Driver` doesn't run them (see
 ["Choosing a driver"](repository.md#choosing-a-driver)).
