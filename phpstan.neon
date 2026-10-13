@@ -1,20 +1,24 @@
 includes:
     - phpstan-baseline.neon
+    - tools/phpstan/vendor/phpstan/phpstan-phpunit/extension.neon
+    - tools/phpstan/vendor/phpstan/phpstan-phpunit/rules.neon
 
 parameters:
     level: 9
     paths:
         - src
+        - tests/Gitonomy
+        - tests/bootstrap.php
     tmpDir: 'var/phpstan/tmp'
     inferPrivatePropertyTypeFromConstructor: true
-    excludePaths:
-        analyse:
-            # PHP FFI is dynamic by design: `$ffi->some_c_function()` and
-            # `$cdata->some_field` are resolved at runtime against the cdef
-            # loaded into that specific FFI/CData instance, not against any
-            # PHP class PHPStan can see. There is no stub format for this, so
-            # every call/property access here reads as "undefined" to static
-            # analysis even though it's correct — verified by actually
-            # exercising this driver against a live libgit2 and the full test
-            # suite (`GITLIB_DRIVER=ffi vendor/bin/phpunit`), not by type-checking it.
-            - src/Gitonomy/Git/Driver/Ffi/*
+    ignoreErrors:
+        # PHP FFI is dynamic by design: `$ffi->some_c_function()` and
+        # `$cdata->some_field` are resolved at runtime against the cdef loaded
+        # into that FFI instance, which PHPStan can't see. The tests run with
+        # GITLIB_DRIVER=ffi check them instead.
+        -
+            identifier: method.notFound
+            path: src/Gitonomy/Git/Driver/Ffi/*
+        -
+            identifier: property.notFound
+            path: src/Gitonomy/Git/Driver/Ffi/*

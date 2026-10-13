@@ -5,6 +5,8 @@
          colors="true"
          displayDetailsOnTestsThatTriggerDeprecations="true"
          failOnDeprecation="true"
+         failOnNotice="true"
+         failOnPhpunitDeprecation="true"
          failOnRisky="true"
          failOnWarning="true"
          beStrictAboutOutputDuringTests="true"

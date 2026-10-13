@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   verify-fixture:
     name: Verify Test Fixture Bundle
@@ -33,6 +36,16 @@ jobs:
 
       - name: Run CS check
         run: castor cs --dry-run
+
+  check-archive:
+    name: Check the Archive
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Ship only the code, the docs and the license
+        run: diff <(git archive HEAD | tar -t | cut -d/ -f1 | sort -u) <(printf '%s\n' CHANGELOG.md LICENSE README.md UPGRADE-2.0.md composer.json doc src | sort)
 
   phpstan:
     name: Static Analysis
@@ -91,6 +104,52 @@ jobs:
       - name: Execute PHPUnit
         run: vendor/bin/phpunit
 
+  tests-git:
+    name: Test git ${{ matrix.git }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest supported git, and the one of Ubuntu 20.04: the other jobs test the latest one.
+        include:
+          - git: '1.8.4'
+            sha256: '5e0efe7cd30e258bc3be9ae023790743974e76eb1b24ecac24de6fc2af2b2786'
+          - git: '2.25.1'
+            sha256: 'aaef0cd609a7730cfbae530d7c91214a941d7e26054d2314cc99794880156b33'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Cache git
+        id: cache-git
+        uses: actions/cache@v6
+        with:
+          path: ~/git
+          key: git-${{ matrix.git }}-ubuntu-24.04
+
+      - name: Build git
+        if: steps.cache-git.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL "https://github.com/git/git/archive/refs/tags/v${{ matrix.git }}.tar.gz" -o git.tar.gz
+          echo "${{ matrix.sha256 }}  git.tar.gz" | sha256sum --check
+          tar xzf git.tar.gz
+          make -C "git-${{ matrix.git }}" prefix="$HOME/git" CFLAGS='-std=gnu17 -O2' NO_OPENSSL=1 NO_CURL=1 NO_EXPAT=1 NO_GETTEXT=1 NO_PERL=1 NO_PYTHON=1 NO_TCLTK=1 --jobs="$(nproc)" install
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Setup Problem Matchers
+        run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Install Composer dependencies
+        run: composer update --prefer-dist --no-interaction
+
+      - name: Execute PHPUnit
+        run: GIT_COMMAND="$HOME/git/bin/git" vendor/bin/phpunit
+
   tests-ffi:
     name: Test PHP ${{ matrix.php }} (LibGit2Driver)
     runs-on: ubuntu-24.04
@@ -101,6 +160,8 @@ jobs:
     env:
       # LibGit2Driver only supports libgit2 1.9, which Ubuntu 24.04 doesn't ship.
       LIBGIT2_VERSION: '1.9.1'
+      LIBGIT2_SHA256: '14cab3014b2b7ad75970ff4548e83615f74d719afe00aa479b4a889c1e13fc00'
+      LIBGIT2_CMAKE_FLAGS: '-DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_CLI=OFF -DUSE_HTTPS=OFF -DUSE_SSH=OFF'
 
     steps:
       - name: Checkout Code
@@ -108,16 +169,18 @@ jobs:
 
       - name: Cache libgit2
         id: cache-libgit2
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/libgit2
-          key: libgit2-${{ env.LIBGIT2_VERSION }}-ubuntu-24.04
+          key: libgit2-${{ env.LIBGIT2_VERSION }}-${{ env.LIBGIT2_CMAKE_FLAGS }}-ubuntu-24.04
 
       - name: Build libgit2
         if: steps.cache-libgit2.outputs.cache-hit != 'true'
         run: |
-          curl -fsSL "https://github.com/libgit2/libgit2/archive/refs/tags/v${LIBGIT2_VERSION}.tar.gz" | tar xz
-          cmake -S "libgit2-${LIBGIT2_VERSION}" -B libgit2-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/libgit2" -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_TESTS=OFF -DBUILD_CLI=OFF -DUSE_HTTPS=OFF -DUSE_SSH=OFF
+          curl -fsSL "https://github.com/libgit2/libgit2/archive/refs/tags/v${LIBGIT2_VERSION}.tar.gz" -o libgit2.tar.gz
+          echo "${LIBGIT2_SHA256}  libgit2.tar.gz" | sha256sum --check
+          tar xzf libgit2.tar.gz
+          cmake -S "libgit2-${LIBGIT2_VERSION}" -B libgit2-build -DCMAKE_INSTALL_PREFIX="$HOME/libgit2" -DCMAKE_INSTALL_LIBDIR=lib $LIBGIT2_CMAKE_FLAGS
           cmake --build libgit2-build --parallel
           cmake --install libgit2-build
 

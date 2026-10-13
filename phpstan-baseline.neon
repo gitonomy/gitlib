@@ -1,148 +1,10 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Method Gitonomy\\Git\\Blame\:\:getGroupedLines\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Blame.php
-
-		-
-			message: '#^Property Gitonomy\\Git\\Blame\\Line\:\:\$blockLine is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: src/Gitonomy/Git/Blame/Line.php
-
-		-
-			message: '#^Property Gitonomy\\Git\\Blame\\Line\:\:\$targetLine is never read, only written\.$#'
-			identifier: property.onlyWritten
-			count: 1
-			path: src/Gitonomy/Git/Blame/Line.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Diff\\Diff\:\:fromArray\(\) has parameter \$array with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Diff/Diff.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Diff\\Diff\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Diff/Diff.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Diff\\File\:\:fromArray\(\) has parameter \$array with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Diff/File.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Diff\\File\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Diff/File.php
-
-		-
-			message: '#^Parameter \#1 \$hash of method Gitonomy\\Git\\Repository\:\:getBlob\(\) expects string, string\|null given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Gitonomy/Git/Diff/File.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Diff\\FileChange\:\:fromArray\(\) has parameter \$array with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Diff/FileChange.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Diff\\FileChange\:\:toArray\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Diff/FileChange.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Hooks\:\:get\(\) should return string but returns string\|false\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Gitonomy/Git/Hooks.php
-
-		-
-			message: '#^Class Gitonomy\\Git\\Log implements generic interface IteratorAggregate but does not specify its types\: TKey, TValue$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Gitonomy/Git/Log.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Log\:\:__construct\(\) has parameter \$paths with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Log.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Log\:\:__construct\(\) has parameter \$revisions with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Log.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Log\:\:count\(\) should return int\<0, max\> but returns int\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Gitonomy/Git/Log.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Log\:\:getIterator\(\) return type with generic class ArrayIterator does not specify its types\: TKey, TValue$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Gitonomy/Git/Log.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Log\:\:getPaths\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Log.php
-
-		-
-			message: '#^Property Gitonomy\\Git\\Log\:\:\$paths type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Log.php
-
-		-
 			message: '#^Method Gitonomy\\Git\\Parser\\ParserBase\:\:consumeRegexp\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
 			path: src/Gitonomy/Git/Parser/ParserBase.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Reference\\Branch\:\:isLocal\(\) should return bool but returns bool\|null\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Gitonomy/Git/Reference/Branch.php
-
-		-
-			message: '#^Class Gitonomy\\Git\\ReferenceBag implements generic interface IteratorAggregate but does not specify its types\: TKey, TValue$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Gitonomy/Git/ReferenceBag.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\ReferenceBag\:\:getIterator\(\) return type with generic class ArrayIterator does not specify its types\: TKey, TValue$#'
-			identifier: missingType.generics
-			count: 1
-			path: src/Gitonomy/Git/ReferenceBag.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Repository\:\:getDescription\(\) should return string but returns string\|false\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Gitonomy/Git/Repository.php
-
-		-
-			message: '#^Method Gitonomy\\Git\\Repository\:\:getDiff\(\) has parameter \$revisions with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: src/Gitonomy/Git/Repository.php
 
 		-
 			message: '#^Method Gitonomy\\Git\\Repository\:\:getLog\(\) has parameter \$paths with no value type specified in iterable type array\.$#'
@@ -175,12 +37,6 @@ parameters:
 			path: src/Gitonomy/Git/Repository.php
 
 		-
-			message: '#^Parameter \#1 \$string of function trim expects string, string\|false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Gitonomy/Git/Repository.php
-
-		-
 			message: '#^Method Gitonomy\\Git\\Revision\:\:getLog\(\) has parameter \$paths with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -203,10 +59,4 @@ parameters:
 			identifier: missingType.generics
 			count: 1
 			path: src/Gitonomy/Git/RevisionList.php
-
-		-
-			message: '#^Parameter \#2 \$string of function explode expects string, string\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Gitonomy/Git/Tree.php
 
