@@ -17,6 +17,7 @@ use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\RepositoryPaths;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
+use Gitonomy\Git\Util\LeadingDash;
 use Gitonomy\Git\Util\NulByte;
 
 /**
@@ -101,6 +102,8 @@ final readonly class LibGit2Driver implements DriverInterface
     public function cloneFrom(string $url, string $path, ?string $branch): void
     {
         NulByte::assertNone($url, $path, $branch ?? '');
+        // Like CliDriver, where git would read it as an option.
+        LeadingDash::assertNone($url);
 
         // git_clone() only checks a branch out, where git also checks a tag out, HEAD detached.
         $tag = null !== $branch && $this->isTagOnly($url, $branch) ? $branch : null;
@@ -144,6 +147,7 @@ final readonly class LibGit2Driver implements DriverInterface
     public function cloneBareFrom(string $url, string $path, ?string $branch): void
     {
         NulByte::assertNone($url, $path, $branch ?? '');
+        LeadingDash::assertNone($url);
 
         // Like git, only the branches (and the tags).
         $this->fetchInto($path, $url, '+refs/heads/*:refs/heads/*', $branch, ['remote.origin.url' => $url]);
@@ -152,6 +156,7 @@ final readonly class LibGit2Driver implements DriverInterface
     public function mirrorFrom(string $url, string $path): void
     {
         NulByte::assertNone($url, $path);
+        LeadingDash::assertNone($url);
 
         $this->fetchInto($path, $url, '+refs/*:refs/*', null, [
             'remote.origin.url' => $url,
@@ -164,6 +169,7 @@ final readonly class LibGit2Driver implements DriverInterface
     public function isValidRepository(string $url): bool
     {
         NulByte::assertNone($url);
+        LeadingDash::assertNone($url);
 
         return null !== $this->listRemoteReferences($url);
     }
@@ -171,6 +177,7 @@ final readonly class LibGit2Driver implements DriverInterface
     public function isValidRepositoryAndBranch(string $url, string $branch): bool
     {
         NulByte::assertNone($url, $branch);
+        LeadingDash::assertNone($url);
 
         return \in_array('refs/heads/'.$branch, $this->listRemoteReferences($url) ?? [], true);
     }

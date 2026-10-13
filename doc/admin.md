@@ -101,6 +101,15 @@ error output, when `CliDriver` runs git. With `CliDriver`, every method,
 `isValidRepository()` included, throws a `ProcessException` when git can't
 run, like a missing binary. See [Errors](repository.md#errors).
 
+A URL starting with a dash throws an `InvalidArgumentException`, with both
+drivers: git would read it as an option, like `--upload-pack=...`, which
+runs a command. A path may start with one.
+
+gitlib doesn't check the URLs any further. Old git versions run the command
+of an `ext::` URL, which recent ones refuse by default (see the
+`protocol.allow` setting of git): with URLs from your users, use a recent
+git, or check them yourself.
+
 Driver and logger
 -----------------
 

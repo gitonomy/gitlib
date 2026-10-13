@@ -28,6 +28,7 @@ use Gitonomy\Git\Driver\RepositoryDriverInterface;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\FastForward;
+use Gitonomy\Git\Util\LeadingDash;
 use Gitonomy\Git\Util\NulByte;
 use Symfony\Component\String\ByteString;
 use Symfony\Component\String\Exception\InvalidArgumentException;
@@ -133,6 +134,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function resolveRevision(string $revision): string
     {
         NulByte::assertNone($revision);
+        LeadingDash::assertNone($revision);
 
         $object = $this->ffi->new('git_object*');
         $rc = $this->ffi->git_revparse_single(\FFI::addr($object), $this->repo, $revision);
@@ -151,6 +153,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function getCommitData(string $hash): CommitData
     {
         NulByte::assertNone($hash);
+        LeadingDash::assertNone($hash);
 
         $commit = $this->lookupCommit($hash);
 
@@ -164,6 +167,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function getCommitLog(?array $includes, array $excludes, array $paths, int $offset, ?int $limit): array
     {
         NulByte::assertNone(...$includes ?? [], ...$excludes, ...$paths);
+        LeadingDash::assertNone(...$includes ?? [], ...$excludes);
 
         $result = [];
         if (0 === $limit) {
@@ -192,6 +196,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function countCommits(?array $includes, array $excludes, array $paths): int
     {
         NulByte::assertNone(...$includes ?? [], ...$excludes, ...$paths);
+        LeadingDash::assertNone(...$includes ?? [], ...$excludes);
 
         return iterator_count($this->walk($includes, $excludes, $paths));
     }
@@ -199,6 +204,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function getMergeBases(string $hash1, string $hash2): array
     {
         NulByte::assertNone($hash1, $hash2);
+        LeadingDash::assertNone($hash1, $hash2);
 
         $oneOid = $this->hexToOid($hash1);
         $twoOid = $this->hexToOid($hash2);
@@ -224,6 +230,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function getShortHash(string $hash): string
     {
         NulByte::assertNone($hash);
+        LeadingDash::assertNone($hash);
 
         $object = $this->lookupObject($hash);
 
@@ -340,6 +347,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function createReference(string $fullname, string $hash): void
     {
         NulByte::assertNone($fullname, $hash);
+        LeadingDash::assertNone($fullname, $hash);
 
         $oid = $this->hexToOid($hash);
         $ref = $this->ffi->new('git_reference*');
@@ -350,6 +358,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function updateReference(string $fullname, string $hash): void
     {
         NulByte::assertNone($fullname, $hash);
+        LeadingDash::assertNone($fullname, $hash);
 
         $oid = $this->hexToOid($hash);
         $ref = $this->ffi->new('git_reference*');
@@ -360,6 +369,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function deleteReference(string $fullname): void
     {
         NulByte::assertNone($fullname);
+        LeadingDash::assertNone($fullname);
 
         $ref = $this->ffi->new('git_reference*');
         $rc = $this->ffi->git_reference_lookup(\FFI::addr($ref), $this->repo, $fullname);
@@ -379,6 +389,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function getIncludingBranches(string $hash): array
     {
         NulByte::assertNone($hash);
+        LeadingDash::assertNone($hash);
 
         $tips = [];
         foreach ($this->iterateBranches() as [$fullname, $ref]) {
@@ -408,6 +419,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function getDiff(?string $from, string $to): DiffData
     {
         NulByte::assertNone($from ?? '', $to);
+        LeadingDash::assertNone($from ?? '', $to);
 
         $oldTree = null === $from ? null : $this->treeForRevision($from);
 
@@ -429,6 +441,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function getWorkingTreeDiff(string $hash): DiffData
     {
         NulByte::assertNone($hash);
+        LeadingDash::assertNone($hash);
 
         $tree = $this->treeForRevision($hash);
 
@@ -488,6 +501,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function getBlameLines(string $hash, string $path, ?int $firstLine, ?int $lastLine): array
     {
         NulByte::assertNone($hash, $path);
+        LeadingDash::assertNone($hash);
 
         $range = null !== $firstLine || null !== $lastLine;
         $firstLine ??= 1;
@@ -563,6 +577,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function checkout(string $revision): void
     {
         NulByte::assertNone($revision);
+        LeadingDash::assertNone($revision);
 
         // `git checkout <revision>` attaches HEAD when <revision> names a
         // local branch, before a tag of the same name, and detaches it for
@@ -584,6 +599,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function checkoutNewBranch(string $branch, string $startHash): void
     {
         NulByte::assertNone($branch, $startHash);
+        LeadingDash::assertNone($branch, $startHash);
 
         if ($this->referenceExists('refs/heads/'.$branch)) {
             throw new DriverException(\sprintf('A branch named "%s" already exists.', $branch));
@@ -613,6 +629,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     public function merge(string $revision, FastForward $fastForward): void
     {
         NulByte::assertNone($revision);
+        LeadingDash::assertNone($revision);
 
         $branch = $this->getHeadReference();
         $headHash = $this->resolveCommit('HEAD');

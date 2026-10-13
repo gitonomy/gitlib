@@ -191,8 +191,10 @@ echo $process->getErrorOutput();
 
 Both throw a `ProcessException` when git fails, and an
 `UnsupportedOperationException` with another driver than `CliDriver`. The
-relative paths of the arguments are relative to the repository. gitlib reads
-the references again after the command, which may have written them.
+relative paths of the arguments are relative to the repository. The
+arguments go to git as they are: a value from your users starting with a
+dash is an option for git, unless `--` comes before it. gitlib reads the
+references again after the command, which may have written them.
 
 `shell()` is deprecated since 2.0: run `git shell` with Symfony Process
 instead.
@@ -217,8 +219,10 @@ or empty data instead. Every exception of gitlib implements
     perform the operation at all, where another driver may: `run()` with
     `LibGit2Driver`, libgit2 that isn't installed...
 -   `InvalidArgumentException`: an argument gitlib doesn't support, like an
-    option of `git log` in the revisions of a log, or a string holding a NUL
-    byte, which git doesn't accept.
+    option of `git log` in the revisions of a log, a string holding a NUL
+    byte, which git doesn't accept, or a revision, a reference, a hash or a
+    URL starting with a dash, which git would read as an option
+    (`getRevision('--output=/path')`).
 -   `LogicException`: a call that makes no sense, like the working copy of a
     bare repository.
 

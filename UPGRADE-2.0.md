@@ -391,6 +391,11 @@ Errors
  * An argument holding a NUL byte throws an `InvalidArgumentException`,
    where PHP threw a `ValueError`: git and libgit2 read their arguments as C
    strings, which end at the first NUL byte.
+ * A revision, a reference, a hash or a URL starting with a dash throws an
+   `InvalidArgumentException`, with both drivers: git read it as an option,
+   `getRevision('--output=/path')` writing a file, or
+   `isValidRepository('--upload-pack=...')` running a command. A path may
+   start with a dash.
  * Every message is a sentence ending with a dot.
 
 Dates

@@ -100,6 +100,13 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 - `Commit::getShortMessage()` and `getFixedShortHash()`, `Repository::shell()`,
   `PushReference::getReference()` and `getRevision()`.
 
+### Security
+
+- Refuse a revision, a reference, a hash or a URL starting with a dash, which git read as an
+  option: `getRevision('--output=/path')`, `WorkingCopy::checkout()` or `merge()` could write
+  a file, and `Repository::isValidRepository('--upload-pack=...')` run a command. A path may
+  start with a dash: `init()` and the clones end the options of git with `--`.
+
 ### Bug fixes
 
 - Fix `Commit::getDiff()` returning an empty diff for a root commit, and throwing for a merge

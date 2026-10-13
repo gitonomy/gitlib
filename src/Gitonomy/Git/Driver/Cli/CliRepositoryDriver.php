@@ -26,6 +26,7 @@ use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\FastForward;
 use Gitonomy\Git\Parser\DiffParser;
+use Gitonomy\Git\Util\LeadingDash;
 use Symfony\Component\Process\Process;
 
 /**
@@ -81,6 +82,8 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
     public function resolveRevision(string $revision): string
     {
+        LeadingDash::assertNone($revision);
+
         $process = $this->execute('rev-parse', ['--verify', '--quiet', $revision]);
 
         // --quiet: git exits with 1, without output, when nothing has this name.
@@ -97,11 +100,15 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
     public function getShortHash(string $hash): string
     {
+        LeadingDash::assertNone($hash);
+
         return trim($this->runOnObject($hash, null, 'log', ['--abbrev-commit', '--format=%h', '-n', '1', $hash]));
     }
 
     public function getCommitData(string $hash): CommitData
     {
+        LeadingDash::assertNone($hash);
+
         $parser = new LogParser();
         $parser->parse($this->runOnObject($hash, ObjectType::Commit, 'log', ['--encoding=UTF-8', '--format=raw', '-n', '1', $hash]));
 
@@ -116,6 +123,8 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
     public function getCommitLog(?array $includes, array $excludes, array $paths, int $offset, ?int $limit): array
     {
+        LeadingDash::assertNone(...$includes ?? [], ...$excludes);
+
         if ([] === $includes) {
             return [];
         }
@@ -136,6 +145,8 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
     public function countCommits(?array $includes, array $excludes, array $paths): int
     {
+        LeadingDash::assertNone(...$includes ?? [], ...$excludes);
+
         if ([] === $includes) {
             return 0;
         }
@@ -145,6 +156,8 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
     public function getMergeBases(string $hash1, string $hash2): array
     {
+        LeadingDash::assertNone($hash1, $hash2);
+
         $process = $this->execute('merge-base', ['--all', $hash1, $hash2]);
 
         // git exits with 1 and no output when there is no common ancestor; any
@@ -203,22 +216,30 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
     public function createReference(string $fullname, string $hash): void
     {
+        LeadingDash::assertNone($fullname, $hash);
+
         // Zeros as the old value: git refuses to update a reference that exists.
         $this->run('update-ref', [$fullname, $hash, str_repeat('0', 40)]);
     }
 
     public function updateReference(string $fullname, string $hash): void
     {
+        LeadingDash::assertNone($fullname, $hash);
+
         $this->run('update-ref', [$fullname, $hash]);
     }
 
     public function deleteReference(string $fullname): void
     {
+        LeadingDash::assertNone($fullname);
+
         $this->run('update-ref', ['-d', $fullname]);
     }
 
     public function getIncludingBranches(string $hash): array
     {
+        LeadingDash::assertNone($hash);
+
         // for-each-ref only accepts --contains since git 2.7.
         return [
             ...$this->listBranches(['--contains', $hash], 'refs/heads/'),
@@ -228,11 +249,15 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
     public function getDiff(?string $from, string $to): DiffData
     {
+        LeadingDash::assertNone($from ?? '', $to);
+
         return $this->diff('diff-tree', [$from ?? self::EMPTY_TREE, $to]);
     }
 
     public function getWorkingTreeDiff(string $hash): DiffData
     {
+        LeadingDash::assertNone($hash);
+
         return $this->diff('diff', [$hash]);
     }
 
@@ -248,6 +273,8 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
     public function getBlameLines(string $hash, string $path, ?int $firstLine, ?int $lastLine): array
     {
+        LeadingDash::assertNone($hash);
+
         $args = ['-p'];
         if (null !== $firstLine || null !== $lastLine) {
             $args[] = '-L';
@@ -274,16 +301,22 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
     public function checkout(string $revision): void
     {
+        LeadingDash::assertNone($revision);
+
         $this->run('checkout', [$revision]);
     }
 
     public function checkoutNewBranch(string $branch, string $startHash): void
     {
+        LeadingDash::assertNone($branch, $startHash);
+
         $this->run('checkout', ['-b', $branch, $startHash]);
     }
 
     public function merge(string $revision, FastForward $fastForward): void
     {
+        LeadingDash::assertNone($revision);
+
         $option = match ($fastForward) {
             FastForward::Allow => '--ff',
             FastForward::Never => '--no-ff',
