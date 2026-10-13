@@ -228,6 +228,10 @@ Data returned
 Other changes
 -------------
 
+ * `Diff::parse()` throws an `InvalidArgumentException` for a diff without
+   its raw information, deprecated since 1.6.0: parse the output of
+   `git diff --raw --patch`, which gives the full hashes of the files, even
+   empty ones.
  * Relative paths, in the arguments of `Repository::run()` and in the paths
    of a log, are relative to the repository instead of the current directory
    of PHP.

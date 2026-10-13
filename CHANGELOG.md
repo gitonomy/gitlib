@@ -93,6 +93,10 @@ Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0). 
 
 ### Minor
 
+- Parse only diffs with their raw information, the output of `git diff --raw --patch`.
+  **Breaking:** `Diff::parse()` throws an `InvalidArgumentException` for a diff without it,
+  deprecated since 1.6.0 ([#229](https://github.com/gitonomy/gitlib/pull/229)).
+  ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Require git 1.8.4 or later, the oldest version the test suite passes with: it simplifies the
   log of a range filtered by path like the current versions, and `Log::count()` needs git
   1.7.2. **Breaking:** git 1.7 and 1.8 before 1.8.4 are no longer supported.

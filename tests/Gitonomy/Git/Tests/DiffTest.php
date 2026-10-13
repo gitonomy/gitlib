@@ -14,10 +14,9 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Diff\File;
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 
 class DiffTest extends AbstractTestCase
 {
@@ -154,13 +153,11 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('café "au lait"', $files[1]->getNewName());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testDeleteFileWithoutRaw(): void
+    public function testDeleteFile(): void
     {
-        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
-
         $diff = Diff::parse(<<<'DIFF'
+            :100644 000000 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 0000000000000000000000000000000000000000 D	test
+
             diff --git a/test b/test
             deleted file mode 100644
             index e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..0000000000000000000000000000000000000000
@@ -175,34 +172,8 @@ class DiffTest extends AbstractTestCase
         $this->assertNull($firstFile->getNewIndex());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testModeChangeFileWithoutRaw(): void
+    public function testModeChangeFile(): void
     {
-        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
-
-        $diff = Diff::parse(<<<'DIFF'
-            diff --git a/a.out b/a.out
-            old mode 100755
-            new mode 100644
-
-            DIFF);
-        $firstFile = $diff->getFiles()[0];
-
-        $this->assertFalse($firstFile->isCreation());
-        $this->assertFalse($firstFile->isDeletion());
-        $this->assertTrue($firstFile->isChangeMode());
-        $this->assertSame('', $firstFile->getOldIndex());
-        $this->assertSame('', $firstFile->getNewIndex());
-    }
-
-    public function testModeChangeFileWithRaw(): void
-    {
-        $deprecationCalled = false;
-        set_error_handler(static function (int $errno, string $errstr) use (&$deprecationCalled): void {
-            $deprecationCalled = true;
-        }, \E_USER_DEPRECATED);
-
         $diff = Diff::parse(<<<'DIFF'
             :100644 100755 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa81 M        testfile
             :100644 100755 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82 d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82 M        testfile2
@@ -219,10 +190,6 @@ class DiffTest extends AbstractTestCase
         $firstFile = $files[0];
         $secondFile = $files[1];
 
-        restore_error_handler();
-
-        $this->assertFalse($deprecationCalled);
-
         $this->assertFalse($firstFile->isCreation());
         $this->assertFalse($firstFile->isDeletion());
         $this->assertTrue($firstFile->isChangeMode());
@@ -236,13 +203,11 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('d1af4b23d0cc9313e5b2d3ef2fb9696c94afaa82', $secondFile->getNewIndex());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testCopyFileWithoutRaw(): void
+    public function testCopyFile(): void
     {
-        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
-
         $diff = Diff::parse(<<<'DIFF'
+            :100644 100644 1234567890123456789012345678901234567890 89abcdef0123456789abcdef0123456789abcdef C097	style.css	common.css
+
             diff --git a/style.css b/common.css
             similarity index 97%
             copy from style.css
@@ -268,13 +233,11 @@ class DiffTest extends AbstractTestCase
         $this->assertSame(1, $firstFile->getAdditions());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testPureCopyFileWithoutRaw(): void
+    public function testPureCopyFile(): void
     {
-        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
-
         $diff = Diff::parse(<<<'DIFF'
+            :100644 100644 1234567890123456789012345678901234567890 1234567890123456789012345678901234567890 C100	style.css	common.css
+
             diff --git a/style.css b/common.css
             similarity index 100%
             copy from style.css
@@ -287,6 +250,19 @@ class DiffTest extends AbstractTestCase
         $this->assertFalse($firstFile->isRename());
         $this->assertSame('style.css', $firstFile->getOldName());
         $this->assertSame('common.css', $firstFile->getNewName());
+    }
+
+    public function testParseRequiresTheRawInformation(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The diff has no raw information: Diff::parse() parses the output of "git diff --raw --patch".');
+
+        Diff::parse("diff --git a/a.out b/a.out\nold mode 100755\nnew mode 100644\n");
+    }
+
+    public function testParseAnEmptyDiff(): void
+    {
+        $this->assertSame([], Diff::parse('')->getFiles());
     }
 
     public function testThrowErrorOnBlobGetWithoutIndex(): void
@@ -314,16 +290,14 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('', $file->getNewIndex());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
     public function testMnemonicPrefix(): void
     {
-        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
-
         // With `diff.mnemonicPrefix` enabled, git replaces the default "a/" and "b/"
         // prefixes with context-specific ones, e.g. "c/" (commit) and "i/" (index)
         // for `git diff --cached`. See https://github.com/gitonomy/gitlib/issues/114.
         $diff = Diff::parse(<<<'DIFF'
+            :100644 100644 0000000000000000000000000000000000000000 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 M	composer.json
+
             diff --git c/composer.json i/composer.json
             index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 100644
             --- c/composer.json
@@ -336,13 +310,9 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('composer.json', $firstFile->getNewName());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
     public function testEmptyNewFile(): void
     {
-        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
-
-        $diff = Diff::parse("diff --git a/test b/test\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391\n");
+        $diff = Diff::parse(":000000 100644 0000000000000000000000000000000000000000 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 A\ttest\n\ndiff --git a/test b/test\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391\n");
         $firstFile = $diff->getFiles()[0];
 
         $this->assertTrue($firstFile->isCreation());
@@ -351,13 +321,9 @@ class DiffTest extends AbstractTestCase
         $this->assertNull($firstFile->getOldName());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
     public function testEmptyOldFile(): void
     {
-        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
-
-        $diff = Diff::parse("diff --git a/test b/test\ndeleted file mode 100644\nindex e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..0000000000000000000000000000000000000000\n");
+        $diff = Diff::parse(":100644 000000 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 0000000000000000000000000000000000000000 D\ttest\n\ndiff --git a/test b/test\ndeleted file mode 100644\nindex e69de29bb2d1d6434b8b29ae775ad8c2e48c5391..0000000000000000000000000000000000000000\n");
         $firstFile = $diff->getFiles()[0];
 
         $this->assertFalse($firstFile->isCreation());
@@ -366,13 +332,11 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('test', $firstFile->getOldName());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testDirtySubmoduleWithoutRaw(): void
+    public function testDirtySubmodule(): void
     {
-        $this->expectUserDeprecationMessage('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.');
-
         $diff = Diff::parse(<<<'DIFF'
+            :160000 160000 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 0000000000000000000000000000000000000000 M	sub
+
             diff --git a/sub b/sub
             --- a/sub
             +++ b/sub

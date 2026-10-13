@@ -14,6 +14,7 @@ namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Diff\FileChange;
+use Gitonomy\Git\Exception\InvalidArgumentException;
 
 final class DiffParser extends ParserBase
 {
@@ -32,7 +33,7 @@ final class DiffParser extends ParserBase
     {
         $this->files = [];
         $indexes = [];
-        // Diff contains raw information
+        // The raw information gives the full hashes, even for empty files.
         if (str_starts_with($this->content, ':')) {
             while ($this->expects(':')) {
                 $this->consumeRegexp('/\d{6} \d{6} /');
@@ -45,7 +46,7 @@ final class DiffParser extends ParserBase
             }
             $this->consumeNewLine();
         } elseif (!$this->isFinished()) {
-            @trigger_error('Using Diff::parse without raw information is deprecated. See https://github.com/gitonomy/gitlib/issues/227.', \E_USER_DEPRECATED);
+            throw new InvalidArgumentException('The diff has no raw information: Diff::parse() parses the output of "git diff --raw --patch".');
         }
 
         $fileIndex = 0;
