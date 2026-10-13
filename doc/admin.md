@@ -103,7 +103,8 @@ run, like a missing binary. See [Errors](repository.md#errors).
 
 A URL starting with a dash throws an `InvalidArgumentException`, with both
 drivers: git would read it as an option, like `--upload-pack=...`, which
-runs a command. A path may start with one.
+runs a command. A path may start with one. The message of an exception
+hides the credentials of the URL (`https://***@example.com/repository.git`).
 
 gitlib doesn't check the URLs any further. Old git versions run the command
 of an `ext::` URL, which recent ones refuse by default (see the

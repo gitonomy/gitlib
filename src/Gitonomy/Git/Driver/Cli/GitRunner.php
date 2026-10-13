@@ -16,6 +16,7 @@ use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ProcessTimedOutException;
+use Gitonomy\Git\Util\Credentials;
 use Gitonomy\Git\Util\NulByte;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Exception\ProcessTimedOutException as SymfonyProcessTimedOutException;
@@ -63,7 +64,8 @@ final readonly class GitRunner
         $process->setTimeout($this->timeout);
         $process->setIdleTimeout($this->timeout);
 
-        $this->logger?->info(\sprintf('run command: %s "%s" ', $command, implode(' ', $args)));
+        // The logs hide the credentials of the URLs, like the exceptions.
+        $this->logger?->info(Credentials::redact(\sprintf('run command: %s "%s" ', $command, implode(' ', $args))));
         $before = microtime(true);
 
         try {
@@ -83,9 +85,9 @@ final readonly class GitRunner
         if (null !== $this->logger) {
             $this->logger->debug(\sprintf('last command (%s) duration: %.2fms', $command, (microtime(true) - $before) * 1000));
             $this->logger->debug(\sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
-            $this->logger->debug(\sprintf('last command (%s) output: %s', $command, $process->getOutput()));
+            $this->logger->debug(Credentials::redact(\sprintf('last command (%s) output: %s', $command, $process->getOutput())));
             if (!$process->isSuccessful()) {
-                $this->logger->debug(\sprintf('last command (%s) error output: %s', $command, $process->getErrorOutput()));
+                $this->logger->debug(Credentials::redact(\sprintf('last command (%s) error output: %s', $command, $process->getErrorOutput())));
             }
         }
 

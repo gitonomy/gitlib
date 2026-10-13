@@ -236,6 +236,10 @@ try {
 }
 ```
 
+The message of an exception hides the credentials of the URLs it holds
+(`https://***@example.com/repository.git`): `getErrorOutput()` and
+`getOutput()` of a `ProcessException` return the output of git as it is.
+
 Choosing a driver
 -----------------
 
@@ -456,7 +460,8 @@ debug last command (fetch) output: Fetching origin
 ```
 
 A failing command also logs its error output, at the `debug` level: the
-exception it throws reports the failure. `LibGit2Driver` logs nothing.
+exception it throws reports the failure. The logs hide the credentials of
+URLs, like exceptions. `LibGit2Driver` logs nothing.
 
 `Repository::setLogger()` and `Repository::getLogger()` are deprecated since
 2.0: give the logger to `CliDriver`.

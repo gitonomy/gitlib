@@ -396,6 +396,9 @@ Errors
    `getRevision('--output=/path')` writing a file, or
    `isValidRepository('--upload-pack=...')` running a command. A path may
    start with a dash.
+ * The messages of exceptions and the logs hide the credentials of URLs
+   (`https://***@example.com/repository.git`). `getErrorOutput()` and
+   `getOutput()` of `ProcessException` don't.
  * Every message is a sentence ending with a dot.
 
 Dates

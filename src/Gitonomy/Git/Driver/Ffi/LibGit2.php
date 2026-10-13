@@ -15,6 +15,7 @@ namespace Gitonomy\Git\Driver\Ffi;
 use FFI\CData;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
+use Gitonomy\Git\Util\Credentials;
 
 /**
  * Loads libgit2, and helps calling it.
@@ -100,7 +101,8 @@ final class LibGit2
     public static function check(\FFI $ffi, int $rc, string $context): void
     {
         if ($rc < 0) {
-            throw new DriverException(\sprintf('%s: %s', $context, self::lastErrorMessage($ffi)));
+            // $context and libgit2 may name a URL holding credentials.
+            throw new DriverException(Credentials::redact(\sprintf('%s: %s', $context, self::lastErrorMessage($ffi))));
         }
     }
 

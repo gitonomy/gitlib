@@ -12,20 +12,24 @@
 
 namespace Gitonomy\Git\Exception;
 
+use Gitonomy\Git\Util\Credentials;
 use Symfony\Component\Process\Process;
 
 final class ProcessException extends DriverException implements GitExceptionInterface
 {
+    /**
+     * The message hides the credentials of the URLs, unlike getErrorOutput() and getOutput().
+     */
     public function __construct(private readonly Process $process)
     {
-        parent::__construct(
+        parent::__construct(Credentials::redact(
             "Error while running git command:\n".
             $process->getCommandLine()."\n".
             "\n".
             $process->getErrorOutput()."\n".
             "\n".
             $process->getOutput()
-        );
+        ));
     }
 
     public function getErrorOutput(): string

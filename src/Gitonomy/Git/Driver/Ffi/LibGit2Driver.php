@@ -17,6 +17,7 @@ use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\RepositoryPaths;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
+use Gitonomy\Git\Util\Credentials;
 use Gitonomy\Git\Util\LeadingDash;
 use Gitonomy\Git\Util\NulByte;
 
@@ -201,7 +202,7 @@ final readonly class LibGit2Driver implements DriverInterface
         // Like git, which refuses to clone into a directory with files.
         $existing = is_dir($path);
         if ($existing && [] !== array_diff(scandir($path) ?: [], ['.', '..'])) {
-            throw new DriverException(\sprintf('Unable to clone "%s": "%s" exists and is not an empty directory.', $url, $path));
+            throw new DriverException(\sprintf('Unable to clone "%s": "%s" exists and is not an empty directory.', Credentials::redact($url), $path));
         }
 
         $repository = $this->initRepository($path, true);
@@ -368,7 +369,7 @@ final readonly class LibGit2Driver implements DriverInterface
         $commit = $this->ffi->new('git_object*');
         $rc = $this->ffi->git_revparse_single(\FFI::addr($commit), $repository, 'refs/tags/'.$tag.'^{commit}');
         if (LibGit2::GIT_ENOTFOUND === $rc) {
-            throw new DriverException(\sprintf('Remote branch "%s" not found in "%s".', $tag, $url));
+            throw new DriverException(\sprintf('Remote branch "%s" not found in "%s".', $tag, Credentials::redact($url)));
         }
         LibGit2::check($this->ffi, $rc, \sprintf('Unable to resolve the tag "%s"', $tag));
 
