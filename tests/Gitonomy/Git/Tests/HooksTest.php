@@ -27,9 +27,9 @@ class HooksTest extends AbstractTestCase
     {
         if (\defined('PHP_WINDOWS_VERSION_MAJOR')) {
             self::$symlinkOnWindows = true;
-            $originDir = tempnam(sys_get_temp_dir(), 'sl');
-            $targetDir = tempnam(sys_get_temp_dir(), 'sl');
-            if (true !== @symlink($originDir, $targetDir)) {
+            $dir = self::createTempDir();
+            touch($dir.'/origin');
+            if (true !== @symlink($dir.'/origin', $dir.'/target')) {
                 $report = error_get_last();
                 if (\is_array($report) && str_contains($report['message'], 'error code(1314)')) {
                     self::$symlinkOnWindows = false;
@@ -68,33 +68,37 @@ class HooksTest extends AbstractTestCase
         $this->assertFileDoesNotExist($file, "Hook {$hook} is not present");
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testHas(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testHas(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->assertNoHook($repository, 'foo');
         $this->touchHook($repository, 'foo');
         $this->assertHasHook($repository, 'foo');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetInvalidNameThrowsException(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetInvalidNameThrowsException(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->expectException(InvalidArgumentException::class);
 
         $repository->getHooks()->get('foo');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGet(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGet(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->touchHook($repository, 'foo', 'foobar');
 
         $this->assertEquals('foobar', $repository->getHooks()->get('foo'));
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testSymlink(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testSymlink(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->markAsSkippedIfSymlinkIsMissing();
 
         $file = $this->touchHook($repository, 'bar', 'barbarbar');
@@ -109,9 +113,10 @@ class HooksTest extends AbstractTestCase
         );
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testSymlinkWithExistingThrowsLogicException(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testSymlinkWithExistingThrowsLogicException(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->expectException(LogicException::class);
 
         $this->markAsSkippedIfSymlinkIsMissing();
@@ -125,9 +130,10 @@ class HooksTest extends AbstractTestCase
         $repository->getHooks()->setSymlink('foo', $file);
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testSet(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testSet(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $file = $this->hookPath($repository, 'foo');
         $repository->getHooks()->set('foo', 'bar');
 
@@ -137,9 +143,10 @@ class HooksTest extends AbstractTestCase
         $this->assertEquals(\defined('PHP_WINDOWS_VERSION_BUILD') ? 0o666 : 0o700, $perms & 0o777, 'Hook permissions are correct');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testSetExistingThrowsLogicException(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testSetExistingThrowsLogicException(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $repository->getHooks()->set('foo', 'bar');
 
         $this->expectException(LogicException::class);
@@ -147,9 +154,10 @@ class HooksTest extends AbstractTestCase
         $repository->getHooks()->set('foo', 'bar');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testRemove(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testRemove(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $file = $this->hookPath($repository, 'foo');
         touch($file);
 
@@ -158,9 +166,10 @@ class HooksTest extends AbstractTestCase
         $this->assertFileDoesNotExist($file);
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testRemoveNotExistingThrowsLogicException(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testRemoveNotExistingThrowsLogicException(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->expectException(LogicException::class);
 
         $repository->getHooks()->remove('foo');

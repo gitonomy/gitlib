@@ -31,17 +31,19 @@ class BlobTest extends AbstractTestCase
         return $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('image.jpg');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetContent(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetContent(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $blob = $this->getReadmeBlob($repository);
 
         $this->assertStringContainsString(self::README_FRAGMENT, $blob->getContent());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetContentSiblingToSubmodule(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetContentSiblingToSubmodule(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         // Regression test for https://github.com/gitonomy/gitlib/issues/12:
         // a submodule entry in a tree used to break parsing of that tree,
         // making sibling blobs unreadable.
@@ -54,44 +56,49 @@ class BlobTest extends AbstractTestCase
         $this->assertStringContainsString(self::README_FRAGMENT, $blob->getContent());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testNotExisting(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testNotExisting(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->expectException(RuntimeException::class);
 
         $blob = $repository->getBlob('foobar');
         $blob->getContent();
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetMimetype(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetMimetype(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $blob = $this->getReadmeBlob($repository);
 
         $this->assertMatchesRegularExpression('#text/plain#', $blob->getMimetype());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testIsText(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testIsText(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $readmeBlob = $this->getReadmeBlob($repository);
         $this->assertTrue($readmeBlob->isText());
         $imageBlob = $this->getImageBlob($repository);
         $this->assertFalse($imageBlob->isText());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testIsBinary(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testIsBinary(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $readmeBlob = $this->getReadmeBlob($repository);
         $this->assertFalse($readmeBlob->isBinary());
         $imageBlob = $this->getImageBlob($repository);
         $this->assertTrue($imageBlob->isBinary());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testAbbreviatedHash(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testAbbreviatedHash(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $hash = '412a0dad051163dcf9f9ce2fc04a141ffcb69479';
 
         $this->assertSame($repository->getBlob($hash)->getContent(), $repository->getBlob(substr($hash, 0, 8))->getContent());

@@ -14,13 +14,12 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
-use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
 
 /**
  * @author Grégoire Pineau <lyrixx@lyrixx.info>
  */
-class LibGit2DriverTest extends TestCase
+class LibGit2DriverTest extends AbstractTestCase
 {
     private const string AUTOLOAD = __DIR__.'/../../../../vendor/autoload.php';
 
@@ -51,7 +50,7 @@ class LibGit2DriverTest extends TestCase
             $this->markTestSkipped('libgit2 1.9 is not installed.');
         }
 
-        $preload = AbstractTestCase::createTempDir().'/preload.php';
+        $preload = self::createTempDir().'/preload.php';
         file_put_contents($preload, \sprintf('<?php require %s; %s::preload();', var_export(self::AUTOLOAD, true), LibGit2Driver::class));
 
         // FFI::scope() throws unless preload() registered the scope of libgit2.
@@ -61,7 +60,7 @@ class LibGit2DriverTest extends TestCase
             echo new Gitonomy\Git\Repository($argv[2], driver: new Gitonomy\Git\Driver\Ffi\LibGit2Driver())->getHeadCommit()->getHash();
             PHP;
 
-        $repository = AbstractTestCase::createFoobarRepository();
+        $repository = self::createFoobarRepository();
         $process = new Process([\PHP_BINARY, '-d', 'opcache.enable_cli=1', '-d', 'opcache.preload='.$preload, '-r', $code, self::AUTOLOAD, $repository->getGitDir()]);
         $process->mustRun();
 

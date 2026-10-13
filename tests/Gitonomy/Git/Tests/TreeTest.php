@@ -14,16 +14,16 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\CommitReference;
-use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class TreeTest extends AbstractTestCase
 {
     public const PATH_RESOLVING_COMMIT = 'cc06ac171d884282202dff88c1ded499a1f89420';
 
-    #[DataProvider('provideFoobar')]
-    public function testGetEntries(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetEntries(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $tree = $repository->getCommit(self::LONGFILE_COMMIT)->getTree();
 
         $entries = $tree->getEntries();
@@ -35,9 +35,10 @@ class TreeTest extends AbstractTestCase
         $this->assertTrue($entries['README.md'][1] instanceof Blob, 'README.md is a Blob');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetEntriesWithNonAsciiNames(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetEntriesWithNonAsciiNames(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $entries = $repository->getCommit(DiffTest::FILE_WITH_UMLAUTS_COMMIT)->getTree()->getEntries();
 
         $this->assertArrayHasKey('file_with_umlauts_äöü', $entries);
@@ -57,9 +58,10 @@ class TreeTest extends AbstractTestCase
         $this->assertArrayHasKey('tab\t"quote"', $entries);
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetCommitReferenceEntries(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetCommitReferenceEntries(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
         $commits = $tree->getCommitReferenceEntries();
@@ -68,9 +70,10 @@ class TreeTest extends AbstractTestCase
         $this->assertTrue($commits['barbaz'][1] instanceof CommitReference, 'barbaz is a Commit');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetTreeEntries(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetTreeEntries(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
         $trees = $tree->getTreeEntries();
@@ -78,9 +81,10 @@ class TreeTest extends AbstractTestCase
         $this->assertEmpty($trees);
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetBlobEntries(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetBlobEntries(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
         $blobs = $tree->getBlobEntries();
@@ -89,9 +93,10 @@ class TreeTest extends AbstractTestCase
         $this->assertTrue($blobs['README.md'][1] instanceof Blob, 'README.md is a blob');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testResolvePath(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testResolvePath(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $tree = $repository->getCommit(self::PATH_RESOLVING_COMMIT)->getTree();
         $path = 'test/a/b/c';
 

@@ -15,7 +15,6 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class DiffTest extends AbstractTestCase
@@ -26,25 +25,28 @@ class DiffTest extends AbstractTestCase
     public const CHANGEMODE_COMMIT = '93da965f58170f13017477b9a608657e87e23230';
     public const FILE_WITH_UMLAUTS_COMMIT = '8defb9217692dc1f4c18e05e343ca91cf5047702';
 
-    #[DataProvider('provideFoobar')]
-    public function testSerialization(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testSerialization(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $data = $repository->getCommit(self::CREATE_COMMIT)->getDiff()->toArray();
         $diff = Diff::fromArray($data);
 
         $this->verifyCreateCommitDiff($diff);
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetFilesAddition(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetFilesAddition(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $diff = $repository->getCommit(self::CREATE_COMMIT)->getDiff();
         $this->verifyCreateCommitDiff($diff);
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetFilesModification(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetFilesModification(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $files = $repository->getCommit(self::BEFORE_LONGFILE_COMMIT)->getDiff()->getFiles();
 
         $this->assertCount(1, $files, '1 files in diff');
@@ -61,9 +63,10 @@ class DiffTest extends AbstractTestCase
         $this->assertEquals(0, $files[0]->getDeletions(), '0 lines deleted');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetFilesDeletion(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetFilesDeletion(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $files = $repository->getCommit(self::DELETE_COMMIT)->getDiff()->getFiles();
 
         $this->assertCount(1, $files, '1 files modified');
@@ -73,9 +76,10 @@ class DiffTest extends AbstractTestCase
         $this->assertEquals(1, $files[0]->getDeletions(), '1 line deleted');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetFilesRename(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetFilesRename(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $files = $repository->getCommit(self::RENAME_COMMIT)->getDiff()->getFiles();
 
         $this->assertCount(1, $files, '1 files modified');
@@ -87,9 +91,10 @@ class DiffTest extends AbstractTestCase
         $this->assertFalse($files[0]->isChangeMode());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetFilesChangemode(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetFilesChangemode(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $files = $repository->getCommit(self::CHANGEMODE_COMMIT)->getDiff()->getFiles();
 
         $this->assertCount(1, $files, '1 files modified');
@@ -101,9 +106,10 @@ class DiffTest extends AbstractTestCase
         $this->assertFalse($files[0]->isRename());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testDiffRangeParse(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testDiffRangeParse(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $files = $repository->getCommit(self::CREATE_COMMIT)->getDiff()->getFiles();
 
         $changes = $files[0]->getChanges();
@@ -115,9 +121,10 @@ class DiffTest extends AbstractTestCase
         $this->assertSame(1, $changes[0]->getRangeNewCount());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testRootCommitDiffListsTheFilesItAdds(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testRootCommitDiffListsTheFilesItAdds(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $files = $repository->getCommit(self::INITIAL_COMMIT)->getDiff()->getFiles();
 
         $this->assertCount(1, $files);
@@ -125,9 +132,10 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('README', $files[0]->getNewName());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testWorksWithUmlauts(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testWorksWithUmlauts(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $files = $repository->getCommit(self::FILE_WITH_UMLAUTS_COMMIT)->getDiff()->getFiles();
         $this->assertSame('file_with_umlauts_äöü', $files[0]->getNewName());
     }

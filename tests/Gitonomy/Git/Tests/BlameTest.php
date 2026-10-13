@@ -12,14 +12,14 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class BlameTest extends AbstractTestCase
 {
-    #[DataProvider('provideFoobar')]
-    public function testBlame(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testBlame(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $blame = $repository->getBlame(self::LONGFILE_COMMIT, 'README.md');
 
         $this->assertCount(7, $blame);
@@ -33,9 +33,10 @@ class BlameTest extends AbstractTestCase
         $this->assertNotEquals(self::INITIAL_COMMIT, $blame->getLine(5)->getCommit()->getHash());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGroupedBlame(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGroupedBlame(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $blame = $repository->getBlame(self::LONGFILE_COMMIT, 'README.md')->getGroupedLines();
 
         $this->assertCount(3, $blame);
@@ -43,9 +44,10 @@ class BlameTest extends AbstractTestCase
         $this->assertEquals(self::INITIAL_COMMIT, $blame[0][0]->getHash());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testBlameLineRange(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testBlameLineRange(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $full = $repository->getBlame(self::LONGFILE_COMMIT, 'README.md');
 
         foreach (['3,+3', '3,5'] as $lineRange) {

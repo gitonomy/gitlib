@@ -14,7 +14,6 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\PushReference;
-use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class PushReferenceTest extends AbstractTestCase
@@ -52,9 +51,10 @@ class PushReferenceTest extends AbstractTestCase
         new PushReference(self::createFoobarRepository(), 'foo', str_repeat('1', 40), self::LONGFILE_COMMIT);
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testLog(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testLog(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $ref = new PushReference($repository, 'foo', self::INITIAL_COMMIT, self::LONGFILE_COMMIT);
 
         $log = $ref->getLog()->getCommits();
@@ -65,18 +65,20 @@ class PushReferenceTest extends AbstractTestCase
     /**
      * This test ensures that GPG signed requests does not break the reading of commit logs.
      */
-    #[DataProvider('provideFoobar')]
-    public function testSignedLog(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testSignedLog(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $ref = new PushReference($repository, 'foo', self::INITIAL_COMMIT, self::SIGNED_COMMIT);
         $log = $ref->getLog()->getCommits();
         $this->assertCount(16, $log, '16 commits in log');
         $this->assertEquals('signed commit', $log[0]->getShortMessage(), 'Last commit is correct');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testLogWithExclude(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testLogWithExclude(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $ref = new PushReference($repository, 'foo', PushReference::ZERO, self::LONGFILE_COMMIT);
 
         $log = $ref->getLog([self::INITIAL_COMMIT])->getCommits();

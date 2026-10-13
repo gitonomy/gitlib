@@ -16,6 +16,8 @@ use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\AfterClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
 
@@ -37,7 +39,8 @@ abstract class AbstractTestCase extends TestCase
     public const SIGNED_COMMIT = 'e1a83f16ed61ae3807e5652c7ef894692c813513';
 
     /**
-     * Local clone of remote URL. Avoids network call on each test.
+     * Bare clone of REPOSITORY_URL, the fixture repositories are cloned from:
+     * for the tests of a class, as each class deletes it.
      */
     private static ?Repository $localRepository = null;
 
@@ -50,36 +53,40 @@ abstract class AbstractTestCase extends TestCase
     private static ?string $materializedRepositoryUrl = null;
 
     /**
+     * Directories created by createTempDir() for the current test.
+     *
+     * @var string[]
+     */
+    private static array $tempDirs = [];
+
+    /**
+     * Directories kept for the tests of a class.
+     *
+     * @var string[]
+     */
+    private static array $classTempDirs = [];
+
+    /**
      * Creates an empty git repository and returns instance.
      */
     public static function createEmptyRepository(bool $bare = true): Repository
     {
         $dir = self::createTempDir();
-        $repository = $bare ? Repository::initBare($dir, driver: self::getDriver()) : Repository::init($dir, driver: self::getDriver());
-        self::registerDeletion($repository);
 
-        return $repository;
+        return $bare ? Repository::initBare($dir, driver: self::getDriver()) : Repository::init($dir, driver: self::getDriver());
     }
 
     /**
-     * Can be used as data provider to get bare/not-bare repositories.
+     * Data provider of the "bare" argument of createFoobarRepository() and
+     * createEmptyRepository().
+     *
+     * @return array<string, array{bool}>
      */
-    public static function provideFoobar(): array
+    public static function provideBare(): array
     {
         return [
-            [self::createFoobarRepository()],
-            [self::createFoobarRepository(false)],
-        ];
-    }
-
-    /**
-     * Can be used as data provider to get bare/not-bare repositories.
-     */
-    public static function provideEmpty(): array
-    {
-        return [
-            [self::createEmptyRepository()],
-            [self::createEmptyRepository(false)],
+            'bare' => [true],
+            'working copy' => [false],
         ];
     }
 
@@ -89,37 +96,49 @@ abstract class AbstractTestCase extends TestCase
     public static function createFoobarRepository(bool $bare = true): Repository
     {
         if (null === self::$localRepository) {
-            self::$localRepository = self::cloneIntoTempDir(self::repositoryUrl(), $bare);
+            $dir = self::createTempDir();
+            // Moved to the directories of the class, kept until its last test.
+            self::$classTempDirs[] = array_pop(self::$tempDirs);
+            self::$localRepository = Repository::cloneBareFrom(self::repositoryUrl(), $dir, driver: self::getDriver());
         }
 
-        $repository = self::cloneIntoTempDir(self::$localRepository->getGitDir(), $bare);
-        self::registerDeletion($repository);
+        $dir = self::createTempDir();
+        $url = self::$localRepository->getGitDir();
 
-        return $repository;
-    }
-
-    public static function registerDeletion(Repository $repository): void
-    {
-        register_shutdown_function(static function () use ($repository): void {
-            if ($repository->getWorkingDir()) {
-                $dir = $repository->getWorkingDir();
-            } else {
-                $dir = $repository->getGitDir();
-            }
-            self::deleteDir($dir);
-        });
+        return $bare ? Repository::cloneBareFrom($url, $dir, driver: self::getDriver()) : Repository::cloneFrom($url, $dir, driver: self::getDriver());
     }
 
     /**
-     * Created an empty directory and return path to it.
+     * Creates an empty directory, deleted after the current test.
      */
     public static function createTempDir(): string
     {
         $tmpDir = tempnam(sys_get_temp_dir(), 'gitlib_');
         unlink($tmpDir);
         mkdir($tmpDir);
+        self::$tempDirs[] = $tmpDir;
 
         return $tmpDir;
+    }
+
+    #[After]
+    public function deleteTempDirs(): void
+    {
+        foreach (self::$tempDirs as $dir) {
+            self::deleteDir($dir);
+        }
+        self::$tempDirs = [];
+    }
+
+    #[AfterClass]
+    public static function deleteClassTempDirs(): void
+    {
+        foreach (self::$classTempDirs as $dir) {
+            self::deleteDir($dir);
+        }
+        self::$classTempDirs = [];
+        self::$localRepository = null;
+        self::$materializedRepositoryUrl = null;
     }
 
     /**
@@ -135,6 +154,7 @@ abstract class AbstractTestCase extends TestCase
 
         if (null === self::$materializedRepositoryUrl) {
             $dir = self::createTempDir();
+            self::$classTempDirs[] = array_pop(self::$tempDirs);
             $command = $_SERVER['GIT_COMMAND'] ?? 'git';
             $process = new Process([$command, 'clone', '-q', '--bare', self::REPOSITORY_URL, $dir]);
             $process->mustRun();
@@ -149,15 +169,17 @@ abstract class AbstractTestCase extends TestCase
      */
     protected static function deleteDir(string $dir): void
     {
-        $iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS);
+        // Without FOLLOW_SYMLINKS: a link to a directory is deleted, never what it points to.
+        $iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS);
         $iterator = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $file) {
-            if (!is_link($file)) {
+            if (is_link($file)) {
+                unlink($file);
+            } elseif (is_dir($file)) {
                 chmod($file, 0o777);
-            }
-            if (is_dir($file)) {
                 rmdir($file);
             } else {
+                chmod($file, 0o777);
                 unlink($file);
             }
         }
@@ -229,15 +251,5 @@ abstract class AbstractTestCase extends TestCase
         $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : [];
 
         return new CliDriver($_SERVER['GIT_COMMAND'] ?? 'git', [...$envs, ...$environmentVariables], processTimeout: $processTimeout);
-    }
-
-    /**
-     * Clones $url into a new temporary directory, with the driver under test.
-     */
-    private static function cloneIntoTempDir(string $url, bool $bare): Repository
-    {
-        $dir = self::createTempDir();
-
-        return $bare ? Repository::cloneBareFrom($url, $dir, driver: self::getDriver()) : Repository::cloneFrom($url, $dir, driver: self::getDriver());
     }
 }

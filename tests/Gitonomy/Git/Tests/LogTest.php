@@ -21,9 +21,10 @@ use PHPUnit\Framework\Attributes\TestWith;
 
 class LogTest extends AbstractTestCase
 {
-    #[DataProvider('provideFoobar')]
-    public function testRevisionAndPath(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testRevisionAndPath(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $logReadme = $repository->getLog(self::LONGFILE_COMMIT, 'README');
         $logImage = $repository->getLog(self::LONGFILE_COMMIT, 'image.jpg');
 
@@ -31,9 +32,10 @@ class LogTest extends AbstractTestCase
         $this->assertCount(2, $logImage);
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetCommits(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetCommits(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $log = $repository->getLog(self::LONGFILE_COMMIT, null, null, 3);
 
         $commits = $log->getCommits();
@@ -43,25 +45,28 @@ class LogTest extends AbstractTestCase
         $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commits[1]->getHash(), "Second is longfile parent\\'s");
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCountCommits(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testCountCommits(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $log = $repository->getLog(self::LONGFILE_COMMIT, null, 2, 3);
 
         $this->assertEquals(8, $log->countCommits(), '8 commits found in history');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCountAllCommits(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testCountAllCommits(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $log = $repository->getLog();
 
         $this->assertGreaterThan(100, $log->countCommits(), 'Returns all commits from all branches');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testIterable(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testIterable(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $log = $repository->getLog(self::LONGFILE_COMMIT);
 
         $expectedHashes = [self::LONGFILE_COMMIT, self::BEFORE_LONGFILE_COMMIT];
@@ -127,9 +132,10 @@ class LogTest extends AbstractTestCase
         $this->assertEquals("Another commit without GitButler headers\n", $log[2]->message);
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testLogOnPathSkipsMergesThatDoNotChangeIt(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testLogOnPathSkipsMergesThatDoNotChangeIt(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $log = $repository->getLog(null, 'README.md');
 
         $expected = ['1917a09c23eb0129d38d4e6d6a492c7830f8d423', 'd8930cd3f7e343195b85d56408a701feb98b95a8'];

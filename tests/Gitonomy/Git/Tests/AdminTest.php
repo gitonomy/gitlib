@@ -33,7 +33,6 @@ class AdminTest extends AbstractTestCase
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::init()" method is deprecated, use "Gitonomy\Git\Repository::initBare()" instead.');
 
         $repository = Admin::init(self::createTempDir(), options: self::getOptions());
-        self::registerDeletion($repository);
 
         $this->assertTrue($repository->isBare());
     }
@@ -43,7 +42,6 @@ class AdminTest extends AbstractTestCase
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::init()" method is deprecated, use "Gitonomy\Git\Repository::init()" instead.');
 
         $repository = Admin::init(self::createTempDir(), false, self::getOptions());
-        self::registerDeletion($repository);
 
         $this->assertFalse($repository->isBare());
     }
@@ -68,7 +66,6 @@ class AdminTest extends AbstractTestCase
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" instead, which takes the URL before the path.');
 
         $repository = Admin::cloneTo(self::createTempDir(), self::repositoryUrl(), options: self::getOptions());
-        self::registerDeletion($repository);
 
         $this->assertTrue($repository->isBare());
         $this->assertContains('refs/heads/new-feature', array_keys($repository->getReferences()->getAll()));
@@ -79,7 +76,6 @@ class AdminTest extends AbstractTestCase
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" instead, which takes the URL before the path.');
 
         $repository = Admin::cloneTo(self::createTempDir(), self::repositoryUrl(), false, self::getOptions());
-        self::registerDeletion($repository);
 
         $this->assertFalse($repository->isBare());
     }
@@ -89,7 +85,6 @@ class AdminTest extends AbstractTestCase
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneBranchTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" with its "branch" argument instead, which takes the URL before the path.');
 
         $repository = Admin::cloneBranchTo(self::createTempDir(), self::repositoryUrl(), 'new-feature', options: self::getOptions());
-        self::registerDeletion($repository);
 
         $this->assertTrue($repository->isBare());
         $head = $repository->getHead();
@@ -102,7 +97,6 @@ class AdminTest extends AbstractTestCase
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneBranchTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" with its "branch" argument instead, which takes the URL before the path.');
 
         $repository = Admin::cloneBranchTo(self::createTempDir(), self::repositoryUrl(), 'new-feature', false, self::getOptions());
-        self::registerDeletion($repository);
 
         $this->assertFalse($repository->isBare());
         $head = $repository->getHead();
@@ -115,7 +109,6 @@ class AdminTest extends AbstractTestCase
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::mirrorTo()" method is deprecated, use "Gitonomy\Git\Repository::mirrorFrom()" instead, which takes the URL before the path.');
 
         $repository = Admin::mirrorTo(self::createTempDir(), self::repositoryUrl(), self::getOptions());
-        self::registerDeletion($repository);
 
         $this->assertSame('true', trim($repository->run('config', ['remote.origin.mirror'])));
     }
@@ -124,11 +117,11 @@ class AdminTest extends AbstractTestCase
     {
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneRepository()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()", "Gitonomy\Git\Repository::cloneBareFrom()" or "Gitonomy\Git\Repository::mirrorFrom()" instead, which take the URL before the path; they support no other argument of "git clone".');
 
-        $repository = Admin::cloneRepository(self::createTempDir(), self::repositoryUrl(), ['--bare', '--origin', 'upstream'], self::getOptions());
-        self::registerDeletion($repository);
+        // --config is the only argument --bare accepts on every git version.
+        $repository = Admin::cloneRepository(self::createTempDir(), self::repositoryUrl(), ['--bare', '--config', 'gitlib.test=yes'], self::getOptions());
 
         $this->assertTrue($repository->isBare());
-        $this->assertSame('upstream', trim($repository->run('remote')));
+        $this->assertSame('yes', trim($repository->run('config', ['gitlib.test'])));
     }
 
     public function testOptionsConfigureGitAndTheRepository(): void
@@ -136,7 +129,6 @@ class AdminTest extends AbstractTestCase
         $logger = $this->createStub(LoggerInterface::class);
 
         $repository = Admin::init(self::createTempDir(), options: [...self::getOptions(), 'logger' => $logger, 'process_timeout' => 42]);
-        self::registerDeletion($repository);
 
         $this->assertSame($logger, $repository->getLogger());
         $this->assertSame(42.0, $repository->runProcess('config', ['core.bare'])->getTimeout());
@@ -163,7 +155,6 @@ class AdminTest extends AbstractTestCase
 
         $repository = self::createFoobarRepository();
         $new = $repository->cloneTo(self::createTempDir());
-        self::registerDeletion($new);
 
         $this->assertTrue($new->isBare());
         $this->assertSame($repository->getHeadCommit()->getHash(), $new->getHeadCommit()->getHash());
@@ -175,7 +166,6 @@ class AdminTest extends AbstractTestCase
 
         $repository = self::createFoobarRepository();
         $new = $repository->cloneTo(self::createTempDir(), false);
-        self::registerDeletion($new);
 
         $this->assertFalse($new->isBare());
         $this->assertSame($repository->getHeadCommit()->getHash(), $new->getHeadCommit()->getHash());
@@ -185,7 +175,6 @@ class AdminTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository();
         $new = $repository->cloneTo(self::createTempDir(), options: [...self::getOptions(), 'process_timeout' => 42]);
-        self::registerDeletion($new);
 
         $this->assertSame(42.0, $new->runProcess('config', ['core.bare'])->getTimeout());
     }

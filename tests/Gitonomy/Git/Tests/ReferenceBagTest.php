@@ -13,14 +13,14 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Reference\Branch;
-use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class ReferenceBagTest extends AbstractTestCase
 {
-    #[DataProvider('provideFoobar')]
-    public function testGetFirstBranch(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetFirstBranch(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $branch = $repository->getReferences()->getFirstBranch();
 
         $this->assertInstanceOf(Branch::class, $branch);
@@ -41,9 +41,10 @@ class ReferenceBagTest extends AbstractTestCase
         $this->assertFalse($refs->getFirstBranch(), 'getFirstBranch() must not return a non-branch reference');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testUnknownReference(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testUnknownReference(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $hash = $repository->getLog()->getSingleCommit()->getHash();
 
         self::git($repository, 'update-ref', ['refs/pipelines/1', $hash]);
@@ -64,9 +65,10 @@ class ReferenceBagTest extends AbstractTestCase
         $this->assertArrayNotHasKey('refs/notes/gtm-data', $refs);
     }
 
-    #[DataProvider('provideEmpty')]
-    public function testEmptyRepo(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testEmptyRepo(bool $bare): void
     {
+        $repository = self::createEmptyRepository($bare);
         $refs = $repository->getReferences()->getAll();
         $this->assertSame([], $refs);
     }

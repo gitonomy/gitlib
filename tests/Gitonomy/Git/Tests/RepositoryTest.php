@@ -36,7 +36,6 @@ class RepositoryTest extends AbstractTestCase
     {
         $dir = self::createTempDir();
         $repository = Repository::initBare($dir, driver: self::getDriver());
-        self::registerDeletion($repository);
 
         $this->assertTrue($repository->isBare(), 'Repository is bare');
         $this->assertDirectoryExists($dir.'/objects', 'objects/ folder is present');
@@ -48,7 +47,6 @@ class RepositoryTest extends AbstractTestCase
     {
         $dir = self::createTempDir();
         $repository = Repository::init($dir, driver: self::getDriver());
-        self::registerDeletion($repository);
 
         $this->assertFalse($repository->isBare(), 'Repository is not bare');
         $this->assertDirectoryExists($dir.'/.git/objects', 'objects/ folder is present');
@@ -71,7 +69,6 @@ class RepositoryTest extends AbstractTestCase
         $logger = $this->createStub(LoggerInterface::class);
 
         $repository = Repository::initBare(self::createTempDir(), $logger, self::getDriver());
-        self::registerDeletion($repository);
 
         $this->assertSame($logger, $repository->getLogger());
     }
@@ -82,7 +79,6 @@ class RepositoryTest extends AbstractTestCase
 
         $newDir = self::createTempDir();
         $new = Repository::cloneBareFrom($repository->getGitDir(), $newDir, driver: self::getDriver());
-        self::registerDeletion($new);
 
         $newRefs = array_keys($new->getReferences()->getAll());
 
@@ -100,7 +96,6 @@ class RepositoryTest extends AbstractTestCase
 
         $newDir = self::createTempDir();
         $new = Repository::cloneFrom($repository->getGitDir(), $newDir, driver: self::getDriver());
-        self::registerDeletion($new);
 
         $newRefs = array_keys($new->getReferences()->getAll());
 
@@ -118,7 +113,6 @@ class RepositoryTest extends AbstractTestCase
 
         $newDir = self::createTempDir();
         $new = Repository::cloneBareFrom(self::repositoryUrl(), $newDir, 'new-feature', driver: self::getDriver());
-        self::registerDeletion($new);
 
         $head = $new->getHead();
         $this->assertInstanceOf(Branch::class, $head, 'HEAD is a branch');
@@ -133,7 +127,6 @@ class RepositoryTest extends AbstractTestCase
 
         $newDir = self::createTempDir();
         $new = Repository::cloneFrom(self::repositoryUrl(), $newDir, 'new-feature', driver: self::getDriver());
-        self::registerDeletion($new);
 
         $head = $new->getHead();
         $this->assertInstanceOf(Branch::class, $head, 'HEAD is a branch');
@@ -147,12 +140,12 @@ class RepositoryTest extends AbstractTestCase
         Repository::cloneBareFrom(self::repositoryUrl(), self::createTempDir().'/clone', 'unknown', driver: self::getDriver());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testMirrorFrom(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testMirrorFrom(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $newDir = self::createTempDir();
         $new = Repository::mirrorFrom($repository->getGitDir(), $newDir, driver: self::getDriver());
-        self::registerDeletion($new);
 
         $newRefs = array_keys($new->getReferences()->getAll());
 
@@ -171,9 +164,10 @@ class RepositoryTest extends AbstractTestCase
         $this->assertSame('refs/heads/master', trim(self::git($new, 'symbolic-ref', ['HEAD'])));
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCheckValidRepository(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testCheckValidRepository(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $url = $repository->getGitDir();
         $this->assertTrue(Repository::isValidRepository($url, self::getDriver()));
     }
@@ -186,23 +180,26 @@ class RepositoryTest extends AbstractTestCase
         $this->assertFalse(Repository::isValidRepository($url, self::getDriver()));
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCheckValidRepositoryAndBranch(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testCheckValidRepositoryAndBranch(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $url = $repository->getGitDir();
         $this->assertTrue(Repository::isValidRepositoryAndBranch($url, 'master', self::getDriver()));
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCheckInvalidRepositoryAndBranch(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testCheckInvalidRepositoryAndBranch(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $url = $repository->getGitDir();
         $this->assertFalse(Repository::isValidRepositoryAndBranch($url, 'invalid-branch-name', self::getDriver()));
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCheckRepositoryAndBranchOnlyMatchesBranches(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testCheckRepositoryAndBranchOnlyMatchesBranches(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         foreach (['0.1', 'HEAD', 'feature'] as $name) {
             $this->assertFalse(Repository::isValidRepositoryAndBranch($repository->getGitDir(), $name, self::getDriver()), $name);
         }
@@ -255,18 +252,20 @@ class RepositoryTest extends AbstractTestCase
         $commit->getShortHash();
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetBlobWithExistingWorks(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetBlobWithExistingWorks(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $blob = $repository->getCommit(self::LONGFILE_COMMIT)->getTree()->resolvePath('README.md');
 
         $this->assertInstanceOf(Blob::class, $blob, 'getBlob() returns a Blob object');
         $this->assertStringContainsString('Foo Bar project', $blob->getContent(), 'file is correct');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetSize(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetSize(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $size = $repository->getSize();
         // The exact figure depends on git's packing/compression, which varies across versions.
         $this->assertGreaterThanOrEqual(40, $size, 'Repository is at least 40KB');
@@ -282,15 +281,17 @@ class RepositoryTest extends AbstractTestCase
         $this->assertFalse($notBare->isBare(), 'Working copy is not bare');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetDescription(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetDescription(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->assertSame("Unnamed repository; edit this file 'description' to name the repository.\n", $repository->getDescription());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testLoggerOk(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testLoggerOk(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->skipUnlessCliDriver();
 
         $logger = $this->createMock(LoggerInterface::class);
@@ -308,9 +309,10 @@ class RepositoryTest extends AbstractTestCase
         $repository->run('remote');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testLoggerNOk(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testLoggerNOk(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->skipUnlessCliDriver();
 
         $this->expectException(RuntimeException::class);

@@ -15,52 +15,57 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Tag;
-use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class ReferenceTest extends AbstractTestCase
 {
-    #[DataProvider('provideEmpty')]
-    public function testEmptyRepository(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testEmptyRepository(bool $bare): void
     {
+        $repository = self::createEmptyRepository($bare);
         $this->assertCount(0, $repository->getReferences());
         $this->assertEquals([], $repository->getReferences()->getAll());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetBranch(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetBranch(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $branch = $repository->getReferences()->getBranch('master');
 
         $this->assertInstanceOf(Branch::class, $branch, 'Branch object is correct type');
         $this->assertEquals($branch->getCommitHash(), $branch->getCommit()->getHash(), 'Hash is correctly resolved');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testHasBranch(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testHasBranch(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->assertTrue($repository->getReferences()->hasBranch('master'), 'Branch master exists');
         $this->assertFalse($repository->getReferences()->hasBranch('foobar'), 'Branch foobar does not exists');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testHasTag(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testHasTag(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->assertTrue($repository->getReferences()->hasTag('0.1'), 'Tag 0.1 exists');
         $this->assertFalse($repository->getReferences()->hasTag('foobar'), 'Tag foobar does not exists');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetBranchNotExistingError(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetBranchNotExistingError(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->expectException(ReferenceNotFoundException::class);
 
         $repository->getReferences()->getBranch('notexisting');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetTag(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetTag(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $tag = $repository->getReferences()->getTag('0.1');
 
         $this->assertInstanceOf(Tag::class, $tag, 'Tag object is correct type');
@@ -70,9 +75,10 @@ class ReferenceTest extends AbstractTestCase
         $this->assertEquals(self::LONGFILE_COMMIT, $tag->getCommit()->getHash(), 'Commit hash is correct');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testAnnotatedTag(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testAnnotatedTag(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $tag = $repository->getReferences()->getTag('annotated');
 
         $this->assertInstanceOf(Tag::class, $tag, 'Tag object is correct type');
@@ -94,9 +100,10 @@ class ReferenceTest extends AbstractTestCase
         $this->assertEquals('fbde681b329a39e08b63dc54b341a3274c0380c0', $tag->getCommit()->getHash(), 'Tag commit is correct');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testAnnotatedTagBodyMessageWithBlankLineSeparator(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testAnnotatedTagBodyMessageWithBlankLineSeparator(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         self::git($repository, 'config', ['user.email', 'test@example.com']);
         self::git($repository, 'config', ['user.name', 'Test']);
 
@@ -109,17 +116,19 @@ class ReferenceTest extends AbstractTestCase
         $this->assertEquals("Body line 1\nBody line 2", $tag->getBodyMessage(), 'Message body has no leading blank line');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testGetTagNotExistingError(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetTagNotExistingError(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->expectException(ReferenceNotFoundException::class);
 
         $repository->getReferences()->getTag('notexisting');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testResolve(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testResolve(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $commit = $repository->getReferences()->getTag('0.1')->getCommit();
         $resolved = $repository->getReferences()->resolve($commit->getHash());
 
@@ -127,9 +136,10 @@ class ReferenceTest extends AbstractTestCase
         $this->assertInstanceOf(Tag::class, reset($resolved), 'Resolved object is a tag');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testResolveTags(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testResolveTags(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $commit = $repository->getReferences()->getTag('0.1')->getCommit();
         $resolved = $repository->getReferences()->resolveTags($commit->getHash());
 
@@ -137,9 +147,10 @@ class ReferenceTest extends AbstractTestCase
         $this->assertInstanceOf(Tag::class, reset($resolved), 'Resolved object is a tag');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testResolveBranches(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testResolveBranches(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $master = $repository->getReferences()->getBranch('master');
 
         $resolved = $repository->getReferences()->resolveBranches($master->getCommitHash());
@@ -153,15 +164,17 @@ class ReferenceTest extends AbstractTestCase
         $this->assertInstanceOf(Branch::class, reset($resolved), 'Resolved object is a branch');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCountable(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testCountable(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $this->assertGreaterThanOrEqual(2, \count($repository->getReferences()), 'At least two references in repository');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testIterable(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testIterable(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $i = 0;
         foreach ($repository->getReferences() as $ref) {
             ++$i;
@@ -169,9 +182,10 @@ class ReferenceTest extends AbstractTestCase
         $this->assertGreaterThanOrEqual(2, $i, 'At least two references in repository');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCreateAndDeleteTag(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testCreateAndDeleteTag(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $references = $repository->getReferences();
         $tag = $references->createTag('0.0', self::INITIAL_COMMIT);
 
@@ -183,9 +197,10 @@ class ReferenceTest extends AbstractTestCase
         $this->assertFalse($references->hasTag('0.0'), 'Tag 0.0 removed');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCreateAndDeleteBranch(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testCreateAndDeleteBranch(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $references = $repository->getReferences();
         $branch = $references->createBranch('foobar', self::INITIAL_COMMIT);
 
