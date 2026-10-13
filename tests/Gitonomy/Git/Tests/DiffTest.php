@@ -543,6 +543,75 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('sub', $firstFile->getNewName());
     }
 
+    /**
+     * Unlike diff-tree, "git diff" reads diff.algorithm, diff.context,
+     * diff.orderFile... which the configuration of the tests changes (see
+     * fixtures/home/.gitconfig): the diff of the working tree is the one of
+     * its commit all the same.
+     */
+    public function testTheDiffOfTheWorkingTreeIsTheOneOfItsCommit(): void
+    {
+        $repository = self::createWorkingCopy();
+        // Ten lines between two changes: two hunks.
+        $lines = array_map(static fn (int $number): string => 'line '.$number, range(1, 20));
+        self::commitFile($repository, 'notes.txt', implode("\n", $lines)."\n");
+        // The diff algorithm of git keeps "{", histogram keeps "}".
+        self::commitFile($repository, 'code.c', "c\n}\n{\n");
+
+        $lines[2] = 'line 3, changed';
+        $lines[13] = 'line 14, changed';
+        file_put_contents($repository->getWorkingDir().'/notes.txt', implode("\n", $lines)."\n");
+        file_put_contents($repository->getWorkingDir().'/code.c', "c\n{\nc\n}\n");
+
+        $workingTreeDiff = $repository->getWorkingCopy()->getDiff();
+        self::git($repository, 'commit', ['-q', '-a', '-m', 'Changes']);
+        $commitDiff = $repository->getHeadCommit()->getDiff();
+
+        $this->assertSame(['code.c', 'notes.txt'], array_map(static fn (File $file): string => $file->getName(), $commitDiff->getFiles()));
+        $this->assertSame(self::changes($commitDiff), self::changes($workingTreeDiff));
+    }
+
+    /**
+     * The indent heuristic of git, which diff.indentHeuristic turns off,
+     * places an added block after the blank line that ends it.
+     */
+    public function testTheIndentHeuristicIsGits(): void
+    {
+        if (version_compare(self::gitVersion(), '2.11.0', '<')) {
+            $this->markTestSkipped('git has an indent heuristic since 2.11.');
+        }
+
+        $repository = self::createWorkingCopy();
+        self::commitFile($repository, 'code.c', "\n\nfoo();\n");
+        self::commitFile($repository, 'code.c', "\n\nfoo();\n\nfoo();\n");
+
+        $this->assertSame([['code.c', [[1, 3, 1, 5, [
+            ['Context', ''],
+            ['Context', ''],
+            ['Addition', 'foo();'],
+            ['Addition', ''],
+            ['Context', 'foo();'],
+        ]]]]], self::changes($repository->getHeadCommit()->getDiff()));
+    }
+
+    /**
+     * "git diff" reads diff.noprefix, diff.mnemonicPrefix, diff.srcPrefix and
+     * diff.dstPrefix too: a patch to apply has the prefixes of git.
+     */
+    public function testTheRawDiffOfTheWorkingTreeHasThePrefixesOfGit(): void
+    {
+        $this->skipUnlessCliDriver();
+
+        $repository = self::createWorkingCopy();
+        self::commitFile($repository, 'code.c', "a\n");
+        file_put_contents($repository->getWorkingDir().'/code.c', "b\n");
+
+        $rawDiff = $repository->getWorkingCopy()->getDiff()->getRawDiff();
+
+        $this->assertStringContainsString("diff --git a/code.c b/code.c\n", $rawDiff);
+        $this->assertStringContainsString("--- a/code.c\n+++ b/code.c\n", $rawDiff);
+    }
+
     protected function verifyCreateCommitDiff(Diff $diff): void
     {
         $files = $diff->getFiles();
@@ -558,6 +627,20 @@ class DiffTest extends AbstractTestCase
 
         $this->assertSame(1, $files[0]->getAdditions(), '1 line added');
         $this->assertSame(0, $files[0]->getDeletions(), '0 lines deleted');
+    }
+
+    /**
+     * @return array<array{string, array<array{int, int, int, int, array<array{string, string}>}>}> The name of each file, with its hunks
+     */
+    private static function changes(Diff $diff): array
+    {
+        return array_map(static fn (File $file): array => [$file->getName(), array_map(static fn (FileChange $change): array => [
+            $change->getRangeOldStart(),
+            $change->getRangeOldCount(),
+            $change->getRangeNewStart(),
+            $change->getRangeNewCount(),
+            array_map(static fn (DiffLine $line): array => [$line->getType()->name, $line->getContent()], $change->getLines()),
+        ], $file->getChanges())], $diff->getFiles());
     }
 
     private static function createWorkingCopy(): Repository

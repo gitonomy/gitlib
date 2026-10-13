@@ -114,6 +114,12 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 
 ### Bug fixes
 
+- Fix the configuration of the user changing what `CliDriver` reads: `color.ui=always`,
+  `log.showSignature`, `diff.noprefix`, `diff.external`, textconv filters, `column.ui`...
+  made reads throw or return wrong data, and `diff.algorithm`, `diff.context`,
+  `diff.orderFile`, `log.follow` or `branch.sort` changed diffs, logs and the branches of a
+  commit. gitlib sets them back to git's defaults; see
+  ["Git configuration"](doc/repository.md#git-configuration).
 - Fix `Commit::getDiff()` returning an empty diff for a root commit, and throwing for a merge
   commit (`CliDriver`). ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Fix `Repository::getDiff()`, `WorkingCopy::getDiffPending()` and `WorkingCopy::getDiffStaged()`
@@ -180,6 +186,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 - CI tests git 1.8.4 and 2.25.1, analyses the tests and the libgit2 driver with PHPStan,
   checks the archive Composer installs, and the suite deletes what it creates, in any order.
   ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- The tests run with a git configuration of their own, whatever the developer's
+  (`tests/fixtures/home`), which sets what gitlib sets back to git's defaults.
 - Add a regression test for reading a blob's content in a tree that also contains a
   submodule. ([#243](https://github.com/gitonomy/gitlib/pull/243))
 - Replace the network-dependent test fixture (cloned from GitHub on every run) with a local,

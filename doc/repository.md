@@ -435,6 +435,31 @@ arguments. So is `inherit_environment_variables`, which passed the entries of
 `$_SERVER` to git, the headers and credentials of an HTTP request included:
 pass the variables git needs to `environmentVariables`.
 
+Git configuration
+-----------------
+
+git reads the configuration of the user running PHP (`~/.gitconfig`,
+`/etc/gitconfig`...) and of the repository. Where it changes what git
+prints, which gitlib reads, or what a read returns, `CliDriver` sets it back
+to git's defaults:
+
+-   colors and columns;
+-   `branch.sort`, `log.follow` and `log.showSignature`;
+-   for diffs, `diff.algorithm`, `diff.context`, `diff.external`,
+    `diff.indentHeuristic`, `diff.interHunkContext`, `diff.orderFile`,
+    `diff.suppressBlankEmpty`, the prefixes (`diff.noprefix`,
+    `diff.mnemonicPrefix`...), and the textconv filters, of blames too.
+
+The rest of the configuration applies, like with git: the identity, the
+credentials and the rewrites of URLs, `safe.directory`, line endings, hooks,
+`merge.log`, `blame.ignoreRevsFile`, or `core.abbrev`, the length of short
+hashes, with `LibGit2Driver` too.
+
+`run()` and `runProcess()` get `branch.sort`, `log.follow`,
+`log.showSignature`, `diff.indentHeuristic` and `diff.suppressBlankEmpty` set
+back too, but not the rest, which gitlib sets with the options of the
+commands it runs: pass `--no-color` or `--no-ext-diff` yourself.
+
 Logger
 ------
 

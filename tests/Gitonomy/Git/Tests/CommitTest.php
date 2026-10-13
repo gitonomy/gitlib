@@ -74,6 +74,17 @@ class CommitTest extends AbstractTestCase
         $this->assertSame('4f17752', $commit->getShortHash(), 'Short hash');
     }
 
+    /**
+     * With log.showSignature, which the configuration of the tests sets, git
+     * prints the verification of the signature before the hash.
+     */
+    public function testGetShortHashOfASignedCommit(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->assertSame('e1a83f1', $repository->getCommit(self::SIGNED_COMMIT)->getShortHash());
+    }
+
     #[DataProvider('provideBare')]
     public function testGetParentHashesWithNoParent(bool $bare): void
     {

@@ -403,6 +403,17 @@ Errors
    `getOutput()` of `ProcessException` don't.
  * Every message is a sentence ending with a dot.
 
+Git configuration
+-----------------
+
+ * `CliDriver` sets back to git's defaults the configuration of the user that
+   changes what git prints, or what a read returns: colors, columns,
+   `branch.sort`, `log.follow`, `log.showSignature`, and for diffs
+   `diff.algorithm`, `diff.context`, `diff.external`, `diff.orderFile`, the
+   prefixes, the textconv filters... Before, they made reads throw or return
+   other data: a log of a path following its renames with `log.follow`, for
+   instance. See ["Git configuration"](doc/repository.md#git-configuration).
+
 Dates
 -----
 

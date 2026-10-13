@@ -1,0 +1,70 @@
+# The git configuration of the tests, whatever the developer's: the bootstrap
+# points HOME to this directory. It changes what git prints or reads wherever
+# gitlib must set it back to git's defaults, so that every test checks it.
+#
+# gitlib follows the rest of the configuration of the user, which isn't here:
+# core.abbrev, blame.ignoreRevsFile, init.defaultBranch...
+
+[blame]
+	blankBoundary = true
+	coloring = repeatedLines
+	date = relative
+	markIgnoredLines = true
+	markUnblamableLines = true
+	showEmail = true
+	showRoot = true
+[branch]
+	sort = -committerdate
+[color]
+	branch = always
+	diff = always
+	status = always
+	ui = always
+[column]
+	ui = always
+[core]
+	attributesFile = ~/attributes
+	quotePath = true
+[diff]
+	algorithm = histogram
+	colorMoved = zebra
+	context = 1
+	dstPrefix = DST/
+	external = false
+	indentHeuristic = false
+	interHunkContext = 10
+	mnemonicPrefix = true
+	noprefix = true
+	orderFile = ~/orderfile
+	relative = true
+	renames = copies
+	srcPrefix = SRC/
+	submodule = log
+	suppressBlankEmpty = true
+	wsErrorHighlight = all
+[diff "hostile"]
+	textconv = false
+[format]
+	pretty = oneline
+[i18n]
+	logOutputEncoding = ISO-8859-1
+[log]
+	abbrevCommit = true
+	date = relative
+	decorate = full
+	follow = true
+	showRoot = false
+	showSignature = true
+[maintenance]
+	# Not hostile: git 2.29 and later run their maintenance after a commit, in
+	# the background since 2.46, which would write in the repositories the tests delete.
+	auto = false
+[merge]
+	ff = false
+	log = true
+[status]
+	showUntrackedFiles = no
+[submodule]
+	recurse = true
+[tag]
+	sort = -version:refname

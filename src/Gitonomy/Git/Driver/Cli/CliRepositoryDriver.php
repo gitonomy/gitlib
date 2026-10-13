@@ -38,9 +38,31 @@ use Symfony\Component\Process\Process;
  */
 final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 {
-    // -z: the raw information gives the names as they are, without quoting.
-    // --no-abbrev: before git 2.16, --raw abbreviates hashes with a trailing "...".
-    private const array DIFF_ARGS = ['-r', '-p', '--raw', '-z', '-M', '--full-index', '--no-abbrev'];
+    /**
+     * Sets back to git's defaults the configuration of the user that changes
+     * what git prints or reads, where git 1.8.4 has no option for it. A git
+     * version that doesn't know a key ignores it.
+     *
+     * diff.indentHeuristic is the default since git 2.14, and LibGit2Driver's.
+     */
+    private const array CONFIG = [
+        '-c', 'branch.sort=refname',
+        '-c', 'diff.indentHeuristic=true',
+        '-c', 'diff.suppressBlankEmpty=false',
+        '-c', 'log.follow=false',
+        '-c', 'log.showSignature=false',
+    ];
+
+    /**
+     * -z: the raw information gives the names as they are, without quoting.
+     * --no-abbrev: before git 2.16, --raw abbreviates hashes with a trailing "...".
+     * The others set back to git's defaults the configuration "git diff" reads,
+     * unlike diff-tree: diff.algorithm, diff.context, diff.external, diff.noprefix...
+     */
+    private const array DIFF_ARGS = [
+        '-r', '-p', '--raw', '-z', '-M', '--full-index', '--no-abbrev',
+        '--diff-algorithm=myers', '--dst-prefix=b/', '--inter-hunk-context=0', '--no-color', '--no-ext-diff', '--no-textconv', '-O/dev/null', '--src-prefix=a/', '-U3',
+    ];
 
     /**
      * The tree without any file: git knows it, even when no commit has it.
@@ -110,7 +132,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         LeadingDash::assertNone($hash);
 
         $parser = new LogParser();
-        $parser->parse($this->runOnObject($hash, ObjectType::Commit, 'log', ['--encoding=UTF-8', '--format=raw', '-n', '1', $hash]));
+        $parser->parse($this->runOnObject($hash, ObjectType::Commit, 'log', ['--encoding=UTF-8', '--format=raw', '--no-color', '-n', '1', $hash]));
 
         $commit = $parser->commits[0] ?? null;
         // git log peels a tag to its commit.
@@ -130,7 +152,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         }
 
         // Re-encodes the commits whose "encoding" header isn't UTF-8.
-        $args = ['--encoding=UTF-8', '--format=raw', '--skip='.$offset];
+        $args = ['--encoding=UTF-8', '--format=raw', '--no-color', '--skip='.$offset];
 
         if (null !== $limit) {
             $args[] = '-n';
@@ -275,7 +297,8 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     {
         LeadingDash::assertNone($hash);
 
-        $args = ['-p'];
+        // --no-textconv: blame reads the files through their textconv filter by default.
+        $args = ['-p', '--no-textconv'];
         if (null !== $firstLine || null !== $lastLine) {
             $args[] = '-L';
             $args[] = ($firstLine ?? 1).','.$lastLine;
@@ -437,7 +460,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     private function listBranches(array $args, string $prefix): array
     {
         $branches = [];
-        foreach (explode("\n", rtrim($this->run('branch', ['--no-color', ...$args]), "\n")) as $line) {
+        foreach (explode("\n", rtrim($this->run('branch', ['--no-color', '--no-column', ...$args]), "\n")) as $line) {
             // "* " flags the current branch, "(HEAD detached at ...)" a detached
             // HEAD, and "origin/HEAD -> origin/main" a symbolic reference.
             $name = substr($line, 2);
@@ -456,7 +479,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
      */
     private function execute(string $command, array $args, ?string $input = null): Process
     {
-        $globalOptions = ['--git-dir', $this->gitDir];
+        $globalOptions = [...self::CONFIG, '--git-dir', $this->gitDir];
         if (null !== $this->workingDir) {
             $globalOptions = [...$globalOptions, '--work-tree', $this->workingDir];
         }
