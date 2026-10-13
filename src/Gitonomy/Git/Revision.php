@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
+
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -29,11 +31,19 @@ class Revision
     }
 
     /**
-     * Returns the last modification date of the reference.
+     * Returns the commit the revision names.
+     *
+     * @throws ReferenceNotFoundException The revision names no commit
      */
     public function getCommit(): Commit
     {
-        return $this->getLog()->getSingleCommit();
+        try {
+            $hash = $this->repository->getRepositoryDriver()->resolveRevision($this->revision.'^{commit}');
+        } catch (ReferenceNotFoundException $e) {
+            throw new ReferenceNotFoundException(\sprintf('The revision "%s" does not exist, or names no commit.', $this->revision), 0, $e);
+        }
+
+        return $this->repository->getCommit($hash);
     }
 
     public function getRevision(): string

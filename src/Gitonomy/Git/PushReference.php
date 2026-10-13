@@ -20,19 +20,23 @@ use Gitonomy\Git\Exception\LogicException;
  *
  * @author Julien DIDIER <genzo.wm@gmail.com>
  */
-final readonly class PushReference
+final class PushReference
 {
     public const string ZERO = '0000000000000000000000000000000000000000';
 
-    private bool $isForce;
+    private ?bool $isForce = null;
 
+    /**
+     * @param string $reference The full name of the pushed reference
+     * @param string $before    Its commit before the push, ZERO for a creation
+     * @param string $after     Its commit after the push, ZERO for a deletion
+     */
     public function __construct(
-        private Repository $repository,
-        private string $reference,
-        private string $before,
-        private string $after,
+        private readonly Repository $repository,
+        private readonly string $reference,
+        private readonly string $before,
+        private readonly string $after,
     ) {
-        $this->isForce = $this->getForce();
     }
 
     public function getRepository(): Repository
@@ -40,8 +44,21 @@ final readonly class PushReference
         return $this->repository;
     }
 
+    /**
+     * @return string The full name of the pushed reference
+     */
+    public function getFullname(): string
+    {
+        return $this->reference;
+    }
+
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, use getFullname() instead
+     */
     public function getReference(): string
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getFullname()" instead.', __METHOD__);
+
         return $this->reference;
     }
 
@@ -60,18 +77,28 @@ final readonly class PushReference
      */
     public function getLog(array $excludes = []): Log
     {
-        return $this->repository->getLog(array_merge(
-            [$this->getRevision()],
-            array_map(static function ($e) {
-                return '^'.$e;
-            }, $excludes)
-        ));
+        return $this->repository->getLog([$this->getRange(), ...array_map(static fn (string $exclude): string => '^'.$exclude, $excludes)]);
     }
 
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, use getRange() instead
+     */
     public function getRevision(): string
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getRange()" instead.', __METHOD__);
+
+        return $this->getRange();
+    }
+
+    /**
+     * @return string The pushed commits: "before..after", or "after" for a creation
+     *
+     * @throws LogicException The push deletes the reference
+     */
+    public function getRange(): string
+    {
         if ($this->isDelete()) {
-            throw new LogicException('No revision for deletion');
+            throw new LogicException('A deletion pushes no commit.');
         }
 
         if ($this->isCreate()) {
@@ -93,7 +120,7 @@ final readonly class PushReference
 
     public function isForce(): bool
     {
-        return $this->isForce;
+        return $this->isForce ??= $this->getForce();
     }
 
     public function isFastForward(): bool
@@ -112,13 +139,7 @@ final readonly class PushReference
             return false;
         }
 
-        $result = $this->repository->getRepositoryDriver()->getMergeBase($this->before, $this->after);
-
-        if (null === $result) {
-            // No common ancestor could be established: treat it as a force update.
-            return true;
-        }
-
-        return $this->before !== $result;
+        // Without a common history either, it is a force update.
+        return !\in_array($this->before, $this->repository->getRepositoryDriver()->getMergeBases($this->before, $this->after), true);
     }
 }

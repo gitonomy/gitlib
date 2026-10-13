@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Driver\Cli\Parser;
 
 use Gitonomy\Git\Driver\Data\ReferenceData;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Parser\ParserBase;
 
 /**
@@ -34,6 +35,15 @@ final class ReferenceParser extends ParserBase
             $this->consume(' ');
             $fullname = $this->consumeTo("\n");
             $this->consumeNewLine();
+
+            // With --dereference, an annotated tag is followed by what it points to.
+            if (str_ends_with($fullname, '^{}')) {
+                $tag = array_pop($this->references) ?? throw new RuntimeException(\sprintf('No tag precedes "%s".', $fullname));
+                $this->references[] = new ReferenceData($tag->fullname, $hash, $tag->commitHash);
+
+                continue;
+            }
+
             $this->references[] = new ReferenceData($fullname, $hash);
         }
     }

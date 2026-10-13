@@ -15,6 +15,7 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Reference\Branch;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -25,7 +26,7 @@ final readonly class WorkingCopy
         private Repository $repository,
     ) {
         if ($this->repository->isBare()) {
-            throw new LogicException('Can\'t create a working copy on a bare repository');
+            throw new LogicException('A bare repository has no working copy.');
         }
     }
 
@@ -37,31 +38,66 @@ final readonly class WorkingCopy
         return $this->repository->getRepositoryDriver()->getUntrackedFiles();
     }
 
-    public function getDiffPending(): Diff
+    /**
+     * Returns the changes of the working tree, staged or not, since $revision.
+     */
+    public function getDiff(Revision|string $revision = 'HEAD'): Diff
     {
-        $diff = $this->repository->getRepositoryDriver()->getDiffPending();
-        $diff->setRepository($this->repository);
+        $hash = ($revision instanceof Revision ? $revision : $this->repository->getRevision($revision))->getCommit()->getHash();
 
-        return $diff;
-    }
-
-    public function getDiffStaged(): Diff
-    {
-        $diff = $this->repository->getRepositoryDriver()->getDiffStaged();
-        $diff->setRepository($this->repository);
-
-        return $diff;
+        return Diff::fromData($this->repository->getRepositoryDriver()->getWorkingTreeDiff($hash), $this->repository);
     }
 
     /**
-     * @param Commit|Reference|string $revision
+     * Returns the changes of the working tree not staged yet.
      */
-    public function checkout($revision, ?string $branch = null): static
+    public function getDiffPending(): Diff
     {
-        if (null === $branch) {
-            $this->repository->getRepositoryDriver()->checkout($this->revisionToString($revision));
-        } else {
-            $this->repository->getRepositoryDriver()->checkoutNewBranch($branch, $this->revisionToString($revision));
+        return Diff::fromData($this->repository->getRepositoryDriver()->getDiffPending(), $this->repository);
+    }
+
+    /**
+     * Returns the changes staged in the index.
+     */
+    public function getDiffStaged(): Diff
+    {
+        return Diff::fromData($this->repository->getRepositoryDriver()->getDiffStaged(), $this->repository);
+    }
+
+    /**
+     * Checks $revision out: HEAD points to it when it is a local branch, to
+     * its commit otherwise.
+     *
+     * Passing a branch to create as second argument is deprecated.
+     */
+    public function checkout(Revision|string $revision, ?string $branch = null): static
+    {
+        if (null !== $branch) {
+            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing a branch to create to "%s()" is deprecated, use "checkoutNewBranch()" instead.', __METHOD__);
+
+            return $this->checkoutNewBranch($branch, $revision);
+        }
+
+        try {
+            $this->repository->getRepositoryDriver()->checkout(self::name($revision));
+        } finally {
+            $this->repository->getReferences()->invalidate();
+        }
+
+        return $this;
+    }
+
+    /**
+     * Creates the branch $branch at $startPoint, and checks it out.
+     */
+    public function checkoutNewBranch(string $branch, Revision|string $startPoint = 'HEAD'): static
+    {
+        $startHash = ($startPoint instanceof Revision ? $startPoint : $this->repository->getRevision($startPoint))->getCommit()->getHash();
+
+        try {
+            $this->repository->getRepositoryDriver()->checkoutNewBranch($branch, $startHash);
+        } finally {
+            $this->repository->getReferences()->invalidate();
         }
 
         return $this;
@@ -70,31 +106,42 @@ final readonly class WorkingCopy
     /**
      * Merges a revision into the current branch.
      *
-     * @param Commit|Reference|string $revision
-     * @param string[]                $args     extra arguments for the merge command (e.g. ``['--no-ff']``)
+     * An array of arguments of "git merge" ([], ["--no-ff"] or ["--ff-only"]) is deprecated.
+     *
+     * @param FastForward|string[] $fastForward
      */
-    public function merge($revision, array $args = []): static
+    public function merge(Revision|string $revision, FastForward|array $fastForward = FastForward::Allow): static
     {
-        $this->repository->getRepositoryDriver()->merge($this->revisionToString($revision), $args);
+        if (\is_array($fastForward)) {
+            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing arguments of "git merge" to "%s()" is deprecated, pass a "%s" instead.', __METHOD__, FastForward::class);
+
+            $fastForward = match ($fastForward) {
+                [] => FastForward::Allow,
+                ['--no-ff'] => FastForward::Never,
+                ['--ff-only'] => FastForward::Only,
+                default => throw new InvalidArgumentException(\sprintf('Unsupported arguments "%s": pass a "%s" instead.', implode(' ', $fastForward), FastForward::class)),
+            };
+        }
+
+        try {
+            $this->repository->getRepositoryDriver()->merge(self::name($revision), $fastForward);
+        } finally {
+            $this->repository->getReferences()->invalidate();
+        }
 
         return $this;
     }
 
     /**
-     * @param Commit|Reference|string $revision
+     * @return string The name git checks out or merges: a local branch by its name, to attach HEAD to it
      */
-    private function revisionToString($revision): string
+    private static function name(Revision|string $revision): string
     {
-        if ($revision instanceof Commit) {
-            $result = $revision->getHash();
-        } elseif ($revision instanceof Reference) {
-            $result = $revision->getFullname();
-        } elseif (\is_string($revision)) {
-            $result = $revision;
-        } else {
-            throw new InvalidArgumentException(\sprintf('Unknown type "%s"', \gettype($revision)));
-        }
-
-        return $result;
+        return match (true) {
+            $revision instanceof Branch && $revision->isLocal() => $revision->getName(),
+            $revision instanceof Reference => $revision->getFullname(),
+            $revision instanceof Revision => $revision->getRevision(),
+            default => $revision,
+        };
     }
 }

@@ -25,6 +25,10 @@ use Gitonomy\Git\Exception\UnsupportedOperationException;
  */
 final class LibGit2
 {
+    public const int GIT_ENOTFOUND = -3;
+
+    private const int GIT_FEATURE_SHA256 = 1 << 11;
+
     /**
      * The only libgit2 version libgit2.h is written for: libgit2 changes its
      * struct layouts on every minor release, so loading any other version
@@ -73,7 +77,7 @@ final class LibGit2
         $header = tempnam(sys_get_temp_dir(), 'gitlib-libgit2-');
 
         try {
-            file_put_contents($header, \sprintf("#define FFI_SCOPE \"%s\"\n#define FFI_LIB \"%s\"\n", self::scope($libraryPath), $path).file_get_contents(__DIR__.'/libgit2.h'));
+            file_put_contents($header, \sprintf("#define FFI_SCOPE \"%s\"\n#define FFI_LIB \"%s\"\n", self::scope($libraryPath), $path).self::header());
             $ffi = \FFI::load($header);
         } catch (\FFI\Exception $e) {
             throw new UnsupportedOperationException(\sprintf('Unable to preload libgit2 from "%s".', $path), 0, $e);
@@ -148,10 +152,23 @@ final class LibGit2
         self::assertSupportedVersion($libraryPath);
 
         try {
-            return \FFI::cdef(file_get_contents(__DIR__.'/libgit2.h'), $libraryPath);
+            return \FFI::cdef(self::header(), $libraryPath);
         } catch (\FFI\Exception $e) {
             throw new UnsupportedOperationException(\sprintf('Unable to load libgit2 from "%s"; use CliDriver.', $libraryPath), 0, $e);
         }
+    }
+
+    /**
+     * @return string The declarations of libgit2 the drivers call
+     */
+    private static function header(): string
+    {
+        $header = file_get_contents(__DIR__.'/libgit2.h');
+        if (false === $header) {
+            throw new UnsupportedOperationException(\sprintf('Unable to read "%s".', __DIR__.'/libgit2.h'));
+        }
+
+        return $header;
     }
 
     private static function scope(?string $libraryPath): string
@@ -176,7 +193,7 @@ final class LibGit2
     private static function assertSupportedVersion(string $libraryPath): void
     {
         try {
-            $ffi = \FFI::cdef('int git_libgit2_version(int *major, int *minor, int *rev);', $libraryPath);
+            $ffi = \FFI::cdef('int git_libgit2_version(int *major, int *minor, int *rev); int git_libgit2_features(void);', $libraryPath);
         } catch (\FFI\Exception $e) {
             throw new UnsupportedOperationException(\sprintf('Unable to load libgit2 from "%s"; use CliDriver.', $libraryPath), 0, $e);
         }
@@ -187,6 +204,11 @@ final class LibGit2
         $ffi->git_libgit2_version(\FFI::addr($major), \FFI::addr($minor), \FFI::addr($rev));
         if (self::SUPPORTED_VERSION !== [$major->cdata, $minor->cdata]) {
             throw new UnsupportedOperationException(\sprintf('LibGit2Driver requires libgit2 %s, but "%s" is libgit2 %d.%d.%d; use CliDriver.', implode('.', self::SUPPORTED_VERSION), $libraryPath, $major->cdata, $minor->cdata, $rev->cdata));
+        }
+
+        // Its experimental SHA-256 build changes git_oid, and every structure holding one.
+        if (0 !== ($ffi->git_libgit2_features() & self::GIT_FEATURE_SHA256)) {
+            throw new UnsupportedOperationException(\sprintf('LibGit2Driver requires libgit2 built for SHA-1 only, but "%s" supports SHA-256; use CliDriver.', $libraryPath));
         }
     }
 

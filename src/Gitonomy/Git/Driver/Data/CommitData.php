@@ -24,6 +24,7 @@ final readonly class CommitData
      * @param string[] $parentHashes
      */
     public function __construct(
+        public string $hash,
         public string $treeHash,
         public array $parentHashes,
         public string $authorName,

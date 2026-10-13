@@ -14,9 +14,14 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Driver\Cli\Parser\LogParser;
+use Gitonomy\Git\Exception\DriverException;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Log;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\TestWith;
 
 class LogTest extends AbstractTestCase
@@ -41,8 +46,8 @@ class LogTest extends AbstractTestCase
         $commits = $log->getCommits();
 
         $this->assertCount(3, $commits, '3 commits in log');
-        $this->assertEquals(self::LONGFILE_COMMIT, $commits[0]->getHash(), 'First is requested one');
-        $this->assertEquals(self::BEFORE_LONGFILE_COMMIT, $commits[1]->getHash(), "Second is longfile parent\\'s");
+        $this->assertSame(self::LONGFILE_COMMIT, $commits[0]->getHash(), 'First is requested one');
+        $this->assertSame(self::BEFORE_LONGFILE_COMMIT, $commits[1]->getHash(), "Second is longfile parent\\'s");
     }
 
     #[DataProvider('provideBare')]
@@ -51,7 +56,7 @@ class LogTest extends AbstractTestCase
         $repository = self::createFoobarRepository($bare);
         $log = $repository->getLog(self::LONGFILE_COMMIT, null, 2, 3);
 
-        $this->assertEquals(8, $log->countCommits(), '8 commits found in history');
+        $this->assertSame(8, $log->countCommits(), '8 commits found in history');
     }
 
     #[DataProvider('provideBare')]
@@ -72,7 +77,7 @@ class LogTest extends AbstractTestCase
         $expectedHashes = [self::LONGFILE_COMMIT, self::BEFORE_LONGFILE_COMMIT];
         foreach ($log as $entry) {
             $hash = array_shift($expectedHashes);
-            $this->assertEquals($hash, $entry->getHash());
+            $this->assertSame($hash, $entry->getHash());
             if (0 == \count($expectedHashes)) {
                 break;
             }
@@ -124,12 +129,12 @@ class LogTest extends AbstractTestCase
         $parser = new LogParser();
         $parser->parse($logContent);
 
-        $log = array_values($parser->commits);
+        $log = $parser->commits;
         $this->assertCount(3, $log);
 
-        $this->assertEquals("First commit message\n", $log[0]->message);
-        $this->assertEquals("Commit with GitButler headers\n", $log[1]->message);
-        $this->assertEquals("Another commit without GitButler headers\n", $log[2]->message);
+        $this->assertSame("First commit message\n", $log[0]->message);
+        $this->assertSame("Commit with GitButler headers\n", $log[1]->message);
+        $this->assertSame("Another commit without GitButler headers\n", $log[2]->message);
     }
 
     #[DataProvider('provideBare')]
@@ -140,14 +145,14 @@ class LogTest extends AbstractTestCase
 
         $expected = ['1917a09c23eb0129d38d4e6d6a492c7830f8d423', 'd8930cd3f7e343195b85d56408a701feb98b95a8'];
         $this->assertSame($expected, array_values(array_map(static fn (Commit $commit) => $commit->getHash(), $log->getCommits())));
-        $this->assertSame(2, $log->count());
+        $this->assertCount(2, $log);
     }
 
     public function testLogOfRanges(): void
     {
         $repository = self::createFoobarRepository(false);
 
-        $this->assertSame(21, $repository->getLog('master...origin/new-feature')->count());
+        $this->assertCount(21, $repository->getLog('master...origin/new-feature'));
         $this->assertCount(21, $repository->getLog('master...origin/new-feature')->getCommits());
         $this->assertCount(19, $repository->getLog('origin/new-feature..master')->getCommits());
     }
@@ -212,6 +217,26 @@ class LogTest extends AbstractTestCase
         $this->assertSame([$old, $sameAsOld], self::hashes($repository->getLog([$old, $sameAsOld], $paths)));
     }
 
+    public function testLogOfAPathOutsideTheRepositoryThrows(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        // Like git.
+        $this->expectException(DriverException::class);
+
+        $repository->getLog('master', '/README.md')->getCommits();
+    }
+
+    public function testLogOfAnAbsolutePathInTheWorkingTree(): void
+    {
+        $repository = self::createFoobarRepository(false);
+
+        $this->assertSame(
+            array_map(static fn (Commit $commit): string => $commit->getHash(), $repository->getLog('master', 'README.md')->getCommits()),
+            array_map(static fn (Commit $commit): string => $commit->getHash(), $repository->getLog('master', $repository->getWorkingDir().'/README.md')->getCommits()),
+        );
+    }
+
     public function testLogOnWildcardPath(): void
     {
         $repository = self::createRepositoryToCommitTo();
@@ -232,6 +257,107 @@ class LogTest extends AbstractTestCase
 
         $this->assertSame([$commit], self::hashes($repository->getLog()));
         $this->assertSame(1, $repository->getLog()->countCommits());
+    }
+
+    #[DataProvider('provideBare')]
+    public function testCountIsTheNumberOfCommitsIterated(bool $bare): void
+    {
+        $log = self::createFoobarRepository($bare)->getLog(self::LONGFILE_COMMIT);
+        $total = $log->countCommits();
+
+        $this->assertCount($total, $log);
+        $this->assertCount(3, $log->withLimit(3));
+        $this->assertCount(3, $log->withLimit(3));
+        $this->assertCount($total - 2, $log->withOffset(2));
+        $this->assertCount(0, $log->withOffset($total + 1));
+        $this->assertSame($total, $log->withLimit(3)->countCommits(), 'countCommits() ignores the offset and the limit');
+    }
+
+    #[DataProvider('provideBare')]
+    public function testWithersReturnAnotherLog(bool $bare): void
+    {
+        $log = self::createFoobarRepository($bare)->getLog(self::LONGFILE_COMMIT, offset: 1);
+
+        $limited = $log->withLimit(2);
+
+        $this->assertNull($log->getLimit());
+        $this->assertSame(2, $limited->getLimit());
+        $this->assertSame(1, $limited->getOffset());
+        $this->assertSame(\array_slice(self::hashes($log), 0, 2), self::hashes($limited));
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacySetLimit(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::setLimit()" method is deprecated, use "withLimit()" instead.');
+
+        $log = self::createFoobarRepository()->getLog(self::LONGFILE_COMMIT);
+
+        $this->assertSame($log, $log->setLimit(1));
+        $this->assertCount(1, $log->getCommits());
+    }
+
+    public function testLogOfExcludedAndSymmetricRevisions(): void
+    {
+        $repository = self::createRepositoryToCommitTo();
+        $base = self::commit($repository, 'file', 'base');
+        self::git($repository, 'checkout', ['-q', '-b', 'side']);
+        $side = self::commit($repository, 'file', 'side');
+        self::git($repository, 'checkout', ['-q', 'main']);
+        $main = self::commit($repository, 'other', 'main');
+
+        $this->assertSame([$main], self::hashes($repository->getLog(['main', '^side'])));
+        $this->assertEqualsCanonicalizing([$main, $side], self::hashes($repository->getLog('main...side')));
+        $this->assertSame([$side], self::hashes($repository->getLog('main..side')));
+        $this->assertCount(3, $repository->getLog('--all'));
+        $this->assertSame([], self::hashes($repository->getLog('^main')));
+        $this->assertSame([$main, $base], self::hashes($repository->getLog('main')));
+    }
+
+    public function testLogOfAnUnknownRevisionNamesIt(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage('"unknown"');
+
+        $repository->getLog('master..unknown', 'README.md')->getCommits();
+    }
+
+    public function testLogRefusesOptions(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $repository->getLog('--output=/dev/null')->getCommits();
+    }
+
+    public function testParsesCommitsMergingTagsAndSignedOnes(): void
+    {
+        $repository = self::createRepositoryToCommitTo();
+        $tree = trim(self::git($repository, 'write-tree'));
+        $signed = self::writeObject($repository, 'commit', "tree {$tree}\nauthor A <a@example.com> 1000000000 +0000\ncommitter A <a@example.com> 1000000000 +0000\ngpgsig -----BEGIN PGP SIGNATURE-----\n \n signature\n -----END PGP SIGNATURE-----\n\nSigned\n");
+        $other = self::writeObject($repository, 'commit', "tree {$tree}\nparent {$signed}\nauthor A <a@example.com> 1000000001 +0000\ncommitter A <a@example.com> 1000000001 +0000\n\nOther\n");
+        // An unsigned tag: no "END PGP SIGNATURE" line in its "mergetag" header.
+        $merge = self::writeObject($repository, 'commit', "tree {$tree}\nparent {$other}\nparent {$signed}\nauthor A <a@example.com> 1000000002 +0000\ncommitter A <a@example.com> 1000000002 +0000\nmergetag object {$signed}\n type commit\n tag v1\n tagger A <a@example.com> 1000000000 +0000\n \n Tag v1\n\nMerge tag v1\n");
+        self::git($repository, 'update-ref', ['refs/heads/main', $merge]);
+
+        $commits = $repository->getLog('main')->getCommits();
+
+        $this->assertSame([$merge, $other, $signed], array_map(static fn (Commit $commit): string => $commit->getHash(), $commits));
+        $this->assertSame("Merge tag v1\n", $commits[0]->getMessage());
+        $this->assertSame("Signed\n", $commits[2]->getMessage());
+    }
+
+    #[DataProvider('provideBare')]
+    public function testLogOfTheRoot(bool $bare): void
+    {
+        $repository = self::createFoobarRepository($bare);
+
+        $this->assertSame(self::hashes($repository->getLog(self::LONGFILE_COMMIT, ['README.md', 'long.php'])), self::hashes($repository->getLog(self::LONGFILE_COMMIT, ['./README.md', './long.php'])));
+        $this->assertCount(\count($repository->getLog(self::LONGFILE_COMMIT)), $repository->getLog(self::LONGFILE_COMMIT, '.'));
     }
 
     private static function createRepositoryToCommitTo(): Repository

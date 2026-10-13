@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\RuntimeException;
+
 /**
  * Representation of a Blob commit.
  *
@@ -26,7 +28,7 @@ final class Blob
 
     private ?string $content = null;
 
-    private string|false|null $mimetype = null;
+    private ?string $mimetype = null;
 
     private ?bool $text = null;
 
@@ -60,16 +62,13 @@ final class Blob
     }
 
     /**
-     * Determine the mimetype of the blob.
+     * @return string The mimetype of the content, like "text/plain"
+     *
+     * @throws RuntimeException fileinfo can't read the content
      */
-    public function getMimetype(): string|false
+    public function getMimetype(): string
     {
-        if (null === $this->mimetype) {
-            $finfo = new \finfo(\FILEINFO_MIME);
-            $this->mimetype = $finfo->buffer($this->getContent());
-        }
-
-        return $this->mimetype;
+        return $this->mimetype ??= new \finfo(\FILEINFO_MIME_TYPE)->buffer($this->getContent()) ?: throw new RuntimeException(\sprintf('Unable to read the mimetype of the blob "%s".', $this->hash));
     }
 
     /**

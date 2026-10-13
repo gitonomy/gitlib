@@ -15,10 +15,12 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
+use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\AfterClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 
 abstract class AbstractTestCase extends TestCase
@@ -96,10 +98,7 @@ abstract class AbstractTestCase extends TestCase
     public static function createFoobarRepository(bool $bare = true): Repository
     {
         if (null === self::$localRepository) {
-            $dir = self::createTempDir();
-            // Moved to the directories of the class, kept until its last test.
-            self::$classTempDirs[] = array_pop(self::$tempDirs);
-            self::$localRepository = Repository::cloneBareFrom(self::repositoryUrl(), $dir, driver: self::getDriver());
+            self::$localRepository = Repository::cloneBareFrom(self::repositoryUrl(), self::createClassTempDir(), driver: self::getDriver());
         }
 
         $dir = self::createTempDir();
@@ -113,12 +112,7 @@ abstract class AbstractTestCase extends TestCase
      */
     public static function createTempDir(): string
     {
-        $tmpDir = tempnam(sys_get_temp_dir(), 'gitlib_');
-        unlink($tmpDir);
-        mkdir($tmpDir);
-        self::$tempDirs[] = $tmpDir;
-
-        return $tmpDir;
+        return self::$tempDirs[] = self::createDir();
     }
 
     #[After]
@@ -153,10 +147,8 @@ abstract class AbstractTestCase extends TestCase
         }
 
         if (null === self::$materializedRepositoryUrl) {
-            $dir = self::createTempDir();
-            self::$classTempDirs[] = array_pop(self::$tempDirs);
-            $command = $_SERVER['GIT_COMMAND'] ?? 'git';
-            $process = new Process([$command, 'clone', '-q', '--bare', self::REPOSITORY_URL, $dir]);
+            $dir = self::createClassTempDir();
+            $process = new Process([self::gitCommand(), 'clone', '-q', '--bare', self::REPOSITORY_URL, $dir]);
             $process->mustRun();
             self::$materializedRepositoryUrl = $dir;
         }
@@ -172,6 +164,7 @@ abstract class AbstractTestCase extends TestCase
         // Without FOLLOW_SYMLINKS: a link to a directory is deleted, never what it points to.
         $iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS);
         $iterator = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::CHILD_FIRST);
+        /** @var \SplFileInfo $file */
         foreach ($iterator as $file) {
             if (is_link($file)) {
                 unlink($file);
@@ -201,6 +194,17 @@ abstract class AbstractTestCase extends TestCase
     }
 
     /**
+     * Returns the branch HEAD points to, failing the test when it is detached.
+     */
+    protected static function headBranch(Repository $repository): Branch
+    {
+        $head = $repository->getHead();
+        self::assertInstanceOf(Branch::class, $head);
+
+        return $head;
+    }
+
+    /**
      * Runs a git command on $repository through CliDriver, whatever the
      * driver under test: for setup (committing, staging, tagging...) that no
      * driver method covers.
@@ -211,7 +215,12 @@ abstract class AbstractTestCase extends TestCase
     {
         $cli = new Repository($repository->getPath(), driver: self::getCliDriver());
 
-        return $cli->run($command, $args);
+        try {
+            return $cli->run($command, $args);
+        } finally {
+            // Like a write through $repository itself.
+            $repository->getReferences()->invalidate();
+        }
     }
 
     /**
@@ -246,10 +255,62 @@ abstract class AbstractTestCase extends TestCase
     /**
      * @param array<string, string> $environmentVariables Set on git processes, in addition to the GIT_ENVS environment variable
      */
-    protected static function getCliDriver(array $environmentVariables = [], ?float $processTimeout = 60): CliDriver
+    protected static function getCliDriver(array $environmentVariables = [], ?float $processTimeout = 60, ?LoggerInterface $logger = null): CliDriver
     {
-        $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : [];
+        // git 2.29 and later run their maintenance after a commit, in the
+        // background since 2.46: it would write in the repositories the tests delete.
+        $envs = [...self::gitEnvs(), 'GIT_CONFIG_COUNT' => '1', 'GIT_CONFIG_KEY_0' => 'maintenance.auto', 'GIT_CONFIG_VALUE_0' => 'false'];
 
-        return new CliDriver($_SERVER['GIT_COMMAND'] ?? 'git', [...$envs, ...$environmentVariables], processTimeout: $processTimeout);
+        return new CliDriver(self::gitCommand(), [...$envs, ...$environmentVariables], processTimeout: $processTimeout, logger: $logger);
+    }
+
+    /**
+     * @return string The git binary of the tests: the GIT_COMMAND environment variable, or "git"
+     */
+    protected static function gitCommand(): string
+    {
+        $command = $_SERVER['GIT_COMMAND'] ?? 'git';
+        if (!\is_string($command)) {
+            throw new \UnexpectedValueException('The GIT_COMMAND environment variable must be a string.');
+        }
+
+        return $command;
+    }
+
+    /**
+     * @return array<string, string> The environment variables of git: GIT_ENVS, which the bootstrap sets on Windows
+     */
+    protected static function gitEnvs(): array
+    {
+        $envs = [];
+        $variables = $_SERVER['GIT_ENVS'] ?? [];
+        if (!\is_array($variables)) {
+            throw new \UnexpectedValueException('GIT_ENVS must be an array.');
+        }
+        foreach ($variables as $name => $value) {
+            if (!\is_string($name) || !\is_string($value)) {
+                throw new \UnexpectedValueException('GIT_ENVS must map names to values.');
+            }
+            $envs[$name] = $value;
+        }
+
+        return $envs;
+    }
+
+    /**
+     * Creates an empty directory, deleted after the last test of the class.
+     */
+    private static function createClassTempDir(): string
+    {
+        return self::$classTempDirs[] = self::createDir();
+    }
+
+    private static function createDir(): string
+    {
+        $dir = tempnam(sys_get_temp_dir(), 'gitlib_') ?: throw new \RuntimeException('Unable to create a temporary file.');
+        unlink($dir);
+        mkdir($dir);
+
+        return $dir;
     }
 }

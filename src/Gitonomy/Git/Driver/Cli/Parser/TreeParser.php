@@ -12,12 +12,14 @@
 
 namespace Gitonomy\Git\Driver\Cli\Parser;
 
+use Gitonomy\Git\Driver\Data\ObjectType;
 use Gitonomy\Git\Driver\Data\TreeEntryData;
-use Gitonomy\Git\Driver\Data\TreeEntryType;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Parser\ParserBase;
 
 /**
- * Parses the output of ``git ls-tree -z``, whose names are never quoted.
+ * Parses a tree object, as ``git cat-file --batch`` gives it: for each
+ * entry, its mode, a space, its name, a NUL byte, and its hash in binary.
  */
 final class TreeParser extends ParserBase
 {
@@ -31,21 +33,27 @@ final class TreeParser extends ParserBase
         $this->entries = [];
 
         while (!$this->isFinished()) {
-            $vars = $this->consumeRegexp('/\d{6}/A');
-            $mode = $vars[0];
+            // git stores the mode of a tree as "40000".
+            $mode = str_pad($this->consumeRegexp('/[0-7]{5,6}/')[0], 6, '0', \STR_PAD_LEFT);
             $this->consume(' ');
-
-            $vars = $this->consumeRegexp('/(blob|tree|commit)/A');
-            $type = TreeEntryType::from($vars[0]);
-            $this->consume(' ');
-
-            $hash = $this->consumeHash();
-            $this->consume("\t");
 
             $name = $this->consumeTo("\0");
             $this->consume("\0");
 
-            $this->entries[] = new TreeEntryData($mode, $type, $hash, $name);
+            $hash = substr($this->content, $this->cursor, 20);
+            if (20 !== \strlen($hash)) {
+                throw new RuntimeException(\sprintf('The tree entry "%s" has no hash.', $name));
+            }
+            $this->cursor += 20;
+
+            $type = match ($mode) {
+                '040000' => ObjectType::Tree,
+                // A submodule: the hash is a commit of another repository.
+                '160000' => ObjectType::Commit,
+                default => ObjectType::Blob,
+            };
+
+            $this->entries[] = new TreeEntryData($mode, $type, bin2hex($hash), $name);
         }
     }
 }

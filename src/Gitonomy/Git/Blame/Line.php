@@ -20,13 +20,13 @@ use Gitonomy\Git\Commit;
 final readonly class Line
 {
     /**
-     * Instanciates a new Line object.
+     * @param int $number         The number of the line in the blamed file
+     * @param int $originalNumber The number of the line in the file of $commit
      */
     public function __construct(
         private Commit $commit,
-        private string $sourceLine,
-        private string $targetLine,
-        private ?string $blockLine,
+        private int $number,
+        private int $originalNumber,
         private string $content,
     ) {
     }
@@ -36,11 +36,35 @@ final readonly class Line
         return $this->content;
     }
 
-    public function getLine(): string
+    /**
+     * @return int The number of the line in the blamed file
+     */
+    public function getNumber(): int
     {
-        return $this->sourceLine;
+        return $this->number;
     }
 
+    /**
+     * @return int The number of the line in the file of the commit that last changed it
+     */
+    public function getOriginalNumber(): int
+    {
+        return $this->originalNumber;
+    }
+
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, use getOriginalNumber() instead
+     */
+    public function getLine(): string
+    {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getOriginalNumber()" instead.', __METHOD__);
+
+        return (string) $this->originalNumber;
+    }
+
+    /**
+     * @return Commit The commit that last changed the line
+     */
     public function getCommit(): Commit
     {
         return $this->commit;

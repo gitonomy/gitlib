@@ -13,11 +13,14 @@
 namespace Gitonomy\Git\Driver\Data;
 
 /**
+ * The type of a git object.
+ *
  * @author Grégoire Pineau <lyrixx@lyrixx.info>
  */
-enum TreeEntryType: string
+enum ObjectType: string
 {
     case Blob = 'blob';
-    case Tree = 'tree';
     case Commit = 'commit';
+    case Tag = 'tag';
+    case Tree = 'tree';
 }

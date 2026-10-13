@@ -12,10 +12,9 @@
 
 namespace Gitonomy\Git\Exception;
 
-final class ReferenceNotFoundException extends \InvalidArgumentException implements GitExceptionInterface
+/**
+ * A revision, a reference or an object doesn't exist.
+ */
+final class ReferenceNotFoundException extends InvalidArgumentException
 {
-    public function __construct(string $reference, int $code = 0, ?\Throwable $previous = null)
-    {
-        parent::__construct(\sprintf('Reference not found: "%s"', $reference), $code, $previous);
-    }
 }

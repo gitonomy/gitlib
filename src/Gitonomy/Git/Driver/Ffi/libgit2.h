@@ -80,11 +80,12 @@ typedef struct git_config git_config;
 
 int git_libgit2_init(void);
 int git_libgit2_version(int *major, int *minor, int *rev);
+int git_libgit2_features(void);
 
 /* -- buffers / signatures / arrays -- */
 
 void git_buf_dispose(git_buf *buffer);
-int git_signature_default(git_signature **out, git_repository *repo);
+int git_signature_default_from_env(git_signature **author_out, git_signature **committer_out, git_repository *repo);
 void git_signature_free(git_signature *sig);
 void git_oidarray_dispose(git_oidarray *array);
 
@@ -105,7 +106,6 @@ int git_repository_set_workdir(git_repository *repo, const char *workdir, int up
 void git_repository_free(git_repository *repo);
 int git_repository_init(git_repository **out, const char *path, unsigned is_bare);
 int git_repository_head(git_reference **out, git_repository *repo);
-int git_repository_head_detached(git_repository *repo);
 int git_repository_set_head(git_repository *repo, const char *refname);
 int git_repository_set_head_detached(git_repository *repo, const git_oid *committish);
 int git_repository_config(git_config **out, git_repository *repo);
@@ -117,6 +117,7 @@ void git_config_free(git_config *cfg);
 
 /* -- object / commit / tree / blob / tag -- */
 
+int git_object_lookup_prefix(git_object **object_out, git_repository *repo, const git_oid *id, size_t len, git_object_t type);
 const git_oid *git_object_id(const git_object *obj);
 git_object_t git_object_type(const git_object *obj);
 int git_object_short_id(git_buf *out, const git_object *obj);
@@ -125,6 +126,7 @@ void git_object_free(git_object *object);
 
 int git_commit_lookup_prefix(git_commit **commit, git_repository *repo, const git_oid *id, size_t len);
 void git_commit_free(git_commit *commit);
+const git_oid *git_commit_id(const git_commit *commit);
 const char *git_commit_message(const git_commit *commit);
 const char *git_commit_message_encoding(const git_commit *commit);
 const git_signature *git_commit_committer(const git_commit *commit);
@@ -181,6 +183,7 @@ void git_revwalk_free(git_revwalk *walk);
 int git_reference_lookup(git_reference **out, git_repository *repo, const char *name);
 int git_reference_resolve(git_reference **out, const git_reference *ref);
 const git_oid *git_reference_target(const git_reference *ref);
+const char *git_reference_symbolic_target(const git_reference *ref);
 git_reference_t git_reference_type(const git_reference *ref);
 const char *git_reference_name(const git_reference *ref);
 int git_reference_create(git_reference **out, git_repository *repo, const char *name, const git_oid *id, int force, const char *log_message);
@@ -192,6 +195,8 @@ void git_reference_iterator_free(git_reference_iterator *iter);
 int git_reference_peel(git_object **out, const git_reference *ref, git_object_t type);
 
 int git_branch_create(git_reference **out, git_repository *repo, const char *branch_name, const git_commit *target, int force);
+int git_branch_delete(git_reference *branch);
+int git_branch_name_is_valid(int *valid, const char *name);
 int git_branch_iterator_new(git_branch_iterator **out, git_repository *repo, git_branch_t list_flags);
 int git_branch_next(git_reference **out, git_branch_t *out_type, git_branch_iterator *iter);
 void git_branch_iterator_free(git_branch_iterator *iter);
@@ -202,7 +207,6 @@ int git_graph_descendant_of(git_repository *repo, const git_oid *commit, const g
 
 /* -- merge_base -- */
 
-int git_merge_base(git_oid *out, git_repository *repo, const git_oid *one, const git_oid *two);
 int git_merge_bases(git_oidarray *out, git_repository *repo, const git_oid *one, const git_oid *two);
 
 /* -- diff -- */
@@ -280,6 +284,7 @@ int git_diff_options_init(git_diff_options *opts, unsigned int version);
 void git_diff_free(git_diff *diff);
 int git_diff_tree_to_tree(git_diff **diff, git_repository *repo, git_tree *old_tree, git_tree *new_tree, const git_diff_options *opts);
 int git_diff_tree_to_index(git_diff **diff, git_repository *repo, git_tree *old_tree, git_index *index, const git_diff_options *opts);
+int git_diff_tree_to_workdir(git_diff **diff, git_repository *repo, git_tree *old_tree, const git_diff_options *opts);
 int git_diff_tree_to_workdir_with_index(git_diff **diff, git_repository *repo, git_tree *old_tree, const git_diff_options *opts);
 int git_diff_index_to_workdir(git_diff **diff, git_repository *repo, git_index *index, const git_diff_options *opts);
 int git_diff_find_options_init(git_diff_find_options *opts, unsigned int version);

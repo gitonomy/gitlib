@@ -12,11 +12,13 @@
 
 namespace Gitonomy\Git\Driver\Cli\Parser;
 
+use Gitonomy\Git\Driver\Data\ObjectType;
 use Gitonomy\Git\Driver\Data\TagData;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Parser\ParserBase;
 
 /**
- * Parses the output of ``git cat-file tag``.
+ * Parses a tag object, as ``git cat-file --batch`` gives it.
  */
 final class TagParser extends ParserBase
 {
@@ -29,21 +31,23 @@ final class TagParser extends ParserBase
         $this->consumeNewLine();
 
         $this->consume('type ');
-        $type = $this->consumeTo("\n");
+        $typeName = $this->consumeTo("\n");
+        $type = ObjectType::tryFrom($typeName) ?? throw new RuntimeException(\sprintf('The tag points to an object of the unknown type "%s".', $typeName));
         $this->consumeNewLine();
 
         $this->consume('tag ');
         $tag = $this->consumeTo("\n");
         $this->consumeNewLine();
 
-        $this->consume('tagger ');
-        [$taggerName, $taggerEmail, $taggerDate] = $this->consumeNameEmailDate();
+        // The oldest tags, like the first ones of git itself, have no tagger.
+        [$taggerName, $taggerEmail, $taggerDate] = [null, null, null];
+        if ($this->expects('tagger ')) {
+            [$taggerName, $taggerEmail, $taggerDate] = $this->consumeNameEmailDate();
+            $this->consumeNewLine();
+        }
 
         $this->consumeNewLine();
-        $this->consumeNewLine();
 
-        [$message, $gpgSignature] = TagData::splitSignature($this->consumeAll());
-
-        $this->data = new TagData($object, $type, $tag, $taggerName, $taggerEmail, $taggerDate, $message, $gpgSignature);
+        $this->data = TagData::fromSignedMessage($object, $type, $tag, $taggerName, $taggerEmail, $taggerDate, $this->consumeAll());
     }
 }

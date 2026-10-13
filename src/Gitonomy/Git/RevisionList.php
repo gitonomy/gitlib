@@ -12,6 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\InvalidArgumentException;
+
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -35,8 +37,8 @@ final readonly class RevisionList implements \IteratorAggregate, \Countable
             $revisions = [$revisions];
         }
 
-        if (0 == \count($revisions)) {
-            throw new \InvalidArgumentException('Empty revision list not allowed');
+        if ([] === $revisions) {
+            throw new InvalidArgumentException('A revision list needs one revision at least.');
         }
 
         $normalizedRevisions = [];
@@ -44,7 +46,7 @@ final readonly class RevisionList implements \IteratorAggregate, \Countable
             if (\is_string($revision)) {
                 $revision = new Revision($repository, $revision);
             } elseif (!$revision instanceof Revision) {
-                throw new \InvalidArgumentException(\sprintf('Expected a "Revision", got a "%s".', \is_object($revision) ? $revision::class : \gettype($revision)));
+                throw new InvalidArgumentException(\sprintf('Expected a "Revision", got a "%s".', get_debug_type($revision)));
             }
 
             $normalizedRevisions[] = $revision;

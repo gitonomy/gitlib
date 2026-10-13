@@ -14,7 +14,12 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\CommitReference;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Submodule;
+use Gitonomy\Git\Tree;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 
 class TreeTest extends AbstractTestCase
 {
@@ -28,11 +33,10 @@ class TreeTest extends AbstractTestCase
 
         $entries = $tree->getEntries();
 
-        $this->assertNotEmpty($entries['long.php'], 'long.php is present');
-        $this->assertTrue($entries['long.php'][1] instanceof Blob, 'long.php is a Blob');
-
-        $this->assertNotEmpty($entries['README.md'], 'README.md is present');
-        $this->assertTrue($entries['README.md'][1] instanceof Blob, 'README.md is a Blob');
+        $this->assertInstanceOf(Blob::class, $entries['long.php']->getObject());
+        $this->assertSame('long.php', $entries['long.php']->getName());
+        $this->assertSame('100644', $entries['long.php']->getMode());
+        $this->assertInstanceOf(Blob::class, $entries['README.md']->getObject());
     }
 
     #[DataProvider('provideBare')]
@@ -49,25 +53,71 @@ class TreeTest extends AbstractTestCase
         $repository = self::createFoobarRepository(false);
         self::git($repository, 'config', ['user.name', 'Unit Test']);
         self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
-        file_put_contents($repository->getWorkingDir().'/tab\t"quote"', 'special');
+        file_put_contents($repository->getWorkingDir().'/back\slash'."\ttab\"quote", 'special');
         self::git($repository, 'add', ['--all']);
         self::git($repository, 'commit', ['-m', 'Add a file with special characters in its name']);
 
         $entries = $repository->getHeadCommit()->getTree()->getEntries();
 
-        $this->assertArrayHasKey('tab\t"quote"', $entries);
+        $this->assertArrayHasKey('back\slash'."\ttab\"quote", $entries);
     }
 
     #[DataProvider('provideBare')]
-    public function testGetCommitReferenceEntries(bool $bare): void
+    public function testGetSubmoduleEntries(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
-        $commits = $tree->getCommitReferenceEntries();
+        $submodules = $tree->getSubmoduleEntries();
 
-        $this->assertNotEmpty($commits['barbaz'], 'barbaz is present');
-        $this->assertTrue($commits['barbaz'][1] instanceof CommitReference, 'barbaz is a Commit');
+        $this->assertSame(['barbaz'], array_keys($submodules));
+        $this->assertInstanceOf(Submodule::class, $submodules['barbaz']->getObject());
+        $this->assertSame('160000', $submodules['barbaz']->getMode());
+    }
+
+    #[DataProvider('provideBare')]
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetCommitReferenceEntries(bool $bare): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Tree::getCommitReferenceEntries()" method is deprecated, use "getSubmoduleEntries()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Reading a "Gitonomy\Git\TreeEntry" as an array is deprecated, use its "getMode()" and "getObject()" methods instead.');
+
+        $tree = self::createFoobarRepository($bare)->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        [$mode, $object] = $tree->getCommitReferenceEntries()['barbaz'];
+
+        $this->assertSame('160000', $mode);
+        // @phpstan-ignore method.impossibleType (PHPStan doesn't follow the alias of the deprecated class.)
+        $this->assertInstanceOf(CommitReference::class, $object);
+    }
+
+    public function testResolvePathThroughASubmoduleThrows(): void
+    {
+        $tree = self::createFoobarRepository()->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unable to resolve "barbaz/file": "barbaz" is a submodule, not a tree.');
+
+        $tree->resolvePath('barbaz/file');
+    }
+
+    public function testResolveAMissingPathThrows(): void
+    {
+        $tree = self::createFoobarRepository()->getCommit(self::PATH_RESOLVING_COMMIT)->getTree();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unable to resolve "test/a/missing/c": "test/a/missing" doesn\'t exist.');
+
+        $tree->resolvePath('test/a/missing/c');
+    }
+
+    public function testResolveTheRootPath(): void
+    {
+        $tree = self::createFoobarRepository()->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $this->assertSame($tree, $tree->resolvePath('/'));
+        $this->assertSame($tree, $tree->resolvePath(''));
     }
 
     #[DataProvider('provideBare')]
@@ -89,8 +139,7 @@ class TreeTest extends AbstractTestCase
 
         $blobs = $tree->getBlobEntries();
 
-        $this->assertNotEmpty($blobs['README.md'], 'README.md is present');
-        $this->assertTrue($blobs['README.md'][1] instanceof Blob, 'README.md is a blob');
+        $this->assertInstanceOf(Blob::class, $blobs['README.md']->getObject());
     }
 
     #[DataProvider('provideBare')]
@@ -101,8 +150,9 @@ class TreeTest extends AbstractTestCase
         $path = 'test/a/b/c';
 
         $resolved = $tree->resolvePath($path);
+        $this->assertInstanceOf(Tree::class, $resolved);
         $entries = $resolved->getEntries();
 
-        $this->assertNotEmpty($entries['d'], 'Successfully resolved source folder');
+        $this->assertArrayHasKey('d', $entries, 'Successfully resolved source folder');
     }
 }

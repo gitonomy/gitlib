@@ -35,14 +35,11 @@ final class BlameParser extends ParserBase
         $this->lines = [];
         $this->seenHashes = [];
 
-        $line = 1;
         while (!$this->isFinished()) {
             $hash = $this->consumeHash();
             $this->consume(' ');
-            $vars = $this->consumeRegexp('/(\d+) (\d+)( (\d+))?/A');
-            $sourceLine = $vars[1];
-            $targetLine = $vars[2];
-            $blockLine = $vars[4] ?? null;
+            // The number of lines of the group follows on its first line.
+            $vars = $this->consumeRegexp('/(\d+) (\d+)/A');
             $this->consumeTo("\n");
             $this->consumeNewLine();
 
@@ -72,8 +69,7 @@ final class BlameParser extends ParserBase
             $content = $this->consumeTo("\n");
             $this->consumeNewLine();
 
-            $this->lines[$line] = new BlameLineData($hash, $sourceLine, $targetLine, $blockLine, $content);
-            ++$line;
+            $this->lines[] = new BlameLineData($hash, (int) $vars[1], (int) $vars[2], $content);
         }
     }
 }

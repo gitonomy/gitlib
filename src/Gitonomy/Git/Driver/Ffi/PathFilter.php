@@ -23,8 +23,6 @@ use FFI\CData;
  */
 final readonly class PathFilter
 {
-    private const int GIT_ENOTFOUND = -3;
-
     /**
      * The part of each path before its first wildcard.
      *
@@ -111,7 +109,7 @@ final readonly class PathFilter
 
         $entry = $this->ffi->new('git_tree_entry*');
         $rc = $this->ffi->git_tree_entry_bypath(\FFI::addr($entry), $tree, $path);
-        if (self::GIT_ENOTFOUND === $rc) {
+        if (LibGit2::GIT_ENOTFOUND === $rc) {
             return null;
         }
         LibGit2::check($this->ffi, $rc, \sprintf('Unable to look up "%s"', $path));

@@ -19,9 +19,14 @@ namespace Gitonomy\Git\Driver\Data;
  */
 final readonly class ReferenceData
 {
+    /**
+     * @param string      $commitHash What the reference points to, through an annotated tag: a commit, unless a tag points to a tree or a blob
+     * @param string|null $tagHash    The annotated tag object the reference points to, null for a branch or a lightweight tag
+     */
     public function __construct(
         public string $fullname,
         public string $commitHash,
+        public ?string $tagHash = null,
     ) {
     }
 }

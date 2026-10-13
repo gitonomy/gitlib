@@ -13,16 +13,21 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
-use Gitonomy\Git\Exception\DriverException;
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @implements \IteratorAggregate<int, Commit>
  */
 final class Log implements \Countable, \IteratorAggregate
 {
     private ?RevisionList $revisions;
 
+    /**
+     * @var string[]
+     */
     private array $paths;
 
     private ?int $offset;
@@ -32,11 +37,14 @@ final class Log implements \Countable, \IteratorAggregate
     /**
      * Instanciates a git log object.
      *
-     * @param Repository                              $repository the repository where log occurs
-     * @param RevisionList|Revision|string|array|null $revisions  a list of revisions or null if you want all history
-     * @param array|string|null                       $paths      paths to filter on
-     * @param int|null                                $offset     start list from a given position
-     * @param int|null                                $limit      limit number of fetched elements
+     * The revisions are names, ranges ("a..b", "a...b"), names to exclude
+     * ("^a"), or "--all".
+     *
+     * @param Repository                                               $repository the repository where log occurs
+     * @param RevisionList|Revision|string|array<Revision|string>|null $revisions  a list of revisions or null if you want all history
+     * @param string[]|string|null                                     $paths      paths to filter on, with git's wildcards
+     * @param int|null                                                 $offset     start list from a given position
+     * @param int|null                                                 $limit      limit number of fetched elements
      */
     public function __construct(
         private readonly Repository $repository,
@@ -61,9 +69,14 @@ final class Log implements \Countable, \IteratorAggregate
         $this->limit = $limit;
     }
 
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::getDiff() instead: it ignored the paths of the log
+     */
     public function getDiff(): Diff
     {
-        return $this->repository->getDiff($this->revisions);
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::getDiff()" instead.', __METHOD__, Repository::class);
+
+        return $this->repository->getLegacyDiff($this->revisions);
     }
 
     public function getRevisions(): ?RevisionList
@@ -71,6 +84,9 @@ final class Log implements \Countable, \IteratorAggregate
         return $this->revisions;
     }
 
+    /**
+     * @return string[]
+     */
     public function getPaths(): array
     {
         return $this->paths;
@@ -81,8 +97,24 @@ final class Log implements \Countable, \IteratorAggregate
         return $this->offset;
     }
 
+    /**
+     * @return self The log, starting from the commit $offset
+     */
+    public function withOffset(?int $offset): self
+    {
+        $log = clone $this;
+        $log->offset = $offset;
+
+        return $log;
+    }
+
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, use withOffset() instead
+     */
     public function setOffset(?int $offset): static
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "withOffset()" instead.', __METHOD__);
+
         $this->offset = $offset;
 
         return $this;
@@ -93,25 +125,35 @@ final class Log implements \Countable, \IteratorAggregate
         return $this->limit;
     }
 
+    /**
+     * @return self The log, of $limit commits at most
+     */
+    public function withLimit(?int $limit): self
+    {
+        $log = clone $this;
+        $log->limit = $limit;
+
+        return $log;
+    }
+
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, use withLimit() instead
+     */
     public function setLimit(?int $limit): static
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "withLimit()" instead.', __METHOD__);
+
         $this->limit = $limit;
 
         return $this;
     }
 
+    /**
+     * @throws ReferenceNotFoundException The log is empty
+     */
     public function getSingleCommit(): Commit
     {
-        $limit = $this->limit;
-        $this->limit = 1;
-        $commits = $this->getCommits();
-        $this->setLimit($limit);
-
-        if (0 === \count($commits)) {
-            throw new ReferenceNotFoundException('The log is empty');
-        }
-
-        return array_pop($commits);
+        return $this->withLimit(1)->getCommits()[0] ?? throw new ReferenceNotFoundException('The log has no commit.');
     }
 
     /**
@@ -119,19 +161,12 @@ final class Log implements \Countable, \IteratorAggregate
      */
     public function getCommits(): array
     {
-        $revisions = $this->revisions?->getAsTextArray();
-
-        try {
-            $commitLog = $this->repository->getRepositoryDriver()->getCommitLog($revisions, $this->paths, $this->offset, $this->limit);
-        } catch (DriverException $e) {
-            $revisionsText = null !== $revisions ? implode(' ', $revisions) : '--all';
-
-            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $revisionsText), 0, $e);
-        }
+        [$includes, $excludes] = $this->range();
+        $commitLog = $this->repository->getRepositoryDriver()->getCommitLog($includes, $excludes, $this->paths, $this->offset ?? 0, $this->limit);
 
         $result = [];
-        foreach ($commitLog as $hash => $commitData) {
-            $commit = $this->repository->getCommit($hash);
+        foreach ($commitLog as $commitData) {
+            $commit = $this->repository->getCommit($commitData->hash);
             $commit->setData($commitData);
 
             $result[] = $commit;
@@ -142,14 +177,20 @@ final class Log implements \Countable, \IteratorAggregate
 
     /**
      * @see Countable
+     *
+     * @return int The number of commits of the log, after its offset and up to its limit: as many as getCommits() returns
      */
     public function count(): int
     {
-        return $this->countCommits();
+        $count = max(0, $this->countCommits() - ($this->offset ?? 0));
+
+        return null === $this->limit ? $count : min($count, $this->limit);
     }
 
     /**
      * @see IteratorAggregate
+     *
+     * @return \ArrayIterator<int, Commit>
      */
     public function getIterator(): \ArrayIterator
     {
@@ -161,6 +202,64 @@ final class Log implements \Countable, \IteratorAggregate
      */
     public function countCommits(): int
     {
-        return $this->repository->getRepositoryDriver()->countCommits($this->revisions?->getAsTextArray(), $this->paths);
+        [$includes, $excludes] = $this->range();
+
+        return $this->repository->getRepositoryDriver()->countCommits($includes, $excludes, $this->paths);
+    }
+
+    /**
+     * Resolves the revisions to the commits whose history to list, and the
+     * ones whose history to leave out.
+     *
+     * @return array{list<string>|null, list<string>} Null for every reference and HEAD
+     *
+     * @throws ReferenceNotFoundException A revision names no commit
+     */
+    private function range(): array
+    {
+        if (null === $this->revisions) {
+            return [null, []];
+        }
+
+        $all = false;
+        $includes = [];
+        $excludes = [];
+        foreach ($this->revisions->getAll() as $revision) {
+            if ($revision instanceof Commit || $revision instanceof Reference) {
+                $includes[] = $revision->getCommit()->getHash();
+
+                continue;
+            }
+
+            $name = $revision->getRevision();
+            if ('--all' === $name) {
+                $all = true;
+            } elseif (str_starts_with($name, '^')) {
+                $excludes[] = $this->commitHash(substr($name, 1));
+            } elseif (str_contains($name, '...')) {
+                // Reachable from either end, but not from both.
+                [$one, $two] = array_map($this->commitHash(...), explode('...', $name, 2));
+                array_push($includes, $one, $two);
+                array_push($excludes, ...$this->repository->getRepositoryDriver()->getMergeBases($one, $two));
+            } elseif (str_contains($name, '..')) {
+                [$from, $to] = array_map($this->commitHash(...), explode('..', $name, 2));
+                $includes[] = $to;
+                $excludes[] = $from;
+            } elseif (str_starts_with($name, '-')) {
+                throw new InvalidArgumentException(\sprintf('The log of "%s" is not supported: pass revisions, ranges, names to exclude or "--all".', $name));
+            } else {
+                $includes[] = $this->commitHash($name);
+            }
+        }
+
+        return [$all ? null : $includes, $excludes];
+    }
+
+    /**
+     * @param string $revision An end of a range, HEAD when empty
+     */
+    private function commitHash(string $revision): string
+    {
+        return $this->repository->getRevision('' === $revision ? 'HEAD' : $revision)->getCommit()->getHash();
     }
 }

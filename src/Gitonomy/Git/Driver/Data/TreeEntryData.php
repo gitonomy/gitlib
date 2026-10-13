@@ -21,7 +21,7 @@ final readonly class TreeEntryData
 {
     public function __construct(
         public string $mode,
-        public TreeEntryType $type,
+        public ObjectType $type,
         public string $hash,
         public string $name,
     ) {

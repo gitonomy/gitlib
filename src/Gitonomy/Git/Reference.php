@@ -12,9 +12,6 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Exception\DriverException;
-use Gitonomy\Git\Exception\ReferenceNotFoundException;
-
 /**
  * Reference in a Git repository.
  *
@@ -23,13 +20,15 @@ use Gitonomy\Git\Exception\ReferenceNotFoundException;
  */
 abstract class Reference extends Revision
 {
-    protected ?string $commitHash;
-
-    public function __construct(Repository $repository, string $revision, ?string $commitHash = null)
-    {
-        parent::__construct($repository, $revision);
-
-        $this->commitHash = $commitHash;
+    /**
+     * @param string $commitHash What the reference points to, through an annotated tag
+     */
+    public function __construct(
+        Repository $repository,
+        string $fullname,
+        protected readonly string $commitHash,
+    ) {
+        parent::__construct($repository, $fullname);
     }
 
     public function getFullname(): string
@@ -42,19 +41,12 @@ abstract class Reference extends Revision
         $this->repository->getReferences()->delete($this->getFullname());
     }
 
+    /**
+     * @return string The commit the reference points to, when it was read: the commit an annotated tag points to, for one
+     */
     public function getCommitHash(): string
     {
-        if (null !== $this->commitHash) {
-            return $this->commitHash;
-        }
-
-        try {
-            $hash = $this->repository->getRepositoryDriver()->resolveRevision($this->revision);
-        } catch (DriverException $e) {
-            throw new ReferenceNotFoundException(\sprintf('Can not find revision "%s"', $this->revision), 0, $e);
-        }
-
-        return $this->commitHash = $hash;
+        return $this->commitHash;
     }
 
     /**
@@ -62,7 +54,7 @@ abstract class Reference extends Revision
      */
     public function getCommit(): Commit
     {
-        return $this->repository->getCommit($this->getCommitHash());
+        return $this->repository->getCommit($this->commitHash);
     }
 
     public function getLastModification(?string $path = null): Commit

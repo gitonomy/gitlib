@@ -13,7 +13,8 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\BeforeClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -92,7 +93,7 @@ class HooksTest extends AbstractTestCase
         $repository = self::createFoobarRepository($bare);
         $this->touchHook($repository, 'foo', 'foobar');
 
-        $this->assertEquals('foobar', $repository->getHooks()->get('foo'));
+        $this->assertSame('foobar', $repository->getHooks()->get('foo'));
     }
 
     #[DataProvider('provideBare')]
@@ -106,18 +107,18 @@ class HooksTest extends AbstractTestCase
 
         $this->assertTrue(is_link($this->hookPath($repository, 'foo')), 'foo hook is a symlink');
 
-        $this->assertEquals(
+        $this->assertSame(
             str_replace('\\', '/', $file),
-            str_replace('\\', '/', readlink($this->hookPath($repository, 'foo'))),
+            str_replace('\\', '/', (string) readlink($this->hookPath($repository, 'foo'))),
             'target of symlink is correct'
         );
     }
 
     #[DataProvider('provideBare')]
-    public function testSymlinkWithExistingThrowsLogicException(bool $bare): void
+    public function testSymlinkWithExistingThrows(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
-        $this->expectException(LogicException::class);
+        $this->expectException(RuntimeException::class);
 
         $this->markAsSkippedIfSymlinkIsMissing();
 
@@ -137,19 +138,19 @@ class HooksTest extends AbstractTestCase
         $file = $this->hookPath($repository, 'foo');
         $repository->getHooks()->set('foo', 'bar');
 
-        $this->assertEquals('bar', file_get_contents($file), 'Hook content is correct');
+        $this->assertSame('bar', file_get_contents($file), 'Hook content is correct');
 
         $perms = fileperms($file);
-        $this->assertEquals(\defined('PHP_WINDOWS_VERSION_BUILD') ? 0o666 : 0o700, $perms & 0o777, 'Hook permissions are correct');
+        $this->assertSame(\defined('PHP_WINDOWS_VERSION_BUILD') ? 0o666 : 0o700, $perms & 0o777, 'Hook permissions are correct');
     }
 
     #[DataProvider('provideBare')]
-    public function testSetExistingThrowsLogicException(bool $bare): void
+    public function testSetExistingThrows(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
         $repository->getHooks()->set('foo', 'bar');
 
-        $this->expectException(LogicException::class);
+        $this->expectException(RuntimeException::class);
 
         $repository->getHooks()->set('foo', 'bar');
     }
@@ -167,12 +168,40 @@ class HooksTest extends AbstractTestCase
     }
 
     #[DataProvider('provideBare')]
-    public function testRemoveNotExistingThrowsLogicException(bool $bare): void
+    public function testRemoveNotExistingThrows(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
-        $this->expectException(LogicException::class);
+        $this->expectException(RuntimeException::class);
 
         $repository->getHooks()->remove('foo');
+    }
+
+    public function testSetCreatesTheHooksDirectory(): void
+    {
+        $repository = self::createEmptyRepository();
+        self::deleteDir($repository->getGitDir().'/hooks');
+
+        $repository->getHooks()->set('pre-receive', "#!/bin/sh\nexit 1\n");
+
+        $this->assertSame("#!/bin/sh\nexit 1\n", $repository->getHooks()->get('pre-receive'));
+    }
+
+    public function testALinkedWorktreeSharesTheHooksOfItsRepository(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $dir = self::createTempDir().'/worktree';
+
+        try {
+            self::git($repository, 'worktree', ['add', '-b', 'in-worktree', $dir]);
+        } catch (ProcessException) {
+            $this->markTestSkipped('git worktree requires git 2.5.');
+        }
+
+        $worktree = new Repository($dir, driver: self::getDriver());
+        $worktree->getHooks()->set('pre-commit', "#!/bin/sh\nexit 1\n");
+
+        $this->assertHasHook($repository, 'pre-commit');
+        $this->assertTrue($worktree->getHooks()->has('pre-commit'));
     }
 
     private function markAsSkippedIfSymlinkIsMissing(): void

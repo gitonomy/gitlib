@@ -25,8 +25,8 @@ class LibGit2HeaderTest extends TestCase
 
     public function testCalledFunctionsAreTheDeclaredOnes(): void
     {
-        preg_match_all('/->(git_\w+)\(/', implode('', array_map(file_get_contents(...), glob(self::FFI_DIR.'/*.php'))), $called);
-        preg_match_all('/^[\w ]+?\**\b(git_\w+)\(/m', file_get_contents(self::FFI_DIR.'/libgit2.h'), $declared);
+        preg_match_all('/->(git_\w+)\(/', implode('', array_map(file_get_contents(...), glob(self::FFI_DIR.'/*.php') ?: [])), $called);
+        preg_match_all('/^[\w ]+?\**\b(git_\w+)\(/m', (string) file_get_contents(self::FFI_DIR.'/libgit2.h'), $declared);
 
         $called = array_values(array_unique($called[1]));
         $declared = array_values(array_unique($declared[1]));

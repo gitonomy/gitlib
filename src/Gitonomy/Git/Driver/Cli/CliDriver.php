@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Driver\Cli;
 
 use Gitonomy\Git\Driver\DriverInterface;
+use Gitonomy\Git\Driver\RepositoryPaths;
 use Gitonomy\Git\Exception\ProcessException;
 use Psr\Log\LoggerInterface;
 
@@ -23,36 +24,37 @@ use Psr\Log\LoggerInterface;
  */
 final readonly class CliDriver implements DriverInterface
 {
-    private GitProcessFactory $processFactory;
-
     /**
-     * @param string                                  $command                     The git binary
-     * @param array<string, string|\Stringable|false> $environmentVariables        Set on every git process, false removing an inherited one
-     * @param bool                                    $inheritEnvironmentVariables Also pass every entry of $_SERVER to git processes
-     * @param float|null                              $processTimeout              In seconds, for the whole process and without output; null for none
+     * git inherits the environment variables of PHP, like any process run by Symfony Process.
+     *
+     * @param string                                  $command              The git binary
+     * @param array<string, string|\Stringable|false> $environmentVariables Set on every git process, false removing an inherited one
+     * @param float|null                              $processTimeout       In seconds, for the whole process and without output; null for none
+     * @param LoggerInterface|null                    $logger               Receives every git command run, with its output
      */
     public function __construct(
-        string $command = 'git',
-        array $environmentVariables = [],
-        bool $inheritEnvironmentVariables = false,
-        ?float $processTimeout = 3600,
+        private string $command = 'git',
+        private array $environmentVariables = [],
+        private ?float $processTimeout = 3600,
+        private ?LoggerInterface $logger = null,
     ) {
-        $this->processFactory = new GitProcessFactory($command, $environmentVariables, $inheritEnvironmentVariables, $processTimeout);
     }
 
-    public function open(string $gitDir, ?string $workingDir, ?LoggerInterface $logger): CliRepositoryDriver
+    public function open(string $dir, ?string $workingDir): CliRepositoryDriver
     {
-        return new CliRepositoryDriver($this->processFactory, $gitDir, $workingDir, $logger);
+        $paths = RepositoryPaths::resolve($dir, $workingDir);
+
+        return new CliRepositoryDriver($this->runner(), $paths->gitDir, $paths->workingDir);
     }
 
     public function init(string $path): void
     {
-        $this->mustRun(['init', '-q', $path]);
+        $this->mustRun('init', ['-q', $path]);
     }
 
     public function initBare(string $path): void
     {
-        $this->mustRun(['init', '-q', '--bare', $path]);
+        $this->mustRun('init', ['-q', '--bare', $path]);
     }
 
     public function cloneFrom(string $url, string $path, ?string $branch): void
@@ -72,15 +74,24 @@ final readonly class CliDriver implements DriverInterface
 
     public function isValidRepository(string $url): bool
     {
-        return 0 === $this->processFactory->create(['ls-remote', $url])->run();
+        return $this->runner()->run('ls-remote', [self::absoluteUrl($url)])->isSuccessful();
     }
 
-    public function isValidRepositoryAndBranch(string $url, string $branchName): bool
+    public function isValidRepositoryAndBranch(string $url, string $branch): bool
     {
-        $process = $this->processFactory->create(['ls-remote', '--heads', $url, $branchName]);
+        // git lists the branches whose name ends with the pattern: "release" matches "feature/release".
+        $process = $this->runner()->run('ls-remote', ['--heads', self::absoluteUrl($url), 'refs/heads/'.$branch]);
+        if (!$process->isSuccessful()) {
+            return false;
+        }
 
-        // git only lists the branches matching $branchName.
-        return 0 === $process->run() && '' !== $process->getOutput();
+        foreach (explode("\n", $process->getOutput()) as $line) {
+            if (str_ends_with($line, "\trefs/heads/".$branch)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -92,18 +103,62 @@ final readonly class CliDriver implements DriverInterface
      */
     public function cloneRepository(string $path, string $url, array $args): void
     {
-        $this->mustRun(['clone', '-q', ...$args, $url, $path]);
+        $this->mustRun('clone', ['-q', ...$args, $url, $path]);
+    }
+
+    /**
+     * @internal For the deprecated Repository::getLogger(), to be removed in 3.0
+     */
+    public function getLogger(): ?LoggerInterface
+    {
+        return $this->logger;
+    }
+
+    /**
+     * @internal For the deprecated Repository::setLogger(), to be removed in 3.0
+     */
+    public function withLogger(LoggerInterface $logger): self
+    {
+        return new self($this->command, $this->environmentVariables, $this->processTimeout, $logger);
+    }
+
+    private function runner(): GitRunner
+    {
+        return new GitRunner($this->command, $this->environmentVariables, $this->processTimeout, $this->logger);
     }
 
     /**
      * @param string[] $args
      */
-    private function mustRun(array $args): void
+    private function mustRun(string $command, array $args): void
     {
-        $process = $this->processFactory->create($args);
+        $process = $this->runner()->run($command, $args);
 
-        if (0 !== $process->run()) {
+        if (!$process->isSuccessful()) {
             throw new ProcessException($process);
         }
+    }
+
+    /**
+     * Run in a repository, ls-remote reads a relative path as the name of a
+     * remote first: "origin" would be the URL of the remote of PHP's working
+     * directory.
+     */
+    private static function absoluteUrl(string $url): string
+    {
+        if (str_starts_with($url, '/') || 1 === preg_match('#^[a-zA-Z]:[\\\/]#', $url)) {
+            return $url;
+        }
+
+        // Like git: a URL, or an address like "host:path", has a colon before any slash.
+        $colon = strpos($url, ':');
+        $slash = strpos($url, '/');
+        if (false !== $colon && (false === $slash || $colon < $slash)) {
+            return $url;
+        }
+
+        $cwd = getcwd();
+
+        return false === $cwd ? $url : $cwd.'/'.$url;
     }
 }

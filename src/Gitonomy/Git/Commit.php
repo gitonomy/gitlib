@@ -14,10 +14,10 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Driver\Data\CommitData;
-use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
+use Gitonomy\Git\Util\Message;
 use Symfony\Component\String\CodePointString;
 
 /**
@@ -35,8 +35,6 @@ final class Commit extends Revision
     // Values derived from the fields above, computed and cached independently.
     private ?string $shortHash = null;
     private ?Tree $tree = null;
-    private ?string $subjectMessage = null;
-    private ?string $bodyMessage = null;
 
     /**
      * @param Repository $repository Repository of the commit
@@ -45,7 +43,7 @@ final class Commit extends Revision
     public function __construct(Repository $repository, string $hash, ?CommitData $data = null)
     {
         if (!preg_match('/^[a-f0-9]{40}$/', $hash)) {
-            throw new ReferenceNotFoundException($hash);
+            throw new ReferenceNotFoundException(\sprintf('"%s" is not the hash of a commit: get a commit by its name with getRevision(...)->getCommit().', $hash));
         }
 
         parent::__construct($repository, $hash);
@@ -53,17 +51,21 @@ final class Commit extends Revision
         $this->data = $data;
     }
 
+    /**
+     * @internal
+     */
     public function setData(CommitData $data): void
     {
         $this->data = $data;
     }
 
+    /**
+     * Returns the changes of the commit: against its first parent, like GitHub
+     * shows a merge commit, or against nothing for a root commit.
+     */
     public function getDiff(): Diff
     {
-        $diff = $this->repository->getRepositoryDriver()->getCommitDiff($this->revision);
-        $diff->setRepository($this->repository);
-
-        return $diff;
+        return Diff::fromData($this->repository->getRepositoryDriver()->getDiff($this->getParentHashes()[0] ?? null, $this->revision), $this->repository);
     }
 
     /**
@@ -79,22 +81,18 @@ final class Commit extends Revision
      */
     public function getShortHash(): string
     {
-        if (null === $this->shortHash) {
-            try {
-                $this->shortHash = $this->repository->getRepositoryDriver()->getShortHash($this->revision);
-            } catch (DriverException $e) {
-                throw new ReferenceNotFoundException($this->revision, 0, $e);
-            }
-        }
-
-        return $this->shortHash;
+        return $this->shortHash ??= $this->repository->getRepositoryDriver()->getShortHash($this->revision);
     }
 
     /**
      * Returns a fixed-with short hash.
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use substr($commit->getHash(), 0, $length) instead
      */
     public function getFixedShortHash(int $length = 6): string
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.', __METHOD__);
+
         return new CodePointString($this->revision)->slice(0, $length)->toString();
     }
 
@@ -149,9 +147,13 @@ final class Commit extends Revision
      * Returns the first line of the commit, and the first 50 characters.
      *
      * Ported from https://github.com/fabpot/Twig-extensions/blob/d67bc7e69788795d7905b52d31188bbc1d390e01/lib/Twig/Extensions/Extension/Text.php#L52-L109
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use symfony/string instead: u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)
      */
     public function getShortMessage(int $length = 50, bool $preserve = false, string $separator = '...'): string
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use symfony/string instead: "u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)".', __METHOD__);
+
         $message = $this->getSubjectMessage();
 
         $codePointMessage = new CodePointString($message);
@@ -178,29 +180,29 @@ final class Commit extends Revision
     }
 
     /**
-     * Find branch containing the commit.
+     * Returns the local and remote branches whose history contains the commit.
      *
-     * @param bool $local  set true to try to locate a commit on local repository
-     * @param bool $remote set true to try to locate a commit on remote repository
+     * Passing arguments, to keep local or remote branches only, is deprecated.
      *
-     * @return Reference[]|Branch[] An array of Reference\Branch
+     * @return Branch[]
      */
     public function getIncludingBranches(bool $local = true, bool $remote = true): array
     {
+        if (\func_num_args() > 0) {
+            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing arguments to "%s()" is deprecated, filter the branches it returns with "%s::isLocal()" or "isRemote()" instead.', __METHOD__, Branch::class);
+        }
+
         if (!$local && !$remote) {
-            throw new InvalidArgumentException('You should a least set one argument to true');
+            throw new InvalidArgumentException('You should a least set one argument to true.');
         }
 
         $references = $this->repository->getReferences();
 
         $branches = [];
         foreach ($this->repository->getRepositoryDriver()->getIncludingBranches($this->revision) as $fullname) {
-            if (str_starts_with($fullname, 'refs/heads/')) {
-                if ($local) {
-                    $branches[] = $references->getBranch(substr($fullname, \strlen('refs/heads/')));
-                }
-            } elseif ($remote) {
-                $branches[] = $references->getRemoteBranch(substr($fullname, \strlen('refs/remotes/')));
+            $branch = $references->get($fullname);
+            if ($branch instanceof Branch && ($branch->isLocal() ? $local : $remote)) {
+                $branches[] = $branch;
             }
         }
 
@@ -248,7 +250,7 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns the authoring date.
+     * Returns the committing date.
      */
     public function getCommitterDate(): \DateTimeImmutable
     {
@@ -264,33 +266,19 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns the subject message (the first line).
+     * @return string The first paragraph of the message, on one line, like "git log --format=%s"
      */
     public function getSubjectMessage(): string
     {
-        if (null === $this->subjectMessage) {
-            $lines = explode("\n", $this->getMessage());
-            $this->subjectMessage = reset($lines);
-        }
-
-        return $this->subjectMessage;
+        return Message::subject($this->getMessage());
     }
 
     /**
-     * Return the body message.
+     * @return string What follows the subject and its empty lines, like "git log --format=%b"
      */
     public function getBodyMessage(): string
     {
-        if (null === $this->bodyMessage) {
-            $lines = explode("\n", $this->getMessage());
-
-            array_shift($lines);
-            array_shift($lines);
-
-            $this->bodyMessage = implode("\n", $lines);
-        }
-
-        return $this->bodyMessage;
+        return Message::body($this->getMessage());
     }
 
     public function getCommit(): self
@@ -300,14 +288,6 @@ final class Commit extends Revision
 
     private function data(): CommitData
     {
-        if (null === $this->data) {
-            try {
-                $this->data = $this->repository->getRepositoryDriver()->getCommitData($this->revision);
-            } catch (DriverException $e) {
-                throw new ReferenceNotFoundException(\sprintf('Can not find reference "%s"', $this->revision), 0, $e);
-            }
-        }
-
-        return $this->data;
+        return $this->data ??= $this->repository->getRepositoryDriver()->getCommitData($this->revision);
     }
 }
