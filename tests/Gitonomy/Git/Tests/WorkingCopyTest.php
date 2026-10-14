@@ -538,11 +538,18 @@ class WorkingCopyTest extends AbstractTestCase
         $this->assertSame([], $repository->getWorkingCopy()->getDiffStaged()->getFiles());
     }
 
-    public function testCheckoutOfHeadLeavesItAttached(): void
+    #[TestWith(['HEAD'])]
+    #[TestWith(['@'])]
+    public function testCheckoutOfHeadLeavesItAttached(string $head): void
     {
+        // git 2.43 detaches HEAD for "@", 2.53 doesn't: git 2.45 learned that "@" is HEAD in checkout.
+        if ('@' === $head && self::getDriver() instanceof CliDriver && version_compare(self::gitVersion(), '2.45.0', '<')) {
+            $this->markTestSkipped('git checks "@" out like HEAD since 2.45.');
+        }
+
         $repository = self::createFoobarRepository(false);
 
-        $repository->getWorkingCopy()->checkout('HEAD');
+        $repository->getWorkingCopy()->checkout($head);
 
         $this->assertSame('refs/heads/master', self::headBranch($repository)->getFullname());
     }
