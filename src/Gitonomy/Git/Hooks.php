@@ -108,13 +108,14 @@ final readonly class Hooks
      *
      * @param string $name Name of the hook
      *
-     * @throws InvalidArgumentException The name isn't the one of a file of the hooks directory
-     * @throws RuntimeException         The hook doesn't exist, or can't be removed
+     * @throws InvalidArgumentException The hook doesn't exist, or the name isn't the one of a file of the hooks directory
+     * @throws RuntimeException         The hook can't be removed
      */
     public function remove(string $name): void
     {
+        // Like get().
         if (!$this->has($name)) {
-            throw new RuntimeException(\sprintf('The hook "%s" does not exist.', $name));
+            throw new InvalidArgumentException(\sprintf('The hook "%s" does not exist.', $name));
         }
 
         if (false === @unlink($this->getPath($name))) {

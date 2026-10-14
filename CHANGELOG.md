@@ -199,8 +199,9 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 -   Fix `Hooks` failing silently, in a repository without hooks directory, and writing the hooks
     of a linked worktree where git doesn't run them. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 -   Fix `Repository::getSize()` throwing for a link to a missing file in the git directory, like
-    a hook not deployed yet: it no longer follows links. A file git deletes meanwhile, like a lock
-    during a `gc` or a push, no longer makes it throw either.
+    a hook not deployed yet: it no longer follows links. A file or a directory git deletes
+    meanwhile, like a lock during a `gc` or the quarantine of a push, no longer makes it throw
+    either, and one it can't read throws a `RuntimeException` of gitlib, instead of PHP's.
 -   Fix blame lines starting with a TAB character (`Blame\Line::getContent()`): code removing it
     must stop doing so. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 -   Fix reading a commit whose `encoding` header isn't UTF-8, which threw: its message, author and

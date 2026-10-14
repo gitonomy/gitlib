@@ -24,6 +24,7 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ProcessTimedOutException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
@@ -712,6 +713,28 @@ class RepositoryTest extends AbstractTestCase
         symlink($repository->getGitDir().'/missing', $repository->getGitDir().'/link');
 
         $this->assertSame($size + 1000, $repository->getSizeInBytes());
+    }
+
+    public function testGetSizeInBytesOfAnUnreadableDirectoryThrows(): void
+    {
+        $repository = self::createEmptyRepository();
+        $dir = $repository->getGitDir().'/unreadable';
+        mkdir($dir);
+        chmod($dir, 0);
+
+        try {
+            if (is_readable($dir)) {
+                $this->markTestSkipped('The user of the tests reads any directory, like root.');
+            }
+
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage(\sprintf('Unable to read the directory "%s".', $dir));
+
+            $repository->getSizeInBytes();
+        } finally {
+            // Or the directory can't be deleted.
+            chmod($dir, 0o700);
+        }
     }
 
     #[Group('legacy')]

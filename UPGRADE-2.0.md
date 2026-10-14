@@ -412,9 +412,11 @@ Errors
     `Tree::resolvePath()`.
 *   `Commit::getShortHash()` throws a `ReferenceNotFoundException` for an
     unknown commit, instead of a `ProcessException`.
-*   `Hooks` throws a `RuntimeException` when a hook exists already, doesn't
-    exist, or can't be written, instead of a `LogicException` or a silent
-    failure, and creates the hooks directory.
+*   `Hooks` throws a `RuntimeException` when a hook exists already, or can't
+    be written, instead of a `LogicException` or a silent failure, and
+    creates the hooks directory. `remove()` of a hook that doesn't exist
+    throws an `InvalidArgumentException`, like `get()`, still a
+    `LogicException`.
 *   The `Admin` methods throw a `ProcessException`, still a
     `RuntimeException`, with the first line of git's error output in its
     message, or a `DriverException` when git can't start.

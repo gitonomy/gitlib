@@ -95,5 +95,6 @@ To remove a hook from a repository, use the function *remove*:
 $hooks->remove('pre-receive');
 ```
 
-It throws a `Gitonomy\Git\Exception\RuntimeException` if the hook does not
-exist, or if it can't be removed.
+It throws a `Gitonomy\Git\Exception\InvalidArgumentException` if the hook
+does not exist, like *get*, and a `Gitonomy\Git\Exception\RuntimeException`
+if it can't be removed.

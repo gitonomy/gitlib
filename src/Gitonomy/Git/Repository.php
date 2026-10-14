@@ -527,29 +527,12 @@ final class Repository
 
     /**
      * @return int The size of the files of the git directory, working tree excluded, in bytes
+     *
+     * @throws RuntimeException A file or a directory of the git directory can't be read
      */
     public function getSizeInBytes(): int
     {
-        $size = 0;
-        /** @var \SplFileInfo $file */
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->gitDir, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            // A link isn't followed: it may point to a file not deployed yet, like a hook.
-            if ($file->isLink()) {
-                continue;
-            }
-
-            try {
-                $size += $file->getSize();
-            } catch (\RuntimeException $e) {
-                // git deleted it since it was listed, during a gc or a push:
-                // a lock, a temporary pack... It no longer counts.
-                if (file_exists($file->getPathname())) {
-                    throw $e;
-                }
-            }
-        }
-
-        return $size;
+        return self::directorySize($this->gitDir);
     }
 
     /**
@@ -797,5 +780,50 @@ final class Repository
         }
 
         return $fullHash;
+    }
+
+    /**
+     * git may delete a file or a directory while it is counted, during a gc
+     * or a push: a lock, a temporary pack, the quarantine of a push... It no
+     * longer counts.
+     *
+     * @throws RuntimeException A file or a directory of $dir can't be read
+     */
+    private static function directorySize(string $dir): int
+    {
+        try {
+            $files = new \FilesystemIterator($dir, \FilesystemIterator::SKIP_DOTS);
+        } catch (\UnexpectedValueException $e) {
+            if (!file_exists($dir)) {
+                return 0;
+            }
+
+            throw new RuntimeException(\sprintf('Unable to read the directory "%s".', $dir), 0, $e);
+        }
+
+        $size = 0;
+        /** @var \SplFileInfo $file */
+        foreach ($files as $file) {
+            // A link isn't followed: it may point to a file not deployed yet, like a hook.
+            if ($file->isLink()) {
+                continue;
+            }
+
+            if ($file->isDir()) {
+                $size += self::directorySize($file->getPathname());
+
+                continue;
+            }
+
+            try {
+                $size += $file->getSize();
+            } catch (\RuntimeException $e) {
+                if (file_exists($file->getPathname())) {
+                    throw new RuntimeException(\sprintf('Unable to read the size of "%s".', $file->getPathname()), 0, $e);
+                }
+            }
+        }
+
+        return $size;
     }
 }

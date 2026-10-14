@@ -165,7 +165,8 @@ Compute size of a repository
 
 `getSizeInBytes()` returns the size of the files of the git directory,
 working tree excluded, in bytes. It doesn't follow links, and leaves out a
-file git deletes meanwhile, like a lock during a `gc` or a push:
+file or a directory git deletes meanwhile, like a lock during a `gc` or the
+quarantine of a push. One it can't read throws a `RuntimeException`:
 
 ```php
 $size = $repository->getSizeInBytes();
