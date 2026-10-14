@@ -18,10 +18,12 @@ use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use Symfony\Component\Process\Process;
 
 class CommitTest extends AbstractTestCase
 {
@@ -381,6 +383,35 @@ class CommitTest extends AbstractTestCase
         $branches = $repository->getCommit(self::INITIAL_COMMIT)->getIncludingBranches();
 
         $this->assertContains($repository->getReferences()->getBranch('remotes/origin/fake'), $branches);
+    }
+
+    /**
+     * gitlib doesn't see the writes of another process, but doesn't fail on them.
+     */
+    public function testGetIncludingBranchesCreatedByAnotherProcess(): void
+    {
+        $repository = self::createFoobarRepository();
+        $repository->getReferences()->getAll();
+        new Process([self::gitCommand(), 'branch', 'elsewhere', self::INITIAL_COMMIT], $repository->getPath(), self::gitEnvs())->mustRun();
+
+        $fullnames = array_map(static fn (Branch $branch): string => $branch->getFullname(), $repository->getCommit(self::INITIAL_COMMIT)->getIncludingBranches());
+
+        $this->assertContains('refs/heads/elsewhere', $fullnames);
+    }
+
+    /**
+     * A mirror leaves the default branch of a remote as a regular reference,
+     * which the branches leave out, like a symbolic one.
+     */
+    public function testGetIncludingBranchesLeavesOutTheDefaultBranchOfARemote(): void
+    {
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'update-ref', ['--no-deref', 'refs/remotes/origin/HEAD', self::INITIAL_COMMIT]);
+
+        $fullnames = array_map(static fn (Branch $branch): string => $branch->getFullname(), $repository->getCommit(self::INITIAL_COMMIT)->getIncludingBranches());
+
+        $this->assertNotContains('refs/remotes/origin/HEAD', $fullnames);
+        $this->assertContains('refs/heads/master', $fullnames);
     }
 
     #[DataProvider('provideBare')]

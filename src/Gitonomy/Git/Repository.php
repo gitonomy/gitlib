@@ -261,7 +261,13 @@ final class Repository
             return $this->getCommit($this->repositoryDriver->resolveRevision('HEAD'));
         }
 
-        $head = $this->getReferences()->get($reference);
+        $references = $this->getReferences();
+        // A branch another process checked out since gitlib read the references.
+        if (!$references->has($reference)) {
+            $references->invalidate();
+        }
+
+        $head = $references->get($reference);
         // git lets HEAD point to any reference under "refs/", a tag included.
         if (!$head instanceof Branch) {
             throw new ReferenceNotFoundException(\sprintf('HEAD points to "%s", which is not a branch.', $reference));

@@ -198,10 +198,21 @@ final class Commit extends Revision
             throw new InvalidArgumentException('You should a least set one argument to true.');
         }
 
+        $fullnames = $this->repository->getRepositoryDriver()->getIncludingBranches($this->revision);
         $references = $this->repository->getReferences();
+        // A branch another process created since gitlib read the references.
+        if ([] !== array_filter($fullnames, static fn (string $fullname): bool => !$references->has($fullname))) {
+            $references->invalidate();
+        }
 
         $branches = [];
-        foreach ($this->repository->getRepositoryDriver()->getIncludingBranches($this->revision) as $fullname) {
+        foreach ($fullnames as $fullname) {
+            // Unknown still: the default branch of a remote, which the references leave out, even
+            // when a mirror leaves it as a regular reference, or a branch deleted meanwhile.
+            if (!$references->has($fullname)) {
+                continue;
+            }
+
             $branch = $references->get($fullname);
             if ($branch instanceof Branch && ($branch->isLocal() ? $local : $remote)) {
                 $branches[] = $branch;

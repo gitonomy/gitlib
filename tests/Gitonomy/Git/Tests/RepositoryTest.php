@@ -249,6 +249,18 @@ class RepositoryTest extends AbstractTestCase
         $repository->getHead();
     }
 
+    /**
+     * gitlib doesn't see the writes of another process, but doesn't fail on them.
+     */
+    public function testTheHeadAnotherProcessChecksOut(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $repository->getReferences()->getAll();
+        new Process([self::gitCommand(), 'checkout', '-q', '-b', 'elsewhere'], $repository->getWorkingDir(), self::gitEnvs())->mustRun();
+
+        $this->assertSame('refs/heads/elsewhere', self::headBranch($repository)->getFullname());
+    }
+
     public function testHeadPointingToATagIsNoBranch(): void
     {
         $repository = self::createFoobarRepository();
