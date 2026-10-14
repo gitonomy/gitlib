@@ -87,6 +87,7 @@ class ReferenceTest extends AbstractTestCase
         $this->assertSame('Graham Campbell', $tag->getTaggerName(), 'Tagger name is correct');
         $this->assertSame('graham@alt-three.com', $tag->getTaggerEmail(), 'Tagger email is correct');
         $this->assertSame(1471428000, $tag->getTaggerDate()?->getTimestamp(), 'Tag date is correct');
+        $this->assertSame('2016-08-17T12:00:00+02:00', $tag->getTaggerDate()->format(\DATE_ATOM), 'Tag date is at the offset of the tagger');
 
         // Without an empty line after its first one, the message is one paragraph: its subject, like "git log --format=%s".
         $this->assertSame('heading body body', $tag->getSubjectMessage(), 'Message heading is correct');
@@ -97,6 +98,26 @@ class ReferenceTest extends AbstractTestCase
         $this->assertSame('fbde681b329a39e08b63dc54b341a3274c0380c0', $tag->getCommit()->getHash());
         $this->assertSame([$tag], $repository->getReferences()->resolveTags($tag->getCommit()));
         $this->assertContains($tag, $tag->getCommit()->resolveReferences());
+    }
+
+    /**
+     * Like git log, at the UTC offset of the tagger, not of the author or of
+     * the committer of the commit.
+     */
+    public function testTheTaggerDateIsAtTheOffsetOfTheTagger(): void
+    {
+        $repository = self::createFoobarRepository();
+        $git = new Repository($repository->getPath(), driver: self::getCliDriver([
+            'GIT_COMMITTER_DATE' => '1700000002 -0700',
+            'GIT_COMMITTER_EMAIL' => 'tagger@example.com',
+            'GIT_COMMITTER_NAME' => 'Tagger',
+        ]));
+        $git->run('tag', ['-a', '-m', 'Dates', 'dates', self::LONGFILE_COMMIT]);
+
+        $date = new Repository($repository->getPath(), driver: self::getDriver())->getReferences()->getTag('dates')->getTaggerDate();
+
+        $this->assertSame('2023-11-14T15:13:22-07:00', $date?->format(\DATE_ATOM));
+        $this->assertSame(1700000002, $date->getTimestamp());
     }
 
     #[DataProvider('provideBare')]

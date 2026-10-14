@@ -458,6 +458,23 @@ Dates
    `Reference\Tag::getTaggerDate()` return a `\DateTimeImmutable` instead of
    a `\DateTime`. Code that modifies the returned date must use the returned
    value of `modify()`, `setTimezone()`...
+ * These dates are at the UTC offset of their author, committer or tagger,
+   like `git log` shows them (`2016-08-17T12:00:00+02:00`), instead of in
+   UTC. The instant doesn't change: comparisons and `getTimestamp()` return
+   the same results, but `format()` returns the local time of the author,
+   committer or tagger. To keep UTC, convert the date:
+
+   Before:
+
+   ```php
+   $date = $commit->getAuthorDate()->format('Y-m-d H:i');
+   ```
+
+   After:
+
+   ```php
+   $date = $commit->getAuthorDate()->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i');
+   ```
 
 Extending gitlib
 ----------------

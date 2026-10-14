@@ -126,8 +126,9 @@ if ($tag->isAnnotated()) {
 ```
 
 -   `getTaggerName()`, `getTaggerEmail()` and `getTaggerDate()` (a
-    `DateTimeImmutable`) return `null` for a lightweight tag, and for an
-    annotated tag without tagger;
+    `DateTimeImmutable`, at the UTC offset of the tagger, like the dates of
+    a [commit](commit.md#author-and-committer)) return `null` for a
+    lightweight tag, and for an annotated tag without tagger;
 -   `getMessage()` returns the message, without the signature, `null` for a
     lightweight tag;
 -   `getSubjectMessage()` and `getBodyMessage()` split the message like

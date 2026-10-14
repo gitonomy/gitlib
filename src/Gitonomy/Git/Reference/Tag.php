@@ -78,7 +78,7 @@ final class Tag extends Reference
     }
 
     /**
-     * @return \DateTimeImmutable|null The tagging date, null for a lightweight tag or a tag without tagger
+     * @return \DateTimeImmutable|null The tagging date, at the UTC offset of the tagger, like git log shows it; null for a lightweight tag or a tag without tagger
      */
     public function getTaggerDate(): ?\DateTimeImmutable
     {

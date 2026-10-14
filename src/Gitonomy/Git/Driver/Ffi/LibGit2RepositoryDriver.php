@@ -1706,10 +1706,18 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         }
     }
 
+    /**
+     * @return \DateTimeImmutable The date at the UTC offset of the signature, like CliDriver's parsers
+     */
     private function signatureDate(CData $signature): \DateTimeImmutable
     {
-        // Same timezone as CliDriver's parsers.
-        return new \DateTimeImmutable('@'.$signature->when->time)->setTimezone(new \DateTimeZone('UTC'));
+        // In minutes. libgit2 gives 0 for an offset of more than 14 hours or
+        // 59 minutes, which no timezone has, in a corrupt object.
+        $offset = $signature->when->offset;
+        // @phpstan-ignore argument.type (libgit2.h declares the offset an int, which PHPStan can't see.)
+        $timezone = new \DateTimeZone(\sprintf('%s%02d%02d', $offset < 0 ? '-' : '+', intdiv(abs($offset), 60), abs($offset) % 60));
+
+        return new \DateTimeImmutable('@'.$signature->when->time)->setTimezone($timezone);
     }
 
     private function objectType(int $type): ObjectType

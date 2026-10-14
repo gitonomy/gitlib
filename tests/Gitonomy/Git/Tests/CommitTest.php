@@ -47,6 +47,66 @@ class CommitTest extends AbstractTestCase
         $repository->getCommit($hash)->getAuthorDate();
     }
 
+    /**
+     * Like git log, at the UTC offsets of the author and of the committer.
+     */
+    public function testTheDatesAreAtTheOffsetsOfTheAuthorAndOfTheCommitter(): void
+    {
+        $repository = self::createEmptyRepository();
+        $tree = self::writeObject($repository, 'tree', '');
+        $git = new Repository($repository->getPath(), driver: self::getCliDriver([
+            'GIT_AUTHOR_DATE' => '1700000000 +0530',
+            'GIT_AUTHOR_EMAIL' => 'author@example.com',
+            'GIT_AUTHOR_NAME' => 'Author',
+            'GIT_COMMITTER_DATE' => '1700000001 -0330',
+            'GIT_COMMITTER_EMAIL' => 'committer@example.com',
+            'GIT_COMMITTER_NAME' => 'Committer',
+        ]));
+        $hash = trim($git->run('commit-tree', [$tree, '-m', 'Dates']));
+
+        $commit = $repository->getCommit($hash);
+
+        $this->assertSame('2023-11-15T03:43:20+05:30', $commit->getAuthorDate()->format(\DATE_ATOM));
+        $this->assertSame(1700000000, $commit->getAuthorDate()->getTimestamp());
+        $this->assertSame('2023-11-14T18:43:21-03:30', $commit->getCommitterDate()->format(\DATE_ATOM));
+        $this->assertSame(1700000001, $commit->getCommitterDate()->getTimestamp());
+    }
+
+    /**
+     * Like git log, which shows "-0000" as "+0000". An offset of more than 14
+     * hours or 59 minutes, which no timezone has, gives UTC, like libgit2.
+     */
+    #[DataProvider('provideOffsets')]
+    public function testADateIsAtTheOffsetOfItsSignature(string $offset, string $date): void
+    {
+        $repository = self::createEmptyRepository();
+        $tree = self::writeObject($repository, 'tree', '');
+        $hash = self::writeObject($repository, 'commit', "tree {$tree}\nauthor A <a@example.com> 1700000000 {$offset}\ncommitter A <a@example.com> 1700000000 {$offset}\n\nOffset\n");
+
+        $commit = $repository->getCommit($hash);
+
+        $this->assertSame($date, $commit->getAuthorDate()->format(\DATE_ATOM));
+        $this->assertSame($date, $commit->getCommitterDate()->format(\DATE_ATOM));
+        $this->assertSame(1700000000, $commit->getAuthorDate()->getTimestamp());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideOffsets(): iterable
+    {
+        yield 'half an hour' => ['+0530', '2023-11-15T03:43:20+05:30'];
+        yield 'three quarters of an hour' => ['+0545', '2023-11-15T03:58:20+05:45'];
+        yield 'negative' => ['-0700', '2023-11-14T15:13:20-07:00'];
+        yield 'negative, with minutes' => ['-0330', '2023-11-14T18:43:20-03:30'];
+        yield 'negative, under an hour' => ['-0030', '2023-11-14T21:43:20-00:30'];
+        yield 'unknown' => ['-0000', '2023-11-14T22:13:20+00:00'];
+        yield 'easternmost' => ['+1400', '2023-11-15T12:13:20+14:00'];
+        yield 'westernmost' => ['-1200', '2023-11-14T10:13:20-12:00'];
+        yield 'beyond 14 hours' => ['+1500', '2023-11-14T22:13:20+00:00'];
+        yield 'beyond 59 minutes' => ['+0560', '2023-11-14T22:13:20+00:00'];
+    }
+
     #[DataProvider('provideBare')]
     public function testGetHash(bool $bare): void
     {
@@ -159,7 +219,7 @@ class CommitTest extends AbstractTestCase
         $repository = self::createFoobarRepository($bare);
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertSame('2012-12-31 14:21:03', $commit->getAuthorDate()->format('Y-m-d H:i:s'), 'Author date');
+        $this->assertSame('2012-12-31T15:21:03+01:00', $commit->getAuthorDate()->format(\DATE_ATOM), 'Author date');
     }
 
     #[DataProvider('provideBare')]
@@ -186,7 +246,7 @@ class CommitTest extends AbstractTestCase
         $repository = self::createFoobarRepository($bare);
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertSame('2012-12-31 14:21:03', $commit->getCommitterDate()->format('Y-m-d H:i:s'), 'Committer date');
+        $this->assertSame('2012-12-31T15:21:03+01:00', $commit->getCommitterDate()->format(\DATE_ATOM), 'Committer date');
     }
 
     #[DataProvider('provideBare')]

@@ -21,7 +21,9 @@ namespace Gitonomy\Git\Driver\Data;
 final readonly class CommitData
 {
     /**
-     * @param string[] $parentHashes
+     * @param string[]           $parentHashes
+     * @param \DateTimeImmutable $authorDate    At the UTC offset of the author, like git log shows it
+     * @param \DateTimeImmutable $committerDate At the UTC offset of the committer, like git log shows it
      */
     public function __construct(
         public string $hash,

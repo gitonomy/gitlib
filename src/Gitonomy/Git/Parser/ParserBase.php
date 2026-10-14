@@ -131,24 +131,34 @@ abstract class ParserBase
      */
     protected function consumeNameEmailDate(): array
     {
-        if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+) [+-]\d{4})/A', $this->content, $vars, 0, $this->cursor)) {
+        if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+) ([+-]\d{4}))/A', $this->content, $vars, 0, $this->cursor)) {
             throw new RuntimeException('Unable to parse name, email and date.');
         }
 
         $this->cursor += \strlen($vars[1]);
 
-        return [$vars[2], $vars[3], self::timestamp($vars[4])];
+        return [$vars[2], $vars[3], self::signatureDate($vars[4], $vars[5])];
     }
 
     /**
      * @param string $timestamp Seconds since the epoch, as git writes them
+     * @param string $offset    The UTC offset of the author, committer or tagger, as git writes it: "+0200", "-0330"...
+     *
+     * @return \DateTimeImmutable The date at $offset, like git log shows it
      *
      * @throws RuntimeException The date is out of range, in a corrupt object
      */
-    protected static function timestamp(string $timestamp): \DateTimeImmutable
+    protected static function signatureDate(string $timestamp, string $offset): \DateTimeImmutable
     {
+        // Like libgit2, which LibGit2Driver reads dates with: an offset of
+        // more than 14 hours or 59 minutes, which no timezone has, in a
+        // corrupt object, gives UTC.
+        if ((int) substr($offset, 1, 2) > 14 || (int) substr($offset, 3) > 59) {
+            $offset = '+0000';
+        }
+
         try {
-            return new \DateTimeImmutable('@'.$timestamp)->setTimezone(new \DateTimeZone('UTC'));
+            return new \DateTimeImmutable('@'.$timestamp)->setTimezone(new \DateTimeZone($offset));
         } catch (\DateMalformedStringException $e) {
             throw new RuntimeException(\sprintf('The date "%s" is out of range.', $timestamp), 0, $e);
         }

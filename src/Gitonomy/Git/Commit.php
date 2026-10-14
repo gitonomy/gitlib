@@ -226,7 +226,8 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns the authoring date.
+     * Returns the authoring date, at the UTC offset of the author, like git
+     * log shows it.
      */
     public function getAuthorDate(): \DateTimeImmutable
     {
@@ -250,7 +251,8 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns the committing date.
+     * Returns the committing date, at the UTC offset of the committer, like
+     * git log shows it.
      */
     public function getCommitterDate(): \DateTimeImmutable
     {

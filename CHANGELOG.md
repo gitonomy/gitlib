@@ -20,6 +20,9 @@ deprecated until 3.0.
   lines and logs are typed objects; the subject of a message is its first paragraph. See
   [UPGRADE-2.0.md](UPGRADE-2.0.md) for every change.
   ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- Return the dates of commits and tags at the UTC offset of their author, committer or tagger,
+  like `git log` shows them, instead of in UTC: the instant doesn't change, but `format()`
+  returns their local time.
 - Require PHP 8.4 or later, Symfony 6.4/7.4/8.1+: most classes are `final` (some `readonly`),
   and every method has native types. ([#238](https://github.com/gitonomy/gitlib/pull/238))
 - Remove `Gitonomy\Git\Util\StringHelper`, replaced by `symfony/string`, and its configurable
