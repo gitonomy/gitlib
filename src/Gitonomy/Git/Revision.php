@@ -37,8 +37,13 @@ class Revision
      */
     public function getCommit(): Commit
     {
+        $driver = $this->repository->getRepositoryDriver();
+
         try {
-            $hash = $this->repository->getRepositoryDriver()->resolveRevision($this->revision.'^{commit}');
+            // "^{commit}" would be part of the text of ":/text", the commit
+            // whose message matches it: its hash first.
+            $revision = str_starts_with($this->revision, ':/') ? $driver->resolveRevision($this->revision) : $this->revision;
+            $hash = $driver->resolveRevision($revision.'^{commit}');
         } catch (ReferenceNotFoundException $e) {
             throw new ReferenceNotFoundException(\sprintf('The revision "%s" does not exist, or names no commit.', $this->revision), 0, $e);
         }

@@ -62,6 +62,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     private const int GIT_DIFF_FLAG_BINARY = 1 << 0;
     private const int GIT_DIFF_INDENT_HEURISTIC = 1 << 18;
     private const int GIT_DIFF_FIND_RENAMES = 1 << 0;
+    private const int GIT_DIRECTION_FETCH = 0;
     private const int GIT_STATUS_OPT_INCLUDE_UNTRACKED = 1 << 0;
     private const int GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS = 1 << 4;
     private const int GIT_STATUS_WT_NEW = 1 << 7;
@@ -600,10 +601,10 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         }
     }
 
-    public function checkoutNewBranch(string $branch, string $startHash): void
+    public function checkoutNewBranch(string $branch, string $startPoint): void
     {
-        NulByte::assertNone($branch, $startHash);
-        LeadingDash::assertNone($branch, $startHash);
+        NulByte::assertNone($branch, $startPoint);
+        LeadingDash::assertNone($branch, $startPoint);
 
         if ($this->referenceExists('refs/heads/'.$branch)) {
             throw new DriverException(\sprintf('A branch named "%s" already exists.', $branch));
@@ -615,16 +616,32 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         if (0 === $valid->cdata) {
             throw new DriverException(\sprintf('"%s" is not a valid branch name.', $branch));
         }
-        $commit = $this->lookupCommit($this->resolveCommit($startHash));
+        $startHash = $this->resolveCommit($startPoint);
+        $upstream = $this->upstreamOf($startPoint);
+        $commit = $this->lookupCommit($startHash);
+
+        $reference = $this->ffi->new('git_reference*');
 
         try {
-            $this->checkoutRevision($startHash);
-
-            $reference = $this->ffi->new('git_reference*');
             LibGit2::check($this->ffi, $this->ffi->git_branch_create(\FFI::addr($reference), $this->repo, $branch, $commit, 0), \sprintf('Unable to create branch "%s"', $branch));
-            $this->ffi->git_reference_free($reference);
         } finally {
             $this->ffi->git_commit_free($commit);
+        }
+
+        // The branch and its upstream before the files, which may conflict
+        // with local changes: then, like git, nothing is left behind.
+        try {
+            if (null !== $upstream) {
+                $this->setUpstream($branch, ...$upstream);
+            }
+            $this->checkoutRevision($startHash);
+        } catch (DriverException $e) {
+            // Its configuration with it.
+            LibGit2::check($this->ffi, $this->ffi->git_branch_delete($reference), \sprintf('Unable to delete the branch "%s" after a failed checkout', $branch));
+
+            throw $e;
+        } finally {
+            $this->ffi->git_reference_free($reference);
         }
 
         LibGit2::check($this->ffi, $this->ffi->git_repository_set_head($this->repo, 'refs/heads/'.$branch), 'Unable to update HEAD');
@@ -1227,6 +1244,142 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
     // -- references ----------------------------------------------------------
 
+    /**
+     * Like git's dwim_ref(), which counts the references a name may be the
+     * short name of, unlike git_reference_dwim().
+     *
+     * @return list<string> The full names of the references $name names, after the symbolic ones: several when $name is ambiguous
+     */
+    private function dwimReferences(string $name): array
+    {
+        $references = [];
+        // The rules of git's ref_rev_parse_rules.
+        foreach (['%s', 'refs/%s', 'refs/tags/%s', 'refs/heads/%s', 'refs/remotes/%s', 'refs/remotes/%s/HEAD'] as $rule) {
+            $fullname = \sprintf($rule, $name);
+            $ref = $this->ffi->new('git_reference*');
+            $rc = $this->ffi->git_reference_lookup(\FFI::addr($ref), $this->repo, $fullname);
+            if (LibGit2::GIT_ENOTFOUND === $rc || self::GIT_EINVALIDSPEC === $rc) {
+                continue;
+            }
+            LibGit2::check($this->ffi, $rc, \sprintf('Unable to look up the reference "%s"', $fullname));
+
+            try {
+                $resolved = $this->ffi->new('git_reference*');
+                $rc = $this->ffi->git_reference_resolve(\FFI::addr($resolved), $ref);
+                // Like git, which ignores a symbolic reference to nothing.
+                if (LibGit2::GIT_ENOTFOUND === $rc) {
+                    continue;
+                }
+                LibGit2::check($this->ffi, $rc, \sprintf('Unable to resolve the reference "%s"', $fullname));
+
+                try {
+                    $references[] = $this->ffi->git_reference_name($resolved);
+                } finally {
+                    $this->ffi->git_reference_free($resolved);
+                }
+            } finally {
+                $this->ffi->git_reference_free($ref);
+            }
+        }
+
+        return $references;
+    }
+
+    /**
+     * Like git with branch.autoSetupMerge=true, its default, a branch created
+     * from a remote branch tracks it.
+     *
+     * @return array{string, string}|null The remote, and its branch, that $startPoint names, like ["origin", "refs/heads/feature"] for "origin/feature"; null when $startPoint names another revision, or a branch no remote fetches
+     *
+     * @throws DriverException $startPoint names several references, or a branch several remotes fetch
+     */
+    private function upstreamOf(string $startPoint): ?array
+    {
+        $references = $this->dwimReferences($startPoint);
+        // Like git, which refuses to create a branch from an ambiguous name.
+        if (\count($references) > 1) {
+            throw new DriverException(\sprintf('The name "%s" is ambiguous: "%s".', $startPoint, implode('", "', $references)));
+        }
+        $reference = $references[0] ?? null;
+        if (null === $reference || !str_starts_with($reference, 'refs/remotes/')) {
+            return null;
+        }
+
+        // Like git, which only tracks the branch of a remote it knows.
+        $remotes = $this->ffi->new('git_strarray');
+        LibGit2::check($this->ffi, $this->ffi->git_remote_list(\FFI::addr($remotes), $this->repo), 'Unable to list the remotes');
+
+        try {
+            $upstream = null;
+            for ($i = 0; $i < $remotes->count; ++$i) {
+                $remote = \FFI::string($remotes->strings[$i]);
+                $branch = $this->fetchedBranch($remote, $reference);
+                if (null === $branch) {
+                    continue;
+                }
+                if (null !== $upstream) {
+                    throw new DriverException(\sprintf('Unable to tell the upstream of "%s": the remotes "%s" and "%s" fetch it.', $startPoint, $upstream[0], $remote));
+                }
+                $upstream = [$remote, $branch];
+            }
+
+            return $upstream;
+        } finally {
+            $this->ffi->git_strarray_dispose(\FFI::addr($remotes));
+        }
+    }
+
+    /**
+     * @return string|null The branch of $remote a fetch writes to $reference, like "refs/heads/feature" for "refs/remotes/origin/feature", null when no fetch of $remote writes it
+     */
+    private function fetchedBranch(string $remote, string $reference): ?string
+    {
+        $handle = $this->ffi->new('git_remote*');
+        LibGit2::check($this->ffi, $this->ffi->git_remote_lookup(\FFI::addr($handle), $this->repo, $remote), \sprintf('Unable to look up the remote "%s"', $remote));
+
+        try {
+            for ($i = 0, $count = $this->ffi->git_remote_refspec_count($handle); $i < $count; ++$i) {
+                $refspec = $this->ffi->git_remote_get_refspec($handle, $i);
+                if (self::GIT_DIRECTION_FETCH !== $this->ffi->git_refspec_direction($refspec) || 0 === $this->ffi->git_refspec_dst_matches($refspec, $reference)) {
+                    continue;
+                }
+
+                $branch = $this->ffi->new('git_buf');
+                LibGit2::check($this->ffi, $this->ffi->git_refspec_rtransform(\FFI::addr($branch), $refspec, $reference), \sprintf('Unable to find the branch of the remote "%s" fetched to "%s"', $remote, $reference));
+
+                try {
+                    return \FFI::string($branch->ptr, $branch->size);
+                } finally {
+                    $this->ffi->git_buf_dispose(\FFI::addr($branch));
+                }
+            }
+
+            return null;
+        } finally {
+            $this->ffi->git_remote_free($handle);
+        }
+    }
+
+    /**
+     * Writes the configuration git_branch_set_upstream() would, which looks
+     * for a local branch of the name of the remote one first.
+     *
+     * @param string $merge The branch on the remote, like "refs/heads/feature"
+     */
+    private function setUpstream(string $branch, string $remote, string $merge): void
+    {
+        $config = $this->ffi->new('git_config*');
+        LibGit2::check($this->ffi, $this->ffi->git_repository_config(\FFI::addr($config), $this->repo), 'Unable to open the repository configuration');
+
+        try {
+            foreach (['remote' => $remote, 'merge' => $merge] as $key => $value) {
+                LibGit2::check($this->ffi, $this->ffi->git_config_set_string($config, 'branch.'.$branch.'.'.$key, $value), \sprintf('Unable to set the upstream of "%s"', $branch));
+            }
+        } finally {
+            $this->ffi->git_config_free($config);
+        }
+    }
+
     private function referenceExists(string $fullname): bool
     {
         $ref = $this->ffi->new('git_reference*');
@@ -1363,16 +1516,24 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     }
 
     /**
-     * Resolves a revision to a commit hash, peeling annotated tags.
+     * Resolves a revision to a commit hash, peeling annotated tags: the
+     * object it names, as "^{commit}" would be part of the text of ":/text".
      */
     private function resolveCommit(string $revision): string
     {
-        $object = $this->revparse($revision.'^{commit}');
+        $object = $this->revparse($revision);
 
         try {
-            return $this->oidToHex($this->ffi->git_object_id($object));
+            $commit = $this->ffi->new('git_object*');
+            LibGit2::check($this->ffi, $this->ffi->git_object_peel(\FFI::addr($commit), $object, $this->ffi->GIT_OBJECT_COMMIT), \sprintf('Unable to resolve "%s" to a commit', $revision));
         } finally {
             $this->ffi->git_object_free($object);
+        }
+
+        try {
+            return $this->oidToHex($this->ffi->git_object_id($commit));
+        } finally {
+            $this->ffi->git_object_free($commit);
         }
     }
 

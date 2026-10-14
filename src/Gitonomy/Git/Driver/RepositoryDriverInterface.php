@@ -193,13 +193,33 @@ interface RepositoryDriverInterface
     /**
      * Checks a revision out: HEAD points to the branch when $revision is the
      * name of a local branch, and to the commit otherwise.
+     *
+     * $revision names a commit, which WorkingCopy::checkout() checks before:
+     * it throws a {@see ReferenceNotFoundException} for a name that no
+     * revision has, where ``git checkout`` would create the local branch of a
+     * remote one, like "feature" for "origin/feature". $revision is never a
+     * path either, whose changes ``git checkout`` would discard.
      */
     public function checkout(string $revision): void;
 
-    public function checkoutNewBranch(string $branch, string $startHash): void;
+    /**
+     * Creates the branch $branch at $startPoint and checks it out, like
+     * ``git checkout -b``: the branch tracks $startPoint when it is a remote
+     * branch, like "origin/feature", as with branch.autoSetupMerge=true,
+     * git's default, whatever the configuration. A failure leaves the
+     * branches and the files as they were: like ``git checkout -b``, no
+     * branch is created when the checkout fails.
+     *
+     * @param string $startPoint A revision naming a commit, which WorkingCopy::checkoutNewBranch() checks before
+     *
+     * @throws DriverException $branch exists already or isn't a valid name, $startPoint is the short name of several references, which git refuses, or the checkout would overwrite local changes
+     */
+    public function checkoutNewBranch(string $branch, string $startPoint): void;
 
     /**
      * Merges $revision, a name the message of the merge commit names, into the current branch.
+     *
+     * @param string $revision A revision naming a commit, which WorkingCopy::merge() checks before
      */
     public function merge(string $revision, FastForward $fastForward): void;
 }

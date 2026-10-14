@@ -308,8 +308,6 @@ Differences with `CliDriver`:
 -   `Diff::getRawDiff()` returns an empty string.
 -   Short hashes (`Commit::getShortHash()`) have 7 characters, more when 7
     are ambiguous: git adapts their length to the size of the repository.
--   `WorkingCopy::checkout()` doesn't create a tracking branch for a name
-    that only exists on a remote, like `git checkout` does: it throws.
 -   `WorkingCopy::merge()` only supports fast-forward and conflict-free
     merges: a conflict throws instead of leaving conflict markers in the
     working copy. A merge commit is never signed, whatever
@@ -443,10 +441,13 @@ Git configuration
 
 git reads the configuration of the user running PHP (`~/.gitconfig`,
 `/etc/gitconfig`...) and of the repository. Where it changes what git
-prints, which gitlib reads, or what a read returns, `CliDriver` sets it back
-to git's defaults:
+prints, which gitlib reads, what a read returns, or the branches gitlib
+creates, `CliDriver` sets it back to git's defaults:
 
 -   colors and columns;
+-   `branch.autoSetupMerge` and `branch.autoSetupRebase`: like with
+    `LibGit2Driver`, a branch `WorkingCopy::checkoutNewBranch()` creates from
+    a remote branch tracks it, without rebasing;
 -   `branch.sort`, `log.follow` and `log.showSignature`;
 -   for diffs, `diff.algorithm`, `diff.context`, `diff.external`,
     `diff.indentHeuristic`, `diff.interHunkContext`, `diff.orderFile`,
@@ -463,10 +464,10 @@ credentials and the rewrites of URLs, `safe.directory`, line endings, hooks,
 `merge.log`, `blame.ignoreRevsFile`, or `core.abbrev`, the length of short
 hashes, with `LibGit2Driver` too.
 
-`run()` and `runProcess()` get `branch.sort`, `log.follow`,
-`log.showSignature`, `diff.indentHeuristic` and `diff.suppressBlankEmpty` set
-back too, and ignore the replacements, but not the rest, which gitlib sets
-with the options of the
+`run()` and `runProcess()` get `branch.autoSetupMerge`,
+`branch.autoSetupRebase`, `branch.sort`, `log.follow`, `log.showSignature`,
+`diff.indentHeuristic` and `diff.suppressBlankEmpty` set back too, and ignore
+the replacements, but not the rest, which gitlib sets with the options of the
 commands it runs: pass `--no-color` or `--no-ext-diff` yourself.
 
 Logger

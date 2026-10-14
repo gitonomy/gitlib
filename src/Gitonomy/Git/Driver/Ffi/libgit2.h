@@ -74,6 +74,7 @@ typedef struct git_blame git_blame;
 typedef struct git_status_list git_status_list;
 typedef struct git_patch git_patch;
 typedef struct git_remote git_remote;
+typedef struct git_refspec git_refspec;
 typedef struct git_config git_config;
 
 /* -- global -- */
@@ -88,6 +89,7 @@ void git_buf_dispose(git_buf *buffer);
 int git_signature_default_from_env(git_signature **author_out, git_signature **committer_out, git_repository *repo);
 void git_signature_free(git_signature *sig);
 void git_oidarray_dispose(git_oidarray *array);
+void git_strarray_dispose(git_strarray *array);
 
 /* -- errors -- */
 
@@ -489,3 +491,13 @@ int git_remote_connect(git_remote *remote, int direction, const git_remote_callb
 int git_remote_ls(const git_remote_head ***out, size_t *size, git_remote *remote);
 int git_remote_disconnect(git_remote *remote);
 void git_remote_free(git_remote *remote);
+int git_remote_list(git_strarray *out, git_repository *repo);
+int git_remote_lookup(git_remote **out, git_repository *repo, const char *name);
+size_t git_remote_refspec_count(const git_remote *remote);
+const git_refspec *git_remote_get_refspec(const git_remote *remote, size_t n);
+
+/* -- refspec -- */
+
+int git_refspec_direction(const git_refspec *spec);
+int git_refspec_dst_matches(const git_refspec *refspec, const char *refname);
+int git_refspec_rtransform(git_buf *out, const git_refspec *spec, const char *name);

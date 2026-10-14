@@ -14,6 +14,8 @@
 	showEmail = true
 	showRoot = true
 [branch]
+	autoSetupMerge = always
+	autoSetupRebase = always
 	sort = -committerdate
 [color]
 	branch = always

@@ -298,6 +298,23 @@ Working copy
    `Branch` object attaches `HEAD` to the branch, instead of detaching it.
    Its second argument, a branch to create, is deprecated: use
    `checkoutNewBranch($branch, $startPoint)`.
+ * `WorkingCopy::checkout()` throws a `ReferenceNotFoundException` for a
+   name that no revision has, with both drivers: the name of a remote
+   branch alone, like `feature` for `origin/feature`, created the local
+   branch, and a path, like `README.md`, discarded its changes.
+
+   Before:
+
+   ```php
+   $workingCopy->checkout('feature');
+   ```
+
+   After:
+
+   ```php
+   $workingCopy->checkoutNewBranch('feature', 'origin/feature');
+   ```
+
  * `WorkingCopy::merge()` takes a `FastForward` instead of arguments of
    `git merge`, deprecated.
 
@@ -422,12 +439,14 @@ Git configuration
 -----------------
 
  * `CliDriver` sets back to git's defaults the configuration of the user that
-   changes what git prints, or what a read returns: colors, columns,
-   `branch.sort`, `log.follow`, `log.showSignature`, and for diffs
-   `diff.algorithm`, `diff.context`, `diff.external`, `diff.orderFile`, the
-   prefixes, the textconv filters... Before, they made reads throw or return
-   other data: a log of a path following its renames with `log.follow`, for
-   instance. See ["Git configuration"](doc/repository.md#git-configuration).
+   changes what git prints, what a read returns, or the upstream of a new
+   branch: colors, columns, `branch.autoSetupMerge`,
+   `branch.autoSetupRebase`, `branch.sort`, `log.follow`,
+   `log.showSignature`, and for diffs `diff.algorithm`, `diff.context`,
+   `diff.external`, `diff.orderFile`, the prefixes, the textconv
+   filters... Before, they made reads throw or return other data: a log of
+   a path following its renames with `log.follow`, for instance. See
+   ["Git configuration"](doc/repository.md#git-configuration).
  * `CliDriver` ignores the replacements of objects (`git replace`,
    `refs/replace/`), like `LibGit2Driver`: `run()` and `runProcess()` too.
    Run git yourself to read them.

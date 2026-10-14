@@ -22,6 +22,7 @@ use Gitonomy\Git\Driver\Data\DiffData;
 use Gitonomy\Git\Driver\Data\ObjectType;
 use Gitonomy\Git\Driver\Data\TagData;
 use Gitonomy\Git\Driver\RepositoryDriverInterface;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\FastForward;
@@ -41,12 +42,16 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 {
     /**
      * Sets back to git's defaults the configuration of the user that changes
-     * what git prints or reads, where git 1.8.4 has no option for it. A git
-     * version that doesn't know a key ignores it.
+     * what git prints, reads or writes, where git 1.8.4 has no option for it.
+     * A git version that doesn't know a key ignores it.
      *
+     * branch.autoSetupMerge and branch.autoSetupRebase: a branch created from
+     * a remote branch tracks it, without rebasing, like with LibGit2Driver.
      * diff.indentHeuristic is the default since git 2.14, and LibGit2Driver's.
      */
     private const array CONFIG = [
+        '-c', 'branch.autoSetupMerge=true',
+        '-c', 'branch.autoSetupRebase=never',
         '-c', 'branch.sort=refname',
         '-c', 'diff.indentHeuristic=true',
         '-c', 'diff.suppressBlankEmpty=false',
@@ -109,8 +114,9 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
 
         $process = $this->execute('rev-parse', ['--verify', '--quiet', $revision]);
 
-        // --quiet: git exits with 1, without output, when nothing has this name.
-        if (1 === $process->getExitCode() && '' === $process->getOutput()) {
+        // --quiet: git exits with 1 when nothing has this name, or when it
+        // names several objects, like the range "a...b", which it prints.
+        if (1 === $process->getExitCode()) {
             throw new ReferenceNotFoundException(\sprintf('The revision "%s" does not exist.', $revision));
         }
 
@@ -125,7 +131,8 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     {
         LeadingDash::assertNone($hash);
 
-        return trim($this->runOnObject($hash, null, 'log', ['--abbrev-commit', '--format=%h', '-n', '1', $hash]));
+        // --: a file of the working tree may have the name of the hash.
+        return trim($this->runOnObject($hash, null, 'log', ['--abbrev-commit', '--format=%h', '-n', '1', $hash, '--']));
     }
 
     public function getCommitData(string $hash): CommitData
@@ -133,7 +140,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         LeadingDash::assertNone($hash);
 
         $parser = new LogParser();
-        $parser->parse($this->runOnObject($hash, ObjectType::Commit, 'log', ['--encoding=UTF-8', '--format=raw', '--no-color', '-n', '1', $hash]));
+        $parser->parse($this->runOnObject($hash, ObjectType::Commit, 'log', ['--encoding=UTF-8', '--format=raw', '--no-color', '-n', '1', $hash, '--']));
 
         $commit = $parser->commits[0] ?? null;
         // git log peels a tag to its commit.
@@ -332,14 +339,30 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     {
         LeadingDash::assertNone($revision);
 
-        $this->run('checkout', [$revision]);
+        // --: without it, git restores the file $revision names, when no
+        // revision has this name, discarding its changes.
+        $this->run('checkout', [$revision, '--']);
     }
 
-    public function checkoutNewBranch(string $branch, string $startHash): void
+    public function checkoutNewBranch(string $branch, string $startPoint): void
     {
-        LeadingDash::assertNone($branch, $startHash);
+        LeadingDash::assertNone($branch, $startPoint);
 
-        $this->run('checkout', ['-b', $branch, $startHash]);
+        // The branch, then its files: "checkout -b" checks the files of an
+        // ambiguous $startPoint out before refusing it, and leaves them.
+        // CONFIG sets the upstream branch, like git's default: --track or
+        // --no-track would need to know whether $startPoint is a remote branch.
+        $this->run('branch', [$branch, $startPoint]);
+
+        try {
+            $this->checkout($branch);
+        } catch (DriverException $e) {
+            // Like "checkout -b", which creates nothing when the checkout
+            // fails. The configuration of the branch goes with it.
+            $this->run('branch', ['-D', $branch]);
+
+            throw $e;
+        }
     }
 
     public function merge(string $revision, FastForward $fastForward): void
@@ -389,7 +412,8 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
      */
     private function diff(string $command, array $args): DiffData
     {
-        $output = $this->run($command, [...self::DIFF_ARGS, ...$args]);
+        // --: a file of the working tree may have the name of a revision.
+        $output = $this->run($command, [...self::DIFF_ARGS, ...$args, '--']);
 
         $parser = new DiffParser();
         $parser->parse($output);

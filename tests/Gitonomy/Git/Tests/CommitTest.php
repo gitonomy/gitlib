@@ -404,4 +404,25 @@ class CommitTest extends AbstractTestCase
         $this->assertSame($message, $repository->getLog(self::LONGFILE_COMMIT, null, null, 1)->getSingleCommit()->getMessage());
         $this->assertSame($content, $repository->getBlob($blob->getHash())->getContent());
     }
+
+    /**
+     * Without "--", git reads a revision named like a file of the working
+     * tree as ambiguous.
+     */
+    public function testAFileNamedLikeACommitChangesNothing(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
+        $parent = $commit->getParentHashes()[0];
+        touch($repository->getWorkingDir().'/'.self::LONGFILE_COMMIT);
+        touch($repository->getWorkingDir().'/'.$parent);
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
+
+        $this->assertSame('add a long file', $commit->getSubjectMessage());
+        $this->assertSame(substr(self::LONGFILE_COMMIT, 0, 7), $commit->getShortHash());
+        $this->assertSame(['long.php'], array_map(static fn (File $file): string => $file->getName(), $commit->getDiff()->getFiles()));
+        $this->assertNotSame([], $repository->getWorkingCopy()->getDiff($parent)->getFiles());
+    }
 }

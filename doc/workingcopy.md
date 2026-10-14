@@ -37,9 +37,11 @@ object attaches `HEAD` to the branch.
 $wc->checkout($repo->getReferences()->getBranch('master'));
 ```
 
-A name that only exists as a remote branch, like `feature` for
-`origin/feature`, creates the local tracking branch with `CliDriver`, like
-`git checkout` does. `LibGit2Driver` throws instead.
+A name that no revision has throws a `ReferenceNotFoundException`, with both
+drivers, unlike `git checkout`: a path, like `README.md`, whose changes git
+would discard, or the name of a remote branch alone, like `feature` for
+`origin/feature`, whose local branch git would create. Create it with
+*checkoutNewBranch*.
 
 To create a branch and check it out, use *checkoutNewBranch*. Its second
 argument is the revision to start the branch from, `HEAD` by default:
@@ -52,9 +54,18 @@ $wc->checkoutNewBranch('feature');
 $wc->checkoutNewBranch('develop', 'origin/develop');
 ```
 
+Like with `git checkout -b`, a branch created from a remote branch, like
+`origin/develop`, tracks it: `git pull` and `git push` know its upstream
+branch. One created from a local branch, a tag or a commit tracks none.
+gitlib does so whatever the configuration (`branch.autoSetupMerge`), with
+both drivers. Like git, *checkoutNewBranch* refuses a start point several
+references have the name of, like `origin/develop` when a local branch has
+this name too, with a `DriverException`: use its full name,
+`refs/remotes/origin/develop`.
+
 Like `git checkout`, both methods keep the local changes, and refuse to
 overwrite the ones the checkout would change: they throw a
-`DriverException`.
+`DriverException`. *checkoutNewBranch* then creates no branch.
 
 Passing the branch to create as second argument of *checkout* is deprecated
 since 2.0: use *checkoutNewBranch*.
@@ -83,9 +94,10 @@ $wc->merge('origin/develop', FastForward::Only);
 merge commit otherwise. `FastForward::Never` always creates a merge commit.
 `FastForward::Only` throws instead of creating one.
 
-You can also pass a *Revision*. A `DriverException` is thrown if the merge
-fails: a conflict, staged changes, a revision whose history is unrelated to
-the branch...
+You can also pass a *Revision*. Like with *checkout*, a name that no
+revision has throws a `ReferenceNotFoundException`. A `DriverException` is
+thrown if the merge fails: a conflict, staged changes, a revision whose
+history is unrelated to the branch...
 
 With `CliDriver`, a conflict leaves the working copy merging, with conflict
 markers in the files, like `git merge`. To cancel the merge:

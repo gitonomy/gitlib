@@ -30,6 +30,9 @@ deprecated until 3.0.
 - `Diff::parse()` throws for a diff without its raw information, deprecated since 1.6.0
   ([#229](https://github.com/gitonomy/gitlib/pull/229)): parse the output of
   `git diff --raw --patch`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- `WorkingCopy::checkout()` throws a `ReferenceNotFoundException` for a name that no revision has,
+  with both drivers: the name of a remote branch alone, like `feature` for `origin/feature`,
+  created the local branch. Use `checkoutNewBranch()`.
 
 ### Features
 
@@ -124,6 +127,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 - Ignore the replacements of objects (`git replace`, `refs/replace/`) with `CliDriver`, like
   `LibGit2Driver`: whoever could push such a reference to a repository changed the message of a
   commit, or the content of a blob, gitlib read for a hash.
+- Fix `WorkingCopy::checkout()` of a path, like `checkout('README.md')`, discarding the changes
+  of the file: a path is no revision, and throws a `ReferenceNotFoundException`.
 - Fix moving or deleting a symbolic reference, which changed the branch it points to instead:
   `ReferenceBag::delete('refs/remotes/origin/HEAD')` deleted `origin/main`.
 - Fix `ReferenceBag::delete('HEAD')` deleting `HEAD`, which left no repository: a name outside
@@ -137,6 +142,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
   `diff.orderFile`, `log.follow` or `branch.sort` changed diffs, logs and the branches of a
   commit. gitlib sets them back to git's defaults; see
   ["Git configuration"](doc/repository.md#git-configuration).
+- Fix `Commit::getShortHash()`, `Commit::getDiff()` and `Repository::getDiff()` failing when a
+  file of the working tree has the name of the revision they read, which git found ambiguous.
 - Fix `Commit::getDiff()` returning an empty diff for a root commit, and throwing for a merge
   commit (`CliDriver`). ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Fix `Repository::getDiff()`, `WorkingCopy::getDiffPending()` and `WorkingCopy::getDiffStaged()`
