@@ -76,7 +76,8 @@ deprecated until 3.0.
     `Log::withOffset()` and `withLimit()`, `Blame::getHunks()` and the line numbers of
     `Blame\Line`, `TreeEntry` and `Submodule`, `Diff\DiffLine` and `Diff\DiffLineType`,
     `File::isModeChange()`, `FileChange::getAdditions()` and `getDeletions()`,
-    `PushReference::getFullname()` and `getRange()`, and the SSH and X.509 signatures of tags.
+    `PushReference::getFullname()`, `getRange()`, `isCreation()` and `isDeletion()`, and the SSH
+    and X.509 signatures of tags.
     ([#253](https://github.com/gitonomy/gitlib/pull/253))
 -   Add `WorkingCopy::merge()` to support `git merge`, fast-forwarding or not, with a
     `FastForward` enum. ([#248](https://github.com/gitonomy/gitlib/pull/248), fixes #118)
@@ -116,7 +117,7 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 -   `CommitReference`, `Tree::getCommitReferenceEntries()`, reading tree entries as arrays.
 -   The branch to create of `WorkingCopy::checkout()`.
 -   `Commit::getShortMessage()` and `getFixedShortHash()`, `Repository::shell()`,
-    `PushReference::getReference()` and `getRevision()`.
+    `PushReference::getReference()`, `getRevision()`, `isCreate()` and `isDelete()`.
 -   `Repository::getSize()`, in kilobytes: use `getSizeInBytes()`.
 -   `Exception\UnexpectedValueException`, which gitlib no longer throws.
 

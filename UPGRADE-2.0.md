@@ -547,8 +547,11 @@ Data returned
 *   `Reference\Tag::isSigned()` returns `false` for a lightweight tag.
 *   `PushReference::isForce()` returns `true` for histories without a common
     ancestor, where the constructor threw. `PushReference` runs git when
-    `isForce()` needs it, not when constructed. `getReference()` and
-    `getRevision()` are deprecated: use `getFullname()` and `getRange()`.
+    `isForce()` needs it, not when constructed. `getReference()`,
+    `getRevision()`, `isCreate()` and `isDelete()` are deprecated: use
+    `getFullname()`, `getRange()`, `isCreation()` and `isDeletion()`, named
+    like the ones of `Diff\File`. The `$reference` argument of its
+    constructor is named `$fullname`.
 *   `Blob::getContent()` only reads blobs, where `git cat-file -p` also
     printed trees and commits.
 *   `WorkingCopy::getUntrackedFiles()` and `RevisionList::getAll()` return

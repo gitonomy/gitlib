@@ -27,13 +27,13 @@ final class PushReference
     private ?bool $isForce = null;
 
     /**
-     * @param string $reference The full name of the pushed reference
-     * @param string $before    Its commit before the push, ZERO for a creation
-     * @param string $after     Its commit after the push, ZERO for a deletion
+     * @param string $fullname The full name of the pushed reference
+     * @param string $before   Its commit before the push, ZERO for a creation
+     * @param string $after    Its commit after the push, ZERO for a deletion
      */
     public function __construct(
         private readonly Repository $repository,
-        private readonly string $reference,
+        private readonly string $fullname,
         private readonly string $before,
         private readonly string $after,
     ) {
@@ -49,7 +49,7 @@ final class PushReference
      */
     public function getFullname(): string
     {
-        return $this->reference;
+        return $this->fullname;
     }
 
     /**
@@ -59,7 +59,7 @@ final class PushReference
     {
         trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getFullname()" instead.', __METHOD__);
 
-        return $this->reference;
+        return $this->fullname;
     }
 
     public function getBefore(): string
@@ -97,25 +97,51 @@ final class PushReference
      */
     public function getRange(): string
     {
-        if ($this->isDelete()) {
+        if ($this->isDeletion()) {
             throw new LogicException('A deletion pushes no commit.');
         }
 
-        if ($this->isCreate()) {
+        if ($this->isCreation()) {
             return $this->getAfter();
         }
 
         return $this->getBefore().'..'.$this->getAfter();
     }
 
-    public function isCreate(): bool
+    /**
+     * @return bool Whether the push creates the reference, like File::isCreation() for a file
+     */
+    public function isCreation(): bool
     {
         return $this->isZero($this->before);
     }
 
-    public function isDelete(): bool
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, use isCreation() instead
+     */
+    public function isCreate(): bool
+    {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "isCreation()" instead.', __METHOD__);
+
+        return $this->isCreation();
+    }
+
+    /**
+     * @return bool Whether the push deletes the reference, like File::isDeletion() for a file
+     */
+    public function isDeletion(): bool
     {
         return $this->isZero($this->after);
+    }
+
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, use isDeletion() instead
+     */
+    public function isDelete(): bool
+    {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "isDeletion()" instead.', __METHOD__);
+
+        return $this->isDeletion();
     }
 
     public function isForce(): bool
@@ -125,17 +151,17 @@ final class PushReference
 
     public function isFastForward(): bool
     {
-        return !$this->isDelete() && !$this->isCreate() && !$this->isForce();
+        return !$this->isDeletion() && !$this->isCreation() && !$this->isForce();
     }
 
-    private function isZero(string $reference): bool
+    private function isZero(string $hash): bool
     {
-        return self::ZERO === $reference;
+        return self::ZERO === $hash;
     }
 
     private function getForce(): bool
     {
-        if ($this->isDelete() || $this->isCreate()) {
+        if ($this->isDeletion() || $this->isCreation()) {
             return false;
         }
 
