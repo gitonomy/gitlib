@@ -11,3 +11,11 @@ updates:
       - /tools/phpstan
     schedule:
       interval: monthly
+
+  - package-ecosystem: pip
+    directory: /tools/zensical
+    schedule:
+      interval: monthly
+    groups:
+      zensical:
+        patterns: ['*']

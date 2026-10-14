@@ -13,3 +13,4 @@
 /test-git-versions.php export-ignore
 /tests export-ignore
 /tools export-ignore
+/zensical.toml export-ignore
