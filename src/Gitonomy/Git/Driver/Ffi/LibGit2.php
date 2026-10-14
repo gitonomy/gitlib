@@ -28,7 +28,9 @@ final class LibGit2
 {
     public const int GIT_ENOTFOUND = -3;
 
+    private const int GIT_CONFIG_LEVEL_SYSTEM = 2;
     private const int GIT_FEATURE_SHA256 = 1 << 11;
+    private const int GIT_OPT_SET_SEARCH_PATH = 5;
 
     /**
      * The only libgit2 version libgit2.h is written for: libgit2 changes its
@@ -218,6 +220,16 @@ final class LibGit2
     {
         if ($ffi->git_libgit2_init() < 0) {
             throw new UnsupportedOperationException(\sprintf('Unable to initialize libgit2: %s', self::lastErrorMessage($ffi)));
+        }
+
+        // Like git, no system configuration (/etc/gitconfig) when
+        // GIT_CONFIG_NOSYSTEM is true: libgit2 only reads this variable when
+        // it reads GIT_DIR, GIT_INDEX_FILE... too. An empty search path also
+        // leaves the system gitattributes out. FFI passes the level, a
+        // variadic argument, as a 64-bit integer, which reads as the int
+        // libgit2 expects.
+        if (filter_var(getenv('GIT_CONFIG_NOSYSTEM'), \FILTER_VALIDATE_BOOL) && $ffi->git_libgit2_opts(self::GIT_OPT_SET_SEARCH_PATH, self::GIT_CONFIG_LEVEL_SYSTEM, '') < 0) {
+            throw new UnsupportedOperationException(\sprintf('Unable to ignore the system configuration: %s', self::lastErrorMessage($ffi)));
         }
     }
 

@@ -27,6 +27,7 @@ use Gitonomy\Git\Driver\Data\TreeEntryData;
 use Gitonomy\Git\Driver\RepositoryDriverInterface;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\FastForward;
 use Gitonomy\Git\Util\LeadingDash;
 use Gitonomy\Git\Util\NulByte;
@@ -63,21 +64,34 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     private const int GIT_DIFF_INDENT_HEURISTIC = 1 << 18;
     private const int GIT_DIFF_FIND_RENAMES = 1 << 0;
     private const int GIT_DIRECTION_FETCH = 0;
+    private const int GIT_INDEX_ENTRY_INTENT_TO_ADD = 1 << 13;
     private const int GIT_STATUS_OPT_INCLUDE_UNTRACKED = 1 << 0;
     private const int GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS = 1 << 4;
     private const int GIT_STATUS_WT_NEW = 1 << 7;
+
+    /**
+     * The hash of the empty file, which `git add -N` stages.
+     */
+    private const string EMPTY_BLOB = 'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391';
 
     private CData $repo;
 
     /**
      * @param string      $gitDir     The git directory
      * @param string|null $workingDir The working tree, null for a bare repository
+     *
+     * @throws UnsupportedOperationException The repository stores its references in the reftable format
      */
     public function __construct(
         private \FFI $ffi,
         private string $gitDir,
         private ?string $workingDir,
     ) {
+        // libgit2 1.9 refuses to open it, as any repository with an extension it doesn't know.
+        if (is_dir($gitDir.'/reftable')) {
+            throw new UnsupportedOperationException(\sprintf('The repository "%s" stores its references in the reftable format, which LibGit2Driver doesn\'t support; use CliDriver.', $gitDir));
+        }
+
         $out = $this->ffi->new('git_repository*');
         LibGit2::check($this->ffi, $this->ffi->git_repository_open(\FFI::addr($out), $gitDir), \sprintf('Unable to open the repository "%s"', $gitDir));
 
@@ -335,8 +349,8 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             }
 
             $fullname = $this->ffi->git_reference_name($ref);
-            // Only a tag may point to an annotated tag.
-            $commitHash = str_starts_with($fullname, 'refs/tags/') ? $this->peeledHex($ref) : $hash;
+            // Like git, through an annotated tag, whatever the name of the reference: a fetch can put one under refs/remotes/.
+            $commitHash = $this->peeledHex($ref);
             $result[$fullname] = new ReferenceData($fullname, $commitHash, $commitHash === $hash ? null : $hash);
         }
 
@@ -398,7 +412,11 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
         $tips = [];
         foreach ($this->iterateBranches() as [$fullname, $ref]) {
-            $tips[$fullname] = $this->oidToHex($this->ffi->git_reference_target($ref));
+            // Like git, through an annotated tag, and without the branches pointing to no commit.
+            $commit = $this->peeledCommitHex($ref);
+            if (null !== $commit) {
+                $tips[$fullname] = $commit;
+            }
         }
         // Like git: the local branches, then the remote ones, sorted by name.
         ksort($tips, \SORT_STRING);
@@ -455,7 +473,8 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             $opts = $this->diffOptions();
             LibGit2::check($this->ffi, $this->ffi->git_diff_tree_to_workdir_with_index(\FFI::addr($diff), $this->repo, $tree, \FFI::addr($opts)), 'Unable to compute working copy diff');
             $unmerged = $this->unmergedPaths($diff);
-            $files = $this->buildDiff($diff)->files;
+            // libgit2 keeps a file the working tree changes back to the commit, after the index changed it, or `git add -N` added it.
+            $files = array_values(array_filter($this->buildDiff($diff)->files, static fn (DiffFileData $file): bool => [] !== $file->changes || $file->oldName !== $file->newName || $file->oldMode !== $file->newMode || $file->oldIndex !== $file->newIndex));
 
             if ([] !== $unmerged) {
                 // Like git diff <commit>, which compares the unmerged files, conflict markers included, to the commit.
@@ -483,7 +502,30 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         $opts = $this->diffOptions();
         LibGit2::check($this->ffi, $this->ffi->git_diff_index_to_workdir(\FFI::addr($diff), $this->repo, null, \FFI::addr($opts)), 'Unable to compute working copy diff');
 
-        return $this->buildDiff($diff);
+        // Like git since 2.19, which diffs the files `git add -N` added as
+        // absent from the index: created. Like any git, one deleted since is
+        // deleted, from the empty file the index has for it.
+        $intentToAdd = $this->intentToAddFiles();
+        $files = [];
+        foreach ($this->buildDiff($diff)->files as $file) {
+            if (isset($intentToAdd[$file->name]) && null !== $file->newName) {
+                $files[] = new DiffFileData(null, $file->newName, null, $file->newMode, null, $file->newIndex, $file->isBinary, $file->isCopy, $file->changes);
+            } else {
+                $files[] = $file;
+            }
+            unset($intentToAdd[$file->name]);
+        }
+
+        if ([] !== $intentToAdd) {
+            // Still empty, as `git add -N` staged them: libgit2 sees no change.
+            foreach ($intentToAdd as $path => $mode) {
+                $files[] = new DiffFileData(null, $path, null, $mode, null, self::EMPTY_BLOB, false, false, []);
+            }
+            // Sorted by name, like git.
+            usort($files, static fn (DiffFileData $a, DiffFileData $b): int => strcmp($a->name, $b->name));
+        }
+
+        return new DiffData($files, '');
     }
 
     public function getDiffStaged(): DiffData
@@ -500,7 +542,18 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             }
         }
 
-        return $this->buildDiff($diff);
+        // Like git since 2.19, which diffs the files `git add -N` added as absent from the index: not staged, or deleted when HEAD has them.
+        $intentToAdd = $this->intentToAddFiles();
+        $files = [];
+        foreach ($this->buildDiff($diff)->files as $file) {
+            if (!isset($intentToAdd[$file->name])) {
+                $files[] = $file;
+            } elseif (null !== $file->oldName) {
+                $files[] = new DiffFileData($file->oldName, null, $file->oldMode, null, $file->oldIndex, null, $file->isBinary, $file->isCopy, $file->changes);
+            }
+        }
+
+        return new DiffData($files, '');
     }
 
     public function getBlameLines(string $hash, string $path, ?int $firstLine, ?int $lastLine): array
@@ -533,15 +586,6 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             for ($i = $firstLine; $i <= min($lastLine ?? $count, $count); ++$i) {
                 $hunk = $this->ffi->git_blame_hunk_byline($blame, $i);
                 $line = $this->ffi->git_blame_line_byindex($blame, $i);
-
-                if (null === $hunk || null === $line) {
-                    // git_blame_linecount() can overcount by one for files not
-                    // ending in a newline; stop rather than dereference NULL.
-                    // (A NULL `const git_blame_line *` return is auto-converted
-                    // to PHP null by FFI, unlike a NULL struct-field pointer.)
-                    break;
-                }
-
                 $content = rtrim(\FFI::string($line->ptr, $line->len), "\n");
                 $originalLine = $hunk->orig_start_line_number + ($i - $hunk->final_start_line_number);
 
@@ -585,9 +629,12 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         LeadingDash::assertNone($revision);
 
         // `git checkout <revision>` attaches HEAD when <revision> names a
-        // local branch, before a tag of the same name, and detaches it for
-        // anything else (a tag, a hash, a remote branch, a full reference name...).
-        $branch = $this->referenceExists('refs/heads/'.$revision) ? 'refs/heads/'.$revision : null;
+        // local branch, before a tag of the same name, or is @{-<n>}, the nth
+        // branch checked out before. It leaves HEAD as it is for HEAD, and
+        // detaches it for anything else (a tag, a hash, a remote branch, a
+        // full reference name...).
+        $name = $this->expandPriorCheckout($revision);
+        $branch = $this->referenceExists('refs/heads/'.$name) ? 'refs/heads/'.$name : null;
         // Resolved before changing anything.
         $hash = $this->resolveCommit($branch ?? $revision);
 
@@ -595,7 +642,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
         if (null !== $branch) {
             LibGit2::check($this->ffi, $this->ffi->git_repository_set_head($this->repo, $branch), 'Unable to update HEAD');
-        } else {
+        } elseif ('HEAD' !== $revision) {
             $oid = $this->hexToOid($hash);
             LibGit2::check($this->ffi, $this->ffi->git_repository_set_head_detached($this->repo, \FFI::addr($oid)), 'Unable to detach HEAD');
         }
@@ -653,8 +700,20 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         LeadingDash::assertNone($revision);
 
         $branch = $this->getHeadReference();
-        $headHash = $this->resolveCommit('HEAD');
         $theirHash = $this->resolveCommit($revision);
+
+        // Like git, which fast-forwards a branch yet to be born.
+        if (null !== $branch && !$this->referenceExists($branch)) {
+            if (FastForward::Never === $fastForward) {
+                throw new DriverException(\sprintf('Unable to merge "%s" without a fast-forward: the branch "%s" has no commit yet.', $revision, $branch));
+            }
+
+            $this->fastForward($branch, $theirHash);
+
+            return;
+        }
+
+        $headHash = $this->resolveCommit('HEAD');
         $head = $this->hexToOid($headHash);
         $their = $this->hexToOid($theirHash);
 
@@ -669,14 +728,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         }
 
         if (FastForward::Never !== $fastForward && $canFastForward) {
-            $target = $this->revparse($theirHash);
-
-            try {
-                $this->checkoutObject($target, 'Unable to fast-forward');
-            } finally {
-                $this->ffi->git_object_free($target);
-            }
-            $this->moveHead($branch, $theirHash);
+            $this->fastForward($branch, $theirHash);
 
             return;
         }
@@ -781,17 +833,9 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     {
         $hashes = [];
         foreach ($this->iterateReferences() as $ref) {
-            $commit = $this->ffi->new('git_object*');
-            $rc = $this->ffi->git_reference_peel(\FFI::addr($commit), $ref, $this->ffi->GIT_OBJECT_COMMIT);
-            if (\in_array($rc, [LibGit2::GIT_ENOTFOUND, self::GIT_EINVALIDSPEC, self::GIT_EPEEL], true)) {
-                continue;
-            }
-            LibGit2::check($this->ffi, $rc, \sprintf('Unable to peel "%s"', $this->ffi->git_reference_name($ref)));
-
-            try {
-                $hashes[] = $this->oidToHex($this->ffi->git_object_id($commit));
-            } finally {
-                $this->ffi->git_object_free($commit);
+            $commit = $this->peeledCommitHex($ref);
+            if (null !== $commit) {
+                $hashes[] = $commit;
             }
         }
 
@@ -800,6 +844,8 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
     /**
      * @param string[] $paths
+     *
+     * @throws UnsupportedOperationException A path uses the magic of git's pathspecs
      */
     private function pathFilter(array $paths): ?PathFilter
     {
@@ -807,10 +853,14 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             return null;
         }
 
-        // Like git, "." and "./x" are relative to the root, which "" names.
-        $paths = array_map(fn (string $path): string => trim((string) preg_replace('#^\.(/|$)#', '', trim($this->toRepoRelativePath($path), '/')), '/'), $paths);
+        foreach ($paths as $path) {
+            // git reads magic in a path starting with ":", like ":(exclude)src" or ":/src": libgit2 would match it as a name.
+            if (str_starts_with($path, ':')) {
+                throw new UnsupportedOperationException(\sprintf('The path "%s" uses the magic of git\'s pathspecs, which LibGit2Driver doesn\'t support; use CliDriver.', $path));
+            }
+        }
 
-        return new PathFilter($this->ffi, $this->repo, array_values($paths), $this->diffOptions());
+        return new PathFilter($this->ffi, $this->repo, array_values(array_map($this->toRepoRelativePath(...), $paths)), $this->diffOptions());
     }
 
     /**
@@ -910,23 +960,53 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     }
 
     /**
-     * git also accepts the absolute paths of files in the working tree, where
-     * libgit2 only deals with paths relative to the repository.
+     * git normalizes paths, and also accepts the absolute paths of files in
+     * the working tree, where libgit2 only deals with normalized paths
+     * relative to the repository.
      *
-     * @throws DriverException $path is an absolute path outside the working tree
+     * @return string $path relative to the root of the repository, which "" names, without "." nor ".." components, nor extra slashes
+     *
+     * @throws DriverException $path is outside the repository
      */
     private function toRepoRelativePath(string $path): string
     {
-        if (!str_starts_with($path, '/')) {
-            return $path;
+        $components = self::pathComponents($path);
+
+        if (str_starts_with($path, '/')) {
+            $root = null === $this->workingDir ? null : self::pathComponents($this->workingDir);
+            if (null === $root || \array_slice($components, 0, \count($root)) !== $root) {
+                // Like git.
+                throw new DriverException(\sprintf('The path "%s" is outside the repository.', $path));
+            }
+
+            $components = \array_slice($components, \count($root));
         }
 
-        if (null !== $this->workingDir && ($path === $this->workingDir || str_starts_with($path, $this->workingDir.'/'))) {
-            return substr($path, \strlen($this->workingDir) + 1);
+        return implode('/', $components);
+    }
+
+    /**
+     * @return list<string> The components of $path, once "." and ".." are resolved, like git does
+     *
+     * @throws DriverException ".." goes above the first component of $path
+     */
+    private static function pathComponents(string $path): array
+    {
+        $components = [];
+        foreach (explode('/', $path) as $component) {
+            if ('..' === $component && [] === $components) {
+                // Like git.
+                throw new DriverException(\sprintf('The path "%s" is outside the repository.', $path));
+            }
+
+            if ('..' === $component) {
+                array_pop($components);
+            } elseif ('' !== $component && '.' !== $component) {
+                $components[] = $component;
+            }
         }
 
-        // Like git.
-        throw new DriverException(\sprintf('The path "%s" is outside the repository.', $path));
+        return $components;
     }
 
     // -- diff ----------------------------------------------------------------
@@ -964,6 +1044,35 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         }
 
         return $paths;
+    }
+
+    /**
+     * @return array<string, string> The mode of the files `git add -N` added to the index, by path
+     */
+    private function intentToAddFiles(): array
+    {
+        $index = $this->ffi->new('git_index*');
+        LibGit2::check($this->ffi, $this->ffi->git_repository_index(\FFI::addr($index), $this->repo), 'Unable to open the index');
+
+        try {
+            LibGit2::check($this->ffi, $this->ffi->git_index_read($index, 0), 'Unable to read the index');
+            // git writes an index of version 2, without the extended flags, unless an entry has one.
+            if ($this->ffi->git_index_version($index) < 3) {
+                return [];
+            }
+
+            $files = [];
+            for ($i = 0, $count = $this->ffi->git_index_entrycount($index); $i < $count; ++$i) {
+                $entry = $this->ffi->git_index_get_byindex($index, $i);
+                if (0 !== ($entry->flags_extended & self::GIT_INDEX_ENTRY_INTENT_TO_ADD)) {
+                    $files[$entry->path] = \sprintf('%06o', $entry->mode);
+                }
+            }
+
+            return $files;
+        } finally {
+            $this->ffi->git_index_free($index);
+        }
     }
 
     /**
@@ -1034,12 +1143,6 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     {
         $patch = $this->ffi->new('git_patch*');
         LibGit2::check($this->ffi, $this->ffi->git_patch_from_diff(\FFI::addr($patch), $diff, $index), 'Unable to compute patch');
-
-        // libgit2 documents no patch for a binary or unchanged file, though
-        // 1.9 creates one: computing it flagged the delta accordingly.
-        if (\FFI::isNull($patch)) {
-            return $this->deltaToFile($this->ffi->git_diff_get_delta($diff, $index), []);
-        }
 
         try {
             $changes = [];
@@ -1123,6 +1226,21 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         $opts = $this->ffi->new('git_checkout_options');
         LibGit2::check($this->ffi, $this->ffi->git_checkout_options_init(\FFI::addr($opts), 1), 'Unable to initialize checkout options');
         LibGit2::check($this->ffi, $this->ffi->git_checkout_tree($this->repo, $treeish, \FFI::addr($opts)), $context);
+    }
+
+    /**
+     * Checks $hash out, and points the checked out branch, or a detached HEAD, to it.
+     */
+    private function fastForward(?string $branch, string $hash): void
+    {
+        $target = $this->revparse($hash);
+
+        try {
+            $this->checkoutObject($target, 'Unable to fast-forward');
+        } finally {
+            $this->ffi->git_object_free($target);
+        }
+        $this->moveHead($branch, $hash);
     }
 
     /**
@@ -1212,25 +1330,19 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     }
 
     /**
-     * The message `git merge` writes (see git's fmt-merge-msg).
+     * The message `git merge` writes (see git's merge_name() and fmt-merge-msg).
      */
     private function mergeMessage(string $revision, ?string $branch): string
     {
-        $message = null;
-        // Same lookup order as git's revision parsing.
-        foreach ([
-            'refs/tags/' => "Merge tag '%s'",
-            'refs/heads/' => "Merge branch '%s'",
-            'refs/remotes/' => "Merge remote-tracking branch '%s'",
-        ] as $prefix => $format) {
-            $name = str_starts_with($revision, $prefix) ? substr($revision, \strlen($prefix)) : $revision;
-            if ($this->referenceExists($prefix.$name)) {
-                $message = \sprintf($format, $name);
+        $object = $this->revparse($revision);
 
-                break;
-            }
+        try {
+            $tag = $this->ffi->git_object_type($object) === $this->ffi->GIT_OBJECT_TAG ? $this->oidToHex($this->ffi->git_object_id($object)) : null;
+        } finally {
+            $this->ffi->git_object_free($object);
         }
-        $message ??= \sprintf("Merge commit '%s'", $revision);
+
+        $message = 'Merge '.$this->mergedName($this->expandPriorCheckout($revision), $tag);
 
         // git leaves out the destination when merging into main or master.
         if (null === $branch) {
@@ -1239,10 +1351,74 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             $message .= ' into '.substr($branch, \strlen('refs/heads/'));
         }
 
-        return $message."\n";
+        // Then the message of the annotated tag, without its signature.
+        if (null !== $tag) {
+            $message .= "\n\n".$this->getTagData($tag)->message;
+        }
+
+        return $this->prettifyMessage($message);
+    }
+
+    /**
+     * @param string      $name The revision merged, @{-<n>} expanded
+     * @param string|null $tag  The annotated tag $name names, if any
+     *
+     * @return string How git's merge_name() names $name: as given, after what it names
+     */
+    private function mergedName(string $name, ?string $tag): string
+    {
+        $reference = $this->dwimReference($name) ?? '';
+        foreach (['refs/heads/' => 'branch', 'refs/tags/' => 'tag', 'refs/remotes/' => 'remote-tracking branch'] as $prefix => $kind) {
+            if (str_starts_with($reference, $prefix)) {
+                return \sprintf("%s '%s'", $kind, $name);
+            }
+        }
+
+        // <branch>~<n> or <branch>^: an early part of the branch, unless <n> is 0.
+        if (1 === preg_match('/^(.+?)(\^+|~\d*)$/', $name, $match) && $this->referenceExists('refs/heads/'.$match[1])) {
+            return \sprintf("branch '%s'%s", $match[1], 1 === preg_match('/^~0+$/', $match[2]) ? '' : ' (early part)');
+        }
+
+        return null === $tag ? \sprintf("commit '%s'", $name) : \sprintf("tag '%s'", $name);
+    }
+
+    /**
+     * Cleans a message up like git does without an editor: without
+     * whitespace at the end of its lines, nor blank lines at its start, at
+     * its end or in a row.
+     */
+    private function prettifyMessage(string $message): string
+    {
+        $buffer = $this->ffi->new('git_buf');
+        LibGit2::check($this->ffi, $this->ffi->git_message_prettify(\FFI::addr($buffer), $message, 0, '#'), 'Unable to clean the message up');
+
+        try {
+            return \FFI::string($buffer->ptr, $buffer->size);
+        } finally {
+            $this->ffi->git_buf_dispose(\FFI::addr($buffer));
+        }
     }
 
     // -- references ----------------------------------------------------------
+
+    /**
+     * @return string|null The full name of the reference $name names, like git's dwim_ref(), null when it names none
+     */
+    private function dwimReference(string $name): ?string
+    {
+        $ref = $this->ffi->new('git_reference*');
+        $rc = $this->ffi->git_reference_dwim(\FFI::addr($ref), $this->repo, $name);
+        if (LibGit2::GIT_ENOTFOUND === $rc || self::GIT_EINVALIDSPEC === $rc) {
+            return null;
+        }
+        LibGit2::check($this->ffi, $rc, \sprintf('Unable to look up the reference "%s"', $name));
+
+        try {
+            return $this->ffi->git_reference_name($ref);
+        } finally {
+            $this->ffi->git_reference_free($ref);
+        }
+    }
 
     /**
      * Like git's dwim_ref(), which counts the references a name may be the
@@ -1283,6 +1459,44 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         }
 
         return $references;
+    }
+
+    /**
+     * Like git, replaces @{-<n>} at the start of $revision with the nth
+     * branch checked out before, or commit when HEAD was detached.
+     */
+    private function expandPriorCheckout(string $revision): string
+    {
+        if (1 !== preg_match('/^@\{-([1-9]\d*)\}/', $revision, $match)) {
+            return $revision;
+        }
+
+        $prior = $this->priorCheckout((int) $match[1]);
+
+        return null === $prior ? $revision : $prior.substr($revision, \strlen($match[0]));
+    }
+
+    /**
+     * @return string|null The nth branch checked out before, or commit when HEAD was detached, read from the reflog of HEAD like git does; null after fewer checkouts
+     */
+    private function priorCheckout(int $n): ?string
+    {
+        $reflog = $this->ffi->new('git_reflog*');
+        LibGit2::check($this->ffi, $this->ffi->git_reflog_read(\FFI::addr($reflog), $this->repo, 'HEAD'), 'Unable to read the reflog of HEAD');
+
+        try {
+            // The newest entry first.
+            for ($i = 0, $count = $this->ffi->git_reflog_entrycount($reflog); $i < $count; ++$i) {
+                $message = $this->ffi->git_reflog_entry_message($this->ffi->git_reflog_entry_byindex($reflog, $i));
+                if (null !== $message && 1 === preg_match('/^checkout: moving from (.+?) to /', $message, $match) && 0 === --$n) {
+                    return $match[1];
+                }
+            }
+
+            return null;
+        } finally {
+            $this->ffi->git_reflog_free($reflog);
+        }
     }
 
     /**
@@ -1494,6 +1708,25 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             return $this->oidToHex($this->ffi->git_object_id($object));
         } finally {
             $this->ffi->git_object_free($object);
+        }
+    }
+
+    /**
+     * @return string|null The commit $ref points to, through annotated tags, or null when it points to another object or to nothing
+     */
+    private function peeledCommitHex(CData $ref): ?string
+    {
+        $commit = $this->ffi->new('git_object*');
+        $rc = $this->ffi->git_reference_peel(\FFI::addr($commit), $ref, $this->ffi->GIT_OBJECT_COMMIT);
+        if (\in_array($rc, [LibGit2::GIT_ENOTFOUND, self::GIT_EINVALIDSPEC, self::GIT_EPEEL], true)) {
+            return null;
+        }
+        LibGit2::check($this->ffi, $rc, \sprintf('Unable to peel "%s"', $this->ffi->git_reference_name($ref)));
+
+        try {
+            return $this->oidToHex($this->ffi->git_object_id($commit));
+        } finally {
+            $this->ffi->git_object_free($commit);
         }
     }
 

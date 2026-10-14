@@ -79,6 +79,10 @@ $log = $repository->getLog('master', '*.php');
 $log = $repository->getLog('master', 'src');
 ```
 
+With `CliDriver`, they support the magic of git's pathspecs too, like
+`:(exclude)src`, which git knows since 1.9. `LibGit2Driver` doesn't: a path
+starting with `:` throws an `UnsupportedOperationException`.
+
 Iterating
 ---------
 

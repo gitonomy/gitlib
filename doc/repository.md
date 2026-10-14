@@ -216,8 +216,9 @@ or empty data instead. Every exception of gitlib implements
     `getOutput()` return the output of git, or a `ProcessTimedOutException`,
     when git runs longer than [the timeout](#configuring-clidriver).
 -   `UnsupportedOperationException`, a `RuntimeException`: the driver can't
-    perform the operation at all, where another driver may: `run()` with
-    `LibGit2Driver`, libgit2 that isn't installed...
+    perform the operation at all, where another driver may: `run()`, cloning
+    a bundle or opening a reftable repository with `LibGit2Driver`, libgit2
+    that isn't installed...
 -   `InvalidArgumentException`: an argument gitlib doesn't support, like an
     option of `git log` in the revisions of a log, a string holding a NUL
     byte, which git doesn't accept, a revision, a reference, a hash or a URL
@@ -300,11 +301,18 @@ Differences with `CliDriver`:
 -   SSH and git's credential helpers aren't supported: clone a private
     repository through HTTPS, with the credentials in the URL
     (`https://user:token@example.com/repo.git`).
--   Bundles (`.bundle` files) can't be cloned.
--   Repositories storing their references in the reftable format can't be
-    opened.
+-   Bundles (`.bundle` files) can't be cloned, and repositories storing
+    their references in the reftable format can't be opened: both throw an
+    `UnsupportedOperationException`.
+-   The paths of a log don't support the magic of git's pathspecs
+    (`:(exclude)src`, `:/src`...): a path starting with `:` throws an
+    `UnsupportedOperationException`.
 -   Neither hooks nor external filters (Git LFS...) are run: a checkout or a
     merge writes the files without them.
+-   Like git, `LibGit2Driver` doesn't read `/etc/gitconfig` when the
+    `GIT_CONFIG_NOSYSTEM` environment variable is true, but it doesn't read
+    `/etc/gitattributes` either, which git only skips with
+    `GIT_ATTR_NOSYSTEM`.
 -   `Diff::getRawDiff()` returns an empty string.
 -   Short hashes (`Commit::getShortHash()`) have 7 characters, more when 7
     are ambiguous: git adapts their length to the size of the repository.
@@ -312,7 +320,7 @@ Differences with `CliDriver`:
     merges: a conflict throws instead of leaving conflict markers in the
     working copy. A merge commit is never signed, whatever
     `commit.gpgSign`, and its message never lists the merged commits,
-    whatever `merge.log`.
+    whatever `merge.log`, nor has the output of gpg checking a signed tag.
 -   Blame is much slower on a long history: see
     ["Performance"](#performance).
 -   Rename detection in diffs may pair files differently.

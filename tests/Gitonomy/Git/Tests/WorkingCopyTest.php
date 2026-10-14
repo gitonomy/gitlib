@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\LogicException;
@@ -22,6 +23,7 @@ use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\TestWith;
 
 class WorkingCopyTest extends AbstractTestCase
 {
@@ -100,6 +102,72 @@ class WorkingCopyTest extends AbstractTestCase
 
         $diffPending = $wc->getDiffPending();
         $this->assertCount(1, $diffPending->getFiles());
+    }
+
+    public function testFilesAddedWithIntentToAddAreCreatedNotStaged(): void
+    {
+        $this->skipUnlessGitHidesIntentToAddFromTheIndex();
+
+        $repository = self::createFoobarRepository(false);
+        file_put_contents($repository->getWorkingDir().'/new.txt', "new\n");
+        touch($repository->getWorkingDir().'/empty.txt');
+        self::git($repository, 'add', ['-N', 'new.txt', 'empty.txt']);
+        $wc = $repository->getWorkingCopy();
+
+        $this->assertSame([], $wc->getDiffStaged()->getFiles());
+        $files = $wc->getDiffPending()->getFiles();
+        $this->assertSame(['empty.txt', 'new.txt'], array_map(static fn (File $file): string => $file->getName(), $files));
+        $this->assertTrue($files[0]->isCreation());
+        $this->assertTrue($files[1]->isCreation());
+        $this->assertSame(1, $files[1]->getAdditions());
+    }
+
+    public function testAFileAddedAgainWithIntentToAddIsDeletedFromTheIndex(): void
+    {
+        $this->skipUnlessGitHidesIntentToAddFromTheIndex();
+
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'rm', ['-q', '--cached', 'AUTHORS']);
+        self::git($repository, 'add', ['-N', 'AUTHORS']);
+        $wc = $repository->getWorkingCopy();
+
+        $staged = $wc->getDiffStaged()->getFiles();
+        $this->assertCount(1, $staged);
+        $this->assertTrue($staged[0]->isDeletion());
+        $pending = $wc->getDiffPending()->getFiles();
+        $this->assertCount(1, $pending);
+        $this->assertTrue($pending[0]->isCreation());
+        $this->assertSame([], $wc->getDiff()->getFiles());
+    }
+
+    /**
+     * Like any version of git: deleted from the empty file the index has for it.
+     */
+    public function testAFileAddedWithIntentToAddThenDeletedIsDeleted(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        file_put_contents($repository->getWorkingDir().'/gone.txt', "gone\n");
+        self::git($repository, 'add', ['-N', 'gone.txt']);
+        unlink($repository->getWorkingDir().'/gone.txt');
+        $wc = $repository->getWorkingCopy();
+
+        $files = $wc->getDiffPending()->getFiles();
+        $this->assertSame(['gone.txt'], array_map(static fn (File $file): string => $file->getName(), $files));
+        $this->assertTrue($files[0]->isDeletion());
+        $this->assertSame('e69de29bb2d1d6434b8b29ae775ad8c2e48c5391', $files[0]->getOldIndex());
+        $this->assertSame([], $wc->getDiff()->getFiles());
+    }
+
+    public function testDiffLeavesOutAFileTheWorkingTreeChangesBack(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $file = $repository->getWorkingDir().'/AUTHORS';
+        $content = file_get_contents($file);
+        file_put_contents($file, 'staged');
+        self::git($repository, 'add', ['AUTHORS']);
+        file_put_contents($file, $content);
+
+        $this->assertSame([], $repository->getWorkingCopy()->getDiff()->getFiles());
     }
 
     public function testDiffPendingWithAbbreviatedHashesLikeOldGit(): void
@@ -343,6 +411,70 @@ class WorkingCopyTest extends AbstractTestCase
         $this->assertSame($head->getHash(), $repository->getHeadCommit()->getHash());
     }
 
+    public function testMergeOfAnAnnotatedTagAddsItsMessage(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        // With whitespace "git tag" would have cleaned up.
+        $commit = $repository->getReferences()->getRemoteBranch('origin/diff-features')->getCommitHash();
+        $tag = self::writeObject($repository, 'tag', "object {$commit}\ntype commit\ntag features\ntagger A <a@example.com> 1000000000 +0000\n\nFeatures  \n\n\nThe diff ones.");
+        self::git($repository, 'update-ref', ['refs/tags/features', $tag]);
+
+        $repository->getWorkingCopy()->merge('features');
+
+        // Cleaned up like git does. Then, with CliDriver, the merged commits: the configuration of the tests sets merge.log.
+        $this->assertStringStartsWith("Merge tag 'features'\n\nFeatures\n\nThe diff ones.\n", $repository->getHeadCommit()->getMessage());
+    }
+
+    #[TestWith(['refs/heads/feature', "Merge branch 'refs/heads/feature'"])]
+    #[TestWith(['feature~0', "Merge branch 'feature'"])]
+    #[TestWith(['feature~1', "Merge branch 'feature' (early part)"])]
+    #[TestWith(['refs/remotes/origin/diff-features', "Merge remote-tracking branch 'refs/remotes/origin/diff-features'"])]
+    #[TestWith(['@{-1}', "Merge branch 'feature'"])]
+    public function testMergeNamesTheRevisionLikeGit(string $revision, string $message): void
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        $repository->getReferences()->createBranch('feature', 'origin/diff-features');
+        $wc = $repository->getWorkingCopy();
+        $wc->checkout('feature');
+        $wc->checkout('master');
+
+        $wc->merge($revision);
+
+        $this->assertSame($message, $repository->getHeadCommit()->getSubjectMessage());
+    }
+
+    public function testMergeIntoABranchYetToBeBornFastForwardsIt(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $master = $repository->getHeadCommit()->getHash();
+        self::git($repository, 'checkout', ['-q', '--orphan', 'unborn']);
+        self::git($repository, 'rm', ['-q', '-r', '-f', '.']);
+        $wc = $repository->getWorkingCopy();
+
+        try {
+            $wc->merge('master', FastForward::Never);
+            $this->fail('A merge commit should have been refused.');
+        } catch (DriverException $e) {
+            $this->assertStringContainsString(self::getDriver() instanceof CliDriver
+                ? 'fatal: Non-fast-forward commit does not make sense into an empty head'
+                : 'Unable to merge "master" without a fast-forward: the branch "refs/heads/unborn" has no commit yet.', $e->getMessage());
+        }
+        $this->assertSame('refs/heads/unborn', $repository->getRepositoryDriver()->getHeadReference());
+        $this->assertFalse($repository->getReferences()->hasBranch('unborn'), 'The branch has no commit yet');
+        $this->assertSame([], $wc->getUntrackedFiles());
+
+        $wc->merge('master');
+
+        $this->assertSame('refs/heads/unborn', self::headBranch($repository)->getFullname());
+        $this->assertSame($master, $repository->getHeadCommit()->getHash());
+        $this->assertSame([], $wc->getDiffStaged()->getFiles());
+        $this->assertSame([], $wc->getDiffPending()->getFiles());
+    }
+
     public function testCheckoutKeepsLocalChangesItDoesNotConflictWith(): void
     {
         $repository = self::createFoobarRepository(false);
@@ -397,6 +529,30 @@ class WorkingCopyTest extends AbstractTestCase
 
         $this->assertSame('refs/heads/twin', self::headBranch($repository)->getFullname());
         $this->assertSame([], $repository->getWorkingCopy()->getDiffStaged()->getFiles());
+    }
+
+    public function testCheckoutOfHeadLeavesItAttached(): void
+    {
+        $repository = self::createFoobarRepository(false);
+
+        $repository->getWorkingCopy()->checkout('HEAD');
+
+        $this->assertSame('refs/heads/master', self::headBranch($repository)->getFullname());
+    }
+
+    public function testCheckoutOfThePriorBranchPrefersItToATagOfTheSameName(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $references = $repository->getReferences();
+        $references->createTag('twin', self::INITIAL_COMMIT);
+        $references->createBranch('twin', 'master');
+        $wc = $repository->getWorkingCopy();
+        $wc->checkout('twin');
+        $wc->checkout('master');
+
+        $wc->checkout('@{-1}');
+
+        $this->assertSame('refs/heads/twin', self::headBranch($repository)->getFullname());
     }
 
     /**
@@ -544,5 +700,12 @@ class WorkingCopyTest extends AbstractTestCase
         ksort($configuration);
 
         return $configuration;
+    }
+
+    private function skipUnlessGitHidesIntentToAddFromTheIndex(): void
+    {
+        if (self::getDriver() instanceof CliDriver && version_compare(self::gitVersion(), '2.19.0', '<')) {
+            $this->markTestSkipped('Before 2.19, git diffs a file added with "git add -N" as an empty file of the index.');
+        }
     }
 }

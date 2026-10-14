@@ -14,9 +14,11 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Driver\Cli\Parser\LogParser;
+use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Log;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -246,6 +248,51 @@ class LogTest extends AbstractTestCase
         self::commit($repository, 'dir/file.md', 'markdown');
 
         $this->assertSame([$text], self::hashes($repository->getLog('main', 'dir/*.txt')));
+    }
+
+    public function testLogOfAPathNormalizesIt(): void
+    {
+        $repository = self::createRepositoryToCommitTo();
+        mkdir($repository->getWorkingDir().'/dir');
+        $file = self::commit($repository, 'dir/file.txt', 'file');
+        self::commit($repository, 'other.txt', 'other');
+
+        // Like git.
+        foreach (['dir/.', 'dir//file.txt', 'other/../dir/file.txt', './dir/', $repository->getWorkingDir().'/dir/../dir'] as $path) {
+            $this->assertSame([$file], self::hashes($repository->getLog('main', $path)), $path);
+        }
+    }
+
+    public function testLogOfAPathAboveTheRootThrows(): void
+    {
+        $repository = self::createRepositoryToCommitTo();
+        self::commit($repository, 'file.txt', 'file');
+
+        // Like git.
+        $this->expectException(DriverException::class);
+        if (self::getDriver() instanceof LibGit2Driver) {
+            $this->expectExceptionMessage('The path "dir/../../file.txt" is outside the repository.');
+        } else {
+            $this->expectExceptionMessageMatches('/\'dir\/\.\.\/\.\.\/file\.txt\' is outside repository/');
+        }
+
+        $repository->getLog('main', 'dir/../../file.txt')->getCommits();
+    }
+
+    public function testLogOfAPathWithMagic(): void
+    {
+        $repository = self::createRepositoryToCommitTo();
+        mkdir($repository->getWorkingDir().'/dir');
+        self::commit($repository, 'dir/file.txt', 'file');
+        $other = self::commit($repository, 'other.txt', 'other');
+
+        if (self::getDriver() instanceof LibGit2Driver) {
+            $this->expectException(UnsupportedOperationException::class);
+            $this->expectExceptionMessage('The path ":/other.txt" uses the magic of git\'s pathspecs, which LibGit2Driver doesn\'t support; use CliDriver.');
+        }
+
+        // From the root of the repository, whatever the current directory.
+        $this->assertSame([$other], self::hashes($repository->getLog('main', ':/other.txt')));
     }
 
     public function testLogOfAllReferencesIgnoresTheOnesToOtherObjects(): void

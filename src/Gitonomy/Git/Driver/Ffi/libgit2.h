@@ -66,6 +66,8 @@ typedef struct git_blob git_blob;
 typedef struct git_tag git_tag;
 typedef struct git_reference git_reference;
 typedef struct git_reference_iterator git_reference_iterator;
+typedef struct git_reflog git_reflog;
+typedef struct git_reflog_entry git_reflog_entry;
 typedef struct git_branch_iterator git_branch_iterator;
 typedef struct git_revwalk git_revwalk;
 typedef struct git_index git_index;
@@ -82,6 +84,7 @@ typedef struct git_config git_config;
 int git_libgit2_init(void);
 int git_libgit2_version(int *major, int *minor, int *rev);
 int git_libgit2_features(void);
+int git_libgit2_opts(int option, ...);
 
 /* -- buffers / signatures / arrays -- */
 
@@ -90,6 +93,7 @@ int git_signature_default_from_env(git_signature **author_out, git_signature **c
 void git_signature_free(git_signature *sig);
 void git_oidarray_dispose(git_oidarray *array);
 void git_strarray_dispose(git_strarray *array);
+int git_message_prettify(git_buf *out, const char *message, int strip_comments, char comment_char);
 
 /* -- errors -- */
 
@@ -111,6 +115,7 @@ int git_repository_head(git_reference **out, git_repository *repo);
 int git_repository_set_head(git_repository *repo, const char *refname);
 int git_repository_set_head_detached(git_repository *repo, const git_oid *committish);
 int git_repository_config(git_config **out, git_repository *repo);
+int git_repository_index(git_index **out, git_repository *repo);
 
 /* -- config -- */
 
@@ -183,6 +188,7 @@ void git_revwalk_free(git_revwalk *walk);
 /* -- refs / branch -- */
 
 int git_reference_lookup(git_reference **out, git_repository *repo, const char *name);
+int git_reference_dwim(git_reference **out, git_repository *repo, const char *shorthand);
 int git_reference_resolve(git_reference **out, const git_reference *ref);
 const git_oid *git_reference_target(const git_reference *ref);
 const char *git_reference_symbolic_target(const git_reference *ref);
@@ -195,6 +201,12 @@ int git_reference_iterator_glob_new(git_reference_iterator **out, git_repository
 int git_reference_next(git_reference **out, git_reference_iterator *iter);
 void git_reference_iterator_free(git_reference_iterator *iter);
 int git_reference_peel(git_object **out, const git_reference *ref, git_object_t type);
+
+int git_reflog_read(git_reflog **out, git_repository *repo, const char *name);
+size_t git_reflog_entrycount(git_reflog *reflog);
+const git_reflog_entry *git_reflog_entry_byindex(const git_reflog *reflog, size_t idx);
+const char *git_reflog_entry_message(const git_reflog_entry *entry);
+void git_reflog_free(git_reflog *reflog);
 
 int git_branch_create(git_reference **out, git_repository *repo, const char *branch_name, const git_commit *target, int force);
 int git_branch_delete(git_reference *branch);
@@ -366,6 +378,30 @@ void git_status_list_free(git_status_list *statuslist);
 
 /* -- index -- */
 
+typedef struct {
+    int32_t seconds;
+    uint32_t nanoseconds;
+} git_index_time;
+
+typedef struct git_index_entry {
+    git_index_time ctime;
+    git_index_time mtime;
+    uint32_t dev;
+    uint32_t ino;
+    uint32_t mode;
+    uint32_t uid;
+    uint32_t gid;
+    uint32_t file_size;
+    git_oid id;
+    uint16_t flags;
+    uint16_t flags_extended;
+    const char *path;
+} git_index_entry;
+
+int git_index_read(git_index *index, int force);
+unsigned int git_index_version(git_index *index);
+size_t git_index_entrycount(const git_index *index);
+const git_index_entry *git_index_get_byindex(git_index *index, size_t n);
 void git_index_free(git_index *index);
 int git_index_write_tree_to(git_oid *out, git_index *index, git_repository *repo);
 int git_index_has_conflicts(const git_index *index);

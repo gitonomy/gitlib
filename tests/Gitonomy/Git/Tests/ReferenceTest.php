@@ -470,6 +470,18 @@ class ReferenceTest extends AbstractTestCase
         $this->assertNotContains('refs/remotes/foo/bar/HEAD', $names);
     }
 
+    public function testABranchPointingToAnAnnotatedTagPointsToItsCommit(): void
+    {
+        $repository = self::createFoobarRepository();
+        // Like a fetch of the tags of a remote under refs/remotes/.
+        self::git($repository, 'update-ref', ['refs/remotes/origin/tags/annotated', trim(self::git($repository, 'rev-parse', ['refs/tags/annotated']))]);
+
+        $branch = $repository->getReferences()->getRemoteBranch('origin/tags/annotated');
+
+        $this->assertSame('fbde681b329a39e08b63dc54b341a3274c0380c0', $branch->getCommitHash());
+        $this->assertContains($branch, $repository->getCommit(self::INITIAL_COMMIT)->getIncludingBranches());
+    }
+
     /**
      * Old tags (e.g. in git.git or linux) have no "tagger" line.
      */

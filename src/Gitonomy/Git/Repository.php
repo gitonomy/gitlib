@@ -102,7 +102,7 @@ final class Repository
      *
      * @throws InvalidArgumentException      $dir doesn't exist or isn't a repository, or an option is unknown
      * @throws DriverException               The driver can't open the repository
-     * @throws UnsupportedOperationException The repository uses SHA-256 hashes
+     * @throws UnsupportedOperationException The repository uses SHA-256 hashes, or with LibGit2Driver the reftable format
      */
     public function __construct(string $dir, array|string|null $workingDir = null, DriverInterface $driver = new CliDriver())
     {
@@ -162,6 +162,7 @@ final class Repository
      * @param string|null $branch The branch to check out, the default branch of $url when null
      *
      * @throws DriverException
+     * @throws UnsupportedOperationException $url is a bundle, with LibGit2Driver
      */
     public static function cloneFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
     {
@@ -176,6 +177,7 @@ final class Repository
      * @param string|null $branch The branch HEAD points to, the default branch of $url when null
      *
      * @throws DriverException
+     * @throws UnsupportedOperationException $url is a bundle, with LibGit2Driver
      */
     public static function cloneBareFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
     {
@@ -189,6 +191,7 @@ final class Repository
      * to mirror $url when fetching.
      *
      * @throws DriverException
+     * @throws UnsupportedOperationException $url is a bundle, with LibGit2Driver
      */
     public static function mirrorFrom(#[\SensitiveParameter] string $url, string $path, DriverInterface $driver = new CliDriver()): self
     {

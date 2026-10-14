@@ -67,8 +67,10 @@ final readonly class WorkingCopy
     }
 
     /**
-     * Checks $revision out: HEAD points to it when it is a local branch, to
-     * its commit otherwise.
+     * Checks $revision out, like `git checkout`: HEAD points to it when it is
+     * a local branch, or @{-<n>}, the nth branch checked out before, stays
+     * as it is for "HEAD", and points to the commit otherwise: a tag, a hash,
+     * a remote branch...
      *
      * Unlike `git checkout`, a name that no revision has throws, the name of
      * a remote branch alone included, like "feature" for "origin/feature":

@@ -19,8 +19,9 @@ Checkout a revision
 -------------------
 
 You can checkout any revision using *checkout* method. Like `git checkout`,
-it attaches `HEAD` to a local branch, and detaches it on anything else: a
-tag, a commit, a remote branch...
+it attaches `HEAD` to a local branch, or to `@{-1}`, the branch checked out
+before (`@{-2}` the one before...), leaves it as it is for `HEAD`, and
+detaches it on anything else: a tag, a commit, a remote branch...
 
 ```php
 // git checkout master
@@ -28,6 +29,9 @@ $wc->checkout('master');
 
 // git checkout v1.0 (HEAD is detached)
 $wc->checkout('v1.0');
+
+// git checkout @{-1}: the branch checked out before
+$wc->checkout('@{-1}');
 ```
 
 You can also pass a *Revision*: a *Commit*, a *Reference*... A local *Branch*
@@ -152,6 +156,10 @@ calling method `getDiffPending()`:
 ```php
 $diff = $wc->getDiffPending();
 ```
+
+Like with git 2.19 and later, a file added with `git add -N` (intent to add)
+is no staged change: `getDiffPending()` lists it as created. With
+`CliDriver`, older versions of git list it as an empty staged file.
 
 During a merge conflict, `getDiffStaged()` and `getDiffPending()` leave the
 unmerged files out, and `getDiff()` compares them, conflict markers included,

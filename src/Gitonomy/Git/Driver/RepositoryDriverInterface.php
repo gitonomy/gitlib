@@ -191,8 +191,10 @@ interface RepositoryDriverInterface
     public function getUntrackedFiles(): array;
 
     /**
-     * Checks a revision out: HEAD points to the branch when $revision is the
-     * name of a local branch, and to the commit otherwise.
+     * Checks a revision out, like ``git checkout``: HEAD points to the branch
+     * when $revision is the name of a local branch, or @{-<n>}, the nth
+     * branch checked out before, stays as it is for "HEAD", and points to
+     * the commit otherwise (a tag, a hash, a remote branch...).
      *
      * $revision names a commit, which WorkingCopy::checkout() checks before:
      * it throws a {@see ReferenceNotFoundException} for a name that no

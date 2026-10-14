@@ -105,6 +105,7 @@ final readonly class LibGit2Driver implements DriverInterface
         NulByte::assertNone($url, $path, $branch ?? '');
         // libgit2 runs no command for a URL, unlike git: refused like by CliDriver.
         RemoteUrl::assertSafe($url);
+        self::assertNotBundle($url);
 
         // git_clone() only checks a branch out, where git also checks a tag out, HEAD detached.
         $tag = null !== $branch && $this->isTagOnly($url, $branch) ? $branch : null;
@@ -149,6 +150,7 @@ final readonly class LibGit2Driver implements DriverInterface
     {
         NulByte::assertNone($url, $path, $branch ?? '');
         RemoteUrl::assertSafe($url);
+        self::assertNotBundle($url);
 
         // Like git, only the branches (and the tags).
         $this->fetchInto($path, $url, '+refs/heads/*:refs/heads/*', $branch, ['remote.origin.url' => $url]);
@@ -158,6 +160,7 @@ final readonly class LibGit2Driver implements DriverInterface
     {
         NulByte::assertNone($url, $path);
         RemoteUrl::assertSafe($url);
+        self::assertNotBundle($url);
 
         $this->fetchInto($path, $url, '+refs/*:refs/*', null, [
             'remote.origin.url' => $url,
@@ -181,6 +184,19 @@ final readonly class LibGit2Driver implements DriverInterface
         RemoteUrl::assertSafe($url);
 
         return \in_array('refs/heads/'.$branch, $this->listRemoteReferences($url) ?? [], true);
+    }
+
+    /**
+     * git clones a bundle file like a repository, libgit2 doesn't.
+     *
+     * @throws UnsupportedOperationException $url is a bundle
+     */
+    private static function assertNotBundle(string $url): void
+    {
+        // The signatures of the formats of bundles.
+        if (is_file($url) && is_readable($url) && \in_array(file_get_contents($url, length: 16), ["# v2 git bundle\n", "# v3 git bundle\n"], true)) {
+            throw new UnsupportedOperationException(\sprintf('"%s" is a bundle, which LibGit2Driver doesn\'t support; use CliDriver.', $url));
+        }
     }
 
     private function initRepository(string $path, bool $bare): CData
