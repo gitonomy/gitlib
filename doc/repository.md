@@ -453,6 +453,11 @@ to git's defaults:
     `diff.suppressBlankEmpty`, the prefixes (`diff.noprefix`,
     `diff.mnemonicPrefix`...), and the textconv filters, of blames too.
 
+Like libgit2, `CliDriver` reads the objects as they are, ignoring their
+replacements (`git replace`, `refs/replace/`): whoever can push such a
+reference to a repository would change what your application shows for a
+hash.
+
 The rest of the configuration applies, like with git: the identity, the
 credentials and the rewrites of URLs, `safe.directory`, line endings, hooks,
 `merge.log`, `blame.ignoreRevsFile`, or `core.abbrev`, the length of short
@@ -460,7 +465,8 @@ hashes, with `LibGit2Driver` too.
 
 `run()` and `runProcess()` get `branch.sort`, `log.follow`,
 `log.showSignature`, `diff.indentHeuristic` and `diff.suppressBlankEmpty` set
-back too, but not the rest, which gitlib sets with the options of the
+back too, and ignore the replacements, but not the rest, which gitlib sets
+with the options of the
 commands it runs: pass `--no-color` or `--no-ext-diff` yourself.
 
 Logger

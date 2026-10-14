@@ -243,7 +243,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         ReferenceName::assertUnderRefs($fullname);
 
         // Zeros as the old value: git refuses to update a reference that exists.
-        $this->run('update-ref', [$fullname, $hash, str_repeat('0', 40)]);
+        $this->run('update-ref', ['--no-deref', $fullname, $hash, str_repeat('0', 40)]);
     }
 
     public function updateReference(string $fullname, string $hash): void
@@ -251,7 +251,9 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         LeadingDash::assertNone($fullname, $hash);
         ReferenceName::assertUnderRefs($fullname);
 
-        $this->run('update-ref', [$fullname, $hash]);
+        // --no-deref: a symbolic reference, like refs/remotes/origin/HEAD, is
+        // written itself, instead of the reference it points to.
+        $this->run('update-ref', ['--no-deref', $fullname, $hash]);
     }
 
     public function deleteReference(string $fullname): void
@@ -259,7 +261,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         LeadingDash::assertNone($fullname);
         ReferenceName::assertUnderRefs($fullname);
 
-        $this->run('update-ref', ['-d', $fullname]);
+        $this->run('update-ref', ['--no-deref', '-d', $fullname]);
     }
 
     public function getIncludingBranches(string $hash): array
@@ -483,7 +485,9 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
      */
     private function execute(string $command, #[\SensitiveParameter] array $args, ?string $input = null): Process
     {
-        $globalOptions = [...self::CONFIG, '--git-dir', $this->gitDir];
+        // --no-replace-objects: like libgit2, gitlib reads the objects as they
+        // are, whatever "git replace" made of them in refs/replace/.
+        $globalOptions = [...self::CONFIG, '--git-dir', $this->gitDir, '--no-replace-objects'];
         if (null !== $this->workingDir) {
             $globalOptions = [...$globalOptions, '--work-tree', $this->workingDir];
         }

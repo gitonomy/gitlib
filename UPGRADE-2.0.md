@@ -181,6 +181,8 @@ References
    unsigned tag instead of throwing, and finds X.509 and SSH signatures too.
  * A branch whose name ends with `HEAD` is listed: only the `HEAD` of a
    remote is left out.
+ * Moving or deleting a symbolic reference, like `refs/remotes/origin/HEAD`,
+   changes it, instead of the branch it points to.
  * `ReferenceBag::delete()` throws an `InvalidArgumentException` for a name
    outside `refs/`: `HEAD`, which `CliDriver` deleted, leaving no
    repository, or a short name, like `master`, which did nothing.
@@ -426,6 +428,9 @@ Git configuration
    prefixes, the textconv filters... Before, they made reads throw or return
    other data: a log of a path following its renames with `log.follow`, for
    instance. See ["Git configuration"](doc/repository.md#git-configuration).
+ * `CliDriver` ignores the replacements of objects (`git replace`,
+   `refs/replace/`), like `LibGit2Driver`: `run()` and `runProcess()` too.
+   Run git yourself to read them.
 
 Dates
 -----

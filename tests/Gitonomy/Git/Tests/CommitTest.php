@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Blob;
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Exception\InvalidArgumentException;
@@ -380,5 +381,27 @@ class CommitTest extends AbstractTestCase
 
         $this->assertSame("Subject\n\nBody\n    indented\n", $repository->getCommit($hash)->getMessage());
         $this->assertSame("Subject\n\nBody\n    indented\n", new Repository($repository->getPath(), driver: self::getDriver())->getLog([$hash])->getSingleCommit()->getMessage());
+    }
+
+    /**
+     * Whoever can push refs/replace/* to a repository would change what an
+     * application shows for a hash: like libgit2, gitlib ignores them.
+     */
+    public function testReplacedObjectsAreReadAsTheyAre(): void
+    {
+        $repository = self::createFoobarRepository();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
+        $message = $commit->getMessage();
+        $blob = $commit->getTree()->resolvePath('README.md');
+        $this->assertInstanceOf(Blob::class, $blob);
+        $content = $blob->getContent();
+        self::git($repository, 'replace', [self::LONGFILE_COMMIT, self::writeObject($repository, 'commit', "tree {$commit->getTreeHash()}\nauthor A <a@example.com> 1000000000 +0000\ncommitter A <a@example.com> 1000000000 +0000\n\nFake\n")]);
+        self::git($repository, 'replace', [$blob->getHash(), self::writeObject($repository, 'blob', "Fake\n")]);
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+
+        $this->assertSame($message, $repository->getCommit(self::LONGFILE_COMMIT)->getMessage());
+        $this->assertSame($message, $repository->getLog(self::LONGFILE_COMMIT, null, null, 1)->getSingleCommit()->getMessage());
+        $this->assertSame($content, $repository->getBlob($blob->getHash())->getContent());
     }
 }

@@ -128,6 +128,8 @@ interface RepositoryDriverInterface
     public function createReference(string $fullname, string $hash): void;
 
     /**
+     * A symbolic reference is written itself, never the reference it points to.
+     *
      * @param string $fullname The full name of a reference under ``refs/``
      *
      * @throws InvalidArgumentException $fullname isn't under ``refs/``, like "HEAD" or "master"
@@ -136,6 +138,7 @@ interface RepositoryDriverInterface
 
     /**
      * Like ``git update-ref -d``, deleting a missing reference does nothing.
+     * A symbolic reference is deleted itself, never the reference it points to.
      *
      * @param string $fullname The full name of a reference under ``refs/``
      *

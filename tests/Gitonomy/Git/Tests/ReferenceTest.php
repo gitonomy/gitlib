@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
@@ -334,6 +335,36 @@ class ReferenceTest extends AbstractTestCase
     }
 
     /**
+     * The symbolic reference is deleted, not the branch it points to.
+     */
+    public function testDeletingASymbolicReference(): void
+    {
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'update-ref', ['refs/remotes/origin/main', self::LONGFILE_COMMIT]);
+        self::git($repository, 'symbolic-ref', ['refs/remotes/origin/HEAD', 'refs/remotes/origin/main']);
+
+        $repository->getReferences()->delete('refs/remotes/origin/HEAD');
+
+        $this->assertSame(\sprintf("%s refs/remotes/origin/main\n", self::LONGFILE_COMMIT), self::git($repository, 'for-each-ref', ['--format=%(objectname) %(refname)', 'refs/remotes/origin/']));
+    }
+
+    /**
+     * The symbolic reference moves, not the branch it points to.
+     * ReferenceBag leaves it out: through the driver, which Branch::moveTo()
+     * calls.
+     */
+    public function testUpdatingASymbolicReference(): void
+    {
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'update-ref', ['refs/remotes/origin/main', self::LONGFILE_COMMIT]);
+        self::git($repository, 'symbolic-ref', ['refs/remotes/origin/HEAD', 'refs/remotes/origin/main']);
+
+        $repository->getRepositoryDriver()->updateReference('refs/remotes/origin/HEAD', self::INITIAL_COMMIT);
+
+        $this->assertSame(\sprintf("%s refs/remotes/origin/HEAD\n%s refs/remotes/origin/main\n", self::INITIAL_COMMIT, self::LONGFILE_COMMIT), self::git($repository, 'for-each-ref', ['--format=%(objectname) %(refname)', 'refs/remotes/origin/']));
+    }
+
+    /**
      * "git update-ref -d HEAD" deletes HEAD: git no longer sees a repository.
      */
     #[DataProvider('provideBare')]
@@ -387,6 +418,23 @@ class ReferenceTest extends AbstractTestCase
                 yield $writeName.' '.$fullname => [$write, $fullname];
             }
         }
+    }
+
+    /**
+     * Nothing is created through a symbolic reference to a missing branch:
+     * git 2.x and libgit2 refuse it, git 1.x replaces it.
+     */
+    public function testCreatingABranchNamedLikeADanglingSymbolicReference(): void
+    {
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'symbolic-ref', ['refs/heads/dangling', 'refs/heads/missing']);
+
+        try {
+            $repository->getReferences()->createBranch('dangling', self::LONGFILE_COMMIT);
+        } catch (DriverException) {
+        }
+
+        $this->assertFalse($repository->getReferences()->hasBranch('missing'));
     }
 
     public function testTheHeadOfARemoteNamedWithASlashIsNoBranch(): void
