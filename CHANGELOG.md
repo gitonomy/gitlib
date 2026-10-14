@@ -82,7 +82,7 @@ deprecated until 3.0.
     `File::isModeChange()`, `FileChange::getAdditions()` and `getDeletions()`,
     `PushReference::getFullname()`, `getRange()`, `isCreation()` and `isDeletion()`, and the SSH
     and X.509 signatures of tags. ([#253](https://github.com/gitonomy/gitlib/pull/253),
-    [#254](https://github.com/gitonomy/gitlib/pull/254))
+    [#254](https://github.com/gitonomy/gitlib/pull/254), [#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Add `WorkingCopy::merge()` to support `git merge`, fast-forwarding or not, with a
     `FastForward` enum. ([#248](https://github.com/gitonomy/gitlib/pull/248), fixes #118)
 -   Add `Repository::runProcess()` to expose stderr from successful commands: `run()` only
@@ -138,10 +138,11 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     ([#254](https://github.com/gitonomy/gitlib/pull/254))
 -   Require `symfony/process` 6.4.33, 7.4.5 or 8.1 and later: the older versions escape the
     arguments wrongly on Windows (CVE-2024-51736, CVE-2026-24739).
+    ([#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Refuse an `ext::` URL, like `ext::sh -c ...`, whose command git runs, by default before git
     2.12, and an `fd::` URL, which makes git talk through a file descriptor it inherits from PHP,
     like the socket of a database, and wait on it.
-    ([#254](https://github.com/gitonomy/gitlib/pull/254))
+    ([#254](https://github.com/gitonomy/gitlib/pull/254), [#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Refuse an ssh URL whose host or user starts with a dash, even encoded (`%2D`), like
     `ssh://-oProxyCommand=.../repository`: git before 2.14.1 passes it to ssh, which reads it as an
     option and runs the command (CVE-2017-1000117). A `git://` URL whose host starts with a dash
@@ -165,6 +166,7 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     repository names there to read the working tree, and even to diff a commit. Like git with
     `--git-dir`, gitlib trusts the repositories it opens: `safe.directory` doesn't apply, see
     ["Git configuration"](doc/repository.md#git-configuration).
+    ([#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Fix `WorkingCopy::checkout()` of a path, like `checkout('README.md')`, discarding the changes
     of the file: a path is no revision, and throws a `ReferenceNotFoundException`.
     ([#254](https://github.com/gitonomy/gitlib/pull/254))
@@ -180,12 +182,13 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 -   Fix `Commit::getIncludingBranches()` and `Repository::getHead()` throwing for a branch another
     process created or checked out since gitlib read the references, and
     `getIncludingBranches()` throwing for a regular `refs/remotes/origin/HEAD`, as a mirror leaves
-    it.
+    it. ([#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Fix the blame of a file throwing with `CliDriver` after a merge whose sides kept it under two
     names: git repeats the path of a commit it blames under both, which gitlib didn't read.
+    ([#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Fix a log throwing with `CliDriver` for a commit whose author or committer git wouldn't
     write anymore, like `Name<email>` or no date, as old imports have: it is read like libgit2
-    reads it, the epoch in UTC without date.
+    reads it, the epoch in UTC without date. ([#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Fix the configuration of the user changing what `CliDriver` reads: `color.ui=always`,
     `log.showSignature`, `diff.noprefix`, `diff.external`, `diff.submodule`, textconv filters,
     `column.ui`... made reads throw or return wrong data, and `diff.algorithm`, `diff.context`,
@@ -232,7 +235,7 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     a hook not deployed yet: it no longer follows links. A file or a directory git deletes
     meanwhile, like a lock during a `gc` or the quarantine of a push, no longer makes it throw
     either, and one it can't read throws a `RuntimeException` of gitlib, instead of PHP's.
-    ([#254](https://github.com/gitonomy/gitlib/pull/254))
+    ([#254](https://github.com/gitonomy/gitlib/pull/254), [#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Fix blame lines starting with a TAB character (`Blame\Line::getContent()`): code removing it
     must stop doing so. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 -   Fix reading a commit whose `encoding` header isn't UTF-8, which threw: its message, author and
