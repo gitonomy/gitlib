@@ -473,6 +473,8 @@ Git configuration
 *   `CliDriver` ignores the replacements of objects (`git replace`,
     `refs/replace/`), like `LibGit2Driver`: `run()` and `runProcess()` too.
     Run git yourself to read them.
+*   `CliDriver` ignores `core.fsmonitor`, whose command git runs to read the
+    working tree: `run()` and `runProcess()` too.
 
 Dates
 -----

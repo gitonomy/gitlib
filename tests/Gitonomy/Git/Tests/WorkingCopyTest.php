@@ -158,6 +158,27 @@ class WorkingCopyTest extends AbstractTestCase
         $this->assertSame([], $wc->getDiff()->getFiles());
     }
 
+    /**
+     * The configuration of a repository may name a command in core.fsmonitor,
+     * which git runs to read the working tree, and even to diff a commit.
+     */
+    public function testTheCommandOfCoreFsmonitorDoesNotRun(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $marker = self::createTempDir().'/ran';
+        self::git($repository, 'config', ['core.fsmonitor', 'touch '.$marker.'; false']);
+        file_put_contents($repository->getWorkingDir().'/README.md', 'local change');
+        $wc = $repository->getWorkingCopy();
+
+        $wc->getUntrackedFiles();
+        $wc->getDiffPending();
+        $wc->getDiffStaged();
+        $wc->getDiff();
+        $repository->getHeadCommit()->getDiff();
+
+        $this->assertFileDoesNotExist($marker);
+    }
+
     public function testDiffLeavesOutAFileTheWorkingTreeChangesBack(): void
     {
         $repository = self::createFoobarRepository(false);

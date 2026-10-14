@@ -145,6 +145,10 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 -   Ignore the replacements of objects (`git replace`, `refs/replace/`) with `CliDriver`, like
     `LibGit2Driver`: whoever could push such a reference to a repository changed the message of a
     commit, or the content of a blob, gitlib read for a hash.
+-   Ignore `core.fsmonitor` with `CliDriver`: git ran the command the configuration of a
+    repository names there to read the working tree, and even to diff a commit. Like git with
+    `--git-dir`, gitlib trusts the repositories it opens: `safe.directory` doesn't apply, see
+    ["Git configuration"](doc/repository.md#git-configuration).
 -   Fix `WorkingCopy::checkout()` of a path, like `checkout('README.md')`, discarding the changes
     of the file: a path is no revision, and throws a `ReferenceNotFoundException`.
 -   Fix moving or deleting a symbolic reference, which changed the branch it points to instead:

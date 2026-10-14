@@ -492,6 +492,8 @@ creates, `CliDriver` sets it back to git's defaults:
     `LibGit2Driver`, a branch `WorkingCopy::checkoutNewBranch()` creates from
     a remote branch tracks it, without rebasing;
 -   `branch.sort`, `log.follow` and `log.showSignature`;
+-   `core.fsmonitor`, whose command git runs to read the working tree, and
+    even to diff a commit;
 -   for diffs, `diff.algorithm`, `diff.context`, `diff.external`,
     `diff.indentHeuristic`, `diff.interHunkContext`, `diff.orderFile`,
     `diff.submodule`, `diff.suppressBlankEmpty`, the prefixes
@@ -504,15 +506,24 @@ reference to a repository would change what your application shows for a
 hash.
 
 The rest of the configuration applies, like with git: the identity, the
-credentials and the rewrites of URLs, `safe.directory`, line endings, hooks,
-`merge.log`, `blame.ignoreRevsFile`, or `core.abbrev`, the length of short
-hashes, with `LibGit2Driver` too.
+credentials and the rewrites of URLs, line endings, hooks, `merge.log`,
+`blame.ignoreRevsFile`, or `core.abbrev`, the length of short hashes, with
+`LibGit2Driver` too.
+
+`safe.directory` doesn't apply: `CliDriver` runs git with `--git-dir`, which
+git trusts, whoever owns the repository. Like git, gitlib then runs the
+commands the configuration of the repository names: its hooks, and the
+filters of its `.gitattributes`, when it checks files out, merges, or reads
+the working tree. Only open a repository whose `.git` directory you trust:
+not one another user of the machine owns, nor one extracted from an archive
+your users send. `LibGit2Driver` runs neither hooks nor external filters.
 
 `run()` and `runProcess()` get `branch.autoSetupMerge`,
-`branch.autoSetupRebase`, `branch.sort`, `log.follow`, `log.showSignature`,
-`diff.indentHeuristic` and `diff.suppressBlankEmpty` set back too, and ignore
-the replacements, but not the rest, which gitlib sets with the options of the
-commands it runs: pass `--no-color` or `--no-ext-diff` yourself.
+`branch.autoSetupRebase`, `branch.sort`, `core.fsmonitor`, `log.follow`,
+`log.showSignature`, `diff.indentHeuristic` and `diff.suppressBlankEmpty` set
+back too, and ignore the replacements, but not the rest, which gitlib sets with
+the options of the commands it runs: pass `--no-color` or `--no-ext-diff`
+yourself.
 
 Logger
 ------

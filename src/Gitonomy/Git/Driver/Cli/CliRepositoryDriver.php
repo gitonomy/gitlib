@@ -47,12 +47,16 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
      *
      * branch.autoSetupMerge and branch.autoSetupRebase: a branch created from
      * a remote branch tracks it, without rebasing, like with LibGit2Driver.
+     * core.fsmonitor: git runs the command it names, which the configuration
+     * of a repository may set, to read the working tree, and even to diff a
+     * commit.
      * diff.indentHeuristic is the default since git 2.14, and LibGit2Driver's.
      */
     private const array CONFIG = [
         '-c', 'branch.autoSetupMerge=true',
         '-c', 'branch.autoSetupRebase=never',
         '-c', 'branch.sort=refname',
+        '-c', 'core.fsmonitor=false',
         '-c', 'diff.indentHeuristic=true',
         '-c', 'diff.suppressBlankEmpty=false',
         '-c', 'log.follow=false',
