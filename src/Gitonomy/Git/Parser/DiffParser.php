@@ -71,6 +71,16 @@ final class DiffParser extends ParserBase
                 'C' === $entry['status'],
             );
         }
+
+        $this->consumeUnmergedPaths();
+
+        // What the parser doesn't know would be lost: the patches of the next
+        // files, after the log of a submodule of "git diff --submodule=log"...
+        // The message has the start of its line only: the lines of a diff come
+        // from the files of the repository.
+        if (!$this->isFinished()) {
+            throw new RuntimeException(\sprintf('Unable to parse the diff from "%s".', explode("\n", substr($this->content, $this->cursor, 100), 2)[0]));
+        }
     }
 
     /**
@@ -147,10 +157,7 @@ final class DiffParser extends ParserBase
 
     private function consumePatch(?string $oldName, ?string $newName, ?string $oldMode, ?string $newMode, ?string $oldHash, ?string $newHash, bool $isCopy): DiffFileData
     {
-        while ($this->expects('* Unmerged path ')) {
-            $this->consumeTo("\n");
-            $this->consumeNewLine();
-        }
+        $this->consumeUnmergedPaths();
 
         // Without --patch.
         if (!$this->expects('diff --git ')) {
@@ -193,6 +200,17 @@ final class DiffParser extends ParserBase
         }
 
         return new DiffFileData($oldName, $newName, $oldMode, $newMode, $oldHash, $newHash, $isBinary, $isCopy, $changes);
+    }
+
+    /**
+     * During a conflict, an unmerged path has this line instead of its patch.
+     */
+    private function consumeUnmergedPaths(): void
+    {
+        while ($this->expects('* Unmerged path ')) {
+            $this->consumeTo("\n");
+            $this->consumeNewLine();
+        }
     }
 
     private function consumeHunk(): FileChange

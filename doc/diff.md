@@ -174,14 +174,17 @@ Parsing a diff
 
 `Diff::parse()` reads the output of `git diff --raw --patch`, with `-z` or
 not. The raw information gives the names, modes, hashes and status of the
-files: a patch without it throws an `InvalidArgumentException`. Pass the
-repository to read the blobs of the files. Here, the output comes from
-`Repository::run()`, which needs `CliDriver`:
+files: a patch without it throws an `InvalidArgumentException`. What the
+parser doesn't know throws a `RuntimeException`, like the log of a submodule
+that `git diff` writes instead of its patch, when the configuration sets
+`diff.submodule`: pass `--submodule=short`. Pass the repository to read the
+blobs of the files. Here, the output comes from `Repository::run()`, which
+needs `CliDriver`:
 
 ```php
 use Gitonomy\Git\Diff\Diff;
 
-$output = $repository->run('diff', ['--raw', '--patch', '0.1', 'master']);
+$output = $repository->run('diff', ['--raw', '--patch', '--submodule=short', '0.1', 'master']);
 $diff = Diff::parse($output, $repository);
 ```
 

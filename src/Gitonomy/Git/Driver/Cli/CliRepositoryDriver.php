@@ -63,11 +63,12 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
      * -z: the raw information gives the names as they are, without quoting.
      * --no-abbrev: before git 2.16, --raw abbreviates hashes with a trailing "...".
      * The others set back to git's defaults the configuration "git diff" reads,
-     * unlike diff-tree: diff.algorithm, diff.context, diff.external, diff.noprefix...
+     * unlike diff-tree: diff.algorithm, diff.context, diff.external, diff.noprefix,
+     * diff.submodule...
      */
     private const array DIFF_ARGS = [
         '-r', '-p', '--raw', '-z', '-M', '--full-index', '--no-abbrev',
-        '--diff-algorithm=myers', '--dst-prefix=b/', '--inter-hunk-context=0', '--no-color', '--no-ext-diff', '--no-textconv', '-O/dev/null', '--src-prefix=a/', '-U3',
+        '--diff-algorithm=myers', '--dst-prefix=b/', '--inter-hunk-context=0', '--no-color', '--no-ext-diff', '--no-textconv', '-O/dev/null', '--src-prefix=a/', '--submodule=short', '-U3',
     ];
 
     /**

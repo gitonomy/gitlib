@@ -451,8 +451,9 @@ creates, `CliDriver` sets it back to git's defaults:
 -   `branch.sort`, `log.follow` and `log.showSignature`;
 -   for diffs, `diff.algorithm`, `diff.context`, `diff.external`,
     `diff.indentHeuristic`, `diff.interHunkContext`, `diff.orderFile`,
-    `diff.suppressBlankEmpty`, the prefixes (`diff.noprefix`,
-    `diff.mnemonicPrefix`...), and the textconv filters, of blames too.
+    `diff.submodule`, `diff.suppressBlankEmpty`, the prefixes
+    (`diff.noprefix`, `diff.mnemonicPrefix`...), and the textconv filters, of
+    blames too.
 
 Like libgit2, `CliDriver` reads the objects as they are, ignoring their
 replacements (`git replace`, `refs/replace/`): whoever can push such a

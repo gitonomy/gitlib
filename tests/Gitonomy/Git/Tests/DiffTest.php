@@ -278,6 +278,41 @@ class DiffTest extends AbstractTestCase
         Diff::parse("diff --git a/a.out b/a.out\nold mode 100755\nnew mode 100644\n");
     }
 
+    /**
+     * What the parser doesn't know would be lost, with the files after it.
+     * The message has the start of its line only, which may come from a file.
+     */
+    public function testParseRefusesWhatItDoesNotKnow(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Unable to parse the diff from "Submodule sub 1111111..2222222:".');
+
+        Diff::parse(":160000 160000 1111111111111111111111111111111111111111 2222222222222222222222222222222222222222 M\tsub\n\nSubmodule sub 1111111..2222222:\n  > Second\n");
+    }
+
+    /**
+     * "git diff --staged" during a conflict, whose unmerged path comes last.
+     */
+    public function testParseLeavesOutTheLastUnmergedPath(): void
+    {
+        $diff = Diff::parse(<<<'DIFF'
+            :000000 100644 0000000000000000000000000000000000000000 e45c9c2666d44e0327c1f9c239a74c508336053e A	other
+            :100644 000000 ba2906d0666cf726c7eaadd2cd3db615dedfdf3a 0000000000000000000000000000000000000000 U	zconflict
+
+            diff --git a/other b/other
+            new file mode 100644
+            index 0000000000000000000000000000000000000000..e45c9c2666d44e0327c1f9c239a74c508336053e
+            --- /dev/null
+            +++ b/other
+            @@ -0,0 +1 @@
+            +other
+            * Unmerged path zconflict
+
+            DIFF);
+
+        $this->assertSame([['other', [[0, 0, 1, 1, [['Addition', 'other']]]]]], self::changes($diff));
+    }
+
     public function testParseAnEmptyDiff(): void
     {
         $this->assertSame([], Diff::parse('')->getFiles());
@@ -541,6 +576,34 @@ class DiffTest extends AbstractTestCase
         $this->assertFalse($firstFile->isDeletion());
         $this->assertSame('sub', $firstFile->getOldName());
         $this->assertSame('sub', $firstFile->getNewName());
+    }
+
+    /**
+     * With diff.submodule=log, which the configuration of the tests sets, "git
+     * diff" writes the log of a submodule instead of its patch.
+     */
+    public function testTheFilesAfterASubmoduleKeepTheirPatch(): void
+    {
+        $repository = self::createWorkingCopy();
+        $submodule = Repository::init($repository->getWorkingDir().'/sub', self::getCliDriver());
+        self::git($submodule, 'config', ['user.name', 'Unit Test']);
+        self::git($submodule, 'config', ['user.email', 'unit_test@unit-test.com']);
+        self::git($submodule, 'commit', ['-q', '--allow-empty', '-m', 'First']);
+        $first = trim(self::git($submodule, 'rev-parse', ['HEAD']));
+        self::git($repository, 'update-index', ['--add', '--cacheinfo', '160000', $first, 'sub']);
+        self::commitFile($repository, 'z.txt', "a\n");
+
+        self::git($submodule, 'commit', ['-q', '--allow-empty', '-m', 'Second']);
+        $second = trim(self::git($submodule, 'rev-parse', ['HEAD']));
+        file_put_contents($repository->getWorkingDir().'/z.txt', "b\n");
+
+        $diff = $repository->getWorkingCopy()->getDiffPending();
+
+        $this->assertSame([
+            ['sub', [[1, 1, 1, 1, [['Deletion', 'Subproject commit '.$first], ['Addition', 'Subproject commit '.$second]]]]],
+            ['z.txt', [[1, 1, 1, 1, [['Deletion', 'a'], ['Addition', 'b']]]]],
+        ], self::changes($diff));
+        $this->assertSame(sha1("blob 2\0b\n"), $diff->getFiles()[1]->getNewIndex());
     }
 
     /**

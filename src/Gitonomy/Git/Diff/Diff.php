@@ -15,6 +15,7 @@ namespace Gitonomy\Git\Diff;
 use Gitonomy\Git\Driver\Data\DiffData;
 use Gitonomy\Git\Driver\Data\DiffFileData;
 use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Parser\DiffParser;
 use Gitonomy\Git\Repository;
 
@@ -42,6 +43,7 @@ final readonly class Diff
      * @param Repository|null $repository The repository to read the blobs of the files from
      *
      * @throws InvalidArgumentException The diff has no raw information
+     * @throws RuntimeException         The diff holds what the parser doesn't know, like the log of a submodule
      */
     public static function parse(string $rawDiff, ?Repository $repository = null): self
     {

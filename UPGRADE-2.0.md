@@ -443,9 +443,9 @@ Git configuration
    branch: colors, columns, `branch.autoSetupMerge`,
    `branch.autoSetupRebase`, `branch.sort`, `log.follow`,
    `log.showSignature`, and for diffs `diff.algorithm`, `diff.context`,
-   `diff.external`, `diff.orderFile`, the prefixes, the textconv
-   filters... Before, they made reads throw or return other data: a log of
-   a path following its renames with `log.follow`, for instance. See
+   `diff.external`, `diff.orderFile`, `diff.submodule`, the prefixes, the
+   textconv filters... Before, they made reads throw or return other data: a
+   log of a path following its renames with `log.follow`, for instance. See
    ["Git configuration"](doc/repository.md#git-configuration).
  * `CliDriver` ignores the replacements of objects (`git replace`,
    `refs/replace/`), like `LibGit2Driver`: `run()` and `runProcess()` too.

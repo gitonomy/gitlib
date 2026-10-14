@@ -137,8 +137,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 ### Bug fixes
 
 - Fix the configuration of the user changing what `CliDriver` reads: `color.ui=always`,
-  `log.showSignature`, `diff.noprefix`, `diff.external`, textconv filters, `column.ui`...
-  made reads throw or return wrong data, and `diff.algorithm`, `diff.context`,
+  `log.showSignature`, `diff.noprefix`, `diff.external`, `diff.submodule`, textconv filters,
+  `column.ui`... made reads throw or return wrong data, and `diff.algorithm`, `diff.context`,
   `diff.orderFile`, `log.follow` or `branch.sort` changed diffs, logs and the branches of a
   commit. gitlib sets them back to git's defaults; see
   ["Git configuration"](doc/repository.md#git-configuration).
