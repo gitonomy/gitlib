@@ -33,8 +33,9 @@ use Gitonomy\Git\Exception\UnsupportedOperationException;
  * An application may get the URL of a repository from its users: every method
  * taking one refuses, with an {@see InvalidArgumentException}, a URL git would
  * misread, before running git. A URL starting with a dash is an option for
- * git, an "ext::" URL runs its command, and an ssh host or user starting with
- * a dash is an option for ssh.
+ * git, an "ext::" URL runs its command, an "fd::" URL talks through a file
+ * descriptor of PHP, and an ssh host or user starting with a dash is an
+ * option for ssh.
  *
  * @author Grégoire Pineau <lyrixx@lyrixx.info>
  */

@@ -128,7 +128,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     a file, and `Repository::isValidRepository('--upload-pack=...')` run a command. A path may
     start with a dash: `init()` and the clones end the options of git with `--`.
 -   Refuse an `ext::` URL, like `ext::sh -c ...`, whose command git runs, by default before git
-    2.12.
+    2.12, and an `fd::` URL, which makes git talk through a file descriptor it inherits from PHP,
+    like the socket of a database, and wait on it.
 -   Refuse an ssh URL whose host or user starts with a dash, even encoded (`%2D`), like
     `ssh://-oProxyCommand=.../repository`: git before 2.14.1 passes it to ssh, which reads it as an
     option and runs the command (CVE-2017-1000117). A `git://` URL whose host starts with a dash

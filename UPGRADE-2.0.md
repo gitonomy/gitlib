@@ -443,7 +443,8 @@ Errors
     `isValidRepository('--upload-pack=...')` running a command. A path may
     start with a dash.
 *   An `ext::` URL throws an `InvalidArgumentException`, with both drivers:
-    git runs its command, by default before git 2.12.
+    git runs its command, by default before git 2.12. So does an `fd::` URL,
+    which makes git talk through a file descriptor it inherits from PHP.
 *   An ssh URL whose host or user starts with a dash, even encoded (`%2D`),
     like `ssh://-oProxyCommand=.../repository` or
     `ssh://-oProxyCommand=...@host/path`, or a `git://` URL whose host does,

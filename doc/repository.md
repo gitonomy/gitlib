@@ -237,9 +237,9 @@ or empty data instead. Every exception of gitlib implements
     byte, which git doesn't accept, a revision, a reference, a hash or a URL
     starting with a dash, which git would read as an option
     (`getRevision('--output=/path')`), an `ext::` URL, whose command git
-    would run, a URL whose ssh host or user starts with a dash, which ssh
-    would read as an option, or a reference to delete outside `refs/`, like
-    `HEAD`.
+    would run, an `fd::` URL, a URL whose ssh host or user starts with a
+    dash, which ssh would read as an option, or a reference to delete
+    outside `refs/`, like `HEAD`.
 -   `RuntimeException`: any other failure, like a hook that exists already
     (`Hooks::set()`), a file of the git directory that can't be written, or
     an output of git that gitlib can't read. `DriverException` and
