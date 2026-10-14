@@ -67,7 +67,8 @@ Opening a repository
     ignored.
 *   The `debug` option is deprecated, and setting it to `false` throws an
     `InvalidArgumentException`: see [Errors](#errors).
-*   `$path` may be a linked worktree or a submodule, whose `.git` is a file.
+*   `$path` may be a linked worktree, a submodule or a clone with
+    `--separate-git-dir`, whose `.git` is a file.
 *   A directory that isn't a repository throws an `InvalidArgumentException`
     right away, instead of a `ProcessException` at the first operation.
 

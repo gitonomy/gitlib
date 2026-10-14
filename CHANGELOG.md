@@ -62,9 +62,9 @@ deprecated until 3.0.
     by default, configured through its constructor (git binary, environment, timeout and logger,
     which gets every command, clones included), or any `Driver\DriverInterface`, to replace it in
     tests; see ["Using your own driver"](doc/repository.md#using-your-own-driver). The driver
-    finds the repository: linked worktrees, submodules and reftable repositories open, and a
-    directory that isn't a repository throws right away.
-    ([#253](https://github.com/gitonomy/gitlib/pull/253))
+    finds the repository: linked worktrees, submodules, clones with `--separate-git-dir` and
+    reftable repositories open, and a directory that isn't a repository throws right away.
+    ([#253](https://github.com/gitonomy/gitlib/pull/253), fixes #200)
 -   Add static methods to `Repository` creating repositories, `init()`, `initBare()`,
     `cloneFrom()`, `cloneBareFrom()` and `mirrorFrom()`, and checking a repository URL,
     `isValidRepository()` and `isValidRepositoryAndBranch()`; see

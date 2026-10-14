@@ -23,7 +23,8 @@ The path may be:
 -   a bare repository;
 -   a working tree, with its `.git` directory;
 -   a working tree whose `.git` is a file pointing to its git directory: a
-    linked worktree (`git worktree add`) or a submodule.
+    linked worktree (`git worktree add`), a submodule, or a clone with
+    `--separate-git-dir`.
 
 The constructor takes two more arguments:
 
