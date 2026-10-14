@@ -75,6 +75,36 @@ class CommitTest extends AbstractTestCase
     }
 
     /**
+     * Old commits, imported from other tools, have signatures git wouldn't
+     * write anymore, which git and libgit2 read anyway: one of them made the
+     * whole log throw.
+     */
+    #[DataProvider('provideMalformedSignatures')]
+    public function testAMalformedSignatureIsReadLikeGit(string $signature, string $name, string $email, string $date): void
+    {
+        $repository = self::createEmptyRepository();
+        $tree = self::writeObject($repository, 'tree', '');
+        $hash = self::writeObject($repository, 'commit', "tree {$tree}\nauthor {$signature}\ncommitter {$signature}\n\nMalformed\n");
+
+        $commits = $repository->getLog($hash)->getCommits();
+
+        $this->assertCount(1, $commits);
+        $this->assertSame([$name, $email, $date], [$commits[0]->getAuthorName(), $commits[0]->getAuthorEmail(), $commits[0]->getAuthorDate()->format(\DATE_ATOM)]);
+        $this->assertSame([$name, $email, $date], [$commits[0]->getCommitterName(), $commits[0]->getCommitterEmail(), $commits[0]->getCommitterDate()->format(\DATE_ATOM)]);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string, string}>
+     */
+    public static function provideMalformedSignatures(): iterable
+    {
+        yield 'no space before the email' => ['A<a@example.com> 1700000000 +0200', 'A', 'a@example.com', '2023-11-15T00:13:20+02:00'];
+        yield 'no date' => ['A <a@example.com>', 'A', 'a@example.com', '1970-01-01T00:00:00+00:00'];
+        yield 'an offset of 5 digits' => ['A <a@example.com> 1700000000 +05030', 'A', 'a@example.com', '2023-11-14T22:13:20+00:00'];
+        yield 'no name nor email' => ['<> 0 +0000', '', '', '1970-01-01T00:00:00+00:00'];
+    }
+
+    /**
      * Like git log, which shows "-0000" as "+0000". An offset of more than 14
      * hours or 59 minutes, which no timezone has, gives UTC, like libgit2.
      */

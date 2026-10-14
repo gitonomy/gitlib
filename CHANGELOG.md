@@ -164,6 +164,9 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     it.
 -   Fix the blame of a file throwing with `CliDriver` after a merge whose sides kept it under two
     names: git repeats the path of a commit it blames under both, which gitlib didn't read.
+-   Fix a log throwing with `CliDriver` for a commit whose author or committer git wouldn't
+    write anymore, like `Name<email>` or no date, as old imports have: it is read like libgit2
+    reads it, the epoch in UTC without date.
 -   Fix the configuration of the user changing what `CliDriver` reads: `color.ui=always`,
     `log.showSignature`, `diff.noprefix`, `diff.external`, `diff.submodule`, textconv filters,
     `column.ui`... made reads throw or return wrong data, and `diff.algorithm`, `diff.context`,
