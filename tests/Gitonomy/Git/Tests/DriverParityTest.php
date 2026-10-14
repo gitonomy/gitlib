@@ -14,6 +14,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Diff\DiffLine;
 use Gitonomy\Git\Diff\FileChange;
+use Gitonomy\Git\Driver\Data\DiffFileData;
 use Gitonomy\Git\Driver\Data\ObjectType;
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Driver\RepositoryDriverInterface;
@@ -91,6 +92,22 @@ class DriverParityTest extends AbstractTestCase
         }
     }
 
+    /**
+     * doc/repository.md: rename detection in diffs may pair files differently.
+     */
+    public function testRenameDetectionMayPairFilesDifferently(): void
+    {
+        $master = $this->cli->resolveRevision('master');
+        $cli = $this->cli->getDiff(self::INITIAL_COMMIT, $master)->files;
+        $libgit2 = $this->libgit2->getDiff(self::INITIAL_COMMIT, $master)->files;
+
+        // git deletes README and creates README.md, which libgit2 finds similar enough for a rename.
+        $this->assertSame([['README', null], [null, 'README.md']], self::readmeNames($cli));
+        $this->assertSame([['README', 'README.md']], self::readmeNames($libgit2));
+        $this->assertCount(13, $cli);
+        $this->assertCount(12, $libgit2);
+    }
+
     public function testBlame(): void
     {
         $master = $this->cli->resolveRevision('master');
@@ -125,6 +142,18 @@ class DriverParityTest extends AbstractTestCase
             $this->compared[$hash] = true;
             $this->assertSame($this->cli->getBlobContent($hash), $this->libgit2->getBlobContent($hash), $hash);
         }
+    }
+
+    /**
+     * @param list<DiffFileData> $files
+     *
+     * @return list<array{string|null, string|null}> The old and new names of the files named README or README.md
+     */
+    private static function readmeNames(array $files): array
+    {
+        $names = array_map(static fn (DiffFileData $file): array => [$file->oldName, $file->newName], $files);
+
+        return array_values(array_filter($names, static fn (array $pair): bool => [] !== array_intersect($pair, ['README', 'README.md'])));
     }
 
     private function assertSameData(mixed $expected, mixed $actual, string $message = ''): void

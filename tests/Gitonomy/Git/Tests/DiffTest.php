@@ -63,10 +63,10 @@ class DiffTest extends AbstractTestCase
 
         $this->assertTrue($files[0]->isModification(), 'image.jpg modified');
 
-        $this->assertSame('image.jpg', $files[0]->getOldName(), 'Second file name is image.jpg');
-        $this->assertSame('image.jpg', $files[0]->getNewName(), 'Second file name is image.jpg');
-        $this->assertSame('100644', $files[0]->getOldMode(), 'Second file mode is a new file');
-        $this->assertSame('100644', $files[0]->getNewMode(), 'Second file mode is correct');
+        $this->assertSame('image.jpg', $files[0]->getOldName(), 'Old file name is image.jpg');
+        $this->assertSame('image.jpg', $files[0]->getNewName(), 'New file name is image.jpg');
+        $this->assertSame('100644', $files[0]->getOldMode(), 'Old file mode is a regular file');
+        $this->assertSame('100644', $files[0]->getNewMode(), 'New file mode is a regular file');
 
         $this->assertTrue($files[0]->isBinary(), 'binary file');
         $this->assertSame(0, $files[0]->getAdditions(), '0 lines added');
@@ -679,7 +679,7 @@ class DiffTest extends AbstractTestCase
     {
         $files = $diff->getFiles();
 
-        $this->assertCount(2, $files, '1 file in diff');
+        $this->assertCount(2, $files, '2 files in diff');
 
         $this->assertTrue($files[0]->isCreation(), 'script_A.php created');
 

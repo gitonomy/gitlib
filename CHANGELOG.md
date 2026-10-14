@@ -231,10 +231,13 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 ### Minor
 
 - CI tests git 1.8.4 and 2.25.1, analyses the tests and the libgit2 driver with PHPStan,
-  checks the archive Composer installs, and the suite deletes what it creates, in any order.
+  without baseline, checks the archive Composer installs, pins the third-party actions by
+  commit, and the suite deletes what it creates, in any order.
   ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - The tests run with a git configuration of their own, whatever the developer's
-  (`tests/fixtures/home`), which sets what gitlib sets back to git's defaults.
+  (`tests/fixtures/home`), which sets what gitlib sets back to git's defaults, and without the
+  variables of git of their environment: run from a hook, they wrote the repository of the hook
+  (`GIT_DIR`, `GIT_INDEX_FILE`...).
 - Add a regression test for reading a blob's content in a tree that also contains a
   submodule. ([#243](https://github.com/gitonomy/gitlib/pull/243))
 - Replace the network-dependent test fixture (cloned from GitHub on every run) with a local,

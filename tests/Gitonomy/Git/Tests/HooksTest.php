@@ -13,7 +13,6 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\BeforeClass;
@@ -129,6 +128,17 @@ class HooksTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository($bare);
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"../config" is not a valid hook name: it must be the name of a file of the hooks directory, like "pre-commit".');
+
+        $repository->getHooks()->get('../config');
+    }
+
+    #[DataProvider('provideBare')]
+    public function testGetMissingThrowsException(bool $bare): void
+    {
+        $repository = self::createFoobarRepository($bare);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The hook "foo" does not exist.');
 
         $repository->getHooks()->get('foo');
     }
@@ -165,6 +175,7 @@ class HooksTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository($bare);
         $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('The hook "foo" exists already.');
 
         $this->markAsSkippedIfSymlinkIsMissing();
 
@@ -197,6 +208,7 @@ class HooksTest extends AbstractTestCase
         $repository->getHooks()->set('foo', 'bar');
 
         $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('The hook "foo" exists already.');
 
         $repository->getHooks()->set('foo', 'bar');
     }
@@ -218,6 +230,7 @@ class HooksTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository($bare);
         $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('The hook "foo" does not exist.');
 
         $repository->getHooks()->remove('foo');
     }
@@ -270,14 +283,13 @@ class HooksTest extends AbstractTestCase
 
     public function testALinkedWorktreeSharesTheHooksOfItsRepository(): void
     {
-        $repository = self::createFoobarRepository(false);
-        $dir = self::createTempDir().'/worktree';
-
-        try {
-            self::git($repository, 'worktree', ['add', '-b', 'in-worktree', $dir]);
-        } catch (ProcessException) {
+        if (version_compare(self::gitVersion(), '2.5.0', '<')) {
             $this->markTestSkipped('git worktree requires git 2.5.');
         }
+
+        $repository = self::createFoobarRepository(false);
+        $dir = self::createTempDir().'/worktree';
+        self::git($repository, 'worktree', ['add', '-b', 'in-worktree', $dir]);
 
         $worktree = new Repository($dir, driver: self::getDriver());
         $worktree->getHooks()->set('pre-commit', "#!/bin/sh\nexit 1\n");

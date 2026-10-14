@@ -444,12 +444,12 @@ final class Repository
      *
      * All those values can be null, meaning everything.
      *
-     * @param RevisionList|Revision|string|array|null $revisions An array of revisions to show logs from. Can be
-     *                                                           any text value type
-     * @param array|string|null                       $paths     restrict log to modifications occurring on given
-     *                                                           paths
-     * @param int|null                                $offset    start from a given offset in results
-     * @param int|null                                $limit     limit number of total results
+     * @param RevisionList|Revision|string|array<Revision|string>|null $revisions An array of revisions to show logs from. Can be
+     *                                                                            any text value type
+     * @param string[]|string|null                                     $paths     restrict log to modifications occurring on given
+     *                                                                            paths
+     * @param int|null                                                 $offset    start from a given offset in results
+     * @param int|null                                                 $limit     limit number of total results
      */
     public function getLog(RevisionList|Revision|string|array|null $revisions = null, array|string|null $paths = null, ?int $offset = null, ?int $limit = null): Log
     {
@@ -567,7 +567,8 @@ final class Repository
     /**
      * Executes a shell command on the repository, using PHP pipes.
      *
-     * @param string $command The command to execute
+     * @param string                $command The command to execute
+     * @param array<string, string> $env     Environment variables of the command
      *
      * @deprecated since gitonomy/gitlib 2.0, run "git shell" with Symfony Process instead
      */
@@ -645,8 +646,8 @@ final class Repository
      * stderr even when they succeed: use {@see runProcess()} instead if you
      * need access to it.
      *
-     * @param string $command Git command to run (checkout, branch, tag)
-     * @param array  $args    Arguments of git command
+     * @param string                        $command Git command to run (checkout, branch, tag)
+     * @param array<int|string, int|string> $args    Arguments of git command
      *
      * @return string output of the process
      *
@@ -668,8 +669,8 @@ final class Repository
      * meaningful output to stderr even when they succeed, so it can't be
      * read through run().
      *
-     * @param string $command Git command to run (checkout, branch, tag)
-     * @param array  $args    Arguments of git command
+     * @param string                        $command Git command to run (checkout, branch, tag)
+     * @param array<int|string, int|string> $args    Arguments of git command
      *
      * @throws ProcessException              Error while executing git command
      * @throws ProcessTimedOutException      git runs longer than the timeout of the CliDriver

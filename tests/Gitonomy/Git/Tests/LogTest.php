@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
+use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Driver\Cli\Parser\LogParser;
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Exception\DriverException;
@@ -344,6 +345,22 @@ class LogTest extends AbstractTestCase
 
         $this->assertSame($log, $log->setLimit(1));
         $this->assertCount(1, $log->getCommits());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetDiffIgnoresThePathsOfTheLog(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::getDiff()" method is deprecated, use "Gitonomy\Git\Repository::getDiff()" instead.');
+
+        $repository = self::createFoobarRepository();
+        $diff = $repository->getDiff(self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->toArray();
+        $legacyDiff = $repository->getLog(self::BEFORE_LONGFILE_COMMIT.'..'.self::LONGFILE_COMMIT, 'README.md')->getDiff();
+
+        // A log of README.md, but the diff of the range, which changes long.php only.
+        $this->assertSame(['long.php'], array_map(static fn (File $file): string => $file->getName(), $legacyDiff->getFiles()));
+        $this->assertSame($diff, $legacyDiff->toArray());
+        $this->assertSame($diff, $repository->getLog([self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT])->getDiff()->toArray());
     }
 
     public function testLogOfExcludedAndSymmetricRevisions(): void

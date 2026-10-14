@@ -33,6 +33,9 @@ class Revision
     ) {
     }
 
+    /**
+     * @param string[]|string|null $paths Paths to filter on, with git's wildcards
+     */
     public function getLog(array|string|null $paths = null, ?int $offset = null, ?int $limit = null): Log
     {
         return $this->repository->getLog($this, $paths, $offset, $limit);

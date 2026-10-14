@@ -84,6 +84,9 @@ abstract class ParserBase
         return $vars[1];
     }
 
+    /**
+     * @return array<int|string, string> The matches, like the ones of preg_match()
+     */
     protected function consumeRegexp(string $regexp): array
     {
         if (!preg_match($regexp.'A', $this->content, $vars, 0, $this->cursor)) {

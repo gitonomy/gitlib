@@ -24,7 +24,6 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ProcessTimedOutException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
-use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
@@ -55,19 +54,18 @@ class RepositoryTest extends AbstractTestCase
         $this->assertFalse($repository->isBare(), 'Repository is not bare');
         $this->assertDirectoryExists($dir.'/.git/objects', 'objects/ folder is present');
         $this->assertSame($dir.'/.git', $repository->getGitDir(), 'git dir as subfolder of argument');
-        $this->assertSame($dir, $repository->getWorkingDir(), 'working dir present in bare repository');
+        $this->assertSame($dir, $repository->getWorkingDir(), 'The folder passed as argument is the working dir');
     }
 
     public function testOpensALinkedWorktree(): void
     {
-        $repository = self::createFoobarRepository(false);
-        $dir = self::createTempDir().'/worktree';
-
-        try {
-            self::git($repository, 'worktree', ['add', '-b', 'in-worktree', $dir]);
-        } catch (ProcessException) {
+        if (version_compare(self::gitVersion(), '2.5.0', '<')) {
             $this->markTestSkipped('git worktree requires git 2.5.');
         }
+
+        $repository = self::createFoobarRepository(false);
+        $dir = self::createTempDir().'/worktree';
+        self::git($repository, 'worktree', ['add', '-b', 'in-worktree', $dir]);
 
         // Its ".git" is a file pointing to a directory of the main repository.
         $worktree = new Repository($dir, driver: self::getDriver());
@@ -95,12 +93,12 @@ class RepositoryTest extends AbstractTestCase
     {
         // libgit2 1.9 doesn't read reftable repositories.
         $this->skipUnlessCliDriver();
-
-        $dir = self::createTempDir();
-        $process = new Process([self::gitCommand(), 'init', '-q', '--ref-format=reftable', '--initial-branch=trunk', $dir]);
-        if (0 !== $process->run()) {
+        if (version_compare(self::gitVersion(), '2.45.0', '<')) {
             $this->markTestSkipped('Reftable repositories require git 2.45.');
         }
+
+        $dir = self::createTempDir();
+        new Process([self::gitCommand(), 'init', '-q', '--ref-format=reftable', '--initial-branch=trunk', $dir])->mustRun();
 
         $repository = new Repository($dir, driver: self::getDriver());
         $this->assertTrue($repository->isHeadAttached());
@@ -166,11 +164,12 @@ class RepositoryTest extends AbstractTestCase
 
     public function testRefusesSha256Repositories(): void
     {
-        $dir = self::createTempDir();
-        $process = new Process([self::gitCommand(), 'init', '-q', '--object-format=sha256', $dir]);
-        if (0 !== $process->run()) {
+        if (version_compare(self::gitVersion(), '2.29.0', '<')) {
             $this->markTestSkipped('SHA-256 repositories require git 2.29.');
         }
+
+        $dir = self::createTempDir();
+        new Process([self::gitCommand(), 'init', '-q', '--object-format=sha256', $dir])->mustRun();
 
         $this->expectException(UnsupportedOperationException::class);
         $this->expectExceptionMessage('uses SHA-256 hashes');
@@ -374,10 +373,12 @@ class RepositoryTest extends AbstractTestCase
 
     public function testInitOnAnExistingFileFails(): void
     {
-        $this->expectException(RuntimeException::class);
-
         $file = self::createTempDir().'/test';
         touch($file);
+
+        $this->expectException(DriverException::class);
+        // git and libgit2 name the file they can't make a directory of.
+        $this->expectExceptionMessage($file);
 
         Repository::initBare($file, driver: self::getDriver());
     }
@@ -652,7 +653,8 @@ class RepositoryTest extends AbstractTestCase
     #[DataProvider('provideBare')]
     public function testLoggerNOk(bool $bare): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(ProcessException::class);
+        $this->expectExceptionMessage('The git command "not-work" failed (exit 1): git: \'not-work\' is not a git command. See \'git --help\'.');
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())
