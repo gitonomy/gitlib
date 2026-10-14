@@ -981,6 +981,32 @@ class RepositoryTest extends AbstractTestCase
 
     #[Group('legacy')]
     #[IgnoreDeprecations]
+    public function testLegacyShell(): void
+    {
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('The command of git shell is a shell script.');
+        }
+
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::shell()" method is deprecated, run "git shell" with Symfony Process instead: it ignores the driver.');
+
+        // git shell runs the commands of ~/git-shell-commands.
+        $home = self::createTempDir();
+        mkdir($home.'/git-shell-commands');
+        file_put_contents($home.'/git-shell-commands/record', "#!/bin/sh\n".'echo "$1" > "$HOME/recorded"'."\n");
+        chmod($home.'/git-shell-commands/record', 0o700);
+        $repository = self::createFoobarRepository();
+
+        $repository->shell('record', ['HOME' => $home]);
+
+        // shell() doesn't wait for git.
+        for ($i = 0; $i < 100 && !is_file($home.'/recorded'); ++$i) {
+            usleep(50_000);
+        }
+        $this->assertStringEqualsFile($home.'/recorded', $repository->getGitDir()."\n");
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
     public function testAnUnknownOptionIsRefused(): void
     {
         $this->expectException(InvalidArgumentException::class);

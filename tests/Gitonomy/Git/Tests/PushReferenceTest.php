@@ -67,6 +67,24 @@ class PushReferenceTest extends AbstractTestCase
         $this->assertTrue(new PushReference(self::createFoobarRepository(), 'foo', self::LONGFILE_COMMIT, PushReference::ZERO)->isDelete());
     }
 
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetReference(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\PushReference::getReference()" method is deprecated, use "getFullname()" instead.');
+
+        $this->assertSame('refs/heads/foo', new PushReference(self::createFoobarRepository(), 'refs/heads/foo', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->getReference());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetRevision(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\PushReference::getRevision()" method is deprecated, use "getRange()" instead.');
+
+        $this->assertSame(self::BEFORE_LONGFILE_COMMIT.'..'.self::LONGFILE_COMMIT, new PushReference(self::createFoobarRepository(), 'refs/heads/foo', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->getRevision());
+    }
+
     public function testUnknownBeforeIsAnErrorNotAForcePush(): void
     {
         $reference = new PushReference(self::createFoobarRepository(), 'foo', str_repeat('1', 40), self::LONGFILE_COMMIT);

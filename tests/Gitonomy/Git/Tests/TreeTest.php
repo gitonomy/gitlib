@@ -20,6 +20,7 @@ use Gitonomy\Git\Tree;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
 class TreeTest extends AbstractTestCase
 {
@@ -73,6 +74,20 @@ class TreeTest extends AbstractTestCase
         $this->assertSame(['barbaz'], array_keys($submodules));
         $this->assertInstanceOf(Submodule::class, $submodules['barbaz']->getObject());
         $this->assertSame('160000', $submodules['barbaz']->getMode());
+    }
+
+    /**
+     * In a process of its own: once Submodule is loaded, it declares the alias,
+     * whose file isn't loaded anymore.
+     */
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    #[RunInSeparateProcess]
+    public function testLegacyCommitReference(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\CommitReference" class is deprecated, use "Gitonomy\Git\Submodule" instead.');
+
+        $this->assertTrue(class_exists(CommitReference::class));
     }
 
     #[DataProvider('provideBare')]

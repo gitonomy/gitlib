@@ -337,6 +337,18 @@ class LogTest extends AbstractTestCase
 
     #[Group('legacy')]
     #[IgnoreDeprecations]
+    public function testLegacySetOffset(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::setOffset()" method is deprecated, use "withOffset()" instead.');
+
+        $log = self::createFoobarRepository()->getLog();
+        $log->setOffset(2);
+
+        $this->assertSame(2, $log->getOffset());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
     public function testLegacySetLimit(): void
     {
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::setLimit()" method is deprecated, use "withLimit()" instead.');

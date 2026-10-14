@@ -321,6 +321,15 @@ class CommitTest extends AbstractTestCase
         $this->assertSame('signed commit'."\n", $commit->getMessage());
     }
 
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetFixedShortHash(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Commit::getFixedShortHash()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.');
+
+        $this->assertSame(substr(self::LONGFILE_COMMIT, 0, 6), self::createFoobarRepository()->getCommit(self::LONGFILE_COMMIT)->getFixedShortHash());
+    }
+
     #[DataProvider('provideBare')]
     #[Group('legacy')]
     #[IgnoreDeprecations]
