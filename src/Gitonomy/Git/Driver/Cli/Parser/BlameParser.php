@@ -64,6 +64,18 @@ final class BlameParser extends ParserBase
                 $this->consumeTo("\n"); // filename
                 $this->consumeNewLine();
                 $this->seenHashes[$hash] = true;
+            } else {
+                // git repeats them on each group of a commit it blames under
+                // several paths, after a merge whose sides renamed the file.
+                if ($this->expects('previous ')) {
+                    $this->consumeTo("\n");
+                    $this->consumeNewLine();
+                }
+
+                if ($this->expects('filename ')) {
+                    $this->consumeTo("\n");
+                    $this->consumeNewLine();
+                }
             }
             $this->consume("\t");
             $content = $this->consumeTo("\n");
