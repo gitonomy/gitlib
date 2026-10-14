@@ -39,6 +39,8 @@ final class Commit extends Revision
     /**
      * @param Repository $repository Repository of the commit
      * @param string     $hash       Hash of the commit
+     *
+     * @internal Get it from Repository::getCommit(), which returns the same object while the application uses it
      */
     public function __construct(Repository $repository, string $hash, ?CommitData $data = null)
     {
@@ -226,7 +228,8 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns the authoring date.
+     * Returns the authoring date, at the UTC offset of the author, like git
+     * log shows it.
      */
     public function getAuthorDate(): \DateTimeImmutable
     {
@@ -242,7 +245,7 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns the comitter email.
+     * Returns the committer email.
      */
     public function getCommitterEmail(): string
     {
@@ -250,7 +253,8 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns the committing date.
+     * Returns the committing date, at the UTC offset of the committer, like
+     * git log shows it.
      */
     public function getCommitterDate(): \DateTimeImmutable
     {

@@ -25,7 +25,8 @@ final readonly class TagData
     private const string SIGNATURE = '-----BEGIN (PGP SIGNATURE|PGP MESSAGE|SIGNED MESSAGE|SSH SIGNATURE)-----';
 
     /**
-     * @param string|null $taggerName Null for a tag without a tagger, like the oldest tags of git itself
+     * @param string|null             $taggerName Null for a tag without a tagger, like the oldest tags of git itself
+     * @param \DateTimeImmutable|null $taggerDate At the UTC offset of the tagger, like git log shows it
      */
     public function __construct(
         public string $objectHash,

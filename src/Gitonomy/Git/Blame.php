@@ -113,7 +113,7 @@ final class Blame implements \Countable
         $hash = $this->revision->getCommit()->getHash();
         $this->lines = [];
         foreach ($this->repository->getRepositoryDriver()->getBlameLines($hash, $this->file, $this->firstLine, $this->lastLine) as $data) {
-            $this->lines[$data->finalLine] = new Line($this->repository->getCommit($data->commitHash), $data->finalLine, $data->originalLine, $data->content);
+            $this->lines[$data->number] = new Line($this->repository->getCommit($data->commitHash), $data->number, $data->originalNumber, $data->content);
         }
 
         return $this->lines;

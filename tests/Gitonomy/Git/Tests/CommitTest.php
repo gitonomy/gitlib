@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Blob;
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Exception\InvalidArgumentException;
@@ -46,6 +47,66 @@ class CommitTest extends AbstractTestCase
         $repository->getCommit($hash)->getAuthorDate();
     }
 
+    /**
+     * Like git log, at the UTC offsets of the author and of the committer.
+     */
+    public function testTheDatesAreAtTheOffsetsOfTheAuthorAndOfTheCommitter(): void
+    {
+        $repository = self::createEmptyRepository();
+        $tree = self::writeObject($repository, 'tree', '');
+        $git = new Repository($repository->getPath(), driver: self::getCliDriver([
+            'GIT_AUTHOR_DATE' => '1700000000 +0530',
+            'GIT_AUTHOR_EMAIL' => 'author@example.com',
+            'GIT_AUTHOR_NAME' => 'Author',
+            'GIT_COMMITTER_DATE' => '1700000001 -0330',
+            'GIT_COMMITTER_EMAIL' => 'committer@example.com',
+            'GIT_COMMITTER_NAME' => 'Committer',
+        ]));
+        $hash = trim($git->run('commit-tree', [$tree, '-m', 'Dates']));
+
+        $commit = $repository->getCommit($hash);
+
+        $this->assertSame('2023-11-15T03:43:20+05:30', $commit->getAuthorDate()->format(\DATE_ATOM));
+        $this->assertSame(1700000000, $commit->getAuthorDate()->getTimestamp());
+        $this->assertSame('2023-11-14T18:43:21-03:30', $commit->getCommitterDate()->format(\DATE_ATOM));
+        $this->assertSame(1700000001, $commit->getCommitterDate()->getTimestamp());
+    }
+
+    /**
+     * Like git log, which shows "-0000" as "+0000". An offset of more than 14
+     * hours or 59 minutes, which no timezone has, gives UTC, like libgit2.
+     */
+    #[DataProvider('provideOffsets')]
+    public function testADateIsAtTheOffsetOfItsSignature(string $offset, string $date): void
+    {
+        $repository = self::createEmptyRepository();
+        $tree = self::writeObject($repository, 'tree', '');
+        $hash = self::writeObject($repository, 'commit', "tree {$tree}\nauthor A <a@example.com> 1700000000 {$offset}\ncommitter A <a@example.com> 1700000000 {$offset}\n\nOffset\n");
+
+        $commit = $repository->getCommit($hash);
+
+        $this->assertSame($date, $commit->getAuthorDate()->format(\DATE_ATOM));
+        $this->assertSame($date, $commit->getCommitterDate()->format(\DATE_ATOM));
+        $this->assertSame(1700000000, $commit->getAuthorDate()->getTimestamp());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideOffsets(): iterable
+    {
+        yield 'half an hour' => ['+0530', '2023-11-15T03:43:20+05:30'];
+        yield 'three quarters of an hour' => ['+0545', '2023-11-15T03:58:20+05:45'];
+        yield 'negative' => ['-0700', '2023-11-14T15:13:20-07:00'];
+        yield 'negative, with minutes' => ['-0330', '2023-11-14T18:43:20-03:30'];
+        yield 'negative, under an hour' => ['-0030', '2023-11-14T21:43:20-00:30'];
+        yield 'unknown' => ['-0000', '2023-11-14T22:13:20+00:00'];
+        yield 'easternmost' => ['+1400', '2023-11-15T12:13:20+14:00'];
+        yield 'westernmost' => ['-1200', '2023-11-14T10:13:20-12:00'];
+        yield 'beyond 14 hours' => ['+1500', '2023-11-14T22:13:20+00:00'];
+        yield 'beyond 59 minutes' => ['+0560', '2023-11-14T22:13:20+00:00'];
+    }
+
     #[DataProvider('provideBare')]
     public function testGetHash(bool $bare): void
     {
@@ -72,6 +133,17 @@ class CommitTest extends AbstractTestCase
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
         $this->assertSame('4f17752', $commit->getShortHash(), 'Short hash');
+    }
+
+    /**
+     * With log.showSignature, which the configuration of the tests sets, git
+     * prints the verification of the signature before the hash.
+     */
+    public function testGetShortHashOfASignedCommit(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->assertSame('e1a83f1', $repository->getCommit(self::SIGNED_COMMIT)->getShortHash());
     }
 
     #[DataProvider('provideBare')]
@@ -147,7 +219,7 @@ class CommitTest extends AbstractTestCase
         $repository = self::createFoobarRepository($bare);
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertSame('2012-12-31 14:21:03', $commit->getAuthorDate()->format('Y-m-d H:i:s'), 'Author date');
+        $this->assertSame('2012-12-31T15:21:03+01:00', $commit->getAuthorDate()->format(\DATE_ATOM), 'Author date');
     }
 
     #[DataProvider('provideBare')]
@@ -174,7 +246,7 @@ class CommitTest extends AbstractTestCase
         $repository = self::createFoobarRepository($bare);
         $commit = $repository->getCommit(self::LONGFILE_COMMIT);
 
-        $this->assertSame('2012-12-31 14:21:03', $commit->getCommitterDate()->format('Y-m-d H:i:s'), 'Committer date');
+        $this->assertSame('2012-12-31T15:21:03+01:00', $commit->getCommitterDate()->format(\DATE_ATOM), 'Committer date');
     }
 
     #[DataProvider('provideBare')]
@@ -369,5 +441,48 @@ class CommitTest extends AbstractTestCase
 
         $this->assertSame("Subject\n\nBody\n    indented\n", $repository->getCommit($hash)->getMessage());
         $this->assertSame("Subject\n\nBody\n    indented\n", new Repository($repository->getPath(), driver: self::getDriver())->getLog([$hash])->getSingleCommit()->getMessage());
+    }
+
+    /**
+     * Whoever can push refs/replace/* to a repository would change what an
+     * application shows for a hash: like libgit2, gitlib ignores them.
+     */
+    public function testReplacedObjectsAreReadAsTheyAre(): void
+    {
+        $repository = self::createFoobarRepository();
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
+        $message = $commit->getMessage();
+        $blob = $commit->getTree()->resolvePath('README.md');
+        $this->assertInstanceOf(Blob::class, $blob);
+        $content = $blob->getContent();
+        self::git($repository, 'replace', [self::LONGFILE_COMMIT, self::writeObject($repository, 'commit', "tree {$commit->getTreeHash()}\nauthor A <a@example.com> 1000000000 +0000\ncommitter A <a@example.com> 1000000000 +0000\n\nFake\n")]);
+        self::git($repository, 'replace', [$blob->getHash(), self::writeObject($repository, 'blob', "Fake\n")]);
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+
+        $this->assertSame($message, $repository->getCommit(self::LONGFILE_COMMIT)->getMessage());
+        $this->assertSame($message, $repository->getLog(self::LONGFILE_COMMIT, null, null, 1)->getSingleCommit()->getMessage());
+        $this->assertSame($content, $repository->getBlob($blob->getHash())->getContent());
+    }
+
+    /**
+     * Without "--", git reads a revision named like a file of the working
+     * tree as ambiguous.
+     */
+    public function testAFileNamedLikeACommitChangesNothing(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
+        $parent = $commit->getParentHashes()[0];
+        touch($repository->getWorkingDir().'/'.self::LONGFILE_COMMIT);
+        touch($repository->getWorkingDir().'/'.$parent);
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $commit = $repository->getCommit(self::LONGFILE_COMMIT);
+
+        $this->assertSame('add a long file', $commit->getSubjectMessage());
+        $this->assertSame(substr(self::LONGFILE_COMMIT, 0, 7), $commit->getShortHash());
+        $this->assertSame(['long.php'], array_map(static fn (File $file): string => $file->getName(), $commit->getDiff()->getFiles()));
+        $this->assertNotSame([], $repository->getWorkingCopy()->getDiff($parent)->getFiles());
     }
 }

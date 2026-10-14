@@ -13,8 +13,10 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
 
 /**
@@ -65,10 +67,19 @@ final readonly class WorkingCopy
     }
 
     /**
-     * Checks $revision out: HEAD points to it when it is a local branch, to
-     * its commit otherwise.
+     * Checks $revision out, like `git checkout`: HEAD points to it when it is
+     * a local branch, or @{-<n>}, the nth branch checked out before, stays
+     * as it is for "HEAD", and points to the commit otherwise: a tag, a hash,
+     * a remote branch...
+     *
+     * Unlike `git checkout`, a name that no revision has throws, the name of
+     * a remote branch alone included, like "feature" for "origin/feature":
+     * create its local branch with checkoutNewBranch().
      *
      * Passing a branch to create as second argument is deprecated.
+     *
+     * @throws ReferenceNotFoundException $revision names no commit
+     * @throws DriverException            The checkout would overwrite local changes
      */
     public function checkout(Revision|string $revision, ?string $branch = null): static
     {
@@ -77,6 +88,10 @@ final readonly class WorkingCopy
 
             return $this->checkoutNewBranch($branch, $revision);
         }
+
+        // A name that no revision has throws, where "git checkout" would create
+        // the branch of a remote one, or discard the changes of a file.
+        ($revision instanceof Revision ? $revision : $this->repository->getRevision($revision))->getCommit();
 
         try {
             $this->repository->getRepositoryDriver()->checkout(self::name($revision));
@@ -88,14 +103,23 @@ final readonly class WorkingCopy
     }
 
     /**
-     * Creates the branch $branch at $startPoint, and checks it out.
+     * Creates the branch $branch at $startPoint, and checks it out, like
+     * `git checkout -b`. The branch tracks $startPoint when it is a remote
+     * branch, like "origin/feature", as with branch.autoSetupMerge=true,
+     * git's default, whatever the configuration. A failure leaves the
+     * branches and the files as they were: like `git checkout -b`, no
+     * branch is created when the checkout fails.
+     *
+     * @throws ReferenceNotFoundException $startPoint names no commit
+     * @throws DriverException            $branch exists already or isn't a valid name, $startPoint is the short name of several references, which git refuses, or the checkout would overwrite local changes
      */
     public function checkoutNewBranch(string $branch, Revision|string $startPoint = 'HEAD'): static
     {
-        $startHash = ($startPoint instanceof Revision ? $startPoint : $this->repository->getRevision($startPoint))->getCommit()->getHash();
+        // Like checkout(). The driver gets the name, which tells a remote branch.
+        ($startPoint instanceof Revision ? $startPoint : $this->repository->getRevision($startPoint))->getCommit();
 
         try {
-            $this->repository->getRepositoryDriver()->checkoutNewBranch($branch, $startHash);
+            $this->repository->getRepositoryDriver()->checkoutNewBranch($branch, $startPoint instanceof Revision ? $startPoint->getRevision() : $startPoint);
         } finally {
             $this->repository->getReferences()->invalidate();
         }
@@ -109,6 +133,9 @@ final readonly class WorkingCopy
      * An array of arguments of "git merge" ([], ["--no-ff"] or ["--ff-only"]) is deprecated.
      *
      * @param FastForward|string[] $fastForward
+     *
+     * @throws ReferenceNotFoundException $revision names no commit
+     * @throws DriverException            The merge fails: a conflict, staged changes, an unrelated history...
      */
     public function merge(Revision|string $revision, FastForward|array $fastForward = FastForward::Allow): static
     {
@@ -122,6 +149,9 @@ final readonly class WorkingCopy
                 default => throw new InvalidArgumentException(\sprintf('Unsupported arguments "%s": pass a "%s" instead.', implode(' ', $fastForward), FastForward::class)),
             };
         }
+
+        // Like checkout(). The driver gets the name, which the message of the merge commit has.
+        ($revision instanceof Revision ? $revision : $this->repository->getRevision($revision))->getCommit();
 
         try {
             $this->repository->getRepositoryDriver()->merge(self::name($revision), $fastForward);

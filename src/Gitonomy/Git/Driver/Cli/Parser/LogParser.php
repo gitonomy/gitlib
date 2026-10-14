@@ -84,10 +84,10 @@ final class LogParser extends ParserBase
      */
     private static function parseNameEmailDate(string $value): array
     {
-        if (!preg_match('/^(.*) <(.*)> (\d+) [+-]\d{4}$/', $value, $vars)) {
+        if (!preg_match('/^(.*) <(.*)> (\d+) ([+-]\d{4})$/', $value, $vars)) {
             throw new RuntimeException(\sprintf('Unable to parse the name, email and date of "%s".', $value));
         }
 
-        return [$vars[1], $vars[2], self::timestamp($vars[3])];
+        return [$vars[1], $vars[2], self::signatureDate($vars[3], $vars[4])];
     }
 }

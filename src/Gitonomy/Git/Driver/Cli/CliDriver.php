@@ -15,6 +15,7 @@ namespace Gitonomy\Git\Driver\Cli;
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\RepositoryPaths;
 use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Util\RemoteUrl;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -49,36 +50,42 @@ final readonly class CliDriver implements DriverInterface
 
     public function init(string $path): void
     {
-        $this->mustRun('init', ['-q', $path]);
+        // --: a path may start with a dash.
+        $this->mustRun('init', ['-q', '--', $path]);
     }
 
     public function initBare(string $path): void
     {
-        $this->mustRun('init', ['-q', '--bare', $path]);
+        $this->mustRun('init', ['-q', '--bare', '--', $path]);
     }
 
-    public function cloneFrom(string $url, string $path, ?string $branch): void
+    public function cloneFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch): void
     {
         $this->cloneRepository($path, $url, null === $branch ? [] : ['--branch', $branch]);
     }
 
-    public function cloneBareFrom(string $url, string $path, ?string $branch): void
+    public function cloneBareFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch): void
     {
         $this->cloneRepository($path, $url, null === $branch ? ['--bare'] : ['--branch', $branch, '--bare']);
     }
 
-    public function mirrorFrom(string $url, string $path): void
+    public function mirrorFrom(#[\SensitiveParameter] string $url, string $path): void
     {
         $this->cloneRepository($path, $url, ['--mirror']);
     }
 
-    public function isValidRepository(string $url): bool
+    public function isValidRepository(#[\SensitiveParameter] string $url): bool
     {
+        // ls-remote only takes "--" since git 2.8.
+        RemoteUrl::assertSafe($url);
+
         return $this->runner()->run('ls-remote', [self::absoluteUrl($url)])->isSuccessful();
     }
 
-    public function isValidRepositoryAndBranch(string $url, string $branch): bool
+    public function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branch): bool
     {
+        RemoteUrl::assertSafe($url);
+
         // git lists the branches whose name ends with the pattern: "release" matches "feature/release".
         $process = $this->runner()->run('ls-remote', ['--heads', self::absoluteUrl($url), 'refs/heads/'.$branch]);
         if (!$process->isSuccessful()) {
@@ -101,9 +108,13 @@ final readonly class CliDriver implements DriverInterface
      *
      * @throws ProcessException
      */
-    public function cloneRepository(string $path, string $url, array $args): void
+    public function cloneRepository(string $path, #[\SensitiveParameter] string $url, array $args): void
     {
-        $this->mustRun('clone', ['-q', ...$args, $url, $path]);
+        // Like isValidRepository(), whose ls-remote can't take "--".
+        RemoteUrl::assertSafe($url);
+
+        // --: a path may start with a dash.
+        $this->mustRun('clone', ['-q', ...$args, '--', $url, $path]);
     }
 
     /**
@@ -130,12 +141,12 @@ final readonly class CliDriver implements DriverInterface
     /**
      * @param string[] $args
      */
-    private function mustRun(string $command, array $args): void
+    private function mustRun(string $command, #[\SensitiveParameter] array $args): void
     {
         $process = $this->runner()->run($command, $args);
 
         if (!$process->isSuccessful()) {
-            throw new ProcessException($process);
+            throw new ProcessException($process, $command);
         }
     }
 
@@ -144,7 +155,7 @@ final readonly class CliDriver implements DriverInterface
      * remote first: "origin" would be the URL of the remote of PHP's working
      * directory.
      */
-    private static function absoluteUrl(string $url): string
+    private static function absoluteUrl(#[\SensitiveParameter] string $url): string
     {
         if (str_starts_with($url, '/') || 1 === preg_match('#^[a-zA-Z]:[\\\/]#', $url)) {
             return $url;

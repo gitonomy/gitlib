@@ -89,6 +89,8 @@ if ($repository->isHeadDetached()) {
 In a repository without commits yet, `HEAD` points to a branch that doesn't
 exist yet: `getHead()` and `getHeadCommit()` throw a
 `ReferenceNotFoundException`, and `isHeadAttached()` returns `true`.
+`getHead()` throws one too when `HEAD` points to a reference that isn't a
+branch, like a tag, which git allows.
 
 Commits, trees and blobs
 ------------------------
@@ -160,14 +162,18 @@ $repository->setDescription('My project');
 Compute size of a repository
 ----------------------------
 
-`getSize()` returns the size of the files of the git directory, working tree
-excluded, in kilobytes (1,000 bytes):
+`getSizeInBytes()` returns the size of the files of the git directory,
+working tree excluded, in bytes. It doesn't follow links, and leaves out a
+file git deletes meanwhile, like a lock during a `gc` or a push:
 
 ```php
-$size = $repository->getSize();
+$size = $repository->getSizeInBytes();
 
-echo 'Your repository size is '.$size.' KB';
+echo 'Your repository size is '.round($size / 1000).' KB';
 ```
+
+`getSize()`, which returns kilobytes (1,000 bytes), is deprecated since 2.0:
+use `getSizeInBytes()`.
 
 Running git commands
 --------------------
@@ -189,10 +195,14 @@ $process = $repository->runProcess('push', ['origin', 'main']);
 echo $process->getErrorOutput();
 ```
 
-Both throw a `ProcessException` when git fails, and an
-`UnsupportedOperationException` with another driver than `CliDriver`. The
-relative paths of the arguments are relative to the repository. gitlib reads
-the references again after the command, which may have written them.
+Both throw a `ProcessException` when git fails, a `DriverException` when it
+can't start, a `ProcessTimedOutException` when it runs longer than
+[the timeout](#configuring-clidriver), and an `UnsupportedOperationException`
+with another driver than `CliDriver`. The relative paths of the arguments are
+relative to the repository. The arguments go to git as they are: a value from
+your users starting with a dash is an option for git, unless `--` comes
+before it. gitlib reads the references again after the command, which may
+have written them.
 
 `shell()` is deprecated since 2.0: run `git shell` with Symfony Process
 instead.
@@ -209,16 +219,30 @@ or empty data instead. Every exception of gitlib implements
     a reference or an object doesn't exist (`getRevision('unknown')->getCommit()`,
     `getReferences()->getBranch('unknown')`...).
 -   `DriverException`, a `RuntimeException`: git reports a failure, like a
-    merge conflict or a clone of an unknown repository. With `CliDriver`, it
-    is mostly a `ProcessException`, whose `getErrorOutput()` and
-    `getOutput()` return the output of git, or a `ProcessTimedOutException`,
-    when git runs longer than [the timeout](#configuring-clidriver).
+    merge conflict or a clone of an unknown repository, or can't start, like
+    a missing binary (`The git command "clone" could not start: ...`). With
+    `CliDriver`, it is mostly a `ProcessException`, whose message has the
+    error of git, the first `fatal:` or `error:` line of its error output
+    (`The git command "clone" failed (exit 128): fatal: ...`), and whose
+    `getErrorOutput()` and `getOutput()` return the output of git, or a
+    `ProcessTimedOutException`, when git runs longer than
+    [the timeout](#configuring-clidriver).
 -   `UnsupportedOperationException`, a `RuntimeException`: the driver can't
-    perform the operation at all, where another driver may: `run()` with
-    `LibGit2Driver`, libgit2 that isn't installed...
+    perform the operation at all, where another driver may: `run()`, cloning
+    a bundle or opening a reftable repository with `LibGit2Driver`, libgit2
+    that isn't installed...
 -   `InvalidArgumentException`: an argument gitlib doesn't support, like an
-    option of `git log` in the revisions of a log, or a string holding a NUL
-    byte, which git doesn't accept.
+    option of `git log` in the revisions of a log, a string holding a NUL
+    byte, which git doesn't accept, a revision, a reference, a hash or a URL
+    starting with a dash, which git would read as an option
+    (`getRevision('--output=/path')`), an `ext::` URL, whose command git
+    would run, a URL whose ssh host or user starts with a dash, which ssh
+    would read as an option, or a reference to delete outside `refs/`, like
+    `HEAD`.
+-   `RuntimeException`: any other failure, like a hook that exists already
+    (`Hooks::set()`), a file of the git directory that can't be written, or
+    an output of git that gitlib can't read. `DriverException` and
+    `UnsupportedOperationException` extend it.
 -   `LogicException`: a call that makes no sense, like the working copy of a
     bare repository.
 
@@ -231,6 +255,10 @@ try {
     echo 'No commit named '.$name.PHP_EOL;
 }
 ```
+
+The message of an exception hides the credentials of the URLs it holds
+(`https://***@example.com/repository.git`): `getErrorOutput()` and
+`getOutput()` of a `ProcessException` return the output of git as it is.
 
 Choosing a driver
 -----------------
@@ -281,6 +309,19 @@ path to the driver:
 $driver = new LibGit2Driver('/opt/libgit2/lib/libgit2.so.1.9');
 ```
 
+`isSupported()` only looks for the usual names: to check a path, construct
+the driver and catch the exception instead:
+
+```php
+use Gitonomy\Git\Exception\UnsupportedOperationException;
+
+try {
+    $driver = new LibGit2Driver('/opt/libgit2/lib/libgit2.so.1.9');
+} catch (UnsupportedOperationException) {
+    $driver = new CliDriver();
+}
+```
+
 Differences with `CliDriver`:
 
 -   `Repository::run()` and `Repository::runProcess()` throw an
@@ -289,21 +330,26 @@ Differences with `CliDriver`:
 -   SSH and git's credential helpers aren't supported: clone a private
     repository through HTTPS, with the credentials in the URL
     (`https://user:token@example.com/repo.git`).
--   Bundles (`.bundle` files) can't be cloned.
--   Repositories storing their references in the reftable format can't be
-    opened.
+-   Bundles (`.bundle` files) can't be cloned, and repositories storing
+    their references in the reftable format can't be opened: both throw an
+    `UnsupportedOperationException`.
+-   The paths of a log don't support the magic of git's pathspecs
+    (`:(exclude)src`, `:/src`...): a path starting with `:` throws an
+    `UnsupportedOperationException`.
 -   Neither hooks nor external filters (Git LFS...) are run: a checkout or a
     merge writes the files without them.
+-   Like git, `LibGit2Driver` doesn't read `/etc/gitconfig` when the
+    `GIT_CONFIG_NOSYSTEM` environment variable is true, but it doesn't read
+    `/etc/gitattributes` either, which git only skips with
+    `GIT_ATTR_NOSYSTEM`.
 -   `Diff::getRawDiff()` returns an empty string.
 -   Short hashes (`Commit::getShortHash()`) have 7 characters, more when 7
     are ambiguous: git adapts their length to the size of the repository.
--   `WorkingCopy::checkout()` doesn't create a tracking branch for a name
-    that only exists on a remote, like `git checkout` does: it throws.
 -   `WorkingCopy::merge()` only supports fast-forward and conflict-free
     merges: a conflict throws instead of leaving conflict markers in the
     working copy. A merge commit is never signed, whatever
     `commit.gpgSign`, and its message never lists the merged commits,
-    whatever `merge.log`.
+    whatever `merge.log`, nor has the output of gpg checking a signed tag.
 -   Blame is much slower on a long history: see
     ["Performance"](#performance).
 -   Rename detection in diffs may pair files differently.
@@ -390,9 +436,14 @@ an AMD Ryzen AI 9 HX 370.
     ([libgit2#3027](https://github.com/libgit2/libgit2/issues/3027)).
 
 Keep the default `CliDriver`, unless your application runs many small reads
-in a long-running process, and check with your own repository:
+in a long-running process, and check with your own repository, from a clone
+of gitlib (Composer doesn't install `benchmark.php`, nor `symfony/console`,
+which it requires):
 
 ```bash
+git clone https://github.com/gitonomy/gitlib.git
+cd gitlib
+composer install
 php benchmark.php /path/to/repository path/to/a/file
 ```
 
@@ -427,6 +478,41 @@ arguments. So is `inherit_environment_variables`, which passed the entries of
 `$_SERVER` to git, the headers and credentials of an HTTP request included:
 pass the variables git needs to `environmentVariables`.
 
+Git configuration
+-----------------
+
+git reads the configuration of the user running PHP (`~/.gitconfig`,
+`/etc/gitconfig`...) and of the repository. Where it changes what git
+prints, which gitlib reads, what a read returns, or the branches gitlib
+creates, `CliDriver` sets it back to git's defaults:
+
+-   colors and columns;
+-   `branch.autoSetupMerge` and `branch.autoSetupRebase`: like with
+    `LibGit2Driver`, a branch `WorkingCopy::checkoutNewBranch()` creates from
+    a remote branch tracks it, without rebasing;
+-   `branch.sort`, `log.follow` and `log.showSignature`;
+-   for diffs, `diff.algorithm`, `diff.context`, `diff.external`,
+    `diff.indentHeuristic`, `diff.interHunkContext`, `diff.orderFile`,
+    `diff.submodule`, `diff.suppressBlankEmpty`, the prefixes
+    (`diff.noprefix`, `diff.mnemonicPrefix`...), and the textconv filters, of
+    blames too.
+
+Like libgit2, `CliDriver` reads the objects as they are, ignoring their
+replacements (`git replace`, `refs/replace/`): whoever can push such a
+reference to a repository would change what your application shows for a
+hash.
+
+The rest of the configuration applies, like with git: the identity, the
+credentials and the rewrites of URLs, `safe.directory`, line endings, hooks,
+`merge.log`, `blame.ignoreRevsFile`, or `core.abbrev`, the length of short
+hashes, with `LibGit2Driver` too.
+
+`run()` and `runProcess()` get `branch.autoSetupMerge`,
+`branch.autoSetupRebase`, `branch.sort`, `log.follow`, `log.showSignature`,
+`diff.indentHeuristic` and `diff.suppressBlankEmpty` set back too, and ignore
+the replacements, but not the rest, which gitlib sets with the options of the
+commands it runs: pass `--no-color` or `--no-ext-diff` yourself.
+
 Logger
 ------
 
@@ -452,7 +538,8 @@ debug last command (fetch) output: Fetching origin
 ```
 
 A failing command also logs its error output, at the `debug` level: the
-exception it throws reports the failure. `LibGit2Driver` logs nothing.
+exception it throws reports the failure. The logs hide the credentials of
+URLs, like exceptions. `LibGit2Driver` logs nothing.
 
 `Repository::setLogger()` and `Repository::getLogger()` are deprecated since
 2.0: give the logger to `CliDriver`.
