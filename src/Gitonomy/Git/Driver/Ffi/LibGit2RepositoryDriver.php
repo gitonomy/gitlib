@@ -30,6 +30,7 @@ use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\FastForward;
 use Gitonomy\Git\Util\LeadingDash;
 use Gitonomy\Git\Util\NulByte;
+use Gitonomy\Git\Util\ReferenceName;
 use Symfony\Component\String\ByteString;
 use Symfony\Component\String\Exception\InvalidArgumentException;
 
@@ -348,6 +349,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     {
         NulByte::assertNone($fullname, $hash);
         LeadingDash::assertNone($fullname, $hash);
+        ReferenceName::assertUnderRefs($fullname);
 
         $oid = $this->hexToOid($hash);
         $ref = $this->ffi->new('git_reference*');
@@ -359,6 +361,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     {
         NulByte::assertNone($fullname, $hash);
         LeadingDash::assertNone($fullname, $hash);
+        ReferenceName::assertUnderRefs($fullname);
 
         $oid = $this->hexToOid($hash);
         $ref = $this->ffi->new('git_reference*');
@@ -370,6 +373,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     {
         NulByte::assertNone($fullname);
         LeadingDash::assertNone($fullname);
+        ReferenceName::assertUnderRefs($fullname);
 
         $ref = $this->ffi->new('git_reference*');
         $rc = $this->ffi->git_reference_lookup(\FFI::addr($ref), $this->repo, $fullname);

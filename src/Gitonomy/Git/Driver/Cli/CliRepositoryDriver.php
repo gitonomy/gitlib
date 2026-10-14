@@ -27,6 +27,7 @@ use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\FastForward;
 use Gitonomy\Git\Parser\DiffParser;
 use Gitonomy\Git\Util\LeadingDash;
+use Gitonomy\Git\Util\ReferenceName;
 use Symfony\Component\Process\Process;
 
 /**
@@ -239,6 +240,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     public function createReference(string $fullname, string $hash): void
     {
         LeadingDash::assertNone($fullname, $hash);
+        ReferenceName::assertUnderRefs($fullname);
 
         // Zeros as the old value: git refuses to update a reference that exists.
         $this->run('update-ref', [$fullname, $hash, str_repeat('0', 40)]);
@@ -247,6 +249,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     public function updateReference(string $fullname, string $hash): void
     {
         LeadingDash::assertNone($fullname, $hash);
+        ReferenceName::assertUnderRefs($fullname);
 
         $this->run('update-ref', [$fullname, $hash]);
     }
@@ -254,6 +257,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     public function deleteReference(string $fullname): void
     {
         LeadingDash::assertNone($fullname);
+        ReferenceName::assertUnderRefs($fullname);
 
         $this->run('update-ref', ['-d', $fullname]);
     }

@@ -96,6 +96,13 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->getTag($name);
     }
 
+    /**
+     * Like `git update-ref -d`, deleting a missing reference does nothing.
+     *
+     * @param string $fullname fullname of the reference (refs/heads/master, for example)
+     *
+     * @throws InvalidArgumentException $fullname isn't the full name of a reference under "refs/", like "HEAD" or "master"
+     */
     public function delete(string $fullname): void
     {
         $this->repository->getRepositoryDriver()->deleteReference($fullname);

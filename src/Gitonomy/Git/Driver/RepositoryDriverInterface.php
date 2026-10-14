@@ -120,14 +120,26 @@ interface RepositoryDriverInterface
     public function getReferences(): array;
 
     /**
-     * @throws DriverException $fullname exists already
+     * @param string $fullname The full name of a reference under ``refs/``, like those getReferences() lists
+     *
+     * @throws DriverException          $fullname exists already
+     * @throws InvalidArgumentException $fullname isn't under ``refs/``, like "HEAD" or "master"
      */
     public function createReference(string $fullname, string $hash): void;
 
+    /**
+     * @param string $fullname The full name of a reference under ``refs/``
+     *
+     * @throws InvalidArgumentException $fullname isn't under ``refs/``, like "HEAD" or "master"
+     */
     public function updateReference(string $fullname, string $hash): void;
 
     /**
      * Like ``git update-ref -d``, deleting a missing reference does nothing.
+     *
+     * @param string $fullname The full name of a reference under ``refs/``
+     *
+     * @throws InvalidArgumentException $fullname isn't under ``refs/``, like "HEAD" or "master"
      */
     public function deleteReference(string $fullname): void;
 

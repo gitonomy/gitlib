@@ -16,6 +16,7 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Tag;
+use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
@@ -330,6 +331,62 @@ class ReferenceTest extends AbstractTestCase
         $branch->delete();
 
         $this->assertFalse($repository->getReferences()->hasBranch('deleted'));
+    }
+
+    /**
+     * "git update-ref -d HEAD" deletes HEAD: git no longer sees a repository.
+     */
+    #[DataProvider('provideBare')]
+    public function testDeletingHeadIsRefused(bool $bare): void
+    {
+        $repository = self::createFoobarRepository($bare);
+
+        try {
+            $repository->getReferences()->delete('HEAD');
+            $this->fail('HEAD is no reference under "refs/".');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame('"HEAD" is not the full name of a reference under "refs/", like "refs/heads/master".', $e->getMessage());
+        }
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $this->assertSame('refs/heads/master', self::headBranch($repository)->getFullname());
+    }
+
+    /**
+     * "git update-ref" writes any name: HEAD, or a short name next to it.
+     */
+    #[DataProvider('provideWritesOfANameOutsideRefs')]
+    public function testTheDriverWritesNoReferenceOutsideRefs(\Closure $write, string $fullname): void
+    {
+        $repository = self::createFoobarRepository();
+
+        try {
+            $write($repository, $fullname);
+            $this->fail('Only a reference under "refs/" is written.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame(\sprintf('"%s" is not the full name of a reference under "refs/", like "refs/heads/master".', $fullname), $e->getMessage());
+        }
+
+        $this->assertSame('ref: refs/heads/master', trim((string) file_get_contents($repository->getGitDir().'/HEAD')));
+        $this->assertFileDoesNotExist($repository->getGitDir().'/master');
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(Repository, string): void, string}>
+     */
+    public static function provideWritesOfANameOutsideRefs(): iterable
+    {
+        $writes = [
+            'create' => static function (Repository $repository, string $fullname): void { $repository->getRepositoryDriver()->createReference($fullname, self::INITIAL_COMMIT); },
+            'update' => static function (Repository $repository, string $fullname): void { $repository->getRepositoryDriver()->updateReference($fullname, self::INITIAL_COMMIT); },
+            'delete' => static function (Repository $repository, string $fullname): void { $repository->getRepositoryDriver()->deleteReference($fullname); },
+        ];
+
+        foreach ($writes as $writeName => $write) {
+            foreach (['HEAD', 'master'] as $fullname) {
+                yield $writeName.' '.$fullname => [$write, $fullname];
+            }
+        }
     }
 
     public function testTheHeadOfARemoteNamedWithASlashIsNoBranch(): void

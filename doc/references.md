@@ -99,6 +99,11 @@ $branch->delete();
 $tag->delete();
 ```
 
+`ReferenceBag::delete()` takes the full name of a reference under `refs/`,
+like `refs/heads/foobar`, and does nothing when it doesn't exist, like
+`git update-ref -d`. Another name, like `HEAD` or `foobar`, throws an
+`InvalidArgumentException`.
+
 `createBranch()` and `createTag()` throw an `InvalidArgumentException` when
 the reference exists: they never move it. To move a branch, use
 `Branch::moveTo()`: see [branch.md](branch.md). `ReferenceBag::update()` is

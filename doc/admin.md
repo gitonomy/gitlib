@@ -107,7 +107,11 @@ with both drivers:
 -   a URL starting with a dash, which git would read as an option, like
     `--upload-pack=...`; a path may start with one;
 -   an `ext::` URL, like `ext::sh -c ...`, whose command git runs, unless its
-    `protocol.allow` setting forbids it, as it does by default since git 2.12.
+    `protocol.allow` setting forbids it, as it does by default since git 2.12;
+-   an ssh URL whose host or user starts with a dash, even encoded (`%2D`),
+    like `ssh://-oProxyCommand=.../repository` or
+    `ssh://-oProxyCommand=...@host/repository`: before 2.14.1, git passes it
+    to ssh, which reads it as an option and runs the command.
 
 The message of an exception hides the credentials of the URL
 (`https://***@example.com/repository.git`). gitlib doesn't check the URLs

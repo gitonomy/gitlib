@@ -108,11 +108,17 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
   start with a dash: `init()` and the clones end the options of git with `--`.
 - Refuse an `ext::` URL, like `ext::sh -c ...`, whose command git runs, by default before git
   2.12.
+- Refuse an ssh URL whose host or user starts with a dash, even encoded (`%2D`), like
+  `ssh://-oProxyCommand=.../repository`: git before 2.14.1 passes it to ssh, which reads it as an
+  option and runs the command (CVE-2017-1000117). A `git://` URL whose host starts with a dash
+  is refused too: git passes it to the command of `core.gitProxy`.
 - Hide the credentials of URLs (`https://user:token@host`) in the messages of exceptions and
   in the logs.
 - Refuse a hook name that isn't the one of a file of the hooks directory:
   `Hooks::set('../config', ...)` and `remove('../config')` wrote and deleted the
   configuration of the repository.
+- Fix `ReferenceBag::delete('HEAD')` deleting `HEAD`, which left no repository: a name outside
+  `refs/` throws an `InvalidArgumentException`.
 
 ### Bug fixes
 

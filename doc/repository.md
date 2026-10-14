@@ -222,8 +222,10 @@ or empty data instead. Every exception of gitlib implements
     option of `git log` in the revisions of a log, a string holding a NUL
     byte, which git doesn't accept, a revision, a reference, a hash or a URL
     starting with a dash, which git would read as an option
-    (`getRevision('--output=/path')`), or an `ext::` URL, whose command git
-    would run.
+    (`getRevision('--output=/path')`), an `ext::` URL, whose command git
+    would run, a URL whose ssh host or user starts with a dash, which ssh
+    would read as an option, or a reference to delete outside `refs/`, like
+    `HEAD`.
 -   `LogicException`: a call that makes no sense, like the working copy of a
     bare repository.
 

@@ -181,6 +181,9 @@ References
    unsigned tag instead of throwing, and finds X.509 and SSH signatures too.
  * A branch whose name ends with `HEAD` is listed: only the `HEAD` of a
    remote is left out.
+ * `ReferenceBag::delete()` throws an `InvalidArgumentException` for a name
+   outside `refs/`: `HEAD`, which `CliDriver` deleted, leaving no
+   repository, or a short name, like `master`, which did nothing.
 
 History
 -------
@@ -398,6 +401,12 @@ Errors
    start with a dash.
  * An `ext::` URL throws an `InvalidArgumentException`, with both drivers:
    git runs its command, by default before git 2.12.
+ * An ssh URL whose host or user starts with a dash, even encoded (`%2D`),
+   like `ssh://-oProxyCommand=.../repository` or
+   `ssh://-oProxyCommand=...@host/path`, or a `git://` URL whose host does,
+   throws an `InvalidArgumentException`, with both drivers: git before 2.14.1
+   passes it to ssh, or to the command of `core.gitProxy`, which reads it as
+   an option.
  * `Hooks` throws an `InvalidArgumentException` for a name that isn't the one
    of a file of the hooks directory, like `../config` or `.hidden`.
  * The messages of exceptions and the logs hide the credentials of URLs
