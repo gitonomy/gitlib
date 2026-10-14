@@ -15,6 +15,8 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
@@ -94,6 +96,47 @@ class BlameTest extends AbstractTestCase
         $this->expectException(DriverException::class);
 
         $repository->getBlame(self::LONGFILE_COMMIT, 'README.md', 100)->getLines();
+    }
+
+    /**
+     * After a merge whose sides kept a file under two names, git blames a
+     * commit under both: "git blame -p" repeats its "filename" line on each
+     * of its groups of lines.
+     */
+    public function testBlameOfACommitUnderTwoPaths(): void
+    {
+        $repository = Repository::init(self::createTempDir(), self::getDriver());
+        $dir = $repository->getWorkingDir();
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        file_put_contents($dir.'/a', "L1\nL2\nL3\n");
+        file_put_contents($dir.'/b', "L1\nL2\nL3\n");
+        self::git($repository, 'add', ['a', 'b']);
+        self::git($repository, 'commit', ['-q', '-m', 'Both']);
+        $both = trim(self::git($repository, 'rev-parse', ['HEAD']));
+        self::git($repository, 'checkout', ['-q', '-b', 'side']);
+        self::git($repository, 'rm', ['-q', 'a']);
+        self::git($repository, 'commit', ['-q', '-m', 'Without a']);
+        self::git($repository, 'checkout', ['-q', 'master']);
+        file_put_contents($dir.'/a', "L1\nL2\nNEW\n");
+        self::git($repository, 'rm', ['-q', 'b']);
+        self::git($repository, 'commit', ['-q', '-a', '-m', 'Without b']);
+
+        try {
+            // A conflict: a is deleted on one side, and changed on the other.
+            self::git($repository, 'merge', ['-q', '--no-edit', 'side']);
+        } catch (ProcessException) {
+        }
+        file_put_contents($dir.'/a', "L1\nL2x\nL3\n");
+        self::git($repository, 'add', ['a']);
+        self::git($repository, 'commit', ['-q', '-m', 'Merge']);
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+
+        $lines = array_map(static fn (Line $line): array => [$line->getCommit()->getHash(), $line->getContent()], $repository->getBlame('HEAD', 'a')->getLines());
+
+        $this->assertSame([$both, 'L1'], $lines[1]);
+        $this->assertSame('L2x', $lines[2][1]);
+        $this->assertSame('L3', $lines[3][1]);
     }
 
     public function testBlameOfAPathNormalizesIt(): void

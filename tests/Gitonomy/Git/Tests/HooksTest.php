@@ -229,7 +229,7 @@ class HooksTest extends AbstractTestCase
     public function testRemoveNotExistingThrows(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
-        $this->expectException(RuntimeException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('The hook "foo" does not exist.');
 
         $repository->getHooks()->remove('foo');

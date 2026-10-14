@@ -89,6 +89,31 @@ class ProcessExceptionTest extends AbstractTestCase
         yield 'no error' => ["\nwarning: something\nmerge: nope - not something we can merge\n", 'The git command "merge" failed (exit 128): warning: something.'];
     }
 
+    /**
+     * git writes the conflicts of a merge on its standard output.
+     */
+    public function testTheMessageOfAConflictHasIt(): void
+    {
+        $this->skipUnlessCliDriver();
+
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        file_put_contents($repository->getWorkingDir().'/README.md', "mine\n");
+        self::git($repository, 'commit', ['-q', '-a', '-m', 'Mine']);
+        self::git($repository, 'checkout', ['-q', '-b', 'theirs', 'HEAD~1']);
+        file_put_contents($repository->getWorkingDir().'/README.md', "theirs\n");
+        self::git($repository, 'commit', ['-q', '-a', '-m', 'Theirs']);
+        self::git($repository, 'checkout', ['-q', 'master']);
+
+        try {
+            $repository->getWorkingCopy()->merge('theirs');
+            $this->fail('Both sides change README.md.');
+        } catch (ProcessException $e) {
+            $this->assertSame('The git command "merge" failed (exit 1): CONFLICT (content): Merge conflict in README.md.', $e->getMessage());
+        }
+    }
+
     public function testTheMessageOfAFailureWithoutErrorOutputEndsWithTheExitCode(): void
     {
         $this->skipUnlessCliDriver();

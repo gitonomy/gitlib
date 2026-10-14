@@ -75,17 +75,19 @@ tree). Your `HEAD` can be attached (pointing to a branch) or detached
 (pointing to a commit).
 
 ```php
+use Gitonomy\Git\Reference\Branch;
+
 $head = $repository->getHead(); // the Branch HEAD points to, or the Commit when it is detached
 $commit = $repository->getHeadCommit(); // the Commit, in both cases
 
-if ($repository->isHeadAttached()) {
+if ($head instanceof Branch) {
     echo 'On branch '.$head->getName().PHP_EOL;
-}
-
-if ($repository->isHeadDetached()) {
+} else {
     echo 'HEAD detached at '.$commit->getShortHash().PHP_EOL;
 }
 ```
+
+`isHeadAttached()` and `isHeadDetached()` tell it too.
 
 In a repository without commits yet, `HEAD` points to a branch that doesn't
 exist yet: `getHead()` and `getHeadCommit()` throw a
@@ -165,7 +167,8 @@ Compute size of a repository
 
 `getSizeInBytes()` returns the size of the files of the git directory,
 working tree excluded, in bytes. It doesn't follow links, and leaves out a
-file git deletes meanwhile, like a lock during a `gc` or a push:
+file or a directory git deletes meanwhile, like a lock during a `gc` or the
+quarantine of a push. One it can't read throws a `RuntimeException`:
 
 ```php
 $size = $repository->getSizeInBytes();
@@ -237,9 +240,9 @@ or empty data instead. Every exception of gitlib implements
     byte, which git doesn't accept, a revision, a reference, a hash or a URL
     starting with a dash, which git would read as an option
     (`getRevision('--output=/path')`), an `ext::` URL, whose command git
-    would run, a URL whose ssh host or user starts with a dash, which ssh
-    would read as an option, or a reference to delete outside `refs/`, like
-    `HEAD`.
+    would run, an `fd::` URL, a URL whose ssh host or user starts with a
+    dash, which ssh would read as an option, or a reference to delete
+    outside `refs/`, like `HEAD`.
 -   `RuntimeException`: any other failure, like a hook that exists already
     (`Hooks::set()`), a file of the git directory that can't be written, or
     an output of git that gitlib can't read. `DriverException` and
@@ -260,6 +263,8 @@ try {
 The message of an exception hides the credentials of the URLs it holds
 (`https://***@example.com/repository.git`): `getErrorOutput()` and
 `getOutput()` of a `ProcessException` return the output of git as it is.
+A `git://` URL takes no credentials: git quotes one without its scheme in
+its errors, so a password put there isn't hidden.
 
 Choosing a driver
 -----------------
@@ -352,7 +357,9 @@ Differences with `CliDriver`:
     `commit.gpgSign`, and its message never lists the merged commits,
     whatever `merge.log`, nor has the output of gpg checking a signed tag.
 -   Blame is much slower on a long history: see
-    ["Performance"](#performance).
+    ["Performance"](#performance). It may attribute some lines to another
+    commit than git, which detects renames and aligns identical lines
+    differently, and it ignores `blame.ignoreRevsFile`.
 -   Rename detection in diffs may pair files differently.
 -   Network operations go through the proxy of `https_proxy`, or of
     `http.proxy`, for HTTPS only: libgit2 1.9 uses no proxy for a plain
@@ -492,6 +499,8 @@ creates, `CliDriver` sets it back to git's defaults:
     `LibGit2Driver`, a branch `WorkingCopy::checkoutNewBranch()` creates from
     a remote branch tracks it, without rebasing;
 -   `branch.sort`, `log.follow` and `log.showSignature`;
+-   `core.fsmonitor`, whose command git runs to read the working tree, and
+    even to diff a commit;
 -   for diffs, `diff.algorithm`, `diff.context`, `diff.external`,
     `diff.indentHeuristic`, `diff.interHunkContext`, `diff.orderFile`,
     `diff.submodule`, `diff.suppressBlankEmpty`, the prefixes
@@ -504,15 +513,24 @@ reference to a repository would change what your application shows for a
 hash.
 
 The rest of the configuration applies, like with git: the identity, the
-credentials and the rewrites of URLs, `safe.directory`, line endings, hooks,
-`merge.log`, `blame.ignoreRevsFile`, or `core.abbrev`, the length of short
-hashes, with `LibGit2Driver` too.
+credentials and the rewrites of URLs, line endings, hooks, `merge.log`,
+`blame.ignoreRevsFile`, or `core.abbrev`, the length of short hashes, with
+`LibGit2Driver` too.
+
+`safe.directory` doesn't apply: `CliDriver` runs git with `--git-dir`, which
+git trusts, whoever owns the repository. Like git, gitlib then runs the
+commands the configuration of the repository names: its hooks, and the
+filters of its `.gitattributes`, when it checks files out, merges, or reads
+the working tree. Only open a repository whose `.git` directory you trust:
+not one another user of the machine owns, nor one extracted from an archive
+your users send. `LibGit2Driver` runs neither hooks nor external filters.
 
 `run()` and `runProcess()` get `branch.autoSetupMerge`,
-`branch.autoSetupRebase`, `branch.sort`, `log.follow`, `log.showSignature`,
-`diff.indentHeuristic` and `diff.suppressBlankEmpty` set back too, and ignore
-the replacements, but not the rest, which gitlib sets with the options of the
-commands it runs: pass `--no-color` or `--no-ext-diff` yourself.
+`branch.autoSetupRebase`, `branch.sort`, `core.fsmonitor`, `log.follow`,
+`log.showSignature`, `diff.indentHeuristic` and `diff.suppressBlankEmpty` set
+back too, and ignore the replacements, but not the rest, which gitlib sets with
+the options of the commands it runs: pass `--no-color` or `--no-ext-diff`
+yourself.
 
 Logger
 ------
@@ -575,3 +593,7 @@ $repository->getReferences()->getBranch('main')->getCommitHash(); // $hash
 The other methods of `DriverInterface` create repositories: `init()`,
 `initBare()`, `cloneFrom()`, `cloneBareFrom()`, `mirrorFrom()`,
 `isValidRepository()` and `isValidRepositoryAndBranch()`.
+
+gitlib may add methods to both interfaces in a minor version of 2.x: the
+promise of backward compatibility covers the code calling them, not the
+drivers implementing them, like a stub that implements every method.

@@ -261,7 +261,13 @@ final class Repository
             return $this->getCommit($this->repositoryDriver->resolveRevision('HEAD'));
         }
 
-        $head = $this->getReferences()->get($reference);
+        $references = $this->getReferences();
+        // A branch another process checked out since gitlib read the references.
+        if (!$references->has($reference)) {
+            $references->invalidate();
+        }
+
+        $head = $references->get($reference);
         // git lets HEAD point to any reference under "refs/", a tag included.
         if (!$head instanceof Branch) {
             throw new ReferenceNotFoundException(\sprintf('HEAD points to "%s", which is not a branch.', $reference));
@@ -450,6 +456,8 @@ final class Repository
      *                                                                            paths
      * @param int|null                                                 $offset    start from a given offset in results
      * @param int|null                                                 $limit     limit number of total results
+     *
+     * @throws InvalidArgumentException $offset or $limit is negative
      */
     public function getLog(RevisionList|Revision|string|array|null $revisions = null, array|string|null $paths = null, ?int $offset = null, ?int $limit = null): Log
     {
@@ -525,29 +533,12 @@ final class Repository
 
     /**
      * @return int The size of the files of the git directory, working tree excluded, in bytes
+     *
+     * @throws RuntimeException A file or a directory of the git directory can't be read
      */
     public function getSizeInBytes(): int
     {
-        $size = 0;
-        /** @var \SplFileInfo $file */
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->gitDir, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            // A link isn't followed: it may point to a file not deployed yet, like a hook.
-            if ($file->isLink()) {
-                continue;
-            }
-
-            try {
-                $size += $file->getSize();
-            } catch (\RuntimeException $e) {
-                // git deleted it since it was listed, during a gc or a push:
-                // a lock, a temporary pack... It no longer counts.
-                if (file_exists($file->getPathname())) {
-                    throw $e;
-                }
-            }
-        }
-
-        return $size;
+        return self::directorySize($this->gitDir);
     }
 
     /**
@@ -795,5 +786,50 @@ final class Repository
         }
 
         return $fullHash;
+    }
+
+    /**
+     * git may delete a file or a directory while it is counted, during a gc
+     * or a push: a lock, a temporary pack, the quarantine of a push... It no
+     * longer counts.
+     *
+     * @throws RuntimeException A file or a directory of $dir can't be read
+     */
+    private static function directorySize(string $dir): int
+    {
+        try {
+            $files = new \FilesystemIterator($dir, \FilesystemIterator::SKIP_DOTS);
+        } catch (\UnexpectedValueException $e) {
+            if (!file_exists($dir)) {
+                return 0;
+            }
+
+            throw new RuntimeException(\sprintf('Unable to read the directory "%s".', $dir), 0, $e);
+        }
+
+        $size = 0;
+        /** @var \SplFileInfo $file */
+        foreach ($files as $file) {
+            // A link isn't followed: it may point to a file not deployed yet, like a hook.
+            if ($file->isLink()) {
+                continue;
+            }
+
+            if ($file->isDir()) {
+                $size += self::directorySize($file->getPathname());
+
+                continue;
+            }
+
+            try {
+                $size += $file->getSize();
+            } catch (\RuntimeException $e) {
+                if (file_exists($file->getPathname())) {
+                    throw new RuntimeException(\sprintf('Unable to read the size of "%s".', $file->getPathname()), 0, $e);
+                }
+            }
+        }
+
+        return $size;
     }
 }

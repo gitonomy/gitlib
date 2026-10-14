@@ -131,21 +131,44 @@ abstract class ParserBase
 
     /**
      * @return array{string, string, \DateTimeImmutable} The name, email and date of an author, committer or tagger
+     *
+     * @throws RuntimeException The line has no email between "<" and ">"
      */
     protected function consumeNameEmailDate(): array
     {
-        if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+) ([+-]\d{4}))/A', $this->content, $vars, 0, $this->cursor)) {
-            throw new RuntimeException('Unable to parse name, email and date.');
+        return self::parseSignature($this->consumeTo("\n"));
+    }
+
+    /**
+     * Reads "Name <email> 1700000000 +0200" like libgit2, which LibGit2Driver
+     * reads it with, and git: old commits, imported from other tools, have
+     * signatures git wouldn't write anymore, like "Name<email>", or no date.
+     *
+     * @return array{string, string, \DateTimeImmutable} The name, email and date, the epoch in UTC without one
+     *
+     * @throws RuntimeException $signature has no email between "<" and ">"
+     */
+    protected static function parseSignature(string $signature): array
+    {
+        $emailStart = strrpos($signature, '<');
+        $emailEnd = strrpos($signature, '>');
+        if (false === $emailStart || false === $emailEnd || $emailEnd < $emailStart) {
+            throw new RuntimeException(\sprintf('Unable to parse the name, email and date of "%s".', $signature));
         }
 
-        $this->cursor += \strlen($vars[1]);
+        // The date, then the offset, are optional.
+        preg_match('/^\s*(\d+)(?:\s+([+-]\d+))?/', substr($signature, $emailEnd + 1), $date);
 
-        return [$vars[2], $vars[3], self::signatureDate($vars[4], $vars[5])];
+        return [
+            trim(substr($signature, 0, $emailStart)),
+            trim(substr($signature, $emailStart + 1, $emailEnd - $emailStart - 1)),
+            self::signatureDate($date[1] ?? '0', $date[2] ?? '+0000'),
+        ];
     }
 
     /**
      * @param string $timestamp Seconds since the epoch, as git writes them
-     * @param string $offset    The UTC offset of the author, committer or tagger, as git writes it: "+0200", "-0330"...
+     * @param string $offset    The UTC offset of the author, committer or tagger, as git writes it: "+0200", "-0330"..., a sign then hours and minutes
      *
      * @return \DateTimeImmutable The date at $offset, like git log shows it
      *
@@ -156,12 +179,12 @@ abstract class ParserBase
         // Like libgit2, which LibGit2Driver reads dates with: an offset of
         // more than 14 hours or 59 minutes, which no timezone has, in a
         // corrupt object, gives UTC.
-        if ((int) substr($offset, 1, 2) > 14 || (int) substr($offset, 3) > 59) {
-            $offset = '+0000';
-        }
+        $hoursAndMinutes = (int) substr($offset, 1);
+        [$hours, $minutes] = [intdiv($hoursAndMinutes, 100), $hoursAndMinutes % 100];
+        $timezone = $hours > 14 || $minutes > 59 ? '+0000' : \sprintf('%s%02d%02d', $offset[0], $hours, $minutes);
 
         try {
-            return new \DateTimeImmutable('@'.$timestamp)->setTimezone(new \DateTimeZone($offset));
+            return new \DateTimeImmutable('@'.$timestamp)->setTimezone(new \DateTimeZone($timezone));
         } catch (\DateMalformedStringException $e) {
             throw new RuntimeException(\sprintf('The date "%s" is out of range.', $timestamp), 0, $e);
         }

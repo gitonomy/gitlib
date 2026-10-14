@@ -24,6 +24,7 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ProcessTimedOutException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
@@ -248,6 +249,18 @@ class RepositoryTest extends AbstractTestCase
         $repository->getHead();
     }
 
+    /**
+     * gitlib doesn't see the writes of another process, but doesn't fail on them.
+     */
+    public function testTheHeadAnotherProcessChecksOut(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $repository->getReferences()->getAll();
+        new Process([self::gitCommand(), 'checkout', '-q', '-b', 'elsewhere'], $repository->getWorkingDir(), self::gitEnvs())->mustRun();
+
+        $this->assertSame('refs/heads/elsewhere', self::headBranch($repository)->getFullname());
+    }
+
     public function testHeadPointingToATagIsNoBranch(): void
     {
         $repository = self::createFoobarRepository();
@@ -298,6 +311,34 @@ class RepositoryTest extends AbstractTestCase
         $repository->run('commit', ['--allow-empty', '-m', 'Waits for its hook']);
     }
 
+    public function testATimeoutOfOneSecond(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $repository->getHooks()->set('pre-commit', "#!/bin/sh\nsleep 10\n");
+        $repository = new Repository($repository->getPath(), driver: self::getCliDriver(['GIT_AUTHOR_NAME' => 'A', 'GIT_AUTHOR_EMAIL' => 'a@example.com', 'GIT_COMMITTER_NAME' => 'A', 'GIT_COMMITTER_EMAIL' => 'a@example.com'], processTimeout: 1));
+
+        $this->expectException(ProcessTimedOutException::class);
+        $this->expectExceptionMessage('The git command "commit" ran longer than 1 second.');
+
+        $repository->run('commit', ['--allow-empty', '-m', 'Waits for its hook']);
+    }
+
+    /**
+     * Symfony Process checks the timeout when git starts too: its exception
+     * held the command line.
+     */
+    public function testATimeoutWhileGitStarts(): void
+    {
+        $repository = new Repository(self::createFoobarRepository()->getPath(), driver: self::getCliDriver(processTimeout: 0.000001));
+
+        try {
+            $repository->run('log', ['-n', '1']);
+            $this->markTestSkipped('git started within the timeout.');
+        } catch (ProcessTimedOutException $e) {
+            $this->assertSame('The git command "log" ran longer than 1.0E-6 seconds.', $e->getMessage());
+        }
+    }
+
     public function testIsValidRepositoryAndBranchMatchesTheNameExactly(): void
     {
         $repository = self::createFoobarRepository();
@@ -324,6 +365,50 @@ class RepositoryTest extends AbstractTestCase
         } finally {
             chdir($cwd);
         }
+    }
+
+    /**
+     * git reads the configuration of the repository it runs in, like its
+     * rewrites of URLs: an application may run from a checkout.
+     */
+    public function testTheWorkingDirectoryOfPhpRewritesNoUrl(): void
+    {
+        $url = self::createFoobarRepository()->getGitDir();
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['url.'.self::createTempDir().'/missing.git.insteadOf', $url]);
+        $cwd = getcwd();
+        self::assertIsString($cwd);
+
+        chdir($repository->getPath());
+
+        try {
+            $this->assertTrue(Repository::isValidRepository($url, self::getDriver()));
+            $this->assertTrue(Repository::isValidRepositoryAndBranch($url, 'master', self::getDriver()));
+        } finally {
+            chdir($cwd);
+        }
+    }
+
+    /**
+     * git ran in the working directory of PHP, which may be a repository.
+     */
+    #[DataProvider('provideEmptyUrlCalls')]
+    public function testAnEmptyUrlIsRefused(\Closure $call): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The URL of a repository can\'t be empty.');
+
+        $call();
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(): mixed}>
+     */
+    public static function provideEmptyUrlCalls(): iterable
+    {
+        yield 'valid repository' => [static fn (): bool => Repository::isValidRepository('', self::getDriver())];
+        yield 'valid branch' => [static fn (): bool => Repository::isValidRepositoryAndBranch('', 'master', self::getDriver())];
+        yield 'clone' => [static fn (): Repository => Repository::cloneFrom('', self::createTempDir().'/clone', driver: self::getDriver())];
     }
 
     public function testIsValidRepositoryThrowsWhenGitCantRun(): void
@@ -714,6 +799,28 @@ class RepositoryTest extends AbstractTestCase
         $this->assertSame($size + 1000, $repository->getSizeInBytes());
     }
 
+    public function testGetSizeInBytesOfAnUnreadableDirectoryThrows(): void
+    {
+        $repository = self::createEmptyRepository();
+        $dir = $repository->getGitDir().'/unreadable';
+        mkdir($dir);
+        chmod($dir, 0);
+
+        try {
+            if (is_readable($dir)) {
+                $this->markTestSkipped('The user of the tests reads any directory, like root.');
+            }
+
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage(\sprintf('Unable to read the directory "%s".', $dir));
+
+            $repository->getSizeInBytes();
+        } finally {
+            // Or the directory can't be deleted.
+            chmod($dir, 0o700);
+        }
+    }
+
     #[Group('legacy')]
     #[IgnoreDeprecations]
     public function testLegacyGetSizeInKilobytes(): void
@@ -870,6 +977,42 @@ class RepositoryTest extends AbstractTestCase
         $this->expectException(UnsupportedOperationException::class);
 
         new Repository(self::createTempDir(), driver: $this->createStub(DriverInterface::class))->setLogger($this->createStub(LoggerInterface::class));
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyShell(): void
+    {
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('The command of git shell is a shell script.');
+        }
+
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::shell()" method is deprecated, run "git shell" with Symfony Process instead: it ignores the driver.');
+
+        // git shell runs the commands of ~/git-shell-commands.
+        $home = self::createTempDir();
+        mkdir($home.'/git-shell-commands');
+        file_put_contents($home.'/git-shell-commands/record', "#!/bin/sh\n".'echo "$1" > "$HOME/recorded"'."\n");
+        chmod($home.'/git-shell-commands/record', 0o700);
+        $repository = self::createFoobarRepository();
+
+        $repository->shell('record', ['HOME' => $home]);
+
+        // shell() doesn't wait for git.
+        for ($i = 0; $i < 100 && !is_file($home.'/recorded'); ++$i) {
+            usleep(50_000);
+        }
+        $this->assertStringEqualsFile($home.'/recorded', $repository->getGitDir()."\n");
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testAnUnknownOptionIsRefused(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown option "foo".');
+
+        new Repository(self::createTempDir(), ['foo' => 1]);
     }
 
     #[Group('legacy')]

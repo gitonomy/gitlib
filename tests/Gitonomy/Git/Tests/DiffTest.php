@@ -515,6 +515,70 @@ class DiffTest extends AbstractTestCase
         $this->assertSame($repository, $file->getRepository());
     }
 
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyDiffSetRepository(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Diff\Diff::setRepository()" method is deprecated, the diffs gitlib returns have their repository already.');
+
+        $repository = self::createFoobarRepository();
+        $diff = Diff::parse(":100644 100644 1111111111111111111111111111111111111111 2222222222222222222222222222222222222222 M\tREADME.md\n");
+        $diff->setRepository($repository);
+
+        $this->assertSame($repository, $diff->getFiles()[0]->getRepository());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyAddChange(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Diff\File::addChange()" method is deprecated, give the changes to the constructor instead.');
+
+        $file = new File('README.md', 'README.md', '100644', '100644', null, null, false);
+        $change = new FileChange(1, 1, 1, 1, [new DiffLine(DiffLineType::Addition, 'added')]);
+        $file->addChange($change);
+
+        $this->assertSame([$change], $file->getChanges());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyIsChangeMode(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Diff\File::isChangeMode()" method is deprecated, use "isModeChange()" instead.');
+
+        $this->assertTrue(new File('run.sh', 'run.sh', '100644', '100755', null, null, false)->isChangeMode());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyFileIsDelete(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Diff\File::isDelete()" method is deprecated, use "isDeletion()" instead.');
+
+        $this->assertTrue(new File('README.md', null, '100644', null, null, null, false)->isDelete());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetAnchor(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Diff\File::getAnchor()" method is deprecated, use "substr($file->getNewIndex(), 0, 12)" instead.');
+
+        $this->assertSame('222222222222', new File('README.md', 'README.md', '100644', '100644', str_repeat('1', 40), str_repeat('2', 40), false)->getAnchor());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetCount(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Diff\FileChange::getCount()" method is deprecated, use "getAdditions()" or "getDeletions()" instead.');
+
+        $change = new FileChange(1, 1, 1, 2, [new DiffLine(DiffLineType::Context, 'kept'), new DiffLine(DiffLineType::Addition, 'added')]);
+
+        $this->assertSame(1, $change->getCount(FileChange::LINE_ADD));
+    }
+
     public function testMnemonicPrefix(): void
     {
         // With `diff.mnemonicPrefix` enabled, git replaces the default "a/" and "b/"

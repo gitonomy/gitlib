@@ -158,6 +158,27 @@ class WorkingCopyTest extends AbstractTestCase
         $this->assertSame([], $wc->getDiff()->getFiles());
     }
 
+    /**
+     * The configuration of a repository may name a command in core.fsmonitor,
+     * which git runs to read the working tree, and even to diff a commit.
+     */
+    public function testTheCommandOfCoreFsmonitorDoesNotRun(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $marker = self::createTempDir().'/ran';
+        self::git($repository, 'config', ['core.fsmonitor', 'touch '.$marker.'; false']);
+        file_put_contents($repository->getWorkingDir().'/README.md', 'local change');
+        $wc = $repository->getWorkingCopy();
+
+        $wc->getUntrackedFiles();
+        $wc->getDiffPending();
+        $wc->getDiffStaged();
+        $wc->getDiff();
+        $repository->getHeadCommit()->getDiff();
+
+        $this->assertFileDoesNotExist($marker);
+    }
+
     public function testDiffLeavesOutAFileTheWorkingTreeChangesBack(): void
     {
         $repository = self::createFoobarRepository(false);
@@ -367,20 +388,6 @@ class WorkingCopyTest extends AbstractTestCase
         $wc->merge('origin/diff-features', FastForward::Only);
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyMergeArguments(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing arguments of "git merge" to "Gitonomy\Git\WorkingCopy::merge()" is deprecated, pass a "Gitonomy\Git\FastForward" instead.');
-
-        $repository = self::createFoobarRepository(false);
-        $head = $repository->getHeadCommit();
-
-        $repository->getWorkingCopy()->merge($head->getHash(), ['--no-ff']);
-
-        $this->assertSame($head->getHash(), $repository->getHeadCommit()->getHash());
-    }
-
     public function testMergeFastForwardsTheCurrentBranch(): void
     {
         $repository = self::createFoobarRepository(false);
@@ -531,11 +538,18 @@ class WorkingCopyTest extends AbstractTestCase
         $this->assertSame([], $repository->getWorkingCopy()->getDiffStaged()->getFiles());
     }
 
-    public function testCheckoutOfHeadLeavesItAttached(): void
+    #[TestWith(['HEAD'])]
+    #[TestWith(['@'])]
+    public function testCheckoutOfHeadLeavesItAttached(string $head): void
     {
+        // git 2.43 detaches HEAD for "@", 2.53 doesn't: git 2.45 learned that "@" is HEAD in checkout.
+        if ('@' === $head && self::getDriver() instanceof CliDriver && version_compare(self::gitVersion(), '2.45.0', '<')) {
+            $this->markTestSkipped('git checks "@" out like HEAD since 2.45.');
+        }
+
         $repository = self::createFoobarRepository(false);
 
-        $repository->getWorkingCopy()->checkout('HEAD');
+        $repository->getWorkingCopy()->checkout($head);
 
         $this->assertSame('refs/heads/master', self::headBranch($repository)->getFullname());
     }

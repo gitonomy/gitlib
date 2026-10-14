@@ -19,7 +19,9 @@ Requirements
 *   git 1.8.4 or later is required by `CliDriver`, the default driver: before,
     git simplifies the log of a range filtered by path differently, and it
     can't count commits (`Log::count()`) before 1.7.2.
-*   `symfony/process` must be `^6.4`, `^7.4` or `^8.1`.
+*   `symfony/process` must be `^6.4.33`, `^7.4.5` or `^8.1`: the older
+    versions escape the arguments wrongly on Windows (CVE-2024-51736,
+    CVE-2026-24739).
 *   `symfony/string` `^7.4.6` or `^8.0.6`, `symfony/deprecation-contracts`
     `^2.5` or `^3`, and `psr/log` `^1.1`, `^2.0` or `^3.0` are new
     dependencies.
@@ -55,6 +57,7 @@ Opening a repository
 
     ```php
     use Gitonomy\Git\Driver\Cli\CliDriver;
+    use Gitonomy\Git\Repository;
 
     $repository = new Repository($path, driver: new CliDriver(command: '/usr/bin/git', processTimeout: 60, logger: $logger));
     ```
@@ -114,6 +117,7 @@ Creating repositories
 
     ```php
     use Gitonomy\Git\Driver\Cli\CliDriver;
+    use Gitonomy\Git\Repository;
 
     $repository = Repository::cloneFrom($url, $path, driver: new CliDriver(processTimeout: 60));
     ```
@@ -170,6 +174,8 @@ References
     After:
 
     ```php
+    use Gitonomy\Git\Reference\Branch;
+
     $branches = array_filter($commit->getIncludingBranches(), static fn (Branch $branch): bool => $branch->isLocal());
     ```
 
@@ -200,6 +206,7 @@ History
     `withLimit()` return another `Log`.
 *   `count($log)` returns the number of commits the log iterates, after its
     offset and up to its limit; `countCommits()` still counts them all.
+*   A negative offset or limit throws an `InvalidArgumentException`.
 *   The revisions of a log are names, ranges (`a..b`, `a...b`), names to
     exclude (`^a`) or `--all`: any other option of `git log` throws an
     `InvalidArgumentException`, instead of being passed to git. An unknown
@@ -322,23 +329,6 @@ Working copy
     $workingCopy->checkoutNewBranch('feature', 'origin/feature');
     ```
 
-*   `WorkingCopy::merge()` takes a `FastForward` instead of arguments of
-    `git merge`, deprecated.
-
-    Before:
-
-    ```php
-    $workingCopy->merge('feature', ['--no-ff']);
-    ```
-
-    After:
-
-    ```php
-    use Gitonomy\Git\FastForward;
-
-    $workingCopy->merge('feature', FastForward::Never);
-    ```
-
 Commits, trees and blobs
 ------------------------
 
@@ -406,14 +396,20 @@ Errors
 *   `ProcessException` extends the new
     `Gitonomy\Git\Exception\DriverException`, itself a `RuntimeException`:
     catching `RuntimeException` or `GitExceptionInterface` still works.
+*   An unknown revision throws a `ReferenceNotFoundException`, an
+    `InvalidArgumentException`, where `Repository::getDiff()`, `getBlame()`
+    or `WorkingCopy::checkout()` threw a `ProcessException`: a
+    `catch (RuntimeException)` doesn't catch it anymore. Catch
+    `GitExceptionInterface`, which every exception of gitlib implements.
 *   The message of a `ProcessException` is one line, with the error of git:
     the first line of its error output starting with `fatal:` or `error:`,
     after the warnings, or its first line: `The git command "clone" failed
     (exit 128): fatal: ...`, or `The git command "diff" failed (exit 1).`
-    when git writes no error. The command line, the rest of the error output
-    and the output are no longer in the message: `getErrorOutput()` and
-    `getOutput()` return the outputs of git. Its constructor takes the git
-    command as second argument, optional.
+    when git writes no error, but for the conflict of a merge, which git
+    writes on its output (`CONFLICT (content): ...`). The command line, the
+    rest of the error output and the output are no longer in the message:
+    `getErrorOutput()` and `getOutput()` return the outputs of git. Its
+    constructor takes the git command as second argument, optional.
 *   When git can't start, a missing binary for instance, `CliDriver` throws
     a `DriverException` instead of a `ProcessException`, with a message of
     one line, without the command line: `The git command "clone" could not
@@ -428,9 +424,11 @@ Errors
     `Tree::resolvePath()`.
 *   `Commit::getShortHash()` throws a `ReferenceNotFoundException` for an
     unknown commit, instead of a `ProcessException`.
-*   `Hooks` throws a `RuntimeException` when a hook exists already, doesn't
-    exist, or can't be written, instead of a `LogicException` or a silent
-    failure, and creates the hooks directory.
+*   `Hooks` throws a `RuntimeException` when a hook exists already, or can't
+    be written, instead of a `LogicException` or a silent failure, and
+    creates the hooks directory. `remove()` of a hook that doesn't exist
+    throws an `InvalidArgumentException`, like `get()`, still a
+    `LogicException`.
 *   The `Admin` methods throw a `ProcessException`, still a
     `RuntimeException`, with the first line of git's error output in its
     message, or a `DriverException` when git can't start.
@@ -442,8 +440,10 @@ Errors
     `getRevision('--output=/path')` writing a file, or
     `isValidRepository('--upload-pack=...')` running a command. A path may
     start with a dash.
+*   An empty URL throws an `InvalidArgumentException`, with both drivers.
 *   An `ext::` URL throws an `InvalidArgumentException`, with both drivers:
-    git runs its command, by default before git 2.12.
+    git runs its command, by default before git 2.12. So does an `fd::` URL,
+    which makes git talk through a file descriptor it inherits from PHP.
 *   An ssh URL whose host or user starts with a dash, even encoded (`%2D`),
     like `ssh://-oProxyCommand=.../repository` or
     `ssh://-oProxyCommand=...@host/path`, or a `git://` URL whose host does,
@@ -473,6 +473,8 @@ Git configuration
 *   `CliDriver` ignores the replacements of objects (`git replace`,
     `refs/replace/`), like `LibGit2Driver`: `run()` and `runProcess()` too.
     Run git yourself to read them.
+*   `CliDriver` ignores `core.fsmonitor`, whose command git runs to read the
+    working tree: `run()` and `runProcess()` too.
 
 Dates
 -----
@@ -521,16 +523,28 @@ Extending gitlib
     The constructor of `Reference` requires the commit hash. Extending
     `Revision` or `Reference` isn't supported anymore, and won't be possible
     in 3.0: `Reference` declares `getName()`, abstract.
+*   With named arguments, some parameters are renamed:
+    `Repository::__construct()` `$options` (`$workingDir`), `getBlame()`
+    `$lineRange` (`$firstLine`), `getDiff()` `$revisions` (`$from`),
+    `ReferenceBag::createBranch()` and `createTag()` `$commitHash`
+    (`$revision`), `resolve()`, `resolveBranches()` and `resolveTags()`
+    `$hash` (`$commit`), and `PushReference::__construct()` `$reference`
+    (`$fullname`).
 *   To change how gitlib runs git, for example in tests, implement
     `Gitonomy\Git\Driver\DriverInterface` and pass it as the driver of
     `Repository`, instead of extending `Repository`: see
     ["Using your own driver"](doc/repository.md#using-your-own-driver).
+    gitlib may add methods to the interfaces of the drivers in a minor
+    version of 2.x.
 *   `Commit::__construct()` takes a `Gitonomy\Git\Driver\Data\CommitData`
     instead of an array, and `Commit::setData()` is internal.
 *   `Gitonomy\Git\Util\StringHelper` is removed, with its configurable
     encoding: use `symfony/string`. Logs are always read in UTF-8.
-*   The parsers of the git output moved to `Gitonomy\Git\Driver\Cli\Parser`
-    and are `final`, except `Parser\DiffParser` and `Parser\ParserBase`.
+*   The parsers of the git output moved to `Gitonomy\Git\Driver\Cli\Parser`,
+    and are `final` and internal, used by `CliDriver` only, except
+    `Parser\DiffParser` and `Parser\ParserBase`. `ParserBase` loses
+    `consumeGPGSignature()` and `consumeMergeTag()`, and gets
+    `consumeNameEmailDate()`, `parseSignature()` and `signatureDate()`.
     `CommitParser` is merged into `LogParser`, and their results are objects
     of `Gitonomy\Git\Driver\Data`: `LogParser::$commits` (instead of `$log`),
     `TagParser::$data`, `ReferenceParser::$references`, `TreeParser::$entries`
@@ -558,13 +572,20 @@ Data returned
 *   `Reference\Tag::isSigned()` returns `false` for a lightweight tag.
 *   `PushReference::isForce()` returns `true` for histories without a common
     ancestor, where the constructor threw. `PushReference` runs git when
-    `isForce()` needs it, not when constructed. `getReference()` and
-    `getRevision()` are deprecated: use `getFullname()` and `getRange()`.
+    `isForce()` needs it, not when constructed. `getReference()`,
+    `getRevision()`, `isCreate()` and `isDelete()` are deprecated: use
+    `getFullname()`, `getRange()`, `isCreation()` and `isDeletion()`, named
+    like the ones of `Diff\File`. The `$reference` argument of its
+    constructor is named `$fullname`.
 *   `Blob::getContent()` only reads blobs, where `git cat-file -p` also
     printed trees and commits.
 *   `WorkingCopy::getUntrackedFiles()` and `RevisionList::getAll()` return
     lists, without gaps in their keys.
 *   `Diff\File::toArray()` has a new `is_copy` key.
+*   `Diff::getRawDiff()` of a diff gitlib reads returns the output of
+    `git diff --raw -z --patch`, NUL bytes included, with the options gitlib
+    sets, instead of the text of `--raw --patch`; with `LibGit2Driver`, an
+    empty string.
 
 Other changes
 -------------

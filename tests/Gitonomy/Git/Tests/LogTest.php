@@ -337,6 +337,18 @@ class LogTest extends AbstractTestCase
 
     #[Group('legacy')]
     #[IgnoreDeprecations]
+    public function testLegacySetOffset(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::setOffset()" method is deprecated, use "withOffset()" instead.');
+
+        $log = self::createFoobarRepository()->getLog();
+        $log->setOffset(2);
+
+        $this->assertSame(2, $log->getOffset());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
     public function testLegacySetLimit(): void
     {
         $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::setLimit()" method is deprecated, use "withLimit()" instead.');
@@ -378,6 +390,58 @@ class LogTest extends AbstractTestCase
         $this->assertCount(3, $repository->getLog('--all'));
         $this->assertSame([], self::hashes($repository->getLog('^main')));
         $this->assertSame([$main, $base], self::hashes($repository->getLog('main')));
+    }
+
+    /**
+     * Like "git log --all", which walks from HEAD too: a detached HEAD may
+     * name a commit no reference has, like after the checkout of a hash.
+     */
+    public function testALogOfEveryReferenceIncludesADetachedHead(): void
+    {
+        $repository = self::createFoobarRepository();
+        $master = $repository->getHeadCommit();
+        $hash = self::writeObject($repository, 'commit', "tree {$master->getTreeHash()}\nparent {$master->getHash()}\nauthor A <a@example.com> 1700000000 +0000\ncommitter A <a@example.com> 1700000000 +0000\n\nDetached\n");
+        self::git($repository, 'update-ref', ['--no-deref', 'HEAD', $hash]);
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+
+        $log = $repository->getLog();
+
+        $this->assertContains($hash, self::hashes($log));
+        $this->assertCount(\count($log->getCommits()), $log);
+    }
+
+    /**
+     * @param \Closure(Repository): Log $log
+     */
+    #[DataProvider('provideNegativeBounds')]
+    public function testANegativeOffsetOrLimitIsRefused(\Closure $log, string $message): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        $log($repository);
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(Repository): Log, string}>
+     */
+    public static function provideNegativeBounds(): iterable
+    {
+        yield 'offset' => [static fn (Repository $repository): Log => $repository->getLog(null, null, -1), 'The offset of a log can\'t be negative, -1 given.'];
+        yield 'limit' => [static fn (Repository $repository): Log => $repository->getLog(null, null, null, -1), 'The limit of a log can\'t be negative, -1 given.'];
+        yield 'offset of a revision' => [static fn (Repository $repository): Log => $repository->getRevision('master')->getLog(null, -2), 'The offset of a log can\'t be negative, -2 given.'];
+        yield 'withOffset()' => [static fn (Repository $repository): Log => $repository->getLog()->withOffset(-5), 'The offset of a log can\'t be negative, -5 given.'];
+        yield 'withLimit()' => [static fn (Repository $repository): Log => $repository->getLog()->withLimit(-1), 'The limit of a log can\'t be negative, -1 given.'];
+    }
+
+    public function testALimitOfZeroGivesNoCommit(): void
+    {
+        $log = self::createFoobarRepository()->getLog(null, null, null, 0);
+
+        $this->assertSame([], $log->getCommits());
+        $this->assertCount(0, $log);
     }
 
     /**

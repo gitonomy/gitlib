@@ -18,10 +18,12 @@ use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use Symfony\Component\Process\Process;
 
 class CommitTest extends AbstractTestCase
 {
@@ -70,6 +72,36 @@ class CommitTest extends AbstractTestCase
         $this->assertSame(1700000000, $commit->getAuthorDate()->getTimestamp());
         $this->assertSame('2023-11-14T18:43:21-03:30', $commit->getCommitterDate()->format(\DATE_ATOM));
         $this->assertSame(1700000001, $commit->getCommitterDate()->getTimestamp());
+    }
+
+    /**
+     * Old commits, imported from other tools, have signatures git wouldn't
+     * write anymore, which git and libgit2 read anyway: one of them made the
+     * whole log throw.
+     */
+    #[DataProvider('provideMalformedSignatures')]
+    public function testAMalformedSignatureIsReadLikeGit(string $signature, string $name, string $email, string $date): void
+    {
+        $repository = self::createEmptyRepository();
+        $tree = self::writeObject($repository, 'tree', '');
+        $hash = self::writeObject($repository, 'commit', "tree {$tree}\nauthor {$signature}\ncommitter {$signature}\n\nMalformed\n");
+
+        $commits = $repository->getLog($hash)->getCommits();
+
+        $this->assertCount(1, $commits);
+        $this->assertSame([$name, $email, $date], [$commits[0]->getAuthorName(), $commits[0]->getAuthorEmail(), $commits[0]->getAuthorDate()->format(\DATE_ATOM)]);
+        $this->assertSame([$name, $email, $date], [$commits[0]->getCommitterName(), $commits[0]->getCommitterEmail(), $commits[0]->getCommitterDate()->format(\DATE_ATOM)]);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string, string}>
+     */
+    public static function provideMalformedSignatures(): iterable
+    {
+        yield 'no space before the email' => ['A<a@example.com> 1700000000 +0200', 'A', 'a@example.com', '2023-11-15T00:13:20+02:00'];
+        yield 'no date' => ['A <a@example.com>', 'A', 'a@example.com', '1970-01-01T00:00:00+00:00'];
+        yield 'an offset of 5 digits' => ['A <a@example.com> 1700000000 +05030', 'A', 'a@example.com', '2023-11-14T22:13:20+00:00'];
+        yield 'no name nor email' => ['<> 0 +0000', '', '', '1970-01-01T00:00:00+00:00'];
     }
 
     /**
@@ -289,6 +321,15 @@ class CommitTest extends AbstractTestCase
         $this->assertSame('signed commit'."\n", $commit->getMessage());
     }
 
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetFixedShortHash(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Commit::getFixedShortHash()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.');
+
+        $this->assertSame(substr(self::LONGFILE_COMMIT, 0, 6), self::createFoobarRepository()->getCommit(self::LONGFILE_COMMIT)->getFixedShortHash());
+    }
+
     #[DataProvider('provideBare')]
     #[Group('legacy')]
     #[IgnoreDeprecations]
@@ -344,10 +385,19 @@ class CommitTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository($bare);
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Keep the local branches, the remote ones, or both: $local and $remote can\'t both be false.');
 
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
         $commit->getIncludingBranches(false, false);
+    }
+
+    public function testTheLastModificationOfAPathNoCommitChanges(): void
+    {
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage(\sprintf('No commit up to "%s" changes "nope".', self::LONGFILE_COMMIT));
+
+        self::createFoobarRepository()->getCommit(self::LONGFILE_COMMIT)->getLastModification('nope');
     }
 
     #[DataProvider('provideBare')]
@@ -381,6 +431,35 @@ class CommitTest extends AbstractTestCase
         $branches = $repository->getCommit(self::INITIAL_COMMIT)->getIncludingBranches();
 
         $this->assertContains($repository->getReferences()->getBranch('remotes/origin/fake'), $branches);
+    }
+
+    /**
+     * gitlib doesn't see the writes of another process, but doesn't fail on them.
+     */
+    public function testGetIncludingBranchesCreatedByAnotherProcess(): void
+    {
+        $repository = self::createFoobarRepository();
+        $repository->getReferences()->getAll();
+        new Process([self::gitCommand(), 'branch', 'elsewhere', self::INITIAL_COMMIT], $repository->getPath(), self::gitEnvs())->mustRun();
+
+        $fullnames = array_map(static fn (Branch $branch): string => $branch->getFullname(), $repository->getCommit(self::INITIAL_COMMIT)->getIncludingBranches());
+
+        $this->assertContains('refs/heads/elsewhere', $fullnames);
+    }
+
+    /**
+     * A mirror leaves the default branch of a remote as a regular reference,
+     * which the branches leave out, like a symbolic one.
+     */
+    public function testGetIncludingBranchesLeavesOutTheDefaultBranchOfARemote(): void
+    {
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'update-ref', ['--no-deref', 'refs/remotes/origin/HEAD', self::INITIAL_COMMIT]);
+
+        $fullnames = array_map(static fn (Branch $branch): string => $branch->getFullname(), $repository->getCommit(self::INITIAL_COMMIT)->getIncludingBranches());
+
+        $this->assertNotContains('refs/remotes/origin/HEAD', $fullnames);
+        $this->assertContains('refs/heads/master', $fullnames);
     }
 
     #[DataProvider('provideBare')]

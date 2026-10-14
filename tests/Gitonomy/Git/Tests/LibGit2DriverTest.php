@@ -13,6 +13,7 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -117,28 +118,80 @@ class LibGit2DriverTest extends AbstractTestCase
     }
 
     /**
-     * @param \Closure(LibGit2Driver, string): void $clone
+     * @param \Closure(LibGit2Driver, string, string): void $clone
      */
-    #[DataProvider('provideClones')]
-    public function testBundlesAreUnsupported(\Closure $clone): void
+    #[DataProvider('provideBundleClones')]
+    public function testBundlesAreUnsupported(\Closure $clone, string $url): void
     {
         if (!LibGit2Driver::isSupported()) {
             $this->markTestSkipped('libgit2 1.9 is not installed.');
         }
 
         $this->expectException(UnsupportedOperationException::class);
-        $this->expectExceptionMessage(\sprintf('"%s" is a bundle, which LibGit2Driver doesn\'t support; use CliDriver.', self::REPOSITORY_URL));
+        $this->expectExceptionMessage(\sprintf('"%s" is a bundle, which LibGit2Driver doesn\'t support; use CliDriver.', $url));
 
-        $clone(new LibGit2Driver(), self::createTempDir().'/clone');
+        $clone(new LibGit2Driver(), self::createTempDir().'/clone', $url);
     }
 
     /**
-     * @return iterable<string, array{\Closure(LibGit2Driver, string): void}>
+     * @return iterable<string, array{\Closure(LibGit2Driver, string, string): void, string}>
+     */
+    public static function provideBundleClones(): iterable
+    {
+        foreach (self::provideClones() as $name => [$clone]) {
+            yield $name => [$clone, self::REPOSITORY_URL];
+            yield $name.', file:// URL' => [$clone, 'file://'.self::REPOSITORY_URL];
+        }
+    }
+
+    /**
+     * is_file() hands a URL to the stream wrapper of its scheme: the one of
+     * "ftp://" connects to the host, with the credentials of the URL.
+     *
+     * @param \Closure(LibGit2Driver, string, string): void $clone
+     */
+    #[DataProvider('provideClones')]
+    public function testOnlyALocalPathIsLookedAtForABundle(\Closure $clone): void
+    {
+        if (!LibGit2Driver::isSupported()) {
+            $this->markTestSkipped('libgit2 1.9 is not installed.');
+        }
+
+        $wrapper = new class {
+            /**
+             * @var list<string>
+             */
+            public static array $urls = [];
+
+            public mixed $context;
+
+            public function url_stat(string $path, int $flags): false
+            {
+                self::$urls[] = $path;
+
+                return false;
+            }
+        };
+        stream_wrapper_register('gitlib-test', $wrapper::class);
+
+        try {
+            $clone(new LibGit2Driver(), self::createTempDir().'/clone', 'gitlib-test://user:secret@example.com/repository.git');
+            $this->fail('libgit2 knows no "gitlib-test" transport.');
+        } catch (DriverException) {
+        } finally {
+            stream_wrapper_unregister('gitlib-test');
+        }
+
+        $this->assertSame([], $wrapper::$urls);
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(LibGit2Driver, string, string): void}>
      */
     public static function provideClones(): iterable
     {
-        yield 'clone' => [static fn (LibGit2Driver $driver, string $path) => $driver->cloneFrom(self::REPOSITORY_URL, $path, null)];
-        yield 'bare clone' => [static fn (LibGit2Driver $driver, string $path) => $driver->cloneBareFrom(self::REPOSITORY_URL, $path, null)];
-        yield 'mirror' => [static fn (LibGit2Driver $driver, string $path) => $driver->mirrorFrom(self::REPOSITORY_URL, $path)];
+        yield 'clone' => [static fn (LibGit2Driver $driver, string $path, string $url) => $driver->cloneFrom($url, $path, null)];
+        yield 'bare clone' => [static fn (LibGit2Driver $driver, string $path, string $url) => $driver->cloneBareFrom($url, $path, null)];
+        yield 'mirror' => [static fn (LibGit2Driver $driver, string $path, string $url) => $driver->mirrorFrom($url, $path)];
     }
 }

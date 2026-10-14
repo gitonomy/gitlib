@@ -117,9 +117,6 @@ $repo->run('merge', ['--abort']);
 > throws without changing anything, instead of leaving conflict markers in
 > the working copy.
 
-Passing arguments of `git merge` as an array (`[]`, `['--no-ff']` or
-`['--ff-only']`) is deprecated since 2.0: pass a `FastForward`.
-
 Modifications since a revision
 ------------------------------
 

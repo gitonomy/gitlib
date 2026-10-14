@@ -72,6 +72,9 @@ final readonly class GitRunner
         // command line, with the credentials of its URLs.
         try {
             $process->start();
+        } catch (SymfonyProcessTimedOutException) {
+            // A timeout shorter than the start of git.
+            throw $this->timedOut($command);
         } catch (SymfonyRuntimeException $e) {
             // Too many arguments (E2BIG), a working directory removed since the
             // repository was opened...
@@ -88,7 +91,7 @@ final readonly class GitRunner
         try {
             $process->wait();
         } catch (SymfonyProcessTimedOutException) {
-            throw new ProcessTimedOutException(\sprintf('The git command "%s" ran longer than %s seconds.', $command, $this->timeout));
+            throw $this->timedOut($command);
         } catch (SymfonyRuntimeException $e) {
             // Killed by a signal...
             throw new DriverException(Credentials::redact(\sprintf('Unable to run the git command "%s": %s', $command, $e->getMessage())));
@@ -124,5 +127,10 @@ final readonly class GitRunner
         }
 
         return new DriverException(Credentials::redact(1 === preg_match('/[.!?]$/', $message) ? $message : $message.'.'));
+    }
+
+    private function timedOut(string $command): ProcessTimedOutException
+    {
+        return new ProcessTimedOutException(\sprintf('The git command "%s" ran longer than %s %s.', $command, $this->timeout, 1.0 === $this->timeout ? 'second' : 'seconds'));
     }
 }

@@ -15,8 +15,8 @@ namespace Gitonomy\Git\Util;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 
 /**
- * Refuses the URLs of a repository that make git run a command, as an
- * application may get them from its users.
+ * Refuses the URLs of a repository that make git run a command, or use a
+ * file descriptor of PHP, as an application may get them from its users.
  *
  * @author Grégoire Pineau <lyrixx@lyrixx.info>
  *
@@ -25,10 +25,15 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 final class RemoteUrl
 {
     /**
-     * @throws InvalidArgumentException $url starts with a dash, uses the "ext::" transport, or has a host or a user starting with a dash, encoded or not
+     * @throws InvalidArgumentException $url is empty, starts with a dash, uses the "ext::" or "fd::" transport, or has a host or a user starting with a dash, encoded or not
      */
     public static function assertSafe(#[\SensitiveParameter] string $url): void
     {
+        // git would run in the working directory of PHP, which may be a repository.
+        if ('' === $url) {
+            throw new InvalidArgumentException('The URL of a repository can\'t be empty.');
+        }
+
         LeadingDash::assertNone($url);
 
         // "ext::sh -c ..." runs the command, to talk to it: git refuses it by
@@ -37,13 +42,20 @@ final class RemoteUrl
             throw new InvalidArgumentException(\sprintf('"%s" uses the "ext::" transport, which runs a command.', Credentials::redact($url)));
         }
 
+        // "fd::7" talks through the file descriptors git inherits from PHP:
+        // an open file, the socket of a database... git waits on it until it
+        // times out, an hour by default.
+        if (str_starts_with($url, 'fd::')) {
+            throw new InvalidArgumentException(\sprintf('"%s" uses the "fd::" transport, which talks through a file descriptor of PHP.', Credentials::redact($url)));
+        }
+
         // Before 2.14.1 (CVE-2017-1000117), git passes the "user@host" of an ssh
         // URL to ssh, without its brackets: ssh reads "ssh://-oProxyCommand=..."
         // as an option, and runs the command. The command of core.gitProxy gets
         // the host of a git URL the same way. A valid host never starts with a dash.
         $authority = self::authority($url);
         if (null !== $authority && 1 === preg_match('/(?:^|@)\[?-/', $authority)) {
-            throw new InvalidArgumentException(\sprintf('"%s" has a host or a user starting with a dash, which ssh would read as an option.', Credentials::redact($url)));
+            throw new InvalidArgumentException(\sprintf('"%s" has a host or a user starting with a dash, which ssh, or the command of core.gitProxy, would read as an option.', Credentials::redact($url)));
         }
     }
 

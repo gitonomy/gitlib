@@ -153,7 +153,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         LeadingDash::assertNone($revision);
 
         $object = $this->ffi->new('git_object*');
-        $rc = $this->ffi->git_revparse_single(\FFI::addr($object), $this->repo, $revision);
+        $rc = $this->ffi->git_revparse_single(\FFI::addr($object), $this->repo, self::expandAt($revision));
         if (\in_array($rc, [LibGit2::GIT_ENOTFOUND, self::GIT_EAMBIGUOUS, self::GIT_EINVALIDSPEC, self::GIT_EPEEL], true)) {
             throw new ReferenceNotFoundException(\sprintf('The revision "%s" does not exist.', $revision));
         }
@@ -326,9 +326,6 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             $tagger = $this->ffi->git_tag_tagger($tag);
 
             return TagData::fromSignedMessage(
-                $this->oidToHex($this->ffi->git_tag_target_id($tag)),
-                $this->objectType($this->ffi->git_tag_target_type($tag)),
-                $this->ffi->git_tag_name($tag),
                 null === $tagger ? null : \FFI::string($tagger->name),
                 null === $tagger ? null : \FFI::string($tagger->email),
                 null === $tagger ? null : $this->signatureDate($tagger),
@@ -630,8 +627,8 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
         // `git checkout <revision>` attaches HEAD when <revision> names a
         // local branch, before a tag of the same name, or is @{-<n>}, the nth
-        // branch checked out before. It leaves HEAD as it is for HEAD, and
-        // detaches it for anything else (a tag, a hash, a remote branch, a
+        // branch checked out before. It leaves HEAD as it is for HEAD, or @,
+        // and detaches it for anything else (a tag, a hash, a remote branch, a
         // full reference name...).
         $name = $this->expandPriorCheckout($revision);
         $branch = $this->referenceExists('refs/heads/'.$name) ? 'refs/heads/'.$name : null;
@@ -642,7 +639,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
         if (null !== $branch) {
             LibGit2::check($this->ffi, $this->ffi->git_repository_set_head($this->repo, $branch), 'Unable to update HEAD');
-        } elseif ('HEAD' !== $revision) {
+        } elseif ('HEAD' !== self::expandAt($revision)) {
             $oid = $this->hexToOid($hash);
             LibGit2::check($this->ffi, $this->ffi->git_repository_set_head_detached($this->repo, \FFI::addr($oid)), 'Unable to detach HEAD');
         }
@@ -759,7 +756,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
      * yields the commits that change them, and simplifies the history like
      * git does.
      *
-     * @param list<string>|null $includes null for every reference
+     * @param list<string>|null $includes null for every reference and HEAD
      * @param list<string>      $excludes
      * @param string[]          $paths
      *
@@ -827,11 +824,28 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     }
 
     /**
-     * @return list<string> The commits the references point to; like `git log --all`, ignores the references to other objects and the dangling ones
+     * @return list<string> The commits HEAD and the references point to; like `git log --all`, ignores the references to other objects and the dangling ones
      */
     private function referencedCommits(): array
     {
         $hashes = [];
+
+        // A detached HEAD may name a commit no reference has.
+        $head = $this->ffi->new('git_reference*');
+        $rc = $this->ffi->git_repository_head(\FFI::addr($head), $this->repo);
+        if (self::GIT_EUNBORNBRANCH !== $rc && LibGit2::GIT_ENOTFOUND !== $rc) {
+            LibGit2::check($this->ffi, $rc, 'Unable to resolve HEAD');
+
+            try {
+                $commit = $this->peeledCommitHex($head);
+                if (null !== $commit) {
+                    $hashes[] = $commit;
+                }
+            } finally {
+                $this->ffi->git_reference_free($head);
+            }
+        }
+
         foreach ($this->iterateReferences() as $ref) {
             $commit = $this->peeledCommitHex($ref);
             if (null !== $commit) {
@@ -1462,6 +1476,19 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     }
 
     /**
+     * Like git, reads "@" as HEAD, alone or at the start of $revision before
+     * "~", "^" or ":": libgit2 only reads it alone. "@{...}" is left as it is.
+     */
+    private static function expandAt(string $revision): string
+    {
+        if ('@' === $revision || (str_starts_with($revision, '@') && \in_array($revision[1], ['~', '^', ':'], true))) {
+            return 'HEAD'.substr($revision, 1);
+        }
+
+        return $revision;
+    }
+
+    /**
      * Like git, replaces @{-<n>} at the start of $revision with the nth
      * branch checked out before, or commit when HEAD was detached.
      */
@@ -1743,7 +1770,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     private function revparse(string $spec): CData
     {
         $out = $this->ffi->new('git_object*');
-        LibGit2::check($this->ffi, $this->ffi->git_revparse_single(\FFI::addr($out), $this->repo, $spec), \sprintf('Unable to resolve "%s"', $spec));
+        LibGit2::check($this->ffi, $this->ffi->git_revparse_single(\FFI::addr($out), $this->repo, self::expandAt($spec)), \sprintf('Unable to resolve "%s"', $spec));
 
         return $out;
     }

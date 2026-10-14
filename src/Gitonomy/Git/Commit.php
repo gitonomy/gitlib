@@ -136,13 +136,20 @@ final class Commit extends Revision
         return $this->tree ??= $this->repository->getTree($this->getTreeHash());
     }
 
+    /**
+     * @throws ReferenceNotFoundException No commit up to this one changes $path
+     */
     public function getLastModification(?string $path = null): self
     {
         if (null !== $path && str_starts_with($path, '/')) {
             $path = substr($path, 1);
         }
 
-        return $this->getLog($path, null, 1)->getSingleCommit();
+        try {
+            return $this->getLog($path, null, 1)->getSingleCommit();
+        } catch (ReferenceNotFoundException $e) {
+            throw new ReferenceNotFoundException(\sprintf('No commit up to "%s" changes "%s".', $this->revision, $path), 0, $e);
+        }
     }
 
     /**
@@ -195,13 +202,24 @@ final class Commit extends Revision
         }
 
         if (!$local && !$remote) {
-            throw new InvalidArgumentException('You should a least set one argument to true.');
+            throw new InvalidArgumentException('Keep the local branches, the remote ones, or both: $local and $remote can\'t both be false.');
         }
 
+        $fullnames = $this->repository->getRepositoryDriver()->getIncludingBranches($this->revision);
         $references = $this->repository->getReferences();
+        // A branch another process created since gitlib read the references.
+        if ([] !== array_filter($fullnames, static fn (string $fullname): bool => !$references->has($fullname))) {
+            $references->invalidate();
+        }
 
         $branches = [];
-        foreach ($this->repository->getRepositoryDriver()->getIncludingBranches($this->revision) as $fullname) {
+        foreach ($fullnames as $fullname) {
+            // Unknown still: the default branch of a remote, which the references leave out, even
+            // when a mirror leaves it as a regular reference, or a branch deleted meanwhile.
+            if (!$references->has($fullname)) {
+                continue;
+            }
+
             $branch = $references->get($fullname);
             if ($branch instanceof Branch && ($branch->isLocal() ? $local : $remote)) {
                 $branches[] = $branch;

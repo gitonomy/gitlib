@@ -18,6 +18,8 @@ use Gitonomy\Git\Parser\ParserBase;
 
 /**
  * Parses the output of ``git log --format=raw``.
+ *
+ * @internal Used by CliDriver only
  */
 final class LogParser extends ParserBase
 {
@@ -52,8 +54,8 @@ final class LogParser extends ParserBase
                 }
 
                 match ($name) {
-                    'author' => $author = self::parseNameEmailDate($value),
-                    'committer' => $committer = self::parseNameEmailDate($value),
+                    'author' => $author = self::parseSignature($value),
+                    'committer' => $committer = self::parseSignature($value),
                     'parent' => $parentHashes[] = $value,
                     'tree' => $treeHash = $value,
                     // encoding, gpgsig, mergetag, and the headers of other tools.
@@ -77,17 +79,5 @@ final class LogParser extends ParserBase
 
             $this->commits[] = new CommitData($hash, $treeHash, $parentHashes, ...$author, ...$committer, message: $message);
         }
-    }
-
-    /**
-     * @return array{string, string, \DateTimeImmutable}
-     */
-    private static function parseNameEmailDate(string $value): array
-    {
-        if (!preg_match('/^(.*) <(.*)> (\d+) ([+-]\d{4})$/', $value, $vars)) {
-            throw new RuntimeException(\sprintf('Unable to parse the name, email and date of "%s".', $value));
-        }
-
-        return [$vars[1], $vars[2], self::signatureDate($vars[3], $vars[4])];
     }
 }

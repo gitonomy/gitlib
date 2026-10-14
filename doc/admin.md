@@ -101,13 +101,17 @@ error output, when `CliDriver` runs git. With `CliDriver`, every method,
 `isValidRepository()` included, throws a `DriverException` when git can't
 start, like a missing binary. See [Errors](repository.md#errors).
 
-A URL that makes git run a command throws an `InvalidArgumentException`,
-with both drivers:
+A URL that makes git run a command, or use a file of PHP, throws an
+`InvalidArgumentException`, with both drivers:
 
+-   an empty URL, which would make git read the repository PHP runs in;
 -   a URL starting with a dash, which git would read as an option, like
     `--upload-pack=...`; a path may start with one;
 -   an `ext::` URL, like `ext::sh -c ...`, whose command git runs, unless its
     `protocol.allow` setting forbids it, as it does by default since git 2.12;
+-   an `fd::` URL, like `fd::7`, which makes git talk through a file
+    descriptor it inherits from PHP, like the socket of a database: git waits
+    on it until it times out;
 -   an ssh URL whose host or user starts with a dash, even encoded (`%2D`),
     like `ssh://-oProxyCommand=.../repository` or
     `ssh://-oProxyCommand=...@host/repository`: before 2.14.1, git passes it

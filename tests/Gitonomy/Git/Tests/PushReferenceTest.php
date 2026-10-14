@@ -15,6 +15,8 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\PushReference;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 
 class PushReferenceTest extends AbstractTestCase
 {
@@ -27,8 +29,8 @@ class PushReferenceTest extends AbstractTestCase
     public function testIsers(string $reference, string $before, string $after, int $mask): void
     {
         $reference = new PushReference(self::createFoobarRepository(), $reference, $before, $after);
-        $this->assertSame(0 !== ($mask & self::CREATE), $reference->isCreate(), 'Create value is correct.');
-        $this->assertSame(0 !== ($mask & self::DELETE), $reference->isDelete(), 'Delete value is correct.');
+        $this->assertSame(0 !== ($mask & self::CREATE), $reference->isCreation(), 'Create value is correct.');
+        $this->assertSame(0 !== ($mask & self::DELETE), $reference->isDeletion(), 'Delete value is correct.');
         $this->assertSame(0 !== ($mask & self::FORCE), $reference->isForce(), 'Force value is correct.');
         $this->assertSame(0 !== ($mask & self::FAST_FORWARD), $reference->isFastForward(), 'FastForward value is correct.');
     }
@@ -45,6 +47,42 @@ class PushReferenceTest extends AbstractTestCase
             ['foo', self::LONGFILE_COMMIT,        self::BEFORE_LONGFILE_COMMIT, self::FORCE],
             ['foo', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT,        self::FAST_FORWARD],
         ];
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyIsCreate(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\PushReference::isCreate()" method is deprecated, use "isCreation()" instead.');
+
+        $this->assertTrue(new PushReference(self::createFoobarRepository(), 'foo', PushReference::ZERO, self::LONGFILE_COMMIT)->isCreate());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyIsDelete(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\PushReference::isDelete()" method is deprecated, use "isDeletion()" instead.');
+
+        $this->assertTrue(new PushReference(self::createFoobarRepository(), 'foo', self::LONGFILE_COMMIT, PushReference::ZERO)->isDelete());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetReference(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\PushReference::getReference()" method is deprecated, use "getFullname()" instead.');
+
+        $this->assertSame('refs/heads/foo', new PushReference(self::createFoobarRepository(), 'refs/heads/foo', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->getReference());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetRevision(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\PushReference::getRevision()" method is deprecated, use "getRange()" instead.');
+
+        $this->assertSame(self::BEFORE_LONGFILE_COMMIT.'..'.self::LONGFILE_COMMIT, new PushReference(self::createFoobarRepository(), 'refs/heads/foo', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->getRevision());
     }
 
     public function testUnknownBeforeIsAnErrorNotAForcePush(): void

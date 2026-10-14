@@ -168,9 +168,6 @@ uint64_t git_blob_rawsize(const git_blob *blob);
 
 int git_tag_lookup(git_tag **out, git_repository *repo, const git_oid *id);
 void git_tag_free(git_tag *tag);
-const git_oid *git_tag_target_id(const git_tag *tag);
-git_object_t git_tag_target_type(const git_tag *tag);
-const char *git_tag_name(const git_tag *tag);
 const git_signature *git_tag_tagger(const git_tag *tag);
 const char *git_tag_message(const git_tag *tag);
 

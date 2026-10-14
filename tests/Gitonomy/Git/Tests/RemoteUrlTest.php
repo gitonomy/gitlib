@@ -70,6 +70,19 @@ class RemoteUrlTest extends AbstractTestCase
     }
 
     /**
+     * git talks through the file descriptors of an "fd::" URL, which it
+     * inherits from PHP, like the socket of a database.
+     */
+    #[DataProvider('provideCalls')]
+    public function testAnFdUrlIsRefused(\Closure $call): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"fd::0" uses the "fd::" transport, which talks through a file descriptor of PHP.');
+
+        $call('fd::0', self::createTempDir().'/clone');
+    }
+
+    /**
      * @return iterable<string, array{\Closure(string, string): void}>
      */
     public static function provideCalls(): iterable
@@ -98,7 +111,7 @@ class RemoteUrlTest extends AbstractTestCase
             $call($url, $dir.'/clone');
             $this->fail('A host starting with a dash is refused.');
         } catch (InvalidArgumentException $e) {
-            $this->assertSame(\sprintf('"%s" has a host or a user starting with a dash, which ssh would read as an option.', Credentials::redact($url)), $e->getMessage());
+            $this->assertSame(\sprintf('"%s" has a host or a user starting with a dash, which ssh, or the command of core.gitProxy, would read as an option.', Credentials::redact($url)), $e->getMessage());
         } finally {
             chdir($previousCwd);
         }
