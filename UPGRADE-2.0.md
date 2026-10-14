@@ -57,6 +57,7 @@ Opening a repository
 
     ```php
     use Gitonomy\Git\Driver\Cli\CliDriver;
+    use Gitonomy\Git\Repository;
 
     $repository = new Repository($path, driver: new CliDriver(command: '/usr/bin/git', processTimeout: 60, logger: $logger));
     ```
@@ -116,6 +117,7 @@ Creating repositories
 
     ```php
     use Gitonomy\Git\Driver\Cli\CliDriver;
+    use Gitonomy\Git\Repository;
 
     $repository = Repository::cloneFrom($url, $path, driver: new CliDriver(processTimeout: 60));
     ```
@@ -172,6 +174,8 @@ References
     After:
 
     ```php
+    use Gitonomy\Git\Reference\Branch;
+
     $branches = array_filter($commit->getIncludingBranches(), static fn (Branch $branch): bool => $branch->isLocal());
     ```
 
@@ -392,6 +396,11 @@ Errors
 *   `ProcessException` extends the new
     `Gitonomy\Git\Exception\DriverException`, itself a `RuntimeException`:
     catching `RuntimeException` or `GitExceptionInterface` still works.
+*   An unknown revision throws a `ReferenceNotFoundException`, an
+    `InvalidArgumentException`, where `Repository::getDiff()`, `getBlame()`
+    or `WorkingCopy::checkout()` threw a `ProcessException`: a
+    `catch (RuntimeException)` doesn't catch it anymore. Catch
+    `GitExceptionInterface`, which every exception of gitlib implements.
 *   The message of a `ProcessException` is one line, with the error of git:
     the first line of its error output starting with `fatal:` or `error:`,
     after the warnings, or its first line: `The git command "clone" failed
@@ -512,6 +521,13 @@ Extending gitlib
     The constructor of `Reference` requires the commit hash. Extending
     `Revision` or `Reference` isn't supported anymore, and won't be possible
     in 3.0: `Reference` declares `getName()`, abstract.
+*   With named arguments, some parameters are renamed:
+    `Repository::__construct()` `$options` (`$workingDir`), `getBlame()`
+    `$lineRange` (`$firstLine`), `getDiff()` `$revisions` (`$from`),
+    `ReferenceBag::createBranch()` and `createTag()` `$commitHash`
+    (`$revision`), `resolve()`, `resolveBranches()` and `resolveTags()`
+    `$hash` (`$commit`), and `PushReference::__construct()` `$reference`
+    (`$fullname`).
 *   To change how gitlib runs git, for example in tests, implement
     `Gitonomy\Git\Driver\DriverInterface` and pass it as the driver of
     `Repository`, instead of extending `Repository`: see
@@ -524,7 +540,9 @@ Extending gitlib
     encoding: use `symfony/string`. Logs are always read in UTF-8.
 *   The parsers of the git output moved to `Gitonomy\Git\Driver\Cli\Parser`,
     and are `final` and internal, used by `CliDriver` only, except
-    `Parser\DiffParser` and `Parser\ParserBase`.
+    `Parser\DiffParser` and `Parser\ParserBase`. `ParserBase` loses
+    `consumeGPGSignature()` and `consumeMergeTag()`, and gets
+    `consumeNameEmailDate()`, `parseSignature()` and `signatureDate()`.
     `CommitParser` is merged into `LogParser`, and their results are objects
     of `Gitonomy\Git\Driver\Data`: `LogParser::$commits` (instead of `$log`),
     `TagParser::$data`, `ReferenceParser::$references`, `TreeParser::$entries`
@@ -562,6 +580,10 @@ Data returned
 *   `WorkingCopy::getUntrackedFiles()` and `RevisionList::getAll()` return
     lists, without gaps in their keys.
 *   `Diff\File::toArray()` has a new `is_copy` key.
+*   `Diff::getRawDiff()` of a diff gitlib reads returns the output of
+    `git diff --raw -z --patch`, NUL bytes included, with the options gitlib
+    sets, instead of the text of `--raw --patch`; with `LibGit2Driver`, an
+    empty string.
 
 Other changes
 -------------

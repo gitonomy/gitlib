@@ -75,17 +75,19 @@ tree). Your `HEAD` can be attached (pointing to a branch) or detached
 (pointing to a commit).
 
 ```php
+use Gitonomy\Git\Reference\Branch;
+
 $head = $repository->getHead(); // the Branch HEAD points to, or the Commit when it is detached
 $commit = $repository->getHeadCommit(); // the Commit, in both cases
 
-if ($repository->isHeadAttached()) {
+if ($head instanceof Branch) {
     echo 'On branch '.$head->getName().PHP_EOL;
-}
-
-if ($repository->isHeadDetached()) {
+} else {
     echo 'HEAD detached at '.$commit->getShortHash().PHP_EOL;
 }
 ```
+
+`isHeadAttached()` and `isHeadDetached()` tell it too.
 
 In a repository without commits yet, `HEAD` points to a branch that doesn't
 exist yet: `getHead()` and `getHeadCommit()` throw a
@@ -261,6 +263,8 @@ try {
 The message of an exception hides the credentials of the URLs it holds
 (`https://***@example.com/repository.git`): `getErrorOutput()` and
 `getOutput()` of a `ProcessException` return the output of git as it is.
+A `git://` URL takes no credentials: git quotes one without its scheme in
+its errors, so a password put there isn't hidden.
 
 Choosing a driver
 -----------------
@@ -353,7 +357,9 @@ Differences with `CliDriver`:
     `commit.gpgSign`, and its message never lists the merged commits,
     whatever `merge.log`, nor has the output of gpg checking a signed tag.
 -   Blame is much slower on a long history: see
-    ["Performance"](#performance).
+    ["Performance"](#performance). It may attribute some lines to another
+    commit than git, which detects renames and aligns identical lines
+    differently, and it ignores `blame.ignoreRevsFile`.
 -   Rename detection in diffs may pair files differently.
 -   Network operations go through the proxy of `https_proxy`, or of
     `http.proxy`, for HTTPS only: libgit2 1.9 uses no proxy for a plain

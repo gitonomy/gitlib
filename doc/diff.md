@@ -188,8 +188,10 @@ $output = $repository->run('diff', ['--raw', '--patch', '--submodule=short', '0.
 $diff = Diff::parse($output, $repository);
 ```
 
-`getRawDiff()` returns the output a diff was parsed from. It is empty for
-the diffs of `LibGit2Driver`, which runs no git command.
+`getRawDiff()` returns the output a diff was parsed from: for a diff gitlib
+reads with `CliDriver`, the one of `git diff --raw -z --patch`, NUL bytes
+included, with the options gitlib sets. It is empty for the diffs of
+`LibGit2Driver`, which runs no git command.
 
 Storing a diff
 --------------
