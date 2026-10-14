@@ -12,10 +12,12 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Tag;
+use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
@@ -36,6 +38,25 @@ class ReferenceTest extends AbstractTestCase
         $repository = self::createFoobarRepository($bare);
         $branch = $repository->getReferences()->getBranch('master');
         $this->assertSame($branch->getCommitHash(), $branch->getCommit()->getHash(), 'Hash is correctly resolved');
+    }
+
+    public function testEveryReferenceHasAName(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.email', 'test@example.com']);
+        self::git($repository, 'config', ['user.name', 'Test']);
+        file_put_contents($repository->getWorkingDir().'/README.md', "stashed\n");
+        self::git($repository, 'stash');
+
+        $names = [];
+        foreach ($repository->getReferences() as $fullname => $reference) {
+            $names[$fullname] = $reference->getName();
+        }
+
+        $this->assertSame('master', $names['refs/heads/master']);
+        $this->assertSame('origin/master', $names['refs/remotes/origin/master']);
+        $this->assertSame('0.1', $names['refs/tags/0.1']);
+        $this->assertSame('stash', $names['refs/stash']);
     }
 
     #[DataProvider('provideBare')]
@@ -85,6 +106,7 @@ class ReferenceTest extends AbstractTestCase
         $this->assertSame('Graham Campbell', $tag->getTaggerName(), 'Tagger name is correct');
         $this->assertSame('graham@alt-three.com', $tag->getTaggerEmail(), 'Tagger email is correct');
         $this->assertSame(1471428000, $tag->getTaggerDate()?->getTimestamp(), 'Tag date is correct');
+        $this->assertSame('2016-08-17T12:00:00+02:00', $tag->getTaggerDate()->format(\DATE_ATOM), 'Tag date is at the offset of the tagger');
 
         // Without an empty line after its first one, the message is one paragraph: its subject, like "git log --format=%s".
         $this->assertSame('heading body body', $tag->getSubjectMessage(), 'Message heading is correct');
@@ -95,6 +117,26 @@ class ReferenceTest extends AbstractTestCase
         $this->assertSame('fbde681b329a39e08b63dc54b341a3274c0380c0', $tag->getCommit()->getHash());
         $this->assertSame([$tag], $repository->getReferences()->resolveTags($tag->getCommit()));
         $this->assertContains($tag, $tag->getCommit()->resolveReferences());
+    }
+
+    /**
+     * Like git log, at the UTC offset of the tagger, not of the author or of
+     * the committer of the commit.
+     */
+    public function testTheTaggerDateIsAtTheOffsetOfTheTagger(): void
+    {
+        $repository = self::createFoobarRepository();
+        $git = new Repository($repository->getPath(), driver: self::getCliDriver([
+            'GIT_COMMITTER_DATE' => '1700000002 -0700',
+            'GIT_COMMITTER_EMAIL' => 'tagger@example.com',
+            'GIT_COMMITTER_NAME' => 'Tagger',
+        ]));
+        $git->run('tag', ['-a', '-m', 'Dates', 'dates', self::LONGFILE_COMMIT]);
+
+        $date = new Repository($repository->getPath(), driver: self::getDriver())->getReferences()->getTag('dates')->getTaggerDate();
+
+        $this->assertSame('2023-11-14T15:13:22-07:00', $date?->format(\DATE_ATOM));
+        $this->assertSame(1700000002, $date->getTimestamp());
     }
 
     #[DataProvider('provideBare')]
@@ -332,6 +374,109 @@ class ReferenceTest extends AbstractTestCase
         $this->assertFalse($repository->getReferences()->hasBranch('deleted'));
     }
 
+    /**
+     * The symbolic reference is deleted, not the branch it points to.
+     */
+    public function testDeletingASymbolicReference(): void
+    {
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'update-ref', ['refs/remotes/origin/main', self::LONGFILE_COMMIT]);
+        self::git($repository, 'symbolic-ref', ['refs/remotes/origin/HEAD', 'refs/remotes/origin/main']);
+
+        $repository->getReferences()->delete('refs/remotes/origin/HEAD');
+
+        $this->assertSame(\sprintf("%s refs/remotes/origin/main\n", self::LONGFILE_COMMIT), self::git($repository, 'for-each-ref', ['--format=%(objectname) %(refname)', 'refs/remotes/origin/']));
+    }
+
+    /**
+     * The symbolic reference moves, not the branch it points to.
+     * ReferenceBag leaves it out: through the driver, which Branch::moveTo()
+     * calls.
+     */
+    public function testUpdatingASymbolicReference(): void
+    {
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'update-ref', ['refs/remotes/origin/main', self::LONGFILE_COMMIT]);
+        self::git($repository, 'symbolic-ref', ['refs/remotes/origin/HEAD', 'refs/remotes/origin/main']);
+
+        $repository->getRepositoryDriver()->updateReference('refs/remotes/origin/HEAD', self::INITIAL_COMMIT);
+
+        $this->assertSame(\sprintf("%s refs/remotes/origin/HEAD\n%s refs/remotes/origin/main\n", self::INITIAL_COMMIT, self::LONGFILE_COMMIT), self::git($repository, 'for-each-ref', ['--format=%(objectname) %(refname)', 'refs/remotes/origin/']));
+    }
+
+    /**
+     * "git update-ref -d HEAD" deletes HEAD: git no longer sees a repository.
+     */
+    #[DataProvider('provideBare')]
+    public function testDeletingHeadIsRefused(bool $bare): void
+    {
+        $repository = self::createFoobarRepository($bare);
+
+        try {
+            $repository->getReferences()->delete('HEAD');
+            $this->fail('HEAD is no reference under "refs/".');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame('"HEAD" is not the full name of a reference under "refs/", like "refs/heads/master".', $e->getMessage());
+        }
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $this->assertSame('refs/heads/master', self::headBranch($repository)->getFullname());
+    }
+
+    /**
+     * "git update-ref" writes any name: HEAD, or a short name next to it.
+     */
+    #[DataProvider('provideWritesOfANameOutsideRefs')]
+    public function testTheDriverWritesNoReferenceOutsideRefs(\Closure $write, string $fullname): void
+    {
+        $repository = self::createFoobarRepository();
+
+        try {
+            $write($repository, $fullname);
+            $this->fail('Only a reference under "refs/" is written.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame(\sprintf('"%s" is not the full name of a reference under "refs/", like "refs/heads/master".', $fullname), $e->getMessage());
+        }
+
+        $this->assertSame('ref: refs/heads/master', trim((string) file_get_contents($repository->getGitDir().'/HEAD')));
+        $this->assertFileDoesNotExist($repository->getGitDir().'/master');
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(Repository, string): void, string}>
+     */
+    public static function provideWritesOfANameOutsideRefs(): iterable
+    {
+        $writes = [
+            'create' => static function (Repository $repository, string $fullname): void { $repository->getRepositoryDriver()->createReference($fullname, self::INITIAL_COMMIT); },
+            'update' => static function (Repository $repository, string $fullname): void { $repository->getRepositoryDriver()->updateReference($fullname, self::INITIAL_COMMIT); },
+            'delete' => static function (Repository $repository, string $fullname): void { $repository->getRepositoryDriver()->deleteReference($fullname); },
+        ];
+
+        foreach ($writes as $writeName => $write) {
+            foreach (['HEAD', 'master'] as $fullname) {
+                yield $writeName.' '.$fullname => [$write, $fullname];
+            }
+        }
+    }
+
+    /**
+     * Nothing is created through a symbolic reference to a missing branch:
+     * git 2.x and libgit2 refuse it, git 1.x replaces it.
+     */
+    public function testCreatingABranchNamedLikeADanglingSymbolicReference(): void
+    {
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'symbolic-ref', ['refs/heads/dangling', 'refs/heads/missing']);
+
+        try {
+            $repository->getReferences()->createBranch('dangling', self::LONGFILE_COMMIT);
+        } catch (DriverException) {
+        }
+
+        $this->assertFalse($repository->getReferences()->hasBranch('missing'));
+    }
+
     public function testTheHeadOfARemoteNamedWithASlashIsNoBranch(): void
     {
         $repository = self::createFoobarRepository();
@@ -342,6 +487,18 @@ class ReferenceTest extends AbstractTestCase
 
         $this->assertContains('refs/remotes/foo/bar/main', $names);
         $this->assertNotContains('refs/remotes/foo/bar/HEAD', $names);
+    }
+
+    public function testABranchPointingToAnAnnotatedTagPointsToItsCommit(): void
+    {
+        $repository = self::createFoobarRepository();
+        // Like a fetch of the tags of a remote under refs/remotes/.
+        self::git($repository, 'update-ref', ['refs/remotes/origin/tags/annotated', trim(self::git($repository, 'rev-parse', ['refs/tags/annotated']))]);
+
+        $branch = $repository->getReferences()->getRemoteBranch('origin/tags/annotated');
+
+        $this->assertSame('fbde681b329a39e08b63dc54b341a3274c0380c0', $branch->getCommitHash());
+        $this->assertContains($branch, $repository->getCommit(self::INITIAL_COMMIT)->getIncludingBranches());
     }
 
     /**

@@ -31,10 +31,16 @@ final readonly class Hooks
      * Tests if repository has a given hook.
      *
      * @param string $name Name of the hook
+     *
+     * @throws InvalidArgumentException The name isn't the one of a file of the hooks directory
      */
     public function has(string $name): bool
     {
-        return file_exists($this->getPath($name));
+        $path = $this->getPath($name);
+
+        // A symbolic link to a file not deployed yet is a hook too: set()
+        // would write through it, out of the hooks directory.
+        return is_link($path) || file_exists($path);
     }
 
     /**
@@ -44,7 +50,7 @@ final readonly class Hooks
      *
      * @return string Content of the hook
      *
-     * @throws InvalidArgumentException The hook does not exist
+     * @throws InvalidArgumentException The hook does not exist, or the name isn't valid
      * @throws RuntimeException         The hook can't be read
      */
     public function get(string $name): string
@@ -53,7 +59,7 @@ final readonly class Hooks
             throw new InvalidArgumentException(\sprintf('The hook "%s" does not exist.', $name));
         }
 
-        $content = file_get_contents($this->getPath($name));
+        $content = @file_get_contents($this->getPath($name));
         if (false === $content) {
             throw new RuntimeException(\sprintf('Unable to read the hook "%s".', $name));
         }
@@ -67,7 +73,8 @@ final readonly class Hooks
      * @param string $name Name of the hook to insert
      * @param string $file Target of symlink
      *
-     * @throws RuntimeException The hook exists already, or can't be created
+     * @throws InvalidArgumentException The name isn't the one of a file of the hooks directory
+     * @throws RuntimeException         The hook exists already, or can't be created
      */
     public function setSymlink(string $name, string $file): void
     {
@@ -84,7 +91,8 @@ final readonly class Hooks
      * @param string $name    Name of the hook
      * @param string $content Content of the hook
      *
-     * @throws RuntimeException The hook exists already, or can't be created
+     * @throws InvalidArgumentException The name isn't the one of a file of the hooks directory
+     * @throws RuntimeException         The hook exists already, or can't be created
      */
     public function set(string $name, string $content): void
     {
@@ -100,7 +108,8 @@ final readonly class Hooks
      *
      * @param string $name Name of the hook
      *
-     * @throws RuntimeException The hook doesn't exist, or can't be removed
+     * @throws InvalidArgumentException The name isn't the one of a file of the hooks directory
+     * @throws RuntimeException         The hook doesn't exist, or can't be removed
      */
     public function remove(string $name): void
     {
@@ -131,8 +140,17 @@ final readonly class Hooks
         return $this->getPath($name);
     }
 
+    /**
+     * @throws InvalidArgumentException The name isn't the one of a file of the hooks directory
+     */
     private function getPath(string $name): string
     {
+        // "../config" would be the configuration of the repository. A name may
+        // hold a dot, but not start with one: git for Windows runs "pre-commit.exe".
+        if (1 !== preg_match('/^[a-zA-Z0-9_-][a-zA-Z0-9._-]*$/D', $name)) {
+            throw new InvalidArgumentException(\sprintf('"%s" is not a valid hook name: it must be the name of a file of the hooks directory, like "pre-commit".', addcslashes($name, "\0")));
+        }
+
         return $this->getDirectory().'/'.$name;
     }
 

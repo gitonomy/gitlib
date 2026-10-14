@@ -63,10 +63,10 @@ class DiffTest extends AbstractTestCase
 
         $this->assertTrue($files[0]->isModification(), 'image.jpg modified');
 
-        $this->assertSame('image.jpg', $files[0]->getOldName(), 'Second file name is image.jpg');
-        $this->assertSame('image.jpg', $files[0]->getNewName(), 'Second file name is image.jpg');
-        $this->assertSame('100644', $files[0]->getOldMode(), 'Second file mode is a new file');
-        $this->assertSame('100644', $files[0]->getNewMode(), 'Second file mode is correct');
+        $this->assertSame('image.jpg', $files[0]->getOldName(), 'Old file name is image.jpg');
+        $this->assertSame('image.jpg', $files[0]->getNewName(), 'New file name is image.jpg');
+        $this->assertSame('100644', $files[0]->getOldMode(), 'Old file mode is a regular file');
+        $this->assertSame('100644', $files[0]->getNewMode(), 'New file mode is a regular file');
 
         $this->assertTrue($files[0]->isBinary(), 'binary file');
         $this->assertSame(0, $files[0]->getAdditions(), '0 lines added');
@@ -276,6 +276,41 @@ class DiffTest extends AbstractTestCase
         $this->expectExceptionMessage('The diff has no raw information: Diff::parse() parses the output of "git diff --raw --patch".');
 
         Diff::parse("diff --git a/a.out b/a.out\nold mode 100755\nnew mode 100644\n");
+    }
+
+    /**
+     * What the parser doesn't know would be lost, with the files after it.
+     * The message has the start of its line only, which may come from a file.
+     */
+    public function testParseRefusesWhatItDoesNotKnow(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Unable to parse the diff from "Submodule sub 1111111..2222222:".');
+
+        Diff::parse(":160000 160000 1111111111111111111111111111111111111111 2222222222222222222222222222222222222222 M\tsub\n\nSubmodule sub 1111111..2222222:\n  > Second\n");
+    }
+
+    /**
+     * "git diff --staged" during a conflict, whose unmerged path comes last.
+     */
+    public function testParseLeavesOutTheLastUnmergedPath(): void
+    {
+        $diff = Diff::parse(<<<'DIFF'
+            :000000 100644 0000000000000000000000000000000000000000 e45c9c2666d44e0327c1f9c239a74c508336053e A	other
+            :100644 000000 ba2906d0666cf726c7eaadd2cd3db615dedfdf3a 0000000000000000000000000000000000000000 U	zconflict
+
+            diff --git a/other b/other
+            new file mode 100644
+            index 0000000000000000000000000000000000000000..e45c9c2666d44e0327c1f9c239a74c508336053e
+            --- /dev/null
+            +++ b/other
+            @@ -0,0 +1 @@
+            +other
+            * Unmerged path zconflict
+
+            DIFF);
+
+        $this->assertSame([['other', [[0, 0, 1, 1, [['Addition', 'other']]]]]], self::changes($diff));
     }
 
     public function testParseAnEmptyDiff(): void
@@ -543,11 +578,108 @@ class DiffTest extends AbstractTestCase
         $this->assertSame('sub', $firstFile->getNewName());
     }
 
+    /**
+     * With diff.submodule=log, which the configuration of the tests sets, "git
+     * diff" writes the log of a submodule instead of its patch.
+     */
+    public function testTheFilesAfterASubmoduleKeepTheirPatch(): void
+    {
+        $repository = self::createWorkingCopy();
+        $submodule = Repository::init($repository->getWorkingDir().'/sub', self::getCliDriver());
+        self::git($submodule, 'config', ['user.name', 'Unit Test']);
+        self::git($submodule, 'config', ['user.email', 'unit_test@unit-test.com']);
+        self::git($submodule, 'commit', ['-q', '--allow-empty', '-m', 'First']);
+        $first = trim(self::git($submodule, 'rev-parse', ['HEAD']));
+        self::git($repository, 'update-index', ['--add', '--cacheinfo', '160000', $first, 'sub']);
+        self::commitFile($repository, 'z.txt', "a\n");
+
+        self::git($submodule, 'commit', ['-q', '--allow-empty', '-m', 'Second']);
+        $second = trim(self::git($submodule, 'rev-parse', ['HEAD']));
+        file_put_contents($repository->getWorkingDir().'/z.txt', "b\n");
+
+        $diff = $repository->getWorkingCopy()->getDiffPending();
+
+        $this->assertSame([
+            ['sub', [[1, 1, 1, 1, [['Deletion', 'Subproject commit '.$first], ['Addition', 'Subproject commit '.$second]]]]],
+            ['z.txt', [[1, 1, 1, 1, [['Deletion', 'a'], ['Addition', 'b']]]]],
+        ], self::changes($diff));
+        $this->assertSame(sha1("blob 2\0b\n"), $diff->getFiles()[1]->getNewIndex());
+    }
+
+    /**
+     * Unlike diff-tree, "git diff" reads diff.algorithm, diff.context,
+     * diff.orderFile... which the configuration of the tests changes (see
+     * fixtures/home/.gitconfig): the diff of the working tree is the one of
+     * its commit all the same.
+     */
+    public function testTheDiffOfTheWorkingTreeIsTheOneOfItsCommit(): void
+    {
+        $repository = self::createWorkingCopy();
+        // Ten lines between two changes: two hunks.
+        $lines = array_map(static fn (int $number): string => 'line '.$number, range(1, 20));
+        self::commitFile($repository, 'notes.txt', implode("\n", $lines)."\n");
+        // The diff algorithm of git keeps "{", histogram keeps "}".
+        self::commitFile($repository, 'code.c', "c\n}\n{\n");
+
+        $lines[2] = 'line 3, changed';
+        $lines[13] = 'line 14, changed';
+        file_put_contents($repository->getWorkingDir().'/notes.txt', implode("\n", $lines)."\n");
+        file_put_contents($repository->getWorkingDir().'/code.c', "c\n{\nc\n}\n");
+
+        $workingTreeDiff = $repository->getWorkingCopy()->getDiff();
+        self::git($repository, 'commit', ['-q', '-a', '-m', 'Changes']);
+        $commitDiff = $repository->getHeadCommit()->getDiff();
+
+        $this->assertSame(['code.c', 'notes.txt'], array_map(static fn (File $file): string => $file->getName(), $commitDiff->getFiles()));
+        $this->assertSame(self::changes($commitDiff), self::changes($workingTreeDiff));
+    }
+
+    /**
+     * The indent heuristic of git, which diff.indentHeuristic turns off,
+     * places an added block after the blank line that ends it.
+     */
+    public function testTheIndentHeuristicIsGits(): void
+    {
+        if (version_compare(self::gitVersion(), '2.11.0', '<')) {
+            $this->markTestSkipped('git has an indent heuristic since 2.11.');
+        }
+
+        $repository = self::createWorkingCopy();
+        self::commitFile($repository, 'code.c', "\n\nfoo();\n");
+        self::commitFile($repository, 'code.c', "\n\nfoo();\n\nfoo();\n");
+
+        $this->assertSame([['code.c', [[1, 3, 1, 5, [
+            ['Context', ''],
+            ['Context', ''],
+            ['Addition', 'foo();'],
+            ['Addition', ''],
+            ['Context', 'foo();'],
+        ]]]]], self::changes($repository->getHeadCommit()->getDiff()));
+    }
+
+    /**
+     * "git diff" reads diff.noprefix, diff.mnemonicPrefix, diff.srcPrefix and
+     * diff.dstPrefix too: a patch to apply has the prefixes of git.
+     */
+    public function testTheRawDiffOfTheWorkingTreeHasThePrefixesOfGit(): void
+    {
+        $this->skipUnlessCliDriver();
+
+        $repository = self::createWorkingCopy();
+        self::commitFile($repository, 'code.c', "a\n");
+        file_put_contents($repository->getWorkingDir().'/code.c', "b\n");
+
+        $rawDiff = $repository->getWorkingCopy()->getDiff()->getRawDiff();
+
+        $this->assertStringContainsString("diff --git a/code.c b/code.c\n", $rawDiff);
+        $this->assertStringContainsString("--- a/code.c\n+++ b/code.c\n", $rawDiff);
+    }
+
     protected function verifyCreateCommitDiff(Diff $diff): void
     {
         $files = $diff->getFiles();
 
-        $this->assertCount(2, $files, '1 file in diff');
+        $this->assertCount(2, $files, '2 files in diff');
 
         $this->assertTrue($files[0]->isCreation(), 'script_A.php created');
 
@@ -558,6 +690,20 @@ class DiffTest extends AbstractTestCase
 
         $this->assertSame(1, $files[0]->getAdditions(), '1 line added');
         $this->assertSame(0, $files[0]->getDeletions(), '0 lines deleted');
+    }
+
+    /**
+     * @return array<array{string, array<array{int, int, int, int, array<array{string, string}>}>}> The name of each file, with its hunks
+     */
+    private static function changes(Diff $diff): array
+    {
+        return array_map(static fn (File $file): array => [$file->getName(), array_map(static fn (FileChange $change): array => [
+            $change->getRangeOldStart(),
+            $change->getRangeOldCount(),
+            $change->getRangeNewStart(),
+            $change->getRangeNewCount(),
+            array_map(static fn (DiffLine $line): array => [$line->getType()->name, $line->getContent()], $change->getLines()),
+        ], $file->getChanges())], $diff->getFiles());
     }
 
     private static function createWorkingCopy(): Repository

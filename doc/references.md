@@ -76,9 +76,12 @@ $hash = $master->getCommitHash();
 $lastModification = $master->getLastModification('README.md');
 ```
 
-`getCommitHash()` is always a commit: for an annotated tag, the commit the
-tag object points to. A reference object keeps the commit it pointed to when
-it was read: get it again from the bag after a change.
+`getCommitHash()` is the commit the reference points to: for an annotated
+tag, the commit the tag object points to. A tag may point to a tree or a blob
+instead: `getCommitHash()` is then its hash, and reading the `Commit` of
+`getCommit()` throws a `ReferenceNotFoundException`. A reference object keeps
+the commit it pointed to when it was read: get it again from the bag after a
+change.
 
 Create and delete references
 ----------------------------
@@ -98,6 +101,11 @@ $tag = $references->createTag('0.3', $repository->getHeadCommit());
 $branch->delete();
 $tag->delete();
 ```
+
+`ReferenceBag::delete()` takes the full name of a reference under `refs/`,
+like `refs/heads/foobar`, and does nothing when it doesn't exist, like
+`git update-ref -d`. Another name, like `HEAD` or `foobar`, throws an
+`InvalidArgumentException`.
 
 `createBranch()` and `createTag()` throw an `InvalidArgumentException` when
 the reference exists: they never move it. To move a branch, use
@@ -121,8 +129,9 @@ if ($tag->isAnnotated()) {
 ```
 
 -   `getTaggerName()`, `getTaggerEmail()` and `getTaggerDate()` (a
-    `DateTimeImmutable`) return `null` for a lightweight tag, and for an
-    annotated tag without tagger;
+    `DateTimeImmutable`, at the UTC offset of the tagger, like the dates of
+    a [commit](commit.md#author-and-committer)) return `null` for a
+    lightweight tag, and for an annotated tag without tagger;
 -   `getMessage()` returns the message, without the signature, `null` for a
     lightweight tag;
 -   `getSubjectMessage()` and `getBodyMessage()` split the message like

@@ -20,7 +20,10 @@ deprecated until 3.0.
   lines and logs are typed objects; the subject of a message is its first paragraph. See
   [UPGRADE-2.0.md](UPGRADE-2.0.md) for every change.
   ([#253](https://github.com/gitonomy/gitlib/pull/253))
-- Require PHP 8.4 or later, Symfony 6.4/7.4/8.1+: most classes are `final` (some `readonly`),
+- Return the dates of commits and tags at the UTC offset of their author, committer or tagger,
+  like `git log` shows them, instead of in UTC: the instant doesn't change, but `format()`
+  returns their local time.
+- Require PHP 8.4 or later, Symfony 7.4/8.1+: most classes are `final` (some `readonly`),
   and every method has native types. ([#238](https://github.com/gitonomy/gitlib/pull/238))
 - Remove `Gitonomy\Git\Util\StringHelper`, replaced by `symfony/string`, and its configurable
   encoding: gitlib reads everything in UTF-8. ([#252](https://github.com/gitonomy/gitlib/pull/252))
@@ -30,6 +33,21 @@ deprecated until 3.0.
 - `Diff::parse()` throws for a diff without its raw information, deprecated since 1.6.0
   ([#229](https://github.com/gitonomy/gitlib/pull/229)): parse the output of
   `git diff --raw --patch`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- The constructors of `Commit`, `Tree`, `Blob`, `Revision`, the references and `ReferenceBag`
+  are internal: get these objects from `Repository`, which returns the same commit, tree or
+  blob while the application uses it, and reads the references again after its writes.
+  Extending `Revision` or `Reference` isn't supported anymore.
+- `ProcessException` has a message of one line, with the error of git, the first line of its
+  error output starting with `fatal:` or `error:`, after the warnings:
+  `The git command "clone" failed (exit 128): fatal: ...`. The command line, the rest of the
+  error output and the output are no longer in the message: `getErrorOutput()` and
+  `getOutput()` return the outputs of git.
+- When git can't start, a missing binary for instance, `CliDriver` throws a `DriverException`
+  instead of a `ProcessException`, with a message of one line, without the command line:
+  `The git command "clone" could not start: ...`.
+- `WorkingCopy::checkout()` throws a `ReferenceNotFoundException` for a name that no revision has,
+  with both drivers: the name of a remote branch alone, like `feature` for `origin/feature`,
+  created the local branch. Use `checkoutNewBranch()`.
 
 ### Features
 
@@ -37,9 +55,9 @@ deprecated until 3.0.
   FFI extension, as an alternative to the default `Driver\Cli\CliDriver`: pass it as the driver of
   `Repository`. It avoids spawning a `git` process for every operation; see
   ["Choosing a driver"](doc/repository.md#choosing-a-driver) for its requirements, its
-  differences with `CliDriver`, and when it is faster. `benchmark.php` compares both drivers
-  on a repository. With php-fpm, `LibGit2Driver::preload()` keeps libgit2 loaded from
-  `opcache.preload`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
+  differences with `CliDriver`, and when it is faster. `benchmark.php`, from a clone of gitlib,
+  compares both drivers on a repository. With php-fpm, `LibGit2Driver::preload()` keeps libgit2
+  loaded from `opcache.preload`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - `Repository` takes the working directory and the driver as arguments: a `Driver\Cli\CliDriver`
   by default, configured through its constructor (git binary, environment, timeout and logger,
   which gets every command, clones included), or any `Driver\DriverInterface`, to replace it in
@@ -52,7 +70,8 @@ deprecated until 3.0.
   `isValidRepository()` and `isValidRepositoryAndBranch()`; see
   ["Create and access git repositories"](doc/admin.md).
   ([#253](https://github.com/gitonomy/gitlib/pull/253))
-- Add `Repository::getDiff($from, $to)`, `Repository::getMergeBase()` and `WorkingCopy::getDiff()`,
+- Add `Repository::getDiff($from, $to)`, `Repository::getMergeBase()`,
+  `Repository::getSizeInBytes()` and `WorkingCopy::getDiff()`,
   `WorkingCopy::checkoutNewBranch()`, `Branch::moveTo()` and `Branch::isMergedInto()`,
   `Log::withOffset()` and `withLimit()`, `Blame::getHunks()` and the line numbers of
   `Blame\Line`, `TreeEntry` and `Submodule`, `Diff\DiffLine` and `Diff\DiffLineType`,
@@ -99,9 +118,52 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
   `WorkingCopy::merge()`.
 - `Commit::getShortMessage()` and `getFixedShortHash()`, `Repository::shell()`,
   `PushReference::getReference()` and `getRevision()`.
+- `Repository::getSize()`, in kilobytes: use `getSizeInBytes()`.
+- `Exception\UnexpectedValueException`, which gitlib no longer throws.
+
+### Security
+
+- Refuse a revision, a reference, a hash or a URL starting with a dash, which git read as an
+  option: `getRevision('--output=/path')`, `WorkingCopy::checkout()` or `merge()` could write
+  a file, and `Repository::isValidRepository('--upload-pack=...')` run a command. A path may
+  start with a dash: `init()` and the clones end the options of git with `--`.
+- Refuse an `ext::` URL, like `ext::sh -c ...`, whose command git runs, by default before git
+  2.12.
+- Refuse an ssh URL whose host or user starts with a dash, even encoded (`%2D`), like
+  `ssh://-oProxyCommand=.../repository`: git before 2.14.1 passes it to ssh, which reads it as an
+  option and runs the command (CVE-2017-1000117). A `git://` URL whose host starts with a dash
+  is refused too: git passes it to the command of `core.gitProxy`.
+- Hide the credentials of URLs (`https://user:token@host`), a password holding a `#` or a `?`
+  included, in the messages of exceptions, in their traces (`#[\SensitiveParameter]`), and in
+  the logs. The exceptions of Symfony Process, which hold the command line, no longer leak, not
+  even as the previous exception.
+- Refuse a hook name that isn't the one of a file of the hooks directory:
+  `Hooks::set('../config', ...)` and `remove('../config')` wrote and deleted the
+  configuration of the repository.
+- Fix `Hooks` writing through a symbolic link to a missing file, out of the hooks directory:
+  `has()` returned `false` for it, and `set()` followed it.
+- Ignore the replacements of objects (`git replace`, `refs/replace/`) with `CliDriver`, like
+  `LibGit2Driver`: whoever could push such a reference to a repository changed the message of a
+  commit, or the content of a blob, gitlib read for a hash.
+- Fix `WorkingCopy::checkout()` of a path, like `checkout('README.md')`, discarding the changes
+  of the file: a path is no revision, and throws a `ReferenceNotFoundException`.
+- Fix moving or deleting a symbolic reference, which changed the branch it points to instead:
+  `ReferenceBag::delete('refs/remotes/origin/HEAD')` deleted `origin/main`.
+- Fix `ReferenceBag::delete('HEAD')` deleting `HEAD`, which left no repository: a name outside
+  `refs/` throws an `InvalidArgumentException`.
 
 ### Bug fixes
 
+- Fix the configuration of the user changing what `CliDriver` reads: `color.ui=always`,
+  `log.showSignature`, `diff.noprefix`, `diff.external`, `diff.submodule`, textconv filters,
+  `column.ui`... made reads throw or return wrong data, and `diff.algorithm`, `diff.context`,
+  `diff.orderFile`, `log.follow` or `branch.sort` changed diffs, logs and the branches of a
+  commit. gitlib sets them back to git's defaults; see
+  ["Git configuration"](doc/repository.md#git-configuration).
+- Fix `Commit::getShortHash()`, `Commit::getDiff()` and `Repository::getDiff()` failing when a
+  file of the working tree has the name of the revision they read, which git found ambiguous.
+- Fix logs of thousands of revisions exceeding the limit of the command line: `CliDriver` passes
+  them to git on its standard input.
 - Fix `Commit::getDiff()` returning an empty diff for a root commit, and throwing for a merge
   commit (`CliDriver`). ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Fix `Repository::getDiff()`, `WorkingCopy::getDiffPending()` and `WorkingCopy::getDiffStaged()`
@@ -132,6 +194,9 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 - Fix blame lines numbered from 1 for a range of lines. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Fix `Hooks` failing silently, in a repository without hooks directory, and writing the hooks
   of a linked worktree where git doesn't run them. ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- Fix `Repository::getSize()` throwing for a link to a missing file in the git directory, like
+  a hook not deployed yet: it no longer follows links. A file git deletes meanwhile, like a lock
+  during a `gc` or a push, no longer makes it throw either.
 - Fix blame lines starting with a TAB character (`Blame\Line::getContent()`): code removing it
   must stop doing so. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Fix reading a commit whose `encoding` header isn't UTF-8, which threw: its message, author and
@@ -166,8 +231,13 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 ### Minor
 
 - CI tests git 1.8.4 and 2.25.1, analyses the tests and the libgit2 driver with PHPStan,
-  checks the archive Composer installs, and the suite deletes what it creates, in any order.
+  without baseline, checks the archive Composer installs, pins the third-party actions by
+  commit, and the suite deletes what it creates, in any order.
   ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- The tests run with a git configuration of their own, whatever the developer's
+  (`tests/fixtures/home`), which sets what gitlib sets back to git's defaults, and without the
+  variables of git of their environment: run from a hook, they wrote the repository of the hook
+  (`GIT_DIR`, `GIT_INDEX_FILE`...).
 - Add a regression test for reading a blob's content in a tree that also contains a
   submodule. ([#243](https://github.com/gitonomy/gitlib/pull/243))
 - Replace the network-dependent test fixture (cloned from GitHub on every run) with a local,

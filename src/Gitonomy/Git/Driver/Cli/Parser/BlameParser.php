@@ -69,7 +69,7 @@ final class BlameParser extends ParserBase
             $content = $this->consumeTo("\n");
             $this->consumeNewLine();
 
-            $this->lines[] = new BlameLineData($hash, (int) $vars[1], (int) $vars[2], $content);
+            $this->lines[] = new BlameLineData($hash, (int) $vars[2], (int) $vars[1], $content);
         }
     }
 }

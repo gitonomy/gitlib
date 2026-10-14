@@ -22,9 +22,11 @@ use Gitonomy\Git\Driver\RepositoryDriverInterface;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\ProcessTimedOutException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
+use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Util\WeakCache;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
@@ -102,7 +104,7 @@ final class Repository
      *
      * @throws InvalidArgumentException      $dir doesn't exist or isn't a repository, or an option is unknown
      * @throws DriverException               The driver can't open the repository
-     * @throws UnsupportedOperationException The repository uses SHA-256 hashes
+     * @throws UnsupportedOperationException The repository uses SHA-256 hashes, or with LibGit2Driver the reftable format
      */
     public function __construct(string $dir, array|string|null $workingDir = null, DriverInterface $driver = new CliDriver())
     {
@@ -162,8 +164,9 @@ final class Repository
      * @param string|null $branch The branch to check out, the default branch of $url when null
      *
      * @throws DriverException
+     * @throws UnsupportedOperationException $url is a bundle, with LibGit2Driver
      */
-    public static function cloneFrom(string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
+    public static function cloneFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
     {
         $driver->cloneFrom($url, $path, $branch);
 
@@ -176,8 +179,9 @@ final class Repository
      * @param string|null $branch The branch HEAD points to, the default branch of $url when null
      *
      * @throws DriverException
+     * @throws UnsupportedOperationException $url is a bundle, with LibGit2Driver
      */
-    public static function cloneBareFrom(string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
+    public static function cloneBareFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
     {
         $driver->cloneBareFrom($url, $path, $branch);
 
@@ -189,8 +193,9 @@ final class Repository
      * to mirror $url when fetching.
      *
      * @throws DriverException
+     * @throws UnsupportedOperationException $url is a bundle, with LibGit2Driver
      */
-    public static function mirrorFrom(string $url, string $path, DriverInterface $driver = new CliDriver()): self
+    public static function mirrorFrom(#[\SensitiveParameter] string $url, string $path, DriverInterface $driver = new CliDriver()): self
     {
         $driver->mirrorFrom($url, $path);
 
@@ -201,7 +206,7 @@ final class Repository
      * Checks, without cloning it, that $url is a repository the driver can
      * read: false when it doesn't exist, can't be reached, or refuses access.
      */
-    public static function isValidRepository(string $url, DriverInterface $driver = new CliDriver()): bool
+    public static function isValidRepository(#[\SensitiveParameter] string $url, DriverInterface $driver = new CliDriver()): bool
     {
         return $driver->isValidRepository($url);
     }
@@ -210,7 +215,7 @@ final class Repository
      * Checks, without cloning it, that $url is a repository the driver can
      * read, and that it has the $branch branch.
      */
-    public static function isValidRepositoryAndBranch(string $url, string $branch, DriverInterface $driver = new CliDriver()): bool
+    public static function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branch, DriverInterface $driver = new CliDriver()): bool
     {
         return $driver->isValidRepositoryAndBranch($url, $branch);
     }
@@ -235,24 +240,20 @@ final class Repository
 
     /**
      * Returns the HEAD resolved as a commit.
-     */
-    public function getHeadCommit(): Commit
-    {
-        $head = $this->getHead();
-
-        if ($head instanceof Reference) {
-            return $head->getCommit();
-        }
-
-        return $head;
-    }
-
-    /**
-     * @return Reference|Commit The branch HEAD points to, or the commit when HEAD is detached
      *
      * @throws ReferenceNotFoundException HEAD points to a branch without commits yet
      */
-    public function getHead(): Reference|Commit
+    public function getHeadCommit(): Commit
+    {
+        return $this->getRevision('HEAD')->getCommit();
+    }
+
+    /**
+     * @return Branch|Commit The branch HEAD points to, or the commit when HEAD is detached
+     *
+     * @throws ReferenceNotFoundException HEAD points to a branch without commits yet, or to a reference that isn't a branch
+     */
+    public function getHead(): Branch|Commit
     {
         $reference = $this->repositoryDriver->getHeadReference();
 
@@ -260,7 +261,13 @@ final class Repository
             return $this->getCommit($this->repositoryDriver->resolveRevision('HEAD'));
         }
 
-        return $this->getReferences()->get($reference);
+        $head = $this->getReferences()->get($reference);
+        // git lets HEAD point to any reference under "refs/", a tag included.
+        if (!$head instanceof Branch) {
+            throw new ReferenceNotFoundException(\sprintf('HEAD points to "%s", which is not a branch.', $reference));
+        }
+
+        return $head;
     }
 
     public function isHeadDetached(): bool
@@ -299,7 +306,7 @@ final class Repository
     }
 
     /**
-     * Instanciates a revision.
+     * Instantiates a revision.
      *
      * @param string $name Name of the revision
      */
@@ -437,12 +444,12 @@ final class Repository
      *
      * All those values can be null, meaning everything.
      *
-     * @param RevisionList|Revision|string|array|null $revisions An array of revisions to show logs from. Can be
-     *                                                           any text value type
-     * @param array|string|null                       $paths     restrict log to modifications occurring on given
-     *                                                           paths
-     * @param int|null                                $offset    start from a given offset in results
-     * @param int|null                                $limit     limit number of total results
+     * @param RevisionList|Revision|string|array<Revision|string>|null $revisions An array of revisions to show logs from. Can be
+     *                                                                            any text value type
+     * @param string[]|string|null                                     $paths     restrict log to modifications occurring on given
+     *                                                                            paths
+     * @param int|null                                                 $offset    start from a given offset in results
+     * @param int|null                                                 $limit     limit number of total results
      */
     public function getLog(RevisionList|Revision|string|array|null $revisions = null, array|string|null $paths = null, ?int $offset = null, ?int $limit = null): Log
     {
@@ -517,25 +524,51 @@ final class Repository
     }
 
     /**
+     * @return int The size of the files of the git directory, working tree excluded, in bytes
+     */
+    public function getSizeInBytes(): int
+    {
+        $size = 0;
+        /** @var \SplFileInfo $file */
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->gitDir, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            // A link isn't followed: it may point to a file not deployed yet, like a hook.
+            if ($file->isLink()) {
+                continue;
+            }
+
+            try {
+                $size += $file->getSize();
+            } catch (\RuntimeException $e) {
+                // git deleted it since it was listed, during a gc or a push:
+                // a lock, a temporary pack... It no longer counts.
+                if (file_exists($file->getPathname())) {
+                    throw $e;
+                }
+            }
+        }
+
+        return $size;
+    }
+
+    /**
      * Returns the size of repository, in kilobytes.
      *
      * @return int A sum, in kilobytes
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use getSizeInBytes() instead
      */
     public function getSize(): int
     {
-        $totalBytes = 0;
-        /** @var \SplFileInfo $file */
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->gitDir, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            $totalBytes += $file->getSize();
-        }
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getSizeInBytes()" instead.', __METHOD__);
 
-        return (int) round($totalBytes / 1000);
+        return (int) round($this->getSizeInBytes() / 1000);
     }
 
     /**
      * Executes a shell command on the repository, using PHP pipes.
      *
-     * @param string $command The command to execute
+     * @param string                $command The command to execute
+     * @param array<string, string> $env     Environment variables of the command
      *
      * @deprecated since gitonomy/gitlib 2.0, run "git shell" with Symfony Process instead
      */
@@ -613,15 +646,17 @@ final class Repository
      * stderr even when they succeed: use {@see runProcess()} instead if you
      * need access to it.
      *
-     * @param string $command Git command to run (checkout, branch, tag)
-     * @param array  $args    Arguments of git command
+     * @param string                        $command Git command to run (checkout, branch, tag)
+     * @param array<int|string, int|string> $args    Arguments of git command
      *
      * @return string output of the process
      *
      * @throws ProcessException              Error while executing git command
+     * @throws ProcessTimedOutException      git runs longer than the timeout of the CliDriver
+     * @throws DriverException               git can't start, or is killed
      * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
-    public function run(string $command, array $args = []): string
+    public function run(string $command, #[\SensitiveParameter] array $args = []): string
     {
         return $this->runProcess($command, $args)->getOutput();
     }
@@ -634,13 +669,15 @@ final class Repository
      * meaningful output to stderr even when they succeed, so it can't be
      * read through run().
      *
-     * @param string $command Git command to run (checkout, branch, tag)
-     * @param array  $args    Arguments of git command
+     * @param string                        $command Git command to run (checkout, branch, tag)
+     * @param array<int|string, int|string> $args    Arguments of git command
      *
      * @throws ProcessException              Error while executing git command
+     * @throws ProcessTimedOutException      git runs longer than the timeout of the CliDriver
+     * @throws DriverException               git can't start, or is killed
      * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
-    public function runProcess(string $command, array $args = []): Process
+    public function runProcess(string $command, #[\SensitiveParameter] array $args = []): Process
     {
         if (!$this->repositoryDriver instanceof CliRepositoryDriver) {
             throw new UnsupportedOperationException('Only CliDriver can run git commands.');
@@ -739,7 +776,19 @@ final class Repository
             return $hash;
         }
 
-        $fullHash = $this->repositoryDriver->resolveRevision($hash.'^{'.$type->value.'}');
+        try {
+            $fullHash = $this->repositoryDriver->resolveRevision($hash.'^{'.$type->value.'}');
+        } catch (ReferenceNotFoundException) {
+            // One more call, only on failure: an object of another type, or none.
+            try {
+                $this->repositoryDriver->resolveRevision($hash);
+            } catch (ReferenceNotFoundException) {
+                throw new ReferenceNotFoundException(\sprintf('The object "%s" does not exist.', $hash));
+            }
+
+            throw new ReferenceNotFoundException(\sprintf('The object "%s" is not a %s.', $hash, $type->value));
+        }
+
         // "^{tree}" also peels a commit to its tree.
         if (!str_starts_with($fullHash, $hash)) {
             throw new ReferenceNotFoundException(\sprintf('The object "%s" is not a %s.', $hash, $type->value));

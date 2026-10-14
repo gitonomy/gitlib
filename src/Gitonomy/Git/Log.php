@@ -35,7 +35,7 @@ final class Log implements \Countable, \IteratorAggregate
     private ?int $limit;
 
     /**
-     * Instanciates a git log object.
+     * Instantiates a git log object.
      *
      * The revisions are names, ranges ("a..b", "a...b"), names to exclude
      * ("^a"), or "--all".

@@ -98,8 +98,24 @@ When git fails (an unknown branch, a directory with files, a network
 error...), the methods creating repositories throw a
 `Gitonomy\Git\Exception\DriverException`: a `ProcessException`, with git's
 error output, when `CliDriver` runs git. With `CliDriver`, every method,
-`isValidRepository()` included, throws a `ProcessException` when git can't
-run, like a missing binary. See [Errors](repository.md#errors).
+`isValidRepository()` included, throws a `DriverException` when git can't
+start, like a missing binary. See [Errors](repository.md#errors).
+
+A URL that makes git run a command throws an `InvalidArgumentException`,
+with both drivers:
+
+-   a URL starting with a dash, which git would read as an option, like
+    `--upload-pack=...`; a path may start with one;
+-   an `ext::` URL, like `ext::sh -c ...`, whose command git runs, unless its
+    `protocol.allow` setting forbids it, as it does by default since git 2.12;
+-   an ssh URL whose host or user starts with a dash, even encoded (`%2D`),
+    like `ssh://-oProxyCommand=.../repository` or
+    `ssh://-oProxyCommand=...@host/repository`: before 2.14.1, git passes it
+    to ssh, which reads it as an option and runs the command.
+
+The message of an exception hides the credentials of the URL
+(`https://***@example.com/repository.git`). gitlib doesn't check the URLs
+any further: a path, for instance, names a repository of the server.
 
 Driver and logger
 -----------------

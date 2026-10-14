@@ -24,7 +24,6 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ProcessTimedOutException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
-use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
@@ -55,19 +54,18 @@ class RepositoryTest extends AbstractTestCase
         $this->assertFalse($repository->isBare(), 'Repository is not bare');
         $this->assertDirectoryExists($dir.'/.git/objects', 'objects/ folder is present');
         $this->assertSame($dir.'/.git', $repository->getGitDir(), 'git dir as subfolder of argument');
-        $this->assertSame($dir, $repository->getWorkingDir(), 'working dir present in bare repository');
+        $this->assertSame($dir, $repository->getWorkingDir(), 'The folder passed as argument is the working dir');
     }
 
     public function testOpensALinkedWorktree(): void
     {
-        $repository = self::createFoobarRepository(false);
-        $dir = self::createTempDir().'/worktree';
-
-        try {
-            self::git($repository, 'worktree', ['add', '-b', 'in-worktree', $dir]);
-        } catch (ProcessException) {
+        if (version_compare(self::gitVersion(), '2.5.0', '<')) {
             $this->markTestSkipped('git worktree requires git 2.5.');
         }
+
+        $repository = self::createFoobarRepository(false);
+        $dir = self::createTempDir().'/worktree';
+        self::git($repository, 'worktree', ['add', '-b', 'in-worktree', $dir]);
 
         // Its ".git" is a file pointing to a directory of the main repository.
         $worktree = new Repository($dir, driver: self::getDriver());
@@ -95,12 +93,12 @@ class RepositoryTest extends AbstractTestCase
     {
         // libgit2 1.9 doesn't read reftable repositories.
         $this->skipUnlessCliDriver();
-
-        $dir = self::createTempDir();
-        $process = new Process([self::gitCommand(), 'init', '-q', '--ref-format=reftable', '--initial-branch=trunk', $dir]);
-        if (0 !== $process->run()) {
+        if (version_compare(self::gitVersion(), '2.45.0', '<')) {
             $this->markTestSkipped('Reftable repositories require git 2.45.');
         }
+
+        $dir = self::createTempDir();
+        new Process([self::gitCommand(), 'init', '-q', '--ref-format=reftable', '--initial-branch=trunk', $dir])->mustRun();
 
         $repository = new Repository($dir, driver: self::getDriver());
         $this->assertTrue($repository->isHeadAttached());
@@ -123,6 +121,38 @@ class RepositoryTest extends AbstractTestCase
         $this->assertSame(self::LONGFILE_COMMIT, $repository->getHeadCommit()->getHash());
     }
 
+    public function testTheHeadOfARepositoryWithoutCommitsThrows(): void
+    {
+        $repository = self::createEmptyRepository();
+
+        // HEAD points to a branch without commits yet.
+        $this->assertTrue($repository->isHeadAttached());
+
+        try {
+            $repository->getHeadCommit();
+            $this->fail('A repository without commits has no HEAD commit.');
+        } catch (ReferenceNotFoundException) {
+        }
+
+        $this->expectException(ReferenceNotFoundException::class);
+
+        $repository->getHead();
+    }
+
+    public function testHeadPointingToATagIsNoBranch(): void
+    {
+        $repository = self::createFoobarRepository();
+        // Like a branch for git, which commits to the tag.
+        self::git($repository, 'symbolic-ref', ['HEAD', 'refs/tags/0.1']);
+
+        $this->assertSame(self::LONGFILE_COMMIT, $repository->getHeadCommit()->getHash());
+
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage('HEAD points to "refs/tags/0.1", which is not a branch.');
+
+        $repository->getHead();
+    }
+
     public function testObjectsAreTheSameWhileUsed(): void
     {
         $repository = self::createFoobarRepository();
@@ -134,11 +164,12 @@ class RepositoryTest extends AbstractTestCase
 
     public function testRefusesSha256Repositories(): void
     {
-        $dir = self::createTempDir();
-        $process = new Process([self::gitCommand(), 'init', '-q', '--object-format=sha256', $dir]);
-        if (0 !== $process->run()) {
+        if (version_compare(self::gitVersion(), '2.29.0', '<')) {
             $this->markTestSkipped('SHA-256 repositories require git 2.29.');
         }
+
+        $dir = self::createTempDir();
+        new Process([self::gitCommand(), 'init', '-q', '--object-format=sha256', $dir])->mustRun();
 
         $this->expectException(UnsupportedOperationException::class);
         $this->expectExceptionMessage('uses SHA-256 hashes');
@@ -190,9 +221,13 @@ class RepositoryTest extends AbstractTestCase
     {
         $this->skipUnlessCliDriver();
 
-        $this->expectException(ProcessException::class);
-
-        Repository::isValidRepository(self::repositoryUrl(), new CliDriver('not-git'));
+        try {
+            Repository::isValidRepository(self::repositoryUrl(), new CliDriver('not-git'));
+            $this->fail('git is missing.');
+        } catch (DriverException $e) {
+            // One line, the error of the shell, like "sh: 1: exec: not-git: not found".
+            $this->assertMatchesRegularExpression('/^The git command "ls-remote" could not start: [^\n]+\.$/', $e->getMessage());
+        }
     }
 
     public function testCloneATagAsBranchDetachesHead(): void
@@ -307,10 +342,22 @@ class RepositoryTest extends AbstractTestCase
     public function testAnAbbreviatedHashNamesAnObjectOfTheRightType(): void
     {
         $repository = self::createFoobarRepository();
+        $hash = substr($repository->getCommit(self::LONGFILE_COMMIT)->getTreeHash(), 0, 8);
 
         $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage(\sprintf('The object "%s" is not a blob.', $hash));
 
-        $repository->getBlob(substr(self::LONGFILE_COMMIT, 0, 8));
+        $repository->getBlob($hash);
+    }
+
+    public function testAnAbbreviatedHashOfNoObject(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage('The object "12345678" does not exist.');
+
+        $repository->getTree('12345678');
     }
 
     public function testAnAbbreviatedCommitHashNamesNoTree(): void
@@ -326,10 +373,12 @@ class RepositoryTest extends AbstractTestCase
 
     public function testInitOnAnExistingFileFails(): void
     {
-        $this->expectException(RuntimeException::class);
-
         $file = self::createTempDir().'/test';
         touch($file);
+
+        $this->expectException(DriverException::class);
+        // git and libgit2 name the file they can't make a directory of.
+        $this->expectExceptionMessage($file);
 
         Repository::initBare($file, driver: self::getDriver());
     }
@@ -535,13 +584,36 @@ class RepositoryTest extends AbstractTestCase
     }
 
     #[DataProvider('provideBare')]
-    public function testGetSize(bool $bare): void
+    public function testGetSizeInBytes(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
-        $size = $repository->getSize();
+        $size = $repository->getSizeInBytes();
         // The exact figure depends on git's packing/compression, which varies across versions.
-        $this->assertGreaterThanOrEqual(40, $size, 'Repository is at least 40KB');
-        $this->assertLessThan(84, $size, 'Repository is less than 84KB');
+        $this->assertGreaterThanOrEqual(40_000, $size, 'Repository is at least 40KB');
+        $this->assertLessThan(84_000, $size, 'Repository is less than 84KB');
+    }
+
+    public function testGetSizeInBytesFollowsNoLink(): void
+    {
+        $repository = self::createEmptyRepository();
+        $size = $repository->getSizeInBytes();
+
+        file_put_contents($repository->getGitDir().'/file', str_repeat('a', 1000));
+        // Like a hook linking to a file not deployed yet.
+        symlink($repository->getGitDir().'/missing', $repository->getGitDir().'/link');
+
+        $this->assertSame($size + 1000, $repository->getSizeInBytes());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetSizeInKilobytes(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::getSize()" method is deprecated, use "getSizeInBytes()" instead.');
+
+        $repository = self::createFoobarRepository();
+
+        $this->assertSame((int) round($repository->getSizeInBytes() / 1000), $repository->getSize());
     }
 
     public function testIsBare(): void
@@ -581,7 +653,8 @@ class RepositoryTest extends AbstractTestCase
     #[DataProvider('provideBare')]
     public function testLoggerNOk(bool $bare): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(ProcessException::class);
+        $this->expectExceptionMessage('The git command "not-work" failed (exit 1): git: \'not-work\' is not a git command. See \'git --help\'.');
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())
@@ -611,22 +684,23 @@ class RepositoryTest extends AbstractTestCase
 
         $repository = self::createFoobarRepository(false);
 
-        $file = $repository->getWorkingDir().'/README.md';
-        $original = file_get_contents($file);
-        file_put_contents($file, $original."Applied line.\n");
-
-        $patch = $repository->run('diff', ['--', 'README.md']);
-        file_put_contents($file, $original);
-
         $patchFile = tempnam(sys_get_temp_dir(), 'gitlib_patch_');
-        file_put_contents($patchFile, $patch);
+        file_put_contents($patchFile, <<<'PATCH'
+            diff --git a/applied.txt b/applied.txt
+            new file mode 100644
+            --- /dev/null
+            +++ b/applied.txt
+            @@ -0,0 +1 @@
+            +Applied line.
+
+            PATCH);
 
         $previousCwd = getcwd();
         $this->assertIsString($previousCwd);
         chdir(sys_get_temp_dir());
 
         try {
-            // "README.md" is relative to the repository work-tree, not to the
+            // "applied.txt" is relative to the repository work-tree, not to the
             // process cwd (which is an unrelated directory here). This only
             // works if the git process is run with its cwd set to the repository.
             $repository->run('apply', [$patchFile]);
@@ -635,7 +709,7 @@ class RepositoryTest extends AbstractTestCase
             unlink($patchFile);
         }
 
-        $this->assertSame($original."Applied line.\n", file_get_contents($file));
+        $this->assertSame("Applied line.\n", file_get_contents($repository->getWorkingDir().'/applied.txt'));
     }
 
     public function testRunIsOnlySupportedByCliDriver(): void

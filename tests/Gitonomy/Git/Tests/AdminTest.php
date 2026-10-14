@@ -13,8 +13,8 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Reference\Branch;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
@@ -136,7 +136,8 @@ class AdminTest extends AbstractTestCase
 
     public function testCommandOptionRunsAnotherGitBinary(): void
     {
-        $this->expectException(ProcessException::class);
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('The git command "init" could not start: ');
 
         Admin::init(self::createTempDir(), options: ['command' => 'not-git']);
     }
@@ -147,9 +148,9 @@ class AdminTest extends AbstractTestCase
             $this->markTestSkipped('The fake git binary is a shell script.');
         }
 
-        // A git binary logging its first argument, and whether it gets SECRET.
+        // A git binary logging whether it gets SECRET.
         $dir = self::createTempDir();
-        file_put_contents($dir.'/git', \sprintf("#!/bin/sh\necho \"\$1 \${GITLIB_TEST_SECRET:-none}\" >> %s\nexec %s \"\$@\"\n", escapeshellarg($dir.'/log'), escapeshellarg(self::gitCommand())));
+        file_put_contents($dir.'/git', \sprintf("#!/bin/sh\necho \"\${GITLIB_TEST_SECRET:-none}\" >> %s\nexec %s \"\$@\"\n", escapeshellarg($dir.'/log'), escapeshellarg(self::gitCommand())));
         chmod($dir.'/git', 0o755);
         // Like the credentials of an HTTP request, in $_SERVER only.
         $_SERVER['GITLIB_TEST_SECRET'] = 'secret';
@@ -162,7 +163,7 @@ class AdminTest extends AbstractTestCase
         }
 
         // Like in 1.x, git init doesn't get $_SERVER, the git processes of the repository do.
-        $this->assertSame("init none\n--git-dir secret\n", file_get_contents($dir.'/log'));
+        $this->assertSame("none\nsecret\n", file_get_contents($dir.'/log'), 'git init, then git config');
     }
 
     public function testRemovedOptionsAreRefused(): void

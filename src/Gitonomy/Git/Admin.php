@@ -71,7 +71,7 @@ final class Admin
      *
      * @deprecated since gitonomy/gitlib 2.0, use Repository::isValidRepository() instead
      */
-    public static function isValidRepository(string $url, array $options = []): bool
+    public static function isValidRepository(#[\SensitiveParameter] string $url, array $options = []): bool
     {
         trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::isValidRepository()" instead.', __METHOD__, Repository::class);
 
@@ -94,7 +94,7 @@ final class Admin
      *
      * @deprecated since gitonomy/gitlib 2.0, use Repository::isValidRepositoryAndBranch() instead
      */
-    public static function isValidRepositoryAndBranch(string $url, string $branchName, array $options = []): bool
+    public static function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branchName, array $options = []): bool
     {
         trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::isValidRepositoryAndBranch()" instead.', __METHOD__, Repository::class);
 
@@ -111,7 +111,7 @@ final class Admin
      *
      * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneBareFrom() or Repository::cloneFrom() instead
      */
-    public static function cloneTo(string $path, string $url, bool $bare = true, array $options = []): Repository
+    public static function cloneTo(string $path, #[\SensitiveParameter] string $url, bool $bare = true, array $options = []): Repository
     {
         trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
 
@@ -137,7 +137,7 @@ final class Admin
      *
      * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneBareFrom() or Repository::cloneFrom() with their "branch" argument instead
      */
-    public static function cloneBranchTo(string $path, string $url, string $branch, bool $bare = true, array $options = []): Repository
+    public static function cloneBranchTo(string $path, #[\SensitiveParameter] string $url, string $branch, bool $bare = true, array $options = []): Repository
     {
         trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" with its "branch" argument instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
 
@@ -161,7 +161,7 @@ final class Admin
      *
      * @deprecated since gitonomy/gitlib 2.0, use Repository::mirrorFrom() instead
      */
-    public static function mirrorTo(string $path, string $url, array $options = []): Repository
+    public static function mirrorTo(string $path, #[\SensitiveParameter] string $url, array $options = []): Repository
     {
         trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::mirrorFrom()" instead, which takes the URL before the path.', __METHOD__, Repository::class);
 
@@ -182,7 +182,7 @@ final class Admin
      *
      * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneFrom(), Repository::cloneBareFrom() or Repository::mirrorFrom() instead
      */
-    public static function cloneRepository(string $path, string $url, array $args = [], array $options = []): Repository
+    public static function cloneRepository(string $path, #[\SensitiveParameter] string $url, array $args = [], array $options = []): Repository
     {
         trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%1$s()" method is deprecated, use "%2$s::cloneFrom()", "%2$s::cloneBareFrom()" or "%2$s::mirrorFrom()" instead, which take the URL before the path; they support no other argument of "git clone".', __METHOD__, Repository::class);
 

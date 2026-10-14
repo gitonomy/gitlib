@@ -97,6 +97,12 @@ $commit->getCommitterEmail();
 $commit->getCommitterDate(); // A DateTimeImmutable
 ```
 
+Like `git log`, a date is at the UTC offset of its author or committer:
+`2012-12-31T15:21:03+01:00` for a commit made in Paris in winter. Use
+`setTimezone()` to show it in another timezone. Comparing dates doesn't
+depend on their offsets. An offset of more than 14 hours or 59 minutes,
+which no timezone has, gives UTC.
+
 Message
 -------
 

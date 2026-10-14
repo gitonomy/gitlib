@@ -166,13 +166,6 @@ final class TestCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $versions = $input->getArgument('versions');
 
-        // Old git binaries choke on config values introduced after their release (e.g.
-        // "merge.conflictstyle = zdiff3", added in 2.35, is a fatal "unknown style" error
-        // on anything older) if they pick up the invoking user's own ~/.gitconfig. Give
-        // each git binary an empty, isolated HOME so only gitlib's own fixtures apply.
-        $isolatedHome = sys_get_temp_dir().'/gitlib-test-git-versions-home-'.bin2hex(random_bytes(4));
-        mkdir($isolatedHome);
-
         $results = [];
 
         foreach ($versions as $version) {
@@ -188,8 +181,8 @@ final class TestCommand extends Command
             $io->section(sprintf('Testing against %s', $version));
             $io->writeln(sprintf('Command: %s', $binary));
 
-            $env = ['GIT_COMMAND' => $binary, 'HOME' => $isolatedHome, 'XDG_CONFIG_HOME' => $isolatedHome];
-            $process = new Process(['vendor/bin/phpunit'], __DIR__, $env, timeout: null);
+            // The bootstrap of the tests gives git a configuration of its own.
+            $process = new Process(['vendor/bin/phpunit'], __DIR__, ['GIT_COMMAND' => $binary], timeout: null);
             $process->run(static function (string $type, string $data) use ($output): void {
                 $output->write($data);
             });

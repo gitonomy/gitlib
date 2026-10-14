@@ -13,6 +13,9 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
+use Gitonomy\Git\Exception\UnsupportedOperationException;
+use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use Symfony\Component\Process\Process;
 
@@ -65,5 +68,77 @@ class LibGit2DriverTest extends AbstractTestCase
         $process->mustRun();
 
         $this->assertSame($repository->getHeadCommit()->getHash(), $process->getOutput());
+    }
+
+    #[RequiresPhpExtension('ffi')]
+    public function testTheSystemConfigurationIsLeftOutWithGitConfigNoSystem(): void
+    {
+        if (!LibGit2Driver::isSupported()) {
+            $this->markTestSkipped('libgit2 1.9 is not installed.');
+        }
+
+        // libgit2 is initialized once per process. 4 and 2 read the search
+        // path (GIT_OPT_GET_SEARCH_PATH) of the system configuration
+        // (GIT_CONFIG_LEVEL_SYSTEM), "/etc" on Linux.
+        $code = <<<'PHP'
+            require $argv[1];
+            $ffi = Gitonomy\Git\Driver\Ffi\LibGit2::load(null);
+            $path = $ffi->new('git_buf');
+            $ffi->git_libgit2_opts(4, 2, FFI::addr($path));
+            echo FFI::string($path->ptr, $path->size);
+            $ffi->git_buf_dispose(FFI::addr($path));
+            PHP;
+
+        $process = new Process([\PHP_BINARY, '-r', $code, self::AUTOLOAD], env: ['GIT_CONFIG_NOSYSTEM' => '1']);
+        $process->mustRun();
+        $this->assertSame('', $process->getOutput());
+
+        $process = new Process([\PHP_BINARY, '-r', $code, self::AUTOLOAD], env: ['GIT_CONFIG_NOSYSTEM' => false]);
+        $process->mustRun();
+        $this->assertNotSame('', $process->getOutput());
+    }
+
+    public function testReftableRepositoriesAreUnsupported(): void
+    {
+        if (!LibGit2Driver::isSupported()) {
+            $this->markTestSkipped('libgit2 1.9 is not installed.');
+        }
+        if (version_compare(self::gitVersion(), '2.45.0', '<')) {
+            $this->markTestSkipped('Reftable repositories require git 2.45.');
+        }
+
+        $dir = self::createTempDir();
+        new Process([self::gitCommand(), 'init', '-q', '--ref-format=reftable', $dir])->mustRun();
+
+        $this->expectException(UnsupportedOperationException::class);
+        $this->expectExceptionMessage('stores its references in the reftable format, which LibGit2Driver doesn\'t support; use CliDriver.');
+
+        new Repository($dir, driver: new LibGit2Driver());
+    }
+
+    /**
+     * @param \Closure(LibGit2Driver, string): void $clone
+     */
+    #[DataProvider('provideClones')]
+    public function testBundlesAreUnsupported(\Closure $clone): void
+    {
+        if (!LibGit2Driver::isSupported()) {
+            $this->markTestSkipped('libgit2 1.9 is not installed.');
+        }
+
+        $this->expectException(UnsupportedOperationException::class);
+        $this->expectExceptionMessage(\sprintf('"%s" is a bundle, which LibGit2Driver doesn\'t support; use CliDriver.', self::REPOSITORY_URL));
+
+        $clone(new LibGit2Driver(), self::createTempDir().'/clone');
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(LibGit2Driver, string): void}>
+     */
+    public static function provideClones(): iterable
+    {
+        yield 'clone' => [static fn (LibGit2Driver $driver, string $path) => $driver->cloneFrom(self::REPOSITORY_URL, $path, null)];
+        yield 'bare clone' => [static fn (LibGit2Driver $driver, string $path) => $driver->cloneBareFrom(self::REPOSITORY_URL, $path, null)];
+        yield 'mirror' => [static fn (LibGit2Driver $driver, string $path) => $driver->mirrorFrom(self::REPOSITORY_URL, $path)];
     }
 }

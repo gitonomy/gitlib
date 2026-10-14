@@ -27,11 +27,12 @@ final class NulByte
     /**
      * @throws InvalidArgumentException One of the values contains a NUL byte
      */
-    public static function assertNone(string ...$values): void
+    public static function assertNone(#[\SensitiveParameter] string ...$values): void
     {
         foreach ($values as $value) {
             if (str_contains($value, "\0")) {
-                throw new InvalidArgumentException(\sprintf('"%s" contains a NUL byte, which git doesn\'t accept.', addcslashes($value, "\0")));
+                // The value may be a URL.
+                throw new InvalidArgumentException(Credentials::redact(\sprintf('"%s" contains a NUL byte, which git doesn\'t accept.', addcslashes($value, "\0"))));
             }
         }
     }

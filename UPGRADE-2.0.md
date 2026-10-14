@@ -99,7 +99,7 @@ Creating repositories
    `release` no longer matches `feature/release`, nor `rel*` `release`.
  * `isValidRepository()` and `isValidRepositoryAndBranch()` read a relative
    path as a path, never as the name of a remote of PHP's working directory,
-   and throw a `ProcessException` when git can't run, instead of returning
+   and throw a `DriverException` when git can't start, instead of returning
    `false`.
 
    Before:
@@ -173,6 +173,10 @@ References
 
  * `ReferenceBag::getFirstBranch()` returns `null` instead of `false` when
    there is no branch, and only branches.
+ * `Repository::getHead()` returns a `Reference\Branch` or a `Commit`.
+   `HEAD` pointing to another reference, like a tag, which git allows,
+   throws a `ReferenceNotFoundException`, where 1.x returned the reference:
+   `getHeadCommit()` still returns its commit.
  * The getters of `Reference\Tag` (`getTaggerName()`, `getTaggerEmail()`,
    `getTaggerDate()`, `getMessage()`, `getSubjectMessage()`,
    `getBodyMessage()`, `getGpgSignature()`) return `null` instead of `false`
@@ -181,6 +185,11 @@ References
    unsigned tag instead of throwing, and finds X.509 and SSH signatures too.
  * A branch whose name ends with `HEAD` is listed: only the `HEAD` of a
    remote is left out.
+ * Moving or deleting a symbolic reference, like `refs/remotes/origin/HEAD`,
+   changes it, instead of the branch it points to.
+ * `ReferenceBag::delete()` throws an `InvalidArgumentException` for a name
+   outside `refs/`: `HEAD`, which `CliDriver` deleted, leaving no
+   repository, or a short name, like `master`, which did nothing.
 
 History
 -------
@@ -284,7 +293,8 @@ Trees
  * `CommitReference` is deprecated: it is `Submodule`. So is
    `Tree::getCommitReferenceEntries()`: use `getSubmoduleEntries()`.
  * `Tree::resolvePath()` throws an `InvalidArgumentException` explaining
-   why a path doesn't resolve, and resolves `/` to the tree.
+   why a path doesn't resolve, a path through a submodule included, which
+   threw an `UnexpectedValueException`, and resolves `/` to the tree.
 
 Working copy
 ------------
@@ -293,6 +303,23 @@ Working copy
    `Branch` object attaches `HEAD` to the branch, instead of detaching it.
    Its second argument, a branch to create, is deprecated: use
    `checkoutNewBranch($branch, $startPoint)`.
+ * `WorkingCopy::checkout()` throws a `ReferenceNotFoundException` for a
+   name that no revision has, with both drivers: the name of a remote
+   branch alone, like `feature` for `origin/feature`, created the local
+   branch, and a path, like `README.md`, discarded its changes.
+
+   Before:
+
+   ```php
+   $workingCopy->checkout('feature');
+   ```
+
+   After:
+
+   ```php
+   $workingCopy->checkoutNewBranch('feature', 'origin/feature');
+   ```
+
  * `WorkingCopy::merge()` takes a `FastForward` instead of arguments of
    `git merge`, deprecated.
 
@@ -372,26 +399,78 @@ Errors
    `\InvalidArgumentException`, and takes a whole message instead of a name.
  * A timeout throws a `Gitonomy\Git\Exception\ProcessTimedOutException`,
    and the other failures of Symfony Process a `DriverException`: no
-   exception of Symfony or of PHP leaks anymore.
+   exception of Symfony or of PHP leaks anymore, not even as the previous
+   exception, as they hold the command line.
  * `ProcessException` extends the new
    `Gitonomy\Git\Exception\DriverException`, itself a `RuntimeException`:
    catching `RuntimeException` or `GitExceptionInterface` still works.
+ * The message of a `ProcessException` is one line, with the error of git:
+   the first line of its error output starting with `fatal:` or `error:`,
+   after the warnings, or its first line: `The git command "clone" failed
+   (exit 128): fatal: ...`, or `The git command "diff" failed (exit 1).`
+   when git writes no error. The command line, the rest of the error output
+   and the output are no longer in the message: `getErrorOutput()` and
+   `getOutput()` return the outputs of git. Its constructor takes the git
+   command as second argument, optional.
+ * When git can't start, a missing binary for instance, `CliDriver` throws
+   a `DriverException` instead of a `ProcessException`, with a message of
+   one line, without the command line: `The git command "clone" could not
+   start: ...`.
  * These methods throw instead of returning a fallback value:
    * `Commit::getIncludingBranches()` threw nothing and returned `[]` when git
      failed;
    * `ReferenceBag` (`Repository::getReferences()`) only returns an empty bag
      for a repository without references, and throws for any other failure.
+ * `Gitonomy\Git\Exception\UnexpectedValueException` is deprecated: gitlib
+   no longer throws it. Catch `InvalidArgumentException` for
+   `Tree::resolvePath()`.
  * `Commit::getShortHash()` throws a `ReferenceNotFoundException` for an
    unknown commit, instead of a `ProcessException`.
  * `Hooks` throws a `RuntimeException` when a hook exists already, doesn't
    exist, or can't be written, instead of a `LogicException` or a silent
    failure, and creates the hooks directory.
  * The `Admin` methods throw a `ProcessException`, still a
-   `RuntimeException`, with git's error output as message.
+   `RuntimeException`, with the first line of git's error output in its
+   message, or a `DriverException` when git can't start.
  * An argument holding a NUL byte throws an `InvalidArgumentException`,
    where PHP threw a `ValueError`: git and libgit2 read their arguments as C
    strings, which end at the first NUL byte.
+ * A revision, a reference, a hash or a URL starting with a dash throws an
+   `InvalidArgumentException`, with both drivers: git read it as an option,
+   `getRevision('--output=/path')` writing a file, or
+   `isValidRepository('--upload-pack=...')` running a command. A path may
+   start with a dash.
+ * An `ext::` URL throws an `InvalidArgumentException`, with both drivers:
+   git runs its command, by default before git 2.12.
+ * An ssh URL whose host or user starts with a dash, even encoded (`%2D`),
+   like `ssh://-oProxyCommand=.../repository` or
+   `ssh://-oProxyCommand=...@host/path`, or a `git://` URL whose host does,
+   throws an `InvalidArgumentException`, with both drivers: git before 2.14.1
+   passes it to ssh, or to the command of `core.gitProxy`, which reads it as
+   an option.
+ * `Hooks` throws an `InvalidArgumentException` for a name that isn't the one
+   of a file of the hooks directory, like `../config` or `.hidden`.
+ * The messages of exceptions, their traces (`#[\SensitiveParameter]`) and
+   the logs hide the credentials of URLs
+   (`https://***@example.com/repository.git`). `getErrorOutput()` and
+   `getOutput()` of `ProcessException` don't.
  * Every message is a sentence ending with a dot.
+
+Git configuration
+-----------------
+
+ * `CliDriver` sets back to git's defaults the configuration of the user that
+   changes what git prints, what a read returns, or the upstream of a new
+   branch: colors, columns, `branch.autoSetupMerge`,
+   `branch.autoSetupRebase`, `branch.sort`, `log.follow`,
+   `log.showSignature`, and for diffs `diff.algorithm`, `diff.context`,
+   `diff.external`, `diff.orderFile`, `diff.submodule`, the prefixes, the
+   textconv filters... Before, they made reads throw or return other data: a
+   log of a path following its renames with `log.follow`, for instance. See
+   ["Git configuration"](doc/repository.md#git-configuration).
+ * `CliDriver` ignores the replacements of objects (`git replace`,
+   `refs/replace/`), like `LibGit2Driver`: `run()` and `runProcess()` too.
+   Run git yourself to read them.
 
 Dates
 -----
@@ -400,6 +479,23 @@ Dates
    `Reference\Tag::getTaggerDate()` return a `\DateTimeImmutable` instead of
    a `\DateTime`. Code that modifies the returned date must use the returned
    value of `modify()`, `setTimezone()`...
+ * These dates are at the UTC offset of their author, committer or tagger,
+   like `git log` shows them (`2016-08-17T12:00:00+02:00`), instead of in
+   UTC. The instant doesn't change: comparisons and `getTimestamp()` return
+   the same results, but `format()` returns the local time of the author,
+   committer or tagger. To keep UTC, convert the date:
+
+   Before:
+
+   ```php
+   $date = $commit->getAuthorDate()->format('Y-m-d H:i');
+   ```
+
+   After:
+
+   ```php
+   $date = $commit->getAuthorDate()->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i');
+   ```
 
 Extending gitlib
 ----------------
@@ -413,9 +509,16 @@ Extending gitlib
  * These classes are `final readonly`: `Blame\Line`, `Diff\Diff`,
    `Diff\FileChange`, `Hooks`, `RevisionList`, `WorkingCopy`.
  * Every method has native parameter and return types. A class extending
-   `Revision`, `Reference` or `Parser\ParserBase`, which remain extendable,
-   must declare the same types, and must not redeclare their properties.
-   The constructor of `Reference` requires the commit hash.
+   `Parser\ParserBase`, which remains extendable, must declare the same
+   types, and must not redeclare its properties.
+ * The constructors of `Commit`, `Tree`, `Blob`, `Revision`, `Reference`,
+   `Reference\Tag` and `ReferenceBag` are internal: get these objects from
+   `Repository` (`getCommit()`, `getTree()`, `getBlob()`, `getRevision()`,
+   `getReferences()`), which returns the same commit, tree or blob while your
+   application uses it, and reads the references again after its writes.
+   The constructor of `Reference` requires the commit hash. Extending
+   `Revision` or `Reference` isn't supported anymore, and won't be possible
+   in 3.0: `Reference` declares `getName()`, abstract.
  * To change how gitlib runs git, for example in tests, implement
    `Gitonomy\Git\Driver\DriverInterface` and pass it as the driver of
    `Repository`, instead of extending `Repository`: see
@@ -471,3 +574,11 @@ Other changes
    instead of `0777`): change their permissions if another user runs them.
  * `Repository::shell()` is deprecated: it ignored the driver. Run
    `git shell` with Symfony Process instead.
+ * `Hooks::has()` returns `true` for a symbolic link to a missing file:
+   `get()` throws a `RuntimeException`, as it can't read it, `set()` and
+   `setSymlink()` refuse it, as a hook that exists already, and `remove()`
+   removes the link.
+ * `Repository::getSize()` is deprecated: `getSizeInBytes()` returns bytes,
+   instead of kilobytes. Neither follows links: a link in the git directory,
+   to a hook not deployed yet for instance, counts for nothing, where
+   `getSize()` counted the file it points to, and threw for a missing one.

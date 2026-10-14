@@ -12,10 +12,12 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\DriverException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 
 /**
- * Representation of a Blob commit.
+ * Representation of a blob, the content of a file.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
@@ -35,6 +37,8 @@ final class Blob
     /**
      * @param Repository $repository Repository where the blob is located
      * @param string     $hash       Hash of the blob
+     *
+     * @internal Get it from Repository::getBlob(), which returns the same object while the application uses it
      */
     public function __construct(
         private readonly Repository $repository,
@@ -50,7 +54,8 @@ final class Blob
     /**
      * @return string content of the blob
      *
-     * @throws Exception\DriverException Error occurred while getting content of blob
+     * @throws ReferenceNotFoundException The blob doesn't exist, or the object of its hash isn't a blob
+     * @throws DriverException            git fails to read it
      */
     public function getContent(): string
     {

@@ -17,7 +17,9 @@ use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\RepositoryPaths;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
+use Gitonomy\Git\Util\Credentials;
 use Gitonomy\Git\Util\NulByte;
+use Gitonomy\Git\Util\RemoteUrl;
 
 /**
  * Runs libgit2 1.9 in-process, through PHP's FFI extension.
@@ -98,9 +100,12 @@ final readonly class LibGit2Driver implements DriverInterface
         $this->ffi->git_repository_free($this->initRepository($path, true));
     }
 
-    public function cloneFrom(string $url, string $path, ?string $branch): void
+    public function cloneFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch): void
     {
         NulByte::assertNone($url, $path, $branch ?? '');
+        // libgit2 runs no command for a URL, unlike git: refused like by CliDriver.
+        RemoteUrl::assertSafe($url);
+        self::assertNotBundle($url);
 
         // git_clone() only checks a branch out, where git also checks a tag out, HEAD detached.
         $tag = null !== $branch && $this->isTagOnly($url, $branch) ? $branch : null;
@@ -141,17 +146,21 @@ final readonly class LibGit2Driver implements DriverInterface
         self::removeFetchHead($path.'/.git');
     }
 
-    public function cloneBareFrom(string $url, string $path, ?string $branch): void
+    public function cloneBareFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch): void
     {
         NulByte::assertNone($url, $path, $branch ?? '');
+        RemoteUrl::assertSafe($url);
+        self::assertNotBundle($url);
 
         // Like git, only the branches (and the tags).
         $this->fetchInto($path, $url, '+refs/heads/*:refs/heads/*', $branch, ['remote.origin.url' => $url]);
     }
 
-    public function mirrorFrom(string $url, string $path): void
+    public function mirrorFrom(#[\SensitiveParameter] string $url, string $path): void
     {
         NulByte::assertNone($url, $path);
+        RemoteUrl::assertSafe($url);
+        self::assertNotBundle($url);
 
         $this->fetchInto($path, $url, '+refs/*:refs/*', null, [
             'remote.origin.url' => $url,
@@ -161,18 +170,33 @@ final readonly class LibGit2Driver implements DriverInterface
         ]);
     }
 
-    public function isValidRepository(string $url): bool
+    public function isValidRepository(#[\SensitiveParameter] string $url): bool
     {
         NulByte::assertNone($url);
+        RemoteUrl::assertSafe($url);
 
         return null !== $this->listRemoteReferences($url);
     }
 
-    public function isValidRepositoryAndBranch(string $url, string $branch): bool
+    public function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branch): bool
     {
         NulByte::assertNone($url, $branch);
+        RemoteUrl::assertSafe($url);
 
         return \in_array('refs/heads/'.$branch, $this->listRemoteReferences($url) ?? [], true);
+    }
+
+    /**
+     * git clones a bundle file like a repository, libgit2 doesn't.
+     *
+     * @throws UnsupportedOperationException $url is a bundle
+     */
+    private static function assertNotBundle(string $url): void
+    {
+        // The signatures of the formats of bundles.
+        if (is_file($url) && is_readable($url) && \in_array(file_get_contents($url, length: 16), ["# v2 git bundle\n", "# v3 git bundle\n"], true)) {
+            throw new UnsupportedOperationException(\sprintf('"%s" is a bundle, which LibGit2Driver doesn\'t support; use CliDriver.', $url));
+        }
     }
 
     private function initRepository(string $path, bool $bare): CData
@@ -189,12 +213,12 @@ final readonly class LibGit2Driver implements DriverInterface
      *
      * @param array<string, string> $config
      */
-    private function fetchInto(string $path, string $url, string $refspec, ?string $branch, array $config): void
+    private function fetchInto(string $path, #[\SensitiveParameter] string $url, string $refspec, ?string $branch, #[\SensitiveParameter] array $config): void
     {
         // Like git, which refuses to clone into a directory with files.
         $existing = is_dir($path);
         if ($existing && [] !== array_diff(scandir($path) ?: [], ['.', '..'])) {
-            throw new DriverException(\sprintf('Unable to clone "%s": "%s" exists and is not an empty directory.', $url, $path));
+            throw new DriverException(\sprintf('Unable to clone "%s": "%s" exists and is not an empty directory.', Credentials::redact($url), $path));
         }
 
         $repository = $this->initRepository($path, true);
@@ -229,7 +253,7 @@ final readonly class LibGit2Driver implements DriverInterface
     /**
      * @return bool Whether $url has a tag named $name, and no branch of this name
      */
-    private function isTagOnly(string $url, string $name): bool
+    private function isTagOnly(#[\SensitiveParameter] string $url, string $name): bool
     {
         $references = $this->listRemoteReferences($url) ?? [];
 
@@ -308,7 +332,7 @@ final readonly class LibGit2Driver implements DriverInterface
      * Fetches $refspec from $url, and points HEAD to $branch, or to the
      * default branch of $url.
      */
-    private function fetch(CData $repository, string $url, string $refspec, ?string $branch): void
+    private function fetch(CData $repository, #[\SensitiveParameter] string $url, string $refspec, ?string $branch): void
     {
         $remote = $this->ffi->new('git_remote*');
         LibGit2::check($this->ffi, $this->ffi->git_remote_create_anonymous(\FFI::addr($remote), $repository, $url), \sprintf('Unable to create a remote for "%s"', $url));
@@ -356,12 +380,12 @@ final readonly class LibGit2Driver implements DriverInterface
     /**
      * @throws DriverException $repository has no tag named $tag
      */
-    private function detachHeadAtTag(CData $repository, string $tag, string $url): void
+    private function detachHeadAtTag(CData $repository, string $tag, #[\SensitiveParameter] string $url): void
     {
         $commit = $this->ffi->new('git_object*');
         $rc = $this->ffi->git_revparse_single(\FFI::addr($commit), $repository, 'refs/tags/'.$tag.'^{commit}');
         if (LibGit2::GIT_ENOTFOUND === $rc) {
-            throw new DriverException(\sprintf('Remote branch "%s" not found in "%s".', $tag, $url));
+            throw new DriverException(\sprintf('Remote branch "%s" not found in "%s".', $tag, Credentials::redact($url)));
         }
         LibGit2::check($this->ffi, $rc, \sprintf('Unable to resolve the tag "%s"', $tag));
 
@@ -394,7 +418,7 @@ final readonly class LibGit2Driver implements DriverInterface
     /**
      * @param array<string, string> $config
      */
-    private function setConfig(CData $repository, array $config): void
+    private function setConfig(CData $repository, #[\SensitiveParameter] array $config): void
     {
         $handle = $this->ffi->new('git_config*');
         LibGit2::check($this->ffi, $this->ffi->git_repository_config(\FFI::addr($handle), $repository), 'Unable to open the repository configuration');
@@ -411,7 +435,7 @@ final readonly class LibGit2Driver implements DriverInterface
     /**
      * @return string[]|null The full names of the references of $url, or null when it can't be reached
      */
-    private function listRemoteReferences(string $url): ?array
+    private function listRemoteReferences(#[\SensitiveParameter] string $url): ?array
     {
         $remote = $this->ffi->new('git_remote*');
         if ($this->ffi->git_remote_create_detached(\FFI::addr($remote), $url) < 0) {

@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -93,6 +94,16 @@ class BlameTest extends AbstractTestCase
         $this->expectException(DriverException::class);
 
         $repository->getBlame(self::LONGFILE_COMMIT, 'README.md', 100)->getLines();
+    }
+
+    public function testBlameOfAPathNormalizesIt(): void
+    {
+        $repository = self::createFoobarRepository();
+        $lines = static fn (string $path): array => array_map(static fn (Line $line): array => [$line->getCommit()->getHash(), $line->getContent()], $repository->getBlame(self::LONGFILE_COMMIT, $path)->getLines());
+
+        // Like git.
+        $this->assertSame($lines('README.md'), $lines('./README.md'));
+        $this->assertSame($lines('README.md'), $lines('dir/../README.md'));
     }
 
     #[DataProvider('provideBare')]

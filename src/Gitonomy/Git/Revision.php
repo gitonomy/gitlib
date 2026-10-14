@@ -15,16 +15,27 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 
 /**
+ * A name git resolves to a commit: a branch, a tag, a hash, "HEAD~2"...
+ *
+ * Commit and Reference extend it: extending it outside gitlib isn't
+ * supported, and won't be possible in 3.0.
+ *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
 class Revision
 {
+    /**
+     * @internal Get it from Repository::getRevision()
+     */
     public function __construct(
         protected readonly Repository $repository,
         protected readonly string $revision,
     ) {
     }
 
+    /**
+     * @param string[]|string|null $paths Paths to filter on, with git's wildcards
+     */
     public function getLog(array|string|null $paths = null, ?int $offset = null, ?int $limit = null): Log
     {
         return $this->repository->getLog($this, $paths, $offset, $limit);
@@ -37,8 +48,13 @@ class Revision
      */
     public function getCommit(): Commit
     {
+        $driver = $this->repository->getRepositoryDriver();
+
         try {
-            $hash = $this->repository->getRepositoryDriver()->resolveRevision($this->revision.'^{commit}');
+            // "^{commit}" would be part of the text of ":/text", the commit
+            // whose message matches it: its hash first.
+            $revision = str_starts_with($this->revision, ':/') ? $driver->resolveRevision($this->revision) : $this->revision;
+            $hash = $driver->resolveRevision($revision.'^{commit}');
         } catch (ReferenceNotFoundException $e) {
             throw new ReferenceNotFoundException(\sprintf('The revision "%s" does not exist, or names no commit.', $this->revision), 0, $e);
         }

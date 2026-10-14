@@ -13,10 +13,13 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
+use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Driver\Cli\Parser\LogParser;
+use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Log;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -248,6 +251,52 @@ class LogTest extends AbstractTestCase
         $this->assertSame([$text], self::hashes($repository->getLog('main', 'dir/*.txt')));
     }
 
+    public function testLogOfAPathNormalizesIt(): void
+    {
+        $repository = self::createRepositoryToCommitTo();
+        mkdir($repository->getWorkingDir().'/dir');
+        $file = self::commit($repository, 'dir/file.txt', 'file');
+        self::commit($repository, 'other.txt', 'other');
+
+        // Like git.
+        foreach (['dir/.', 'dir//file.txt', 'other/../dir/file.txt', './dir/', $repository->getWorkingDir().'/dir/../dir'] as $path) {
+            $this->assertSame([$file], self::hashes($repository->getLog('main', $path)), $path);
+        }
+    }
+
+    public function testLogOfAPathAboveTheRootThrows(): void
+    {
+        $repository = self::createRepositoryToCommitTo();
+        self::commit($repository, 'file.txt', 'file');
+
+        // Like git.
+        $this->expectException(DriverException::class);
+        if (self::getDriver() instanceof LibGit2Driver) {
+            $this->expectExceptionMessage('The path "dir/../../file.txt" is outside the repository.');
+        } else {
+            // git 1.8.4 doesn't repeat the path first, and recent versions name the repository after it.
+            $this->expectExceptionMessageMatches('/^The git command "log" failed \(exit 128\): fatal: (?:dir\/\.\.\/\.\.\/file\.txt: )?\'dir\/\.\.\/\.\.\/file\.txt\' is outside repository/');
+        }
+
+        $repository->getLog('main', 'dir/../../file.txt')->getCommits();
+    }
+
+    public function testLogOfAPathWithMagic(): void
+    {
+        $repository = self::createRepositoryToCommitTo();
+        mkdir($repository->getWorkingDir().'/dir');
+        self::commit($repository, 'dir/file.txt', 'file');
+        $other = self::commit($repository, 'other.txt', 'other');
+
+        if (self::getDriver() instanceof LibGit2Driver) {
+            $this->expectException(UnsupportedOperationException::class);
+            $this->expectExceptionMessage('The path ":/other.txt" uses the magic of git\'s pathspecs, which LibGit2Driver doesn\'t support; use CliDriver.');
+        }
+
+        // From the root of the repository, whatever the current directory.
+        $this->assertSame([$other], self::hashes($repository->getLog('main', ':/other.txt')));
+    }
+
     public function testLogOfAllReferencesIgnoresTheOnesToOtherObjects(): void
     {
         $repository = self::createRepositoryToCommitTo();
@@ -298,6 +347,22 @@ class LogTest extends AbstractTestCase
         $this->assertCount(1, $log->getCommits());
     }
 
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetDiffIgnoresThePathsOfTheLog(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::getDiff()" method is deprecated, use "Gitonomy\Git\Repository::getDiff()" instead.');
+
+        $repository = self::createFoobarRepository();
+        $diff = $repository->getDiff(self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->toArray();
+        $legacyDiff = $repository->getLog(self::BEFORE_LONGFILE_COMMIT.'..'.self::LONGFILE_COMMIT, 'README.md')->getDiff();
+
+        // A log of README.md, but the diff of the range, which changes long.php only.
+        $this->assertSame(['long.php'], array_map(static fn (File $file): string => $file->getName(), $legacyDiff->getFiles()));
+        $this->assertSame($diff, $legacyDiff->toArray());
+        $this->assertSame($diff, $repository->getLog([self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT])->getDiff()->toArray());
+    }
+
     public function testLogOfExcludedAndSymmetricRevisions(): void
     {
         $repository = self::createRepositoryToCommitTo();
@@ -313,6 +378,21 @@ class LogTest extends AbstractTestCase
         $this->assertCount(3, $repository->getLog('--all'));
         $this->assertSame([], self::hashes($repository->getLog('^main')));
         $this->assertSame([$main, $base], self::hashes($repository->getLog('main')));
+    }
+
+    /**
+     * The command line of a process has a limit, 2 MB by default on Linux: a
+     * log of thousands of branches would exceed it.
+     */
+    public function testLogOfMoreRevisionsThanACommandLineTakes(): void
+    {
+        $repository = self::createFoobarRepository();
+        // 4 MB of hashes.
+        $log = $repository->getLog(array_fill(0, 100_000, $repository->getCommit(self::LONGFILE_COMMIT)));
+
+        $hashes = self::hashes($repository->getLog(self::LONGFILE_COMMIT));
+        $this->assertSame($hashes, self::hashes($log));
+        $this->assertCount(\count($hashes), $log);
     }
 
     public function testLogOfAnUnknownRevisionNamesIt(): void

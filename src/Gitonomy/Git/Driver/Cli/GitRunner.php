@@ -14,10 +14,11 @@ namespace Gitonomy\Git\Driver\Cli;
 
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ProcessTimedOutException;
+use Gitonomy\Git\Util\Credentials;
 use Gitonomy\Git\Util\NulByte;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Process\Exception\ProcessStartFailedException;
 use Symfony\Component\Process\Exception\ProcessTimedOutException as SymfonyProcessTimedOutException;
 use Symfony\Component\Process\Exception\RuntimeException as SymfonyRuntimeException;
 use Symfony\Component\Process\Process;
@@ -50,9 +51,9 @@ final readonly class GitRunner
      * @param string|null $input         The standard input of git
      *
      * @throws InvalidArgumentException An argument contains a NUL byte
-     * @throws ProcessException         The git binary can't be run
+     * @throws DriverException          git can't start, or is killed
      */
-    public function run(string $command, array $args, array $globalOptions = [], ?string $workingDirectory = null, ?string $input = null): Process
+    public function run(string $command, #[\SensitiveParameter] array $args, array $globalOptions = [], ?string $workingDirectory = null, ?string $input = null): Process
     {
         NulByte::assertNone(...$globalOptions, ...$args);
 
@@ -63,32 +64,65 @@ final readonly class GitRunner
         $process->setTimeout($this->timeout);
         $process->setIdleTimeout($this->timeout);
 
-        $this->logger?->info(\sprintf('run command: %s "%s" ', $command, implode(' ', $args)));
+        // The logs hide the credentials of the URLs, like the exceptions.
+        $this->logger?->info(Credentials::redact(\sprintf('run command: %s "%s" ', $command, implode(' ', $args))));
         $before = microtime(true);
 
+        // The exceptions of Symfony aren't chained: their messages may hold the
+        // command line, with the credentials of its URLs.
         try {
-            $process->run();
-        } catch (SymfonyProcessTimedOutException $e) {
-            throw new ProcessTimedOutException(\sprintf('The git command "%s" ran longer than %s seconds.', $command, $this->timeout), 0, $e);
+            $process->start();
         } catch (SymfonyRuntimeException $e) {
-            // A working directory removed since the repository was opened...
-            throw new DriverException(\sprintf('Unable to run the git command "%s": %s', $command, $e->getMessage()), 0, $e);
+            // Too many arguments (E2BIG), a working directory removed since the
+            // repository was opened...
+            $error = $e->getMessage();
+            if ($e instanceof ProcessStartFailedException) {
+                // Its message ends with the error, after the command line.
+                $lines = explode("\n", $error);
+                $error = substr(end($lines), \strlen('Error: '));
+            }
+
+            throw self::notStarted($command, $error);
+        }
+
+        try {
+            $process->wait();
+        } catch (SymfonyProcessTimedOutException) {
+            throw new ProcessTimedOutException(\sprintf('The git command "%s" ran longer than %s seconds.', $command, $this->timeout));
+        } catch (SymfonyRuntimeException $e) {
+            // Killed by a signal...
+            throw new DriverException(Credentials::redact(\sprintf('Unable to run the git command "%s": %s', $command, $e->getMessage())));
         }
 
         // Symfony Process runs git through a shell, which exits with them when it can't find or run git.
         if (\in_array($process->getExitCode(), [126, 127], true)) {
-            throw new ProcessException($process);
+            throw self::notStarted($command, $process->getErrorOutput());
         }
 
         if (null !== $this->logger) {
             $this->logger->debug(\sprintf('last command (%s) duration: %.2fms', $command, (microtime(true) - $before) * 1000));
             $this->logger->debug(\sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
-            $this->logger->debug(\sprintf('last command (%s) output: %s', $command, $process->getOutput()));
+            $this->logger->debug(Credentials::redact(\sprintf('last command (%s) output: %s', $command, $process->getOutput())));
             if (!$process->isSuccessful()) {
-                $this->logger->debug(\sprintf('last command (%s) error output: %s', $command, $process->getErrorOutput()));
+                $this->logger->debug(Credentials::redact(\sprintf('last command (%s) error output: %s', $command, $process->getErrorOutput())));
             }
         }
 
         return $process;
+    }
+
+    /**
+     * Like the one of ProcessException, the message is a sentence, with the
+     * first line of $error.
+     */
+    private static function notStarted(string $command, string $error): DriverException
+    {
+        $message = \sprintf('The git command "%s" could not start', $command);
+        $error = trim(explode("\n", trim($error), 2)[0]);
+        if ('' !== $error) {
+            $message .= ': '.$error;
+        }
+
+        return new DriverException(Credentials::redact(1 === preg_match('/[.!?]$/', $message) ? $message : $message.'.'));
     }
 }

@@ -16,18 +16,20 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @implements \IteratorAggregate<int, Revision>
  */
 final readonly class RevisionList implements \IteratorAggregate, \Countable
 {
     /**
-     * @var Revision[]
+     * @var list<Revision>
      */
     private array $revisions;
 
     /**
      * Constructs a revision list from a variety of types.
      *
-     * @param string|Revision|array $revisions can be a string, a Revision, an array of strings or an array of Revision, Branch, Tag, Commit
+     * @param string|Revision|array<Revision|string> $revisions can be a string, a Revision, an array of strings or an array of Revision, Branch, Tag, Commit
      */
     public function __construct(Repository $repository, string|Revision|array $revisions)
     {
@@ -45,7 +47,7 @@ final readonly class RevisionList implements \IteratorAggregate, \Countable
         foreach ($revisions as $revision) {
             if (\is_string($revision)) {
                 $revision = new Revision($repository, $revision);
-            } elseif (!$revision instanceof Revision) {
+            } elseif (!$revision instanceof Revision) { // @phpstan-ignore instanceof.alwaysTrue (PHP doesn't check the types of the elements, unlike PHPStan.)
                 throw new InvalidArgumentException(\sprintf('Expected a "Revision", got a "%s".', get_debug_type($revision)));
             }
 
@@ -56,13 +58,16 @@ final readonly class RevisionList implements \IteratorAggregate, \Countable
     }
 
     /**
-     * @return Revision[]
+     * @return list<Revision>
      */
     public function getAll(): array
     {
         return $this->revisions;
     }
 
+    /**
+     * @return \ArrayIterator<int, Revision>
+     */
     public function getIterator(): \ArrayIterator
     {
         return new \ArrayIterator($this->revisions);

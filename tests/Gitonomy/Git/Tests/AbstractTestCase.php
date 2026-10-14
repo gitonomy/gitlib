@@ -257,11 +257,7 @@ abstract class AbstractTestCase extends TestCase
      */
     protected static function getCliDriver(array $environmentVariables = [], ?float $processTimeout = 60, ?LoggerInterface $logger = null): CliDriver
     {
-        // git 2.29 and later run their maintenance after a commit, in the
-        // background since 2.46: it would write in the repositories the tests delete.
-        $envs = [...self::gitEnvs(), 'GIT_CONFIG_COUNT' => '1', 'GIT_CONFIG_KEY_0' => 'maintenance.auto', 'GIT_CONFIG_VALUE_0' => 'false'];
-
-        return new CliDriver(self::gitCommand(), [...$envs, ...$environmentVariables], processTimeout: $processTimeout, logger: $logger);
+        return new CliDriver(self::gitCommand(), [...self::gitEnvs(), ...$environmentVariables], processTimeout: $processTimeout, logger: $logger);
     }
 
     /**
@@ -275,6 +271,21 @@ abstract class AbstractTestCase extends TestCase
         }
 
         return $command;
+    }
+
+    /**
+     * @return string The version of the git binary of the tests, like "2.25.1"
+     */
+    protected static function gitVersion(): string
+    {
+        $process = new Process([self::gitCommand(), 'version']);
+        $process->mustRun();
+
+        if (1 !== preg_match('/^git version (\d+\.\d+\.\d+)/', $process->getOutput(), $matches)) {
+            throw new \UnexpectedValueException(\sprintf('Unable to read the version of git in "%s".', $process->getOutput()));
+        }
+
+        return $matches[1];
     }
 
     /**
