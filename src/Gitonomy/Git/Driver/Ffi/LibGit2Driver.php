@@ -191,10 +191,19 @@ final readonly class LibGit2Driver implements DriverInterface
      *
      * @throws UnsupportedOperationException $url is a bundle
      */
-    private static function assertNotBundle(string $url): void
+    private static function assertNotBundle(#[\SensitiveParameter] string $url): void
     {
+        // A local path only, a Windows one included: is_file() would hand any
+        // other URL to the stream wrapper of its scheme, like the one of
+        // "ftp://", which connects with the credentials of the URL. A
+        // "host:path" address isn't local either.
+        $path = str_starts_with($url, 'file://') ? substr($url, \strlen('file://')) : $url;
+        if (1 === preg_match('#^[a-zA-Z][a-zA-Z0-9+.-]*:#', $path) && 1 !== preg_match('#^[a-zA-Z]:[\\\/]#', $path)) {
+            return;
+        }
+
         // The signatures of the formats of bundles.
-        if (is_file($url) && is_readable($url) && \in_array(file_get_contents($url, length: 16), ["# v2 git bundle\n", "# v3 git bundle\n"], true)) {
+        if (is_file($path) && is_readable($path) && \in_array(file_get_contents($path, length: 16), ["# v2 git bundle\n", "# v3 git bundle\n"], true)) {
             throw new UnsupportedOperationException(\sprintf('"%s" is a bundle, which LibGit2Driver doesn\'t support; use CliDriver.', $url));
         }
     }
