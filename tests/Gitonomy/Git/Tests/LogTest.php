@@ -381,6 +381,24 @@ class LogTest extends AbstractTestCase
     }
 
     /**
+     * Like "git log --all", which walks from HEAD too: a detached HEAD may
+     * name a commit no reference has, like after the checkout of a hash.
+     */
+    public function testALogOfEveryReferenceIncludesADetachedHead(): void
+    {
+        $repository = self::createFoobarRepository();
+        $master = $repository->getHeadCommit();
+        $hash = self::writeObject($repository, 'commit', "tree {$master->getTreeHash()}\nparent {$master->getHash()}\nauthor A <a@example.com> 1700000000 +0000\ncommitter A <a@example.com> 1700000000 +0000\n\nDetached\n");
+        self::git($repository, 'update-ref', ['--no-deref', 'HEAD', $hash]);
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+
+        $log = $repository->getLog();
+
+        $this->assertContains($hash, self::hashes($log));
+        $this->assertCount(\count($log->getCommits()), $log);
+    }
+
+    /**
      * @param \Closure(Repository): Log $log
      */
     #[DataProvider('provideNegativeBounds')]
