@@ -52,7 +52,7 @@ abstract class Reference extends Revision
     }
 
     /**
-     * @return string The commit the reference points to, when it was read: the commit an annotated tag points to, for one
+     * @return string The object the reference points to, when it was read, through an annotated tag: a commit, unless a tag points to a tree or a blob
      */
     public function getCommitHash(): string
     {

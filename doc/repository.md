@@ -196,12 +196,13 @@ echo $process->getErrorOutput();
 ```
 
 Both throw a `ProcessException` when git fails, a `DriverException` when it
-can't start, and an `UnsupportedOperationException` with another driver
-than `CliDriver`. The relative paths of the arguments are relative to the
-repository. The arguments go to git as they are: a value from your users
-starting with a dash is an option for git, unless `--` comes before it.
-gitlib reads the references again after the command, which may have written
-them.
+can't start, a `ProcessTimedOutException` when it runs longer than
+[the timeout](#configuring-clidriver), and an `UnsupportedOperationException`
+with another driver than `CliDriver`. The relative paths of the arguments are
+relative to the repository. The arguments go to git as they are: a value from
+your users starting with a dash is an option for git, unless `--` comes
+before it. gitlib reads the references again after the command, which may
+have written them.
 
 `shell()` is deprecated since 2.0: run `git shell` with Symfony Process
 instead.
@@ -238,6 +239,10 @@ or empty data instead. Every exception of gitlib implements
     would run, a URL whose ssh host or user starts with a dash, which ssh
     would read as an option, or a reference to delete outside `refs/`, like
     `HEAD`.
+-   `RuntimeException`: any other failure, like a hook that exists already
+    (`Hooks::set()`), a file of the git directory that can't be written, or
+    an output of git that gitlib can't read. `DriverException` and
+    `UnsupportedOperationException` extend it.
 -   `LogicException`: a call that makes no sense, like the working copy of a
     bare repository.
 
@@ -302,6 +307,19 @@ path to the driver:
 
 ```php
 $driver = new LibGit2Driver('/opt/libgit2/lib/libgit2.so.1.9');
+```
+
+`isSupported()` only looks for the usual names: to check a path, construct
+the driver and catch the exception instead:
+
+```php
+use Gitonomy\Git\Exception\UnsupportedOperationException;
+
+try {
+    $driver = new LibGit2Driver('/opt/libgit2/lib/libgit2.so.1.9');
+} catch (UnsupportedOperationException) {
+    $driver = new CliDriver();
+}
 ```
 
 Differences with `CliDriver`:
@@ -418,9 +436,14 @@ an AMD Ryzen AI 9 HX 370.
     ([libgit2#3027](https://github.com/libgit2/libgit2/issues/3027)).
 
 Keep the default `CliDriver`, unless your application runs many small reads
-in a long-running process, and check with your own repository:
+in a long-running process, and check with your own repository, from a clone
+of gitlib (Composer doesn't install `benchmark.php`, nor `symfony/console`,
+which it requires):
 
 ```bash
+git clone https://github.com/gitonomy/gitlib.git
+cd gitlib
+composer install
 php benchmark.php /path/to/repository path/to/a/file
 ```
 

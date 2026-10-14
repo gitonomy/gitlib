@@ -30,11 +30,18 @@ use Gitonomy\Git\FastForward;
  * Implementations know nothing of Repository: they read and write git data,
  * and the domain objects (Commit, Tree, Reference...) build on it.
  *
- * Every method throws a {@see DriverException} when git reports a failure (an
- * unknown revision, a conflict...), an {@see UnsupportedOperationException}
- * when the driver can't perform the operation at all, and an
- * {@see InvalidArgumentException} when an argument contains a NUL byte, which
- * git doesn't accept.
+ * resolveRevision(), and the methods reading an object by its hash, like
+ * getCommitData(), throw a {@see ReferenceNotFoundException} when it doesn't
+ * exist. Every method throws a {@see DriverException} when git reports
+ * another failure (a conflict, a lock...), an
+ * {@see UnsupportedOperationException} when the driver can't perform the
+ * operation at all, and an {@see InvalidArgumentException} when an argument
+ * contains a NUL byte, which git doesn't accept.
+ *
+ * git reads an argument starting with a dash as an option: the revision
+ * "--output=/path" of a log writes a file. Every method refuses, with an
+ * {@see InvalidArgumentException}, a revision, a reference or a hash starting
+ * with a dash, before running git. A path may start with one.
  *
  * @author Grégoire Pineau <lyrixx@lyrixx.info>
  */

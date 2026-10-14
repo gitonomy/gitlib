@@ -22,6 +22,7 @@ use Gitonomy\Git\Driver\RepositoryDriverInterface;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\ProcessTimedOutException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
@@ -305,7 +306,7 @@ final class Repository
     }
 
     /**
-     * Instanciates a revision.
+     * Instantiates a revision.
      *
      * @param string $name Name of the revision
      */
@@ -650,6 +651,7 @@ final class Repository
      * @return string output of the process
      *
      * @throws ProcessException              Error while executing git command
+     * @throws ProcessTimedOutException      git runs longer than the timeout of the CliDriver
      * @throws DriverException               git can't start, or is killed
      * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
@@ -670,6 +672,7 @@ final class Repository
      * @param array  $args    Arguments of git command
      *
      * @throws ProcessException              Error while executing git command
+     * @throws ProcessTimedOutException      git runs longer than the timeout of the CliDriver
      * @throws DriverException               git can't start, or is killed
      * @throws UnsupportedOperationException The driver isn't a CliDriver
      */

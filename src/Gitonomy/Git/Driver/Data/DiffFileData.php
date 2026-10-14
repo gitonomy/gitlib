@@ -34,7 +34,7 @@ final readonly class DiffFileData
      * @param string|null      $oldName  Null for a creation
      * @param string|null      $newName  Null for a deletion
      * @param string|null      $oldIndex The hash of the old blob, null when there is none
-     * @param string|null      $newIndex The hash of the new blob, null when there is none, or for a file of the working tree
+     * @param string|null      $newIndex The hash of the new blob, null when there is none; for a file of the working tree, the hash of its content, which the repository may not store
      * @param list<FileChange> $changes
      *
      * @throws InvalidArgumentException Both names are null

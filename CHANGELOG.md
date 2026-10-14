@@ -23,7 +23,7 @@ deprecated until 3.0.
 - Return the dates of commits and tags at the UTC offset of their author, committer or tagger,
   like `git log` shows them, instead of in UTC: the instant doesn't change, but `format()`
   returns their local time.
-- Require PHP 8.4 or later, Symfony 6.4/7.4/8.1+: most classes are `final` (some `readonly`),
+- Require PHP 8.4 or later, Symfony 7.4/8.1+: most classes are `final` (some `readonly`),
   and every method has native types. ([#238](https://github.com/gitonomy/gitlib/pull/238))
 - Remove `Gitonomy\Git\Util\StringHelper`, replaced by `symfony/string`, and its configurable
   encoding: gitlib reads everything in UTF-8. ([#252](https://github.com/gitonomy/gitlib/pull/252))
@@ -55,9 +55,9 @@ deprecated until 3.0.
   FFI extension, as an alternative to the default `Driver\Cli\CliDriver`: pass it as the driver of
   `Repository`. It avoids spawning a `git` process for every operation; see
   ["Choosing a driver"](doc/repository.md#choosing-a-driver) for its requirements, its
-  differences with `CliDriver`, and when it is faster. `benchmark.php` compares both drivers
-  on a repository. With php-fpm, `LibGit2Driver::preload()` keeps libgit2 loaded from
-  `opcache.preload`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
+  differences with `CliDriver`, and when it is faster. `benchmark.php`, from a clone of gitlib,
+  compares both drivers on a repository. With php-fpm, `LibGit2Driver::preload()` keeps libgit2
+  loaded from `opcache.preload`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - `Repository` takes the working directory and the driver as arguments: a `Driver\Cli\CliDriver`
   by default, configured through its constructor (git binary, environment, timeout and logger,
   which gets every command, clones included), or any `Driver\DriverInterface`, to replace it in

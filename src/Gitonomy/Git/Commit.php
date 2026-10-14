@@ -245,7 +245,7 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns the comitter email.
+     * Returns the committer email.
      */
     public function getCommitterEmail(): string
     {

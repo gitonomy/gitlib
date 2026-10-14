@@ -76,9 +76,12 @@ $hash = $master->getCommitHash();
 $lastModification = $master->getLastModification('README.md');
 ```
 
-`getCommitHash()` is always a commit: for an annotated tag, the commit the
-tag object points to. A reference object keeps the commit it pointed to when
-it was read: get it again from the bag after a change.
+`getCommitHash()` is the commit the reference points to: for an annotated
+tag, the commit the tag object points to. A tag may point to a tree or a blob
+instead: `getCommitHash()` is then its hash, and reading the `Commit` of
+`getCommit()` throws a `ReferenceNotFoundException`. A reference object keeps
+the commit it pointed to when it was read: get it again from the bag after a
+change.
 
 Create and delete references
 ----------------------------
