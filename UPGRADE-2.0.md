@@ -516,12 +516,15 @@ Extending gitlib
     `Gitonomy\Git\Driver\DriverInterface` and pass it as the driver of
     `Repository`, instead of extending `Repository`: see
     ["Using your own driver"](doc/repository.md#using-your-own-driver).
+    gitlib may add methods to the interfaces of the drivers in a minor
+    version of 2.x.
 *   `Commit::__construct()` takes a `Gitonomy\Git\Driver\Data\CommitData`
     instead of an array, and `Commit::setData()` is internal.
 *   `Gitonomy\Git\Util\StringHelper` is removed, with its configurable
     encoding: use `symfony/string`. Logs are always read in UTF-8.
-*   The parsers of the git output moved to `Gitonomy\Git\Driver\Cli\Parser`
-    and are `final`, except `Parser\DiffParser` and `Parser\ParserBase`.
+*   The parsers of the git output moved to `Gitonomy\Git\Driver\Cli\Parser`,
+    and are `final` and internal, used by `CliDriver` only, except
+    `Parser\DiffParser` and `Parser\ParserBase`.
     `CommitParser` is merged into `LogParser`, and their results are objects
     of `Gitonomy\Git\Driver\Data`: `LogParser::$commits` (instead of `$log`),
     `TagParser::$data`, `ReferenceParser::$references`, `TreeParser::$entries`

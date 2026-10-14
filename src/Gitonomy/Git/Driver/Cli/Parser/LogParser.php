@@ -18,6 +18,8 @@ use Gitonomy\Git\Parser\ParserBase;
 
 /**
  * Parses the output of ``git log --format=raw``.
+ *
+ * @internal Used by CliDriver only
  */
 final class LogParser extends ParserBase
 {

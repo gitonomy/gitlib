@@ -37,6 +37,10 @@ use Gitonomy\Git\Exception\UnsupportedOperationException;
  * descriptor of PHP, and an ssh host or user starting with a dash is an
  * option for ssh.
  *
+ * gitlib may add methods to this interface in a minor version: the promise of
+ * backward compatibility covers the code calling it, not the drivers
+ * implementing it outside gitlib, like a stub in tests.
+ *
  * @author Grégoire Pineau <lyrixx@lyrixx.info>
  */
 interface DriverInterface

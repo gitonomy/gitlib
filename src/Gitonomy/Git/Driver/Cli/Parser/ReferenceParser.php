@@ -18,6 +18,8 @@ use Gitonomy\Git\Parser\ParserBase;
 
 /**
  * Parses ``<hash> <full name>`` lines.
+ *
+ * @internal Used by CliDriver only
  */
 final class ReferenceParser extends ParserBase
 {

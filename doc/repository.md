@@ -587,3 +587,7 @@ $repository->getReferences()->getBranch('main')->getCommitHash(); // $hash
 The other methods of `DriverInterface` create repositories: `init()`,
 `initBare()`, `cloneFrom()`, `cloneBareFrom()`, `mirrorFrom()`,
 `isValidRepository()` and `isValidRepositoryAndBranch()`.
+
+gitlib may add methods to both interfaces in a minor version of 2.x: the
+promise of backward compatibility covers the code calling them, not the
+drivers implementing them, like a stub that implements every method.

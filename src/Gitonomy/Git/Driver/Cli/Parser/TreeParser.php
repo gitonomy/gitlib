@@ -20,6 +20,8 @@ use Gitonomy\Git\Parser\ParserBase;
 /**
  * Parses a tree object, as ``git cat-file --batch`` gives it: for each
  * entry, its mode, a space, its name, a NUL byte, and its hash in binary.
+ *
+ * @internal Used by CliDriver only
  */
 final class TreeParser extends ParserBase
 {

@@ -19,6 +19,8 @@ use Gitonomy\Git\Parser\ParserBase;
 
 /**
  * Parses a tag object, as ``git cat-file --batch`` gives it.
+ *
+ * @internal Used by CliDriver only
  */
 final class TagParser extends ParserBase
 {

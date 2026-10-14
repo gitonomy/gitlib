@@ -17,6 +17,8 @@ use Gitonomy\Git\Parser\ParserBase;
 
 /**
  * Parses the output of ``git blame -p``.
+ *
+ * @internal Used by CliDriver only
  */
 final class BlameParser extends ParserBase
 {

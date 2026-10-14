@@ -43,6 +43,10 @@ use Gitonomy\Git\FastForward;
  * {@see InvalidArgumentException}, a revision, a reference or a hash starting
  * with a dash, before running git. A path may start with one.
  *
+ * gitlib may add methods to this interface in a minor version: the promise of
+ * backward compatibility covers the code calling it, not the drivers
+ * implementing it outside gitlib, like a stub in tests.
+ *
  * @author Grégoire Pineau <lyrixx@lyrixx.info>
  */
 interface RepositoryDriverInterface
