@@ -19,7 +19,9 @@ Requirements
 *   git 1.8.4 or later is required by `CliDriver`, the default driver: before,
     git simplifies the log of a range filtered by path differently, and it
     can't count commits (`Log::count()`) before 1.7.2.
-*   `symfony/process` must be `^6.4`, `^7.4` or `^8.1`.
+*   `symfony/process` must be `^6.4.33`, `^7.4.5` or `^8.1`: the older
+    versions escape the arguments wrongly on Windows (CVE-2024-51736,
+    CVE-2026-24739).
 *   `symfony/string` `^7.4.6` or `^8.0.6`, `symfony/deprecation-contracts`
     `^2.5` or `^3`, and `psr/log` `^1.1`, `^2.0` or `^3.0` are new
     dependencies.

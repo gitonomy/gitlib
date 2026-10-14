@@ -127,6 +127,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     option: `getRevision('--output=/path')`, `WorkingCopy::checkout()` or `merge()` could write
     a file, and `Repository::isValidRepository('--upload-pack=...')` run a command. A path may
     start with a dash: `init()` and the clones end the options of git with `--`.
+-   Require `symfony/process` 6.4.33, 7.4.5 or 8.1 and later: the older versions escape the
+    arguments wrongly on Windows (CVE-2024-51736, CVE-2026-24739).
 -   Refuse an `ext::` URL, like `ext::sh -c ...`, whose command git runs, by default before git
     2.12, and an `fd::` URL, which makes git talk through a file descriptor it inherits from PHP,
     like the socket of a database, and wait on it.
