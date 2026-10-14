@@ -14,7 +14,6 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\DriverException;
-use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
@@ -130,26 +129,11 @@ final readonly class WorkingCopy
     /**
      * Merges a revision into the current branch.
      *
-     * An array of arguments of "git merge" ([], ["--no-ff"] or ["--ff-only"]) is deprecated.
-     *
-     * @param FastForward|string[] $fastForward
-     *
      * @throws ReferenceNotFoundException $revision names no commit
      * @throws DriverException            The merge fails: a conflict, staged changes, an unrelated history...
      */
-    public function merge(Revision|string $revision, FastForward|array $fastForward = FastForward::Allow): static
+    public function merge(Revision|string $revision, FastForward $fastForward = FastForward::Allow): static
     {
-        if (\is_array($fastForward)) {
-            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing arguments of "git merge" to "%s()" is deprecated, pass a "%s" instead.', __METHOD__, FastForward::class);
-
-            $fastForward = match ($fastForward) {
-                [] => FastForward::Allow,
-                ['--no-ff'] => FastForward::Never,
-                ['--ff-only'] => FastForward::Only,
-                default => throw new InvalidArgumentException(\sprintf('Unsupported arguments "%s": pass a "%s" instead.', implode(' ', $fastForward), FastForward::class)),
-            };
-        }
-
         // Like checkout(). The driver gets the name, which the message of the merge commit has.
         ($revision instanceof Revision ? $revision : $this->repository->getRevision($revision))->getCommit();
 

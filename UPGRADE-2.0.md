@@ -322,23 +322,6 @@ Working copy
     $workingCopy->checkoutNewBranch('feature', 'origin/feature');
     ```
 
-*   `WorkingCopy::merge()` takes a `FastForward` instead of arguments of
-    `git merge`, deprecated.
-
-    Before:
-
-    ```php
-    $workingCopy->merge('feature', ['--no-ff']);
-    ```
-
-    After:
-
-    ```php
-    use Gitonomy\Git\FastForward;
-
-    $workingCopy->merge('feature', FastForward::Never);
-    ```
-
 Commits, trees and blobs
 ------------------------
 

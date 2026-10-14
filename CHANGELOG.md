@@ -114,8 +114,7 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 -   A range of lines as a string in `Repository::getBlame()`, `Blame::getGroupedLines()` and
     `Blame\Line::getLine()`.
 -   `CommitReference`, `Tree::getCommitReferenceEntries()`, reading tree entries as arrays.
--   The branch to create of `WorkingCopy::checkout()`, the arguments of `git merge` of
-    `WorkingCopy::merge()`.
+-   The branch to create of `WorkingCopy::checkout()`.
 -   `Commit::getShortMessage()` and `getFixedShortHash()`, `Repository::shell()`,
     `PushReference::getReference()` and `getRevision()`.
 -   `Repository::getSize()`, in kilobytes: use `getSizeInBytes()`.

@@ -388,20 +388,6 @@ class WorkingCopyTest extends AbstractTestCase
         $wc->merge('origin/diff-features', FastForward::Only);
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyMergeArguments(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing arguments of "git merge" to "Gitonomy\Git\WorkingCopy::merge()" is deprecated, pass a "Gitonomy\Git\FastForward" instead.');
-
-        $repository = self::createFoobarRepository(false);
-        $head = $repository->getHeadCommit();
-
-        $repository->getWorkingCopy()->merge($head->getHash(), ['--no-ff']);
-
-        $this->assertSame($head->getHash(), $repository->getHeadCommit()->getHash());
-    }
-
     public function testMergeFastForwardsTheCurrentBranch(): void
     {
         $repository = self::createFoobarRepository(false);
