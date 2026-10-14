@@ -79,6 +79,115 @@ class RepositoryTest extends AbstractTestCase
         $this->assertSame($repository->getHeadCommit()->getHash(), $worktree->getHeadCommit()->getHash());
     }
 
+    /**
+     * The ".git" file of a submodule points to its git directory, in the one
+     * of the superproject, with a relative path.
+     */
+    public function testOpensASubmodule(): void
+    {
+        $superproject = self::createFoobarRepository(false);
+        $source = self::createFoobarRepository();
+        // git refuses to clone a local submodule since 2.38.1, unless protocol.file.allow allows it.
+        new Process([self::gitCommand(), '-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', $source->getGitDir(), 'sub'], $superproject->getWorkingDir(), self::gitEnvs())->mustRun();
+        $dir = $superproject->getWorkingDir().'/sub';
+        $this->assertFileMatchesFormat('gitdir: ../.git/modules/sub', $dir.'/.git');
+
+        $submodule = new Repository($dir, driver: self::getDriver());
+
+        $this->assertSame(realpath($dir), $submodule->getWorkingDir());
+        $this->assertSame(realpath($superproject->getGitDir().'/modules/sub'), $submodule->getGitDir());
+        $this->assertFalse($submodule->isBare());
+        $this->assertSame($source->getHeadCommit()->getHash(), $submodule->getHeadCommit()->getHash());
+    }
+
+    /**
+     * "git clone --separate-git-dir" writes a ".git" file with the absolute
+     * path of the git directory.
+     */
+    public function testOpensACloneWithASeparateGitDir(): void
+    {
+        $source = self::createFoobarRepository();
+        [$dir, $gitDir] = self::cloneWithASeparateGitDir($source);
+
+        $repository = new Repository($dir, driver: self::getDriver());
+
+        $this->assertSame(realpath($dir), $repository->getWorkingDir());
+        $this->assertSame(realpath($gitDir), $repository->getGitDir());
+        $this->assertFalse($repository->isBare());
+        $this->assertSame($source->getHeadCommit()->getHash(), $repository->getHeadCommit()->getHash());
+    }
+
+    /**
+     * Like git, which leaves out the line ending of a ".git" file only: a
+     * path may end with a space.
+     */
+    #[DataProvider('provideLineEndings')]
+    public function testOpensAGitFileWhateverItsLineEnding(string $lineEnding): void
+    {
+        [$dir, $gitDir] = self::cloneWithASeparateGitDir(self::createFoobarRepository());
+        file_put_contents($dir.'/.git', 'gitdir: '.$gitDir.$lineEnding);
+
+        $this->assertSame(realpath($gitDir), new Repository($dir, driver: self::getDriver())->getGitDir());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideLineEndings(): iterable
+    {
+        yield 'none' => [''];
+        yield 'LF' => ["\n"];
+        yield 'CRLF, written on Windows' => ["\r\n"];
+    }
+
+    #[DataProvider('provideGitFilesPointingToNoGitDirectory')]
+    public function testAGitFilePointingToNoGitDirectoryThrows(string $content, string $message): void
+    {
+        $dir = self::createTempDir();
+        file_put_contents($dir.'/.git', $content);
+
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage(\sprintf($message, $dir));
+
+        new Repository($dir, driver: self::getDriver());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideGitFilesPointingToNoGitDirectory(): iterable
+    {
+        $invalid = 'The "%s/.git" file doesn\'t point to a git directory.';
+
+        yield 'another format' => ["ref: refs/heads/master\n", $invalid];
+        // Like git, which reads "gitdir: " at the start of the file only.
+        yield 'gitdir on the second line' => ["\ngitdir: missing\n", $invalid];
+        yield 'no path' => ["gitdir: \n", $invalid];
+        yield 'NUL byte' => ["gitdir: a\0b\n", $invalid];
+        yield 'missing directory' => ["gitdir: missing\n", 'The git directory "missing" of "%s" does not exist.'];
+    }
+
+    public function testAnUnreadableGitFileThrows(): void
+    {
+        $dir = self::createTempDir();
+        file_put_contents($dir.'/.git', "gitdir: missing\n");
+        chmod($dir.'/.git', 0);
+
+        try {
+            if (is_readable($dir.'/.git')) {
+                $this->markTestSkipped('The user of the tests reads any file, like root.');
+            }
+
+            $this->expectException(DriverException::class);
+            $this->expectExceptionMessage(\sprintf('Unable to read the "%s/.git" file.', $dir));
+
+            new Repository($dir, driver: self::getDriver());
+        } finally {
+            // Or the file can't be deleted on Windows.
+            chmod($dir.'/.git', 0o600);
+        }
+    }
+
     public function testOpeningADirectoryThatIsNotARepositoryThrows(): void
     {
         $dir = self::createTempDir();
@@ -819,5 +928,17 @@ class RepositoryTest extends AbstractTestCase
         $this->expectExceptionMessage('The "debug" option set to false is not supported anymore: a failing git operation always throws, catch its exception instead.');
 
         new Repository(self::createTempDir(), ['debug' => false]);
+    }
+
+    /**
+     * @return array{string, string} The working tree of the clone, and its git directory
+     */
+    private static function cloneWithASeparateGitDir(Repository $source): array
+    {
+        $dir = self::createTempDir().'/clone';
+        $gitDir = self::createTempDir().'/git';
+        new Process([self::gitCommand(), 'clone', '-q', '--separate-git-dir='.$gitDir, $source->getGitDir(), $dir], null, self::gitEnvs())->mustRun();
+
+        return [$dir, $gitDir];
     }
 }
