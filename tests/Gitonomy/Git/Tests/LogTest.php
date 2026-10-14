@@ -381,6 +381,40 @@ class LogTest extends AbstractTestCase
     }
 
     /**
+     * @param \Closure(Repository): Log $log
+     */
+    #[DataProvider('provideNegativeBounds')]
+    public function testANegativeOffsetOrLimitIsRefused(\Closure $log, string $message): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        $log($repository);
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(Repository): Log, string}>
+     */
+    public static function provideNegativeBounds(): iterable
+    {
+        yield 'offset' => [static fn (Repository $repository): Log => $repository->getLog(null, null, -1), 'The offset of a log can\'t be negative, -1 given.'];
+        yield 'limit' => [static fn (Repository $repository): Log => $repository->getLog(null, null, null, -1), 'The limit of a log can\'t be negative, -1 given.'];
+        yield 'offset of a revision' => [static fn (Repository $repository): Log => $repository->getRevision('master')->getLog(null, -2), 'The offset of a log can\'t be negative, -2 given.'];
+        yield 'withOffset()' => [static fn (Repository $repository): Log => $repository->getLog()->withOffset(-5), 'The offset of a log can\'t be negative, -5 given.'];
+        yield 'withLimit()' => [static fn (Repository $repository): Log => $repository->getLog()->withLimit(-1), 'The limit of a log can\'t be negative, -1 given.'];
+    }
+
+    public function testALimitOfZeroGivesNoCommit(): void
+    {
+        $log = self::createFoobarRepository()->getLog(null, null, null, 0);
+
+        $this->assertSame([], $log->getCommits());
+        $this->assertCount(0, $log);
+    }
+
+    /**
      * The command line of a process has a limit, 2 MB by default on Linux: a
      * log of thousands of branches would exceed it.
      */

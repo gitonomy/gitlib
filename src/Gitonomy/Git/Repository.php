@@ -450,6 +450,8 @@ final class Repository
      *                                                                            paths
      * @param int|null                                                 $offset    start from a given offset in results
      * @param int|null                                                 $limit     limit number of total results
+     *
+     * @throws InvalidArgumentException $offset or $limit is negative
      */
     public function getLog(RevisionList|Revision|string|array|null $revisions = null, array|string|null $paths = null, ?int $offset = null, ?int $limit = null): Log
     {

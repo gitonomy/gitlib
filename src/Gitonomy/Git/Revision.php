@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 
 /**
@@ -35,6 +36,8 @@ class Revision
 
     /**
      * @param string[]|string|null $paths Paths to filter on, with git's wildcards
+     *
+     * @throws InvalidArgumentException $offset or $limit is negative
      */
     public function getLog(array|string|null $paths = null, ?int $offset = null, ?int $limit = null): Log
     {

@@ -200,6 +200,7 @@ History
     `withLimit()` return another `Log`.
 *   `count($log)` returns the number of commits the log iterates, after its
     offset and up to its limit; `countCommits()` still counts them all.
+*   A negative offset or limit throws an `InvalidArgumentException`.
 *   The revisions of a log are names, ranges (`a..b`, `a...b`), names to
     exclude (`^a`) or `--all`: any other option of `git log` throws an
     `InvalidArgumentException`, instead of being passed to git. An unknown

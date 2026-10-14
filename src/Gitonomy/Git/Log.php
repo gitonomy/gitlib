@@ -45,6 +45,8 @@ final class Log implements \Countable, \IteratorAggregate
      * @param string[]|string|null                                     $paths      paths to filter on, with git's wildcards
      * @param int|null                                                 $offset     start list from a given position
      * @param int|null                                                 $limit      limit number of fetched elements
+     *
+     * @throws InvalidArgumentException $offset or $limit is negative
      */
     public function __construct(
         private readonly Repository $repository,
@@ -65,8 +67,8 @@ final class Log implements \Countable, \IteratorAggregate
 
         $this->revisions = $revisions;
         $this->paths = $paths;
-        $this->offset = $offset;
-        $this->limit = $limit;
+        $this->offset = self::offset($offset);
+        $this->limit = self::limit($limit);
     }
 
     /**
@@ -99,11 +101,13 @@ final class Log implements \Countable, \IteratorAggregate
 
     /**
      * @return self The log, starting from the commit $offset
+     *
+     * @throws InvalidArgumentException $offset is negative
      */
     public function withOffset(?int $offset): self
     {
         $log = clone $this;
-        $log->offset = $offset;
+        $log->offset = self::offset($offset);
 
         return $log;
     }
@@ -115,7 +119,7 @@ final class Log implements \Countable, \IteratorAggregate
     {
         trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "withOffset()" instead.', __METHOD__);
 
-        $this->offset = $offset;
+        $this->offset = self::offset($offset);
 
         return $this;
     }
@@ -127,11 +131,13 @@ final class Log implements \Countable, \IteratorAggregate
 
     /**
      * @return self The log, of $limit commits at most
+     *
+     * @throws InvalidArgumentException $limit is negative
      */
     public function withLimit(?int $limit): self
     {
         $log = clone $this;
-        $log->limit = $limit;
+        $log->limit = self::limit($limit);
 
         return $log;
     }
@@ -143,7 +149,7 @@ final class Log implements \Countable, \IteratorAggregate
     {
         trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "withLimit()" instead.', __METHOD__);
 
-        $this->limit = $limit;
+        $this->limit = self::limit($limit);
 
         return $this;
     }
@@ -261,5 +267,29 @@ final class Log implements \Countable, \IteratorAggregate
     private function commitHash(string $revision): string
     {
         return $this->repository->getRevision('' === $revision ? 'HEAD' : $revision)->getCommit()->getHash();
+    }
+
+    /**
+     * @throws InvalidArgumentException $offset is negative
+     */
+    private static function offset(?int $offset): ?int
+    {
+        if (null !== $offset && $offset < 0) {
+            throw new InvalidArgumentException(\sprintf('The offset of a log can\'t be negative, %d given.', $offset));
+        }
+
+        return $offset;
+    }
+
+    /**
+     * @throws InvalidArgumentException $limit is negative
+     */
+    private static function limit(?int $limit): ?int
+    {
+        if (null !== $limit && $limit < 0) {
+            throw new InvalidArgumentException(\sprintf('The limit of a log can\'t be negative, %d given.', $limit));
+        }
+
+        return $limit;
     }
 }
