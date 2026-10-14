@@ -25,10 +25,15 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 final class RemoteUrl
 {
     /**
-     * @throws InvalidArgumentException $url starts with a dash, uses the "ext::" or "fd::" transport, or has a host or a user starting with a dash, encoded or not
+     * @throws InvalidArgumentException $url is empty, starts with a dash, uses the "ext::" or "fd::" transport, or has a host or a user starting with a dash, encoded or not
      */
     public static function assertSafe(#[\SensitiveParameter] string $url): void
     {
+        // git would run in the working directory of PHP, which may be a repository.
+        if ('' === $url) {
+            throw new InvalidArgumentException('The URL of a repository can\'t be empty.');
+        }
+
         LeadingDash::assertNone($url);
 
         // "ext::sh -c ..." runs the command, to talk to it: git refuses it by

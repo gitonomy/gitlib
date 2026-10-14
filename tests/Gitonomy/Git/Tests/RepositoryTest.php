@@ -339,6 +339,50 @@ class RepositoryTest extends AbstractTestCase
         }
     }
 
+    /**
+     * git reads the configuration of the repository it runs in, like its
+     * rewrites of URLs: an application may run from a checkout.
+     */
+    public function testTheWorkingDirectoryOfPhpRewritesNoUrl(): void
+    {
+        $url = self::createFoobarRepository()->getGitDir();
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['url.'.self::createTempDir().'/missing.git.insteadOf', $url]);
+        $cwd = getcwd();
+        self::assertIsString($cwd);
+
+        chdir($repository->getPath());
+
+        try {
+            $this->assertTrue(Repository::isValidRepository($url, self::getDriver()));
+            $this->assertTrue(Repository::isValidRepositoryAndBranch($url, 'master', self::getDriver()));
+        } finally {
+            chdir($cwd);
+        }
+    }
+
+    /**
+     * git ran in the working directory of PHP, which may be a repository.
+     */
+    #[DataProvider('provideEmptyUrlCalls')]
+    public function testAnEmptyUrlIsRefused(\Closure $call): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The URL of a repository can\'t be empty.');
+
+        $call();
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(): mixed}>
+     */
+    public static function provideEmptyUrlCalls(): iterable
+    {
+        yield 'valid repository' => [static fn (): bool => Repository::isValidRepository('', self::getDriver())];
+        yield 'valid branch' => [static fn (): bool => Repository::isValidRepositoryAndBranch('', 'master', self::getDriver())];
+        yield 'clone' => [static fn (): Repository => Repository::cloneFrom('', self::createTempDir().'/clone', driver: self::getDriver())];
+    }
+
     public function testIsValidRepositoryThrowsWhenGitCantRun(): void
     {
         $this->skipUnlessCliDriver();

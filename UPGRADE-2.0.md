@@ -439,6 +439,7 @@ Errors
     `getRevision('--output=/path')` writing a file, or
     `isValidRepository('--upload-pack=...')` running a command. A path may
     start with a dash.
+*   An empty URL throws an `InvalidArgumentException`, with both drivers.
 *   An `ext::` URL throws an `InvalidArgumentException`, with both drivers:
     git runs its command, by default before git 2.12. So does an `fd::` URL,
     which makes git talk through a file descriptor it inherits from PHP.

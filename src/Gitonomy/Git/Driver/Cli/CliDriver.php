@@ -79,7 +79,7 @@ final readonly class CliDriver implements DriverInterface
         // ls-remote only takes "--" since git 2.8.
         RemoteUrl::assertSafe($url);
 
-        return $this->runner()->run('ls-remote', [self::absoluteUrl($url)])->isSuccessful();
+        return $this->runner()->run('ls-remote', [self::absoluteUrl($url)], workingDirectory: self::neutralDirectory())->isSuccessful();
     }
 
     public function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branch): bool
@@ -87,7 +87,7 @@ final readonly class CliDriver implements DriverInterface
         RemoteUrl::assertSafe($url);
 
         // git lists the branches whose name ends with the pattern: "release" matches "feature/release".
-        $process = $this->runner()->run('ls-remote', ['--heads', self::absoluteUrl($url), 'refs/heads/'.$branch]);
+        $process = $this->runner()->run('ls-remote', ['--heads', self::absoluteUrl($url), 'refs/heads/'.$branch], workingDirectory: self::neutralDirectory());
         if (!$process->isSuccessful()) {
             return false;
         }
@@ -151,9 +151,20 @@ final readonly class CliDriver implements DriverInterface
     }
 
     /**
+     * Out of the working directory of PHP, which may be a repository, like
+     * the checkout of an application: ls-remote, unlike clone, would read its
+     * configuration, its rewrites of URLs for instance. git 1.8.4 can't even
+     * run in a linked worktree.
+     */
+    private static function neutralDirectory(): string
+    {
+        return sys_get_temp_dir();
+    }
+
+    /**
      * Run in a repository, ls-remote reads a relative path as the name of a
      * remote first: "origin" would be the URL of the remote of PHP's working
-     * directory.
+     * directory. The path stays relative to it.
      */
     private static function absoluteUrl(#[\SensitiveParameter] string $url): string
     {

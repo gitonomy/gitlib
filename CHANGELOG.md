@@ -183,6 +183,10 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     process created or checked out since gitlib read the references, and
     `getIncludingBranches()` throwing for a regular `refs/remotes/origin/HEAD`, as a mirror leaves
     it. ([#263](https://github.com/gitonomy/gitlib/pull/263))
+-   Fix `isValidRepository()` and `isValidRepositoryAndBranch()` reading, with `CliDriver`, the
+    configuration of the repository PHP runs in, like its rewrites of URLs, and returning `true`
+    for an empty URL there: it throws an `InvalidArgumentException`.
+    ([#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Fix the blame of a file throwing with `CliDriver` after a merge whose sides kept it under two
     names: git repeats the path of a commit it blames under both, which gitlib didn't read.
     ([#263](https://github.com/gitonomy/gitlib/pull/263))

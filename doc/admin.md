@@ -104,6 +104,7 @@ start, like a missing binary. See [Errors](repository.md#errors).
 A URL that makes git run a command, or use a file of PHP, throws an
 `InvalidArgumentException`, with both drivers:
 
+-   an empty URL, which would make git read the repository PHP runs in;
 -   a URL starting with a dash, which git would read as an option, like
     `--upload-pack=...`; a path may start with one;
 -   an `ext::` URL, like `ext::sh -c ...`, whose command git runs, unless its
