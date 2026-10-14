@@ -3,6 +3,7 @@
 /.phpunit.cache
 /composer.lock
 /phpunit.xml
+/site/
 /var/
 /vendor
 /git-builds/

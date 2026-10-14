@@ -1,0 +1,95 @@
+# The documentation site, published on GitHub Pages by .github/workflows/docs.yml. Its pages are
+# doc/, README.md, UPGRADE-2.0.md and CHANGELOG.md, which tools/zensical/pages.py copies to
+# docs_dir first. With the Python packages of tools/zensical/requirements.txt:
+#
+#     python3 tools/zensical/pages.py && zensical serve
+
+[project]
+site_name = "gitlib"
+site_url = "https://gitonomy.github.io/gitlib/"
+site_description = "Access git repositories from PHP, through the git binary or libgit2."
+copyright = "gitlib is released under the <a href=\"https://github.com/gitonomy/gitlib/blob/main/LICENSE\">MIT license</a>."
+repo_url = "https://github.com/gitonomy/gitlib"
+repo_name = "gitonomy/gitlib"
+docs_dir = "var/docs"
+site_dir = "site"
+strict = true
+
+nav = [
+  { "Getting started" = "index.md" },
+  { "Repository and drivers" = [
+    { "Opening a repository" = "repository.md" },
+    { "Creating repositories" = "admin.md" },
+  ] },
+  { "Objects" = [
+    { "Revisions" = "revision.md" },
+    { "Commits" = "commit.md" },
+    { "Log" = "log.md" },
+    { "Trees" = "tree.md" },
+    { "Blobs" = "blob.md" },
+    { "Diffs" = "diff.md" },
+    { "Blame" = "blame.md" },
+    { "Tags and branches" = "references.md" },
+    { "Branches" = "branch.md" },
+  ] },
+  { "Working copy" = "workingcopy.md" },
+  { "Hooks" = "hooks.md" },
+  { "Upgrade and changelog" = [
+    { "Upgrading to 2.0" = "upgrade-2.0.md" },
+    { "Changelog" = "changelog.md" },
+  ] },
+]
+
+[project.theme]
+language = "en"
+favicon = "assets/favicon.svg"
+# The fonts of the system: no request to Google Fonts.
+font = false
+features = [
+  "content.code.copy",
+  "navigation.footer",
+  "navigation.instant",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+  "toc.follow",
+]
+
+[project.theme.icon]
+logo = "lucide/git-branch"
+repo = "fontawesome/brands/github"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "teal"
+accent = "teal"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "teal"
+accent = "teal"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to system preference"
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+toc.permalink = true
+# The examples start without "<?php".
+pymdownx.highlight.extend_pygments_lang = [
+  { name = "php", lang = "php", options = { startinline = true } },
+]
+pymdownx.inlinehilite = {}
+# Fenced code blocks in list items, which UPGRADE-2.0.md has.
+pymdownx.superfences = {}
