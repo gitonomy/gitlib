@@ -147,6 +147,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
   ["Git configuration"](doc/repository.md#git-configuration).
 - Fix `Commit::getShortHash()`, `Commit::getDiff()` and `Repository::getDiff()` failing when a
   file of the working tree has the name of the revision they read, which git found ambiguous.
+- Fix logs of thousands of revisions exceeding the limit of the command line: `CliDriver` passes
+  them to git on its standard input.
 - Fix `Commit::getDiff()` returning an empty diff for a root commit, and throwing for a merge
   commit (`CliDriver`). ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Fix `Repository::getDiff()`, `WorkingCopy::getDiffPending()` and `WorkingCopy::getDiffStaged()`

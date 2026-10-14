@@ -169,7 +169,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         }
 
         $parser = new LogParser();
-        $parser->parse($this->run('log', [...$args, ...self::revisions($includes, $excludes), '--', ...$paths]));
+        $parser->parse($this->runOnRevisions('log', $args, $includes, $excludes, $paths));
 
         return $parser->commits;
     }
@@ -182,7 +182,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
             return 0;
         }
 
-        return (int) $this->run('rev-list', ['--count', ...self::revisions($includes, $excludes), '--', ...$paths]);
+        return (int) $this->runOnRevisions('rev-list', ['--count'], $includes, $excludes, $paths);
     }
 
     public function getMergeBases(string $hash1, string $hash2): array
@@ -473,14 +473,26 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     }
 
     /**
-     * @param list<string>|null $includes
-     * @param list<string>      $excludes
+     * Runs $command on the commits reachable from $includes, but not from
+     * $excludes.
      *
-     * @return list<string>
+     * The hashes go through the standard input: thousands of them would
+     * exceed the limit of the command line.
+     *
+     * @param string[]          $args     Arguments of $command
+     * @param list<string>|null $includes Null for every reference and HEAD
+     * @param list<string>      $excludes
+     * @param string[]          $paths
      */
-    private static function revisions(?array $includes, array $excludes): array
+    private function runOnRevisions(string $command, array $args, ?array $includes, array $excludes, array $paths): string
     {
-        return [...$includes ?? ['--all'], ...array_map(static fn (string $hash): string => '^'.$hash, $excludes)];
+        // A hash per line, "^" excluding it. The standard input takes no option, like "--all".
+        $input = '';
+        foreach ([...$includes ?? [], ...array_map(static fn (string $hash): string => '^'.$hash, $excludes)] as $revision) {
+            $input .= $revision."\n";
+        }
+
+        return $this->runProcess($command, [...$args, ...null === $includes ? ['--all'] : [], '--stdin', '--', ...$paths], $input)->getOutput();
     }
 
     /**

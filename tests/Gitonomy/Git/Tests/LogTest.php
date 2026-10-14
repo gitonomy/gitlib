@@ -362,6 +362,21 @@ class LogTest extends AbstractTestCase
         $this->assertSame([$main, $base], self::hashes($repository->getLog('main')));
     }
 
+    /**
+     * The command line of a process has a limit, 2 MB by default on Linux: a
+     * log of thousands of branches would exceed it.
+     */
+    public function testLogOfMoreRevisionsThanACommandLineTakes(): void
+    {
+        $repository = self::createFoobarRepository();
+        // 4 MB of hashes.
+        $log = $repository->getLog(array_fill(0, 100_000, $repository->getCommit(self::LONGFILE_COMMIT)));
+
+        $hashes = self::hashes($repository->getLog(self::LONGFILE_COMMIT));
+        $this->assertSame($hashes, self::hashes($log));
+        $this->assertCount(\count($hashes), $log);
+    }
+
     public function testLogOfAnUnknownRevisionNamesIt(): void
     {
         $repository = self::createFoobarRepository();
