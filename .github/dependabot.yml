@@ -1,21 +1,50 @@
 version: 2
+
+# At most one pull request per language and per month, for releases a week old at least. Security
+# updates come as soon as they are published.
+multi-ecosystem-groups:
+  # The PHP tools, one Composer project per directory: one pull request for all of them.
+  php:
+    schedule:
+      interval: monthly
+
 updates:
+  - package-ecosystem: composer
+    directory: /tools/php-cs-fixer
+    multi-ecosystem-group: php
+    patterns: ['*']
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: composer
+    directory: /tools/phpstan
+    multi-ecosystem-group: php
+    patterns: ['*']
+    cooldown:
+      default-days: 7
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
-
-  - package-ecosystem: composer
-    directories:
-      - /tools/php-cs-fixer
-      - /tools/phpstan
-    schedule:
-      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ['*']
+      github-actions-security:
+        applies-to: security-updates
+        patterns: ['*']
 
   - package-ecosystem: pip
     directory: /tools/zensical
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     groups:
-      zensical:
+      pip:
+        patterns: ['*']
+      pip-security:
+        applies-to: security-updates
         patterns: ['*']
