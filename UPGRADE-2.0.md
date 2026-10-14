@@ -99,7 +99,7 @@ Creating repositories
    `release` no longer matches `feature/release`, nor `rel*` `release`.
  * `isValidRepository()` and `isValidRepositoryAndBranch()` read a relative
    path as a path, never as the name of a remote of PHP's working directory,
-   and throw a `ProcessException` when git can't run, instead of returning
+   and throw a `DriverException` when git can't start, instead of returning
    `false`.
 
    Before:
@@ -399,6 +399,18 @@ Errors
  * `ProcessException` extends the new
    `Gitonomy\Git\Exception\DriverException`, itself a `RuntimeException`:
    catching `RuntimeException` or `GitExceptionInterface` still works.
+ * The message of a `ProcessException` is one line, with the error of git:
+   the first line of its error output starting with `fatal:` or `error:`,
+   after the warnings, or its first line: `The git command "clone" failed
+   (exit 128): fatal: ...`, or `The git command "diff" failed (exit 1).`
+   when git writes no error. The command line, the rest of the error output
+   and the output are no longer in the message: `getErrorOutput()` and
+   `getOutput()` return the outputs of git. Its constructor takes the git
+   command as second argument, optional.
+ * When git can't start, a missing binary for instance, `CliDriver` throws
+   a `DriverException` instead of a `ProcessException`, with a message of
+   one line, without the command line: `The git command "clone" could not
+   start: ...`.
  * These methods throw instead of returning a fallback value:
    * `Commit::getIncludingBranches()` threw nothing and returned `[]` when git
      failed;
@@ -410,7 +422,8 @@ Errors
    exist, or can't be written, instead of a `LogicException` or a silent
    failure, and creates the hooks directory.
  * The `Admin` methods throw a `ProcessException`, still a
-   `RuntimeException`, with git's error output as message.
+   `RuntimeException`, with the first line of git's error output in its
+   message, or a `DriverException` when git can't start.
  * An argument holding a NUL byte throws an `InvalidArgumentException`,
    where PHP threw a `ValueError`: git and libgit2 read their arguments as C
    strings, which end at the first NUL byte.

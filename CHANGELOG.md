@@ -33,6 +33,14 @@ deprecated until 3.0.
 - `Diff::parse()` throws for a diff without its raw information, deprecated since 1.6.0
   ([#229](https://github.com/gitonomy/gitlib/pull/229)): parse the output of
   `git diff --raw --patch`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- `ProcessException` has a message of one line, with the error of git, the first line of its
+  error output starting with `fatal:` or `error:`, after the warnings:
+  `The git command "clone" failed (exit 128): fatal: ...`. The command line, the rest of the
+  error output and the output are no longer in the message: `getErrorOutput()` and
+  `getOutput()` return the outputs of git.
+- When git can't start, a missing binary for instance, `CliDriver` throws a `DriverException`
+  instead of a `ProcessException`, with a message of one line, without the command line:
+  `The git command "clone" could not start: ...`.
 - `WorkingCopy::checkout()` throws a `ReferenceNotFoundException` for a name that no revision has,
   with both drivers: the name of a remote branch alone, like `feature` for `origin/feature`,
   created the local branch. Use `checkoutNewBranch()`.

@@ -459,8 +459,8 @@ class WorkingCopyTest extends AbstractTestCase
             $wc->merge('master', FastForward::Never);
             $this->fail('A merge commit should have been refused.');
         } catch (DriverException $e) {
-            $this->assertStringContainsString(self::getDriver() instanceof CliDriver
-                ? 'fatal: Non-fast-forward commit does not make sense into an empty head'
+            $this->assertSame(self::getDriver() instanceof CliDriver
+                ? 'The git command "merge" failed (exit 128): fatal: Non-fast-forward commit does not make sense into an empty head.'
                 : 'Unable to merge "master" without a fast-forward: the branch "refs/heads/unborn" has no commit yet.', $e->getMessage());
         }
         $this->assertSame('refs/heads/unborn', $repository->getRepositoryDriver()->getHeadReference());
@@ -625,7 +625,8 @@ class WorkingCopyTest extends AbstractTestCase
             $this->fail('The start point is ambiguous.');
         } catch (DriverException $e) {
             if (self::getDriver() instanceof CliDriver) {
-                $this->assertMatchesRegularExpression('/fatal: [Aa]mbiguous object name: \'origin\/new-feature\'/', $e->getMessage());
+                // Capitalized, with a period, by older versions of git.
+                $this->assertMatchesRegularExpression('/^The git command "branch" failed \(exit 128\): fatal: [Aa]mbiguous object name: \'origin\/new-feature\'\.$/', $e->getMessage());
             } else {
                 $this->assertSame('The name "origin/new-feature" is ambiguous: "refs/heads/origin/new-feature", "refs/remotes/origin/new-feature".', $e->getMessage());
             }

@@ -189,12 +189,13 @@ $process = $repository->runProcess('push', ['origin', 'main']);
 echo $process->getErrorOutput();
 ```
 
-Both throw a `ProcessException` when git fails, and an
-`UnsupportedOperationException` with another driver than `CliDriver`. The
-relative paths of the arguments are relative to the repository. The
-arguments go to git as they are: a value from your users starting with a
-dash is an option for git, unless `--` comes before it. gitlib reads the
-references again after the command, which may have written them.
+Both throw a `ProcessException` when git fails, a `DriverException` when it
+can't start, and an `UnsupportedOperationException` with another driver
+than `CliDriver`. The relative paths of the arguments are relative to the
+repository. The arguments go to git as they are: a value from your users
+starting with a dash is an option for git, unless `--` comes before it.
+gitlib reads the references again after the command, which may have written
+them.
 
 `shell()` is deprecated since 2.0: run `git shell` with Symfony Process
 instead.
@@ -211,10 +212,14 @@ or empty data instead. Every exception of gitlib implements
     a reference or an object doesn't exist (`getRevision('unknown')->getCommit()`,
     `getReferences()->getBranch('unknown')`...).
 -   `DriverException`, a `RuntimeException`: git reports a failure, like a
-    merge conflict or a clone of an unknown repository. With `CliDriver`, it
-    is mostly a `ProcessException`, whose `getErrorOutput()` and
-    `getOutput()` return the output of git, or a `ProcessTimedOutException`,
-    when git runs longer than [the timeout](#configuring-clidriver).
+    merge conflict or a clone of an unknown repository, or can't start, like
+    a missing binary (`The git command "clone" could not start: ...`). With
+    `CliDriver`, it is mostly a `ProcessException`, whose message has the
+    error of git, the first `fatal:` or `error:` line of its error output
+    (`The git command "clone" failed (exit 128): fatal: ...`), and whose
+    `getErrorOutput()` and `getOutput()` return the output of git, or a
+    `ProcessTimedOutException`, when git runs longer than
+    [the timeout](#configuring-clidriver).
 -   `UnsupportedOperationException`, a `RuntimeException`: the driver can't
     perform the operation at all, where another driver may: `run()`, cloning
     a bundle or opening a reftable repository with `LibGit2Driver`, libgit2

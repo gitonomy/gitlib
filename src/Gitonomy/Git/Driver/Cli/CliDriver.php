@@ -146,7 +146,7 @@ final readonly class CliDriver implements DriverInterface
         $process = $this->runner()->run($command, $args);
 
         if (!$process->isSuccessful()) {
-            throw new ProcessException($process);
+            throw new ProcessException($process, $command);
         }
     }
 

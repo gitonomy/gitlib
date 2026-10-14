@@ -622,6 +622,7 @@ final class Repository
      * @return string output of the process
      *
      * @throws ProcessException              Error while executing git command
+     * @throws DriverException               git can't start, or is killed
      * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
     public function run(string $command, #[\SensitiveParameter] array $args = []): string
@@ -641,6 +642,7 @@ final class Repository
      * @param array  $args    Arguments of git command
      *
      * @throws ProcessException              Error while executing git command
+     * @throws DriverException               git can't start, or is killed
      * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
     public function runProcess(string $command, #[\SensitiveParameter] array $args = []): Process

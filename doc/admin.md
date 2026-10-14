@@ -98,8 +98,8 @@ When git fails (an unknown branch, a directory with files, a network
 error...), the methods creating repositories throw a
 `Gitonomy\Git\Exception\DriverException`: a `ProcessException`, with git's
 error output, when `CliDriver` runs git. With `CliDriver`, every method,
-`isValidRepository()` included, throws a `ProcessException` when git can't
-run, like a missing binary. See [Errors](repository.md#errors).
+`isValidRepository()` included, throws a `DriverException` when git can't
+start, like a missing binary. See [Errors](repository.md#errors).
 
 A URL that makes git run a command throws an `InvalidArgumentException`,
 with both drivers:

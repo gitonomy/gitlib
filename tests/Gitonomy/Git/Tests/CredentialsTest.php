@@ -17,6 +17,7 @@ use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\GitExceptionInterface;
 use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ProcessTimedOutException;
 use Gitonomy\Git\Repository;
 use Gitonomy\Git\Util\Credentials;
@@ -41,7 +42,30 @@ class CredentialsTest extends AbstractTestCase
         } catch (DriverException $e) {
             // What loggers print: the message, the trace, and the chained exceptions.
             $this->assertStringNotContainsString('secret', (string) $e);
-            $this->assertStringContainsString('http://***@127.0.0.1:1/repository.git', $e->getMessage());
+            if (self::getDriver() instanceof CliDriver) {
+                // The error of git: recent versions name the URL without its credentials, and the old
+                // builds of the tests, without http support, do not name it.
+                $this->assertStringStartsWith('The git command "clone" failed (exit 128): fatal: ', $e->getMessage());
+            } else {
+                $this->assertStringStartsWith('Unable to clone "http://***@127.0.0.1:1/repository.git": ', $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * git writes the name of a branch it refuses in its error output.
+     */
+    public function testTheMessageOfAProcessExceptionHidesTheCredentials(): void
+    {
+        $this->skipUnlessCliDriver();
+
+        try {
+            self::createFoobarRepository()->run('branch', [self::URL]);
+            $this->fail('A URL is no valid branch name.');
+        } catch (ProcessException $e) {
+            $this->assertStringStartsWith('The git command "branch" failed (exit 128): fatal: \'http://***@127.0.0.1:1/repository.git\' is not a valid branch name', $e->getMessage());
+            $this->assertStringNotContainsString('secret', (string) $e);
+            $this->assertStringContainsString(self::URL, $e->getErrorOutput(), 'The error output is the one of git');
         }
     }
 
@@ -80,6 +104,9 @@ class CredentialsTest extends AbstractTestCase
             Repository::isValidRepository(self::URL.'/'.str_repeat('a', 4 * 1024 * 1024), self::getDriver());
             $this->fail('The command line is too long.');
         } catch (DriverException $e) {
+            // One line, the error of the system, like "posix_spawn() failed: Argument list too long", without the command line.
+            $this->assertMatchesRegularExpression('/^The git command "ls-remote" could not start: [^\n]+\.$/', $e->getMessage());
+            $this->assertStringNotContainsString('/repository.git/aaa', $e->getMessage());
             $this->assertStringNotContainsString('secret', (string) $e);
         }
     }

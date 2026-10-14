@@ -190,9 +190,13 @@ class RepositoryTest extends AbstractTestCase
     {
         $this->skipUnlessCliDriver();
 
-        $this->expectException(ProcessException::class);
-
-        Repository::isValidRepository(self::repositoryUrl(), new CliDriver('not-git'));
+        try {
+            Repository::isValidRepository(self::repositoryUrl(), new CliDriver('not-git'));
+            $this->fail('git is missing.');
+        } catch (DriverException $e) {
+            // One line, the error of the shell, like "sh: 1: exec: not-git: not found".
+            $this->assertMatchesRegularExpression('/^The git command "ls-remote" could not start: [^\n]+\.$/', $e->getMessage());
+        }
     }
 
     public function testCloneATagAsBranchDetachesHead(): void

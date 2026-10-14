@@ -273,7 +273,8 @@ class LogTest extends AbstractTestCase
         if (self::getDriver() instanceof LibGit2Driver) {
             $this->expectExceptionMessage('The path "dir/../../file.txt" is outside the repository.');
         } else {
-            $this->expectExceptionMessageMatches('/\'dir\/\.\.\/\.\.\/file\.txt\' is outside repository/');
+            // git 1.8.4 doesn't repeat the path first, and recent versions name the repository after it.
+            $this->expectExceptionMessageMatches('/^The git command "log" failed \(exit 128\): fatal: (?:dir\/\.\.\/\.\.\/file\.txt: )?\'dir\/\.\.\/\.\.\/file\.txt\' is outside repository/');
         }
 
         $repository->getLog('main', 'dir/../../file.txt')->getCommits();

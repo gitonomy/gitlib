@@ -103,7 +103,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         }
 
         if (!$process->isSuccessful()) {
-            throw new ProcessException($process);
+            throw new ProcessException($process, 'symbolic-ref');
         }
 
         return trim($process->getOutput());
@@ -122,7 +122,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         }
 
         if (!$process->isSuccessful()) {
-            throw new ProcessException($process);
+            throw new ProcessException($process, 'rev-parse');
         }
 
         return trim($process->getOutput());
@@ -198,7 +198,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         }
 
         if (!$process->isSuccessful()) {
-            throw new ProcessException($process);
+            throw new ProcessException($process, 'merge-base');
         }
 
         return explode("\n", trim($process->getOutput()));
@@ -236,7 +236,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         }
 
         if (!$process->isSuccessful()) {
-            throw new ProcessException($process);
+            throw new ProcessException($process, 'show-ref');
         }
 
         $parser = new ReferenceParser();
@@ -392,7 +392,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
         $process = $this->execute($command, array_map(strval(...), $args), $input);
 
         if (!$process->isSuccessful()) {
-            throw new ProcessException($process);
+            throw new ProcessException($process, $command);
         }
 
         return $process;

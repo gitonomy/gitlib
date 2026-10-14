@@ -13,8 +13,8 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Reference\Branch;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
@@ -136,7 +136,8 @@ class AdminTest extends AbstractTestCase
 
     public function testCommandOptionRunsAnotherGitBinary(): void
     {
-        $this->expectException(ProcessException::class);
+        $this->expectException(DriverException::class);
+        $this->expectExceptionMessage('The git command "init" could not start: ');
 
         Admin::init(self::createTempDir(), options: ['command' => 'not-git']);
     }
