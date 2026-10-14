@@ -26,10 +26,11 @@ final class Credentials
      * Replaces the user information of the URLs of $text, a token or a user
      * and a password, by "***".
      */
-    public static function redact(string $text): string
+    public static function redact(#[\SensitiveParameter] string $text): string
     {
-        // Up to the last "@" before the host, as a password may hold one.
+        // Up to the last "@" before the host, as a password may hold one, or a
+        // "#" or a "?", which git and libgit2 accept unencoded there.
         // @phpstan-ignore return.type (possessive quantifiers never reach the backtracking limit, and without "u" there is no UTF-8 to fail on)
-        return preg_replace('#\b([a-z][a-z0-9+.-]*+://)(?:[^/?\#\s@]*+@)++#i', '$1***@', $text);
+        return preg_replace('#\b([a-z][a-z0-9+.-]*+://)(?:[^/\s@]*+@)++#i', '$1***@', $text);
     }
 }

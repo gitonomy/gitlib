@@ -59,22 +59,22 @@ final readonly class CliDriver implements DriverInterface
         $this->mustRun('init', ['-q', '--bare', '--', $path]);
     }
 
-    public function cloneFrom(string $url, string $path, ?string $branch): void
+    public function cloneFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch): void
     {
         $this->cloneRepository($path, $url, null === $branch ? [] : ['--branch', $branch]);
     }
 
-    public function cloneBareFrom(string $url, string $path, ?string $branch): void
+    public function cloneBareFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch): void
     {
         $this->cloneRepository($path, $url, null === $branch ? ['--bare'] : ['--branch', $branch, '--bare']);
     }
 
-    public function mirrorFrom(string $url, string $path): void
+    public function mirrorFrom(#[\SensitiveParameter] string $url, string $path): void
     {
         $this->cloneRepository($path, $url, ['--mirror']);
     }
 
-    public function isValidRepository(string $url): bool
+    public function isValidRepository(#[\SensitiveParameter] string $url): bool
     {
         // ls-remote only takes "--" since git 2.8.
         RemoteUrl::assertSafe($url);
@@ -82,7 +82,7 @@ final readonly class CliDriver implements DriverInterface
         return $this->runner()->run('ls-remote', [self::absoluteUrl($url)])->isSuccessful();
     }
 
-    public function isValidRepositoryAndBranch(string $url, string $branch): bool
+    public function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branch): bool
     {
         RemoteUrl::assertSafe($url);
 
@@ -108,7 +108,7 @@ final readonly class CliDriver implements DriverInterface
      *
      * @throws ProcessException
      */
-    public function cloneRepository(string $path, string $url, array $args): void
+    public function cloneRepository(string $path, #[\SensitiveParameter] string $url, array $args): void
     {
         // Like isValidRepository(), whose ls-remote can't take "--".
         RemoteUrl::assertSafe($url);
@@ -141,7 +141,7 @@ final readonly class CliDriver implements DriverInterface
     /**
      * @param string[] $args
      */
-    private function mustRun(string $command, array $args): void
+    private function mustRun(string $command, #[\SensitiveParameter] array $args): void
     {
         $process = $this->runner()->run($command, $args);
 
@@ -155,7 +155,7 @@ final readonly class CliDriver implements DriverInterface
      * remote first: "origin" would be the URL of the remote of PHP's working
      * directory.
      */
-    private static function absoluteUrl(string $url): string
+    private static function absoluteUrl(#[\SensitiveParameter] string $url): string
     {
         if (str_starts_with($url, '/') || 1 === preg_match('#^[a-zA-Z]:[\\\/]#', $url)) {
             return $url;

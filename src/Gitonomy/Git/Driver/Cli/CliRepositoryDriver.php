@@ -361,7 +361,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
      *
      * @throws ProcessException The command failed
      */
-    public function runProcess(string $command, array $args = [], ?string $input = null): Process
+    public function runProcess(string $command, #[\SensitiveParameter] array $args = [], ?string $input = null): Process
     {
         $process = $this->execute($command, array_map(strval(...), $args), $input);
 
@@ -481,7 +481,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     /**
      * @param string[] $args
      */
-    private function execute(string $command, array $args, ?string $input = null): Process
+    private function execute(string $command, #[\SensitiveParameter] array $args, ?string $input = null): Process
     {
         $globalOptions = [...self::CONFIG, '--git-dir', $this->gitDir];
         if (null !== $this->workingDir) {

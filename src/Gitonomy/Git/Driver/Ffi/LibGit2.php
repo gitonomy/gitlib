@@ -98,7 +98,7 @@ final class LibGit2
     /**
      * @throws DriverException When $rc is a libgit2 error code
      */
-    public static function check(\FFI $ffi, int $rc, string $context): void
+    public static function check(\FFI $ffi, int $rc, #[\SensitiveParameter] string $context): void
     {
         if ($rc < 0) {
             // $context and libgit2 may name a URL holding credentials.

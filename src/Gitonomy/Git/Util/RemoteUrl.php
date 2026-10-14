@@ -27,7 +27,7 @@ final class RemoteUrl
     /**
      * @throws InvalidArgumentException $url starts with a dash, uses the "ext::" transport, or has a host or a user starting with a dash, encoded or not
      */
-    public static function assertSafe(string $url): void
+    public static function assertSafe(#[\SensitiveParameter] string $url): void
     {
         LeadingDash::assertNone($url);
 
@@ -53,7 +53,7 @@ final class RemoteUrl
      *                     reaches through ssh; null for any other URL, or a
      *                     local path
      */
-    private static function authority(string $url): ?string
+    private static function authority(#[\SensitiveParameter] string $url): ?string
     {
         // git decodes a URL before it reads its host: "%2D" is a dash, "%5B" a bracket.
         if (1 === preg_match('#^(?:git|ssh|git\+ssh|ssh\+git)://([^/]*)#', $url, $matches)) {

@@ -30,11 +30,12 @@ final class LeadingDash
     /**
      * @throws InvalidArgumentException One of the values starts with a dash
      */
-    public static function assertNone(string ...$values): void
+    public static function assertNone(#[\SensitiveParameter] string ...$values): void
     {
         foreach ($values as $value) {
             if (str_starts_with($value, '-')) {
-                throw new InvalidArgumentException(\sprintf('"%s" starts with a dash, which git would read as an option.', $value));
+                // The value may be a URL.
+                throw new InvalidArgumentException(Credentials::redact(\sprintf('"%s" starts with a dash, which git would read as an option.', $value)));
             }
         }
     }

@@ -375,7 +375,8 @@ Errors
    `\InvalidArgumentException`, and takes a whole message instead of a name.
  * A timeout throws a `Gitonomy\Git\Exception\ProcessTimedOutException`,
    and the other failures of Symfony Process a `DriverException`: no
-   exception of Symfony or of PHP leaks anymore.
+   exception of Symfony or of PHP leaks anymore, not even as the previous
+   exception, as they hold the command line.
  * `ProcessException` extends the new
    `Gitonomy\Git\Exception\DriverException`, itself a `RuntimeException`:
    catching `RuntimeException` or `GitExceptionInterface` still works.
@@ -409,7 +410,8 @@ Errors
    an option.
  * `Hooks` throws an `InvalidArgumentException` for a name that isn't the one
    of a file of the hooks directory, like `../config` or `.hidden`.
- * The messages of exceptions and the logs hide the credentials of URLs
+ * The messages of exceptions, their traces (`#[\SensitiveParameter]`) and
+   the logs hide the credentials of URLs
    (`https://***@example.com/repository.git`). `getErrorOutput()` and
    `getOutput()` of `ProcessException` don't.
  * Every message is a sentence ending with a dot.

@@ -112,8 +112,10 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
   `ssh://-oProxyCommand=.../repository`: git before 2.14.1 passes it to ssh, which reads it as an
   option and runs the command (CVE-2017-1000117). A `git://` URL whose host starts with a dash
   is refused too: git passes it to the command of `core.gitProxy`.
-- Hide the credentials of URLs (`https://user:token@host`) in the messages of exceptions and
-  in the logs.
+- Hide the credentials of URLs (`https://user:token@host`), a password holding a `#` or a `?`
+  included, in the messages of exceptions, in their traces (`#[\SensitiveParameter]`), and in
+  the logs. The exceptions of Symfony Process, which hold the command line, no longer leak, not
+  even as the previous exception.
 - Refuse a hook name that isn't the one of a file of the hooks directory:
   `Hooks::set('../config', ...)` and `remove('../config')` wrote and deleted the
   configuration of the repository.

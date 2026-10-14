@@ -53,7 +53,7 @@ final readonly class GitRunner
      * @throws InvalidArgumentException An argument contains a NUL byte
      * @throws ProcessException         The git binary can't be run
      */
-    public function run(string $command, array $args, array $globalOptions = [], ?string $workingDirectory = null, ?string $input = null): Process
+    public function run(string $command, #[\SensitiveParameter] array $args, array $globalOptions = [], ?string $workingDirectory = null, ?string $input = null): Process
     {
         NulByte::assertNone(...$globalOptions, ...$args);
 
@@ -68,13 +68,15 @@ final readonly class GitRunner
         $this->logger?->info(Credentials::redact(\sprintf('run command: %s "%s" ', $command, implode(' ', $args))));
         $before = microtime(true);
 
+        // The exceptions of Symfony aren't chained: their messages may hold the
+        // command line, with the credentials of its URLs.
         try {
             $process->run();
-        } catch (SymfonyProcessTimedOutException $e) {
-            throw new ProcessTimedOutException(\sprintf('The git command "%s" ran longer than %s seconds.', $command, $this->timeout), 0, $e);
+        } catch (SymfonyProcessTimedOutException) {
+            throw new ProcessTimedOutException(\sprintf('The git command "%s" ran longer than %s seconds.', $command, $this->timeout));
         } catch (SymfonyRuntimeException $e) {
             // A working directory removed since the repository was opened...
-            throw new DriverException(\sprintf('Unable to run the git command "%s": %s', $command, $e->getMessage()), 0, $e);
+            throw new DriverException(Credentials::redact(\sprintf('Unable to run the git command "%s": %s', $command, $e->getMessage())));
         }
 
         // Symfony Process runs git through a shell, which exits with them when it can't find or run git.

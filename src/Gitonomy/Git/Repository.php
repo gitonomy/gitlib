@@ -163,7 +163,7 @@ final class Repository
      *
      * @throws DriverException
      */
-    public static function cloneFrom(string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
+    public static function cloneFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
     {
         $driver->cloneFrom($url, $path, $branch);
 
@@ -177,7 +177,7 @@ final class Repository
      *
      * @throws DriverException
      */
-    public static function cloneBareFrom(string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
+    public static function cloneBareFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
     {
         $driver->cloneBareFrom($url, $path, $branch);
 
@@ -190,7 +190,7 @@ final class Repository
      *
      * @throws DriverException
      */
-    public static function mirrorFrom(string $url, string $path, DriverInterface $driver = new CliDriver()): self
+    public static function mirrorFrom(#[\SensitiveParameter] string $url, string $path, DriverInterface $driver = new CliDriver()): self
     {
         $driver->mirrorFrom($url, $path);
 
@@ -201,7 +201,7 @@ final class Repository
      * Checks, without cloning it, that $url is a repository the driver can
      * read: false when it doesn't exist, can't be reached, or refuses access.
      */
-    public static function isValidRepository(string $url, DriverInterface $driver = new CliDriver()): bool
+    public static function isValidRepository(#[\SensitiveParameter] string $url, DriverInterface $driver = new CliDriver()): bool
     {
         return $driver->isValidRepository($url);
     }
@@ -210,7 +210,7 @@ final class Repository
      * Checks, without cloning it, that $url is a repository the driver can
      * read, and that it has the $branch branch.
      */
-    public static function isValidRepositoryAndBranch(string $url, string $branch, DriverInterface $driver = new CliDriver()): bool
+    public static function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branch, DriverInterface $driver = new CliDriver()): bool
     {
         return $driver->isValidRepositoryAndBranch($url, $branch);
     }
@@ -621,7 +621,7 @@ final class Repository
      * @throws ProcessException              Error while executing git command
      * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
-    public function run(string $command, array $args = []): string
+    public function run(string $command, #[\SensitiveParameter] array $args = []): string
     {
         return $this->runProcess($command, $args)->getOutput();
     }
@@ -640,7 +640,7 @@ final class Repository
      * @throws ProcessException              Error while executing git command
      * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
-    public function runProcess(string $command, array $args = []): Process
+    public function runProcess(string $command, #[\SensitiveParameter] array $args = []): Process
     {
         if (!$this->repositoryDriver instanceof CliRepositoryDriver) {
             throw new UnsupportedOperationException('Only CliDriver can run git commands.');
