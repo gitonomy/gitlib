@@ -222,6 +222,42 @@ class HooksTest extends AbstractTestCase
         $repository->getHooks()->remove('foo');
     }
 
+    /**
+     * A symbolic link to a file deployed later: set() would write through it,
+     * out of the hooks directory.
+     */
+    public function testASymlinkToAMissingFileIsAHook(): void
+    {
+        $this->markAsSkippedIfSymlinkIsMissing();
+
+        $repository = self::createFoobarRepository();
+        $target = self::createTempDir().'/pre-receive';
+        $hooks = $repository->getHooks();
+        $hooks->setSymlink('pre-receive', $target);
+
+        $this->assertTrue($hooks->has('pre-receive'));
+
+        try {
+            $hooks->get('pre-receive');
+            $this->fail('A symbolic link to a missing file can\'t be read.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('Unable to read the hook "pre-receive".', $e->getMessage());
+        }
+
+        try {
+            $hooks->set('pre-receive', "#!/bin/sh\nexit 1\n");
+            $this->fail('The hook exists already.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('The hook "pre-receive" exists already.', $e->getMessage());
+        }
+        $this->assertFileDoesNotExist($target, 'Nothing is written through the link');
+
+        $hooks->remove('pre-receive');
+
+        $this->assertFalse(is_link($this->hookPath($repository, 'pre-receive')));
+        $this->assertFalse($hooks->has('pre-receive'));
+    }
+
     public function testSetCreatesTheHooksDirectory(): void
     {
         $repository = self::createEmptyRepository();

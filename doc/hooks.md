@@ -49,6 +49,9 @@ You can test if a hook is present using the method *has*:
 $hooks->has('pre-receive'); // a boolean indicating presence
 ```
 
+A symbolic link is a hook, even when the file it points to doesn't exist
+yet: *get* can't read it, and *set* doesn't write through it.
+
 Inserting hooks
 ---------------
 

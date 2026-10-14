@@ -36,7 +36,11 @@ final readonly class Hooks
      */
     public function has(string $name): bool
     {
-        return file_exists($this->getPath($name));
+        $path = $this->getPath($name);
+
+        // A symbolic link to a file not deployed yet is a hook too: set()
+        // would write through it, out of the hooks directory.
+        return is_link($path) || file_exists($path);
     }
 
     /**
@@ -55,7 +59,7 @@ final readonly class Hooks
             throw new InvalidArgumentException(\sprintf('The hook "%s" does not exist.', $name));
         }
 
-        $content = file_get_contents($this->getPath($name));
+        $content = @file_get_contents($this->getPath($name));
         if (false === $content) {
             throw new RuntimeException(\sprintf('Unable to read the hook "%s".', $name));
         }

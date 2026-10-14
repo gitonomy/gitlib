@@ -510,3 +510,7 @@ Other changes
    instead of `0777`): change their permissions if another user runs them.
  * `Repository::shell()` is deprecated: it ignored the driver. Run
    `git shell` with Symfony Process instead.
+ * `Hooks::has()` returns `true` for a symbolic link to a missing file:
+   `get()` throws a `RuntimeException`, as it can't read it, `set()` and
+   `setSymlink()` refuse it, as a hook that exists already, and `remove()`
+   removes the link.

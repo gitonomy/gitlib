@@ -119,6 +119,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 - Refuse a hook name that isn't the one of a file of the hooks directory:
   `Hooks::set('../config', ...)` and `remove('../config')` wrote and deleted the
   configuration of the repository.
+- Fix `Hooks` writing through a symbolic link to a missing file, out of the hooks directory:
+  `has()` returned `false` for it, and `set()` followed it.
 - Ignore the replacements of objects (`git replace`, `refs/replace/`) with `CliDriver`, like
   `LibGit2Driver`: whoever could push such a reference to a repository changed the message of a
   commit, or the content of a blob, gitlib read for a hash.
