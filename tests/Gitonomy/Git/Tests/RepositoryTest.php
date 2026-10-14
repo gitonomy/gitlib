@@ -311,6 +311,34 @@ class RepositoryTest extends AbstractTestCase
         $repository->run('commit', ['--allow-empty', '-m', 'Waits for its hook']);
     }
 
+    public function testATimeoutOfOneSecond(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $repository->getHooks()->set('pre-commit', "#!/bin/sh\nsleep 10\n");
+        $repository = new Repository($repository->getPath(), driver: self::getCliDriver(['GIT_AUTHOR_NAME' => 'A', 'GIT_AUTHOR_EMAIL' => 'a@example.com', 'GIT_COMMITTER_NAME' => 'A', 'GIT_COMMITTER_EMAIL' => 'a@example.com'], processTimeout: 1));
+
+        $this->expectException(ProcessTimedOutException::class);
+        $this->expectExceptionMessage('The git command "commit" ran longer than 1 second.');
+
+        $repository->run('commit', ['--allow-empty', '-m', 'Waits for its hook']);
+    }
+
+    /**
+     * Symfony Process checks the timeout when git starts too: its exception
+     * held the command line.
+     */
+    public function testATimeoutWhileGitStarts(): void
+    {
+        $repository = new Repository(self::createFoobarRepository()->getPath(), driver: self::getCliDriver(processTimeout: 0.000001));
+
+        try {
+            $repository->run('log', ['-n', '1']);
+            $this->markTestSkipped('git started within the timeout.');
+        } catch (ProcessTimedOutException $e) {
+            $this->assertSame('The git command "log" ran longer than 1.0E-6 seconds.', $e->getMessage());
+        }
+    }
+
     public function testIsValidRepositoryAndBranchMatchesTheNameExactly(): void
     {
         $repository = self::createFoobarRepository();
@@ -949,6 +977,16 @@ class RepositoryTest extends AbstractTestCase
         $this->expectException(UnsupportedOperationException::class);
 
         new Repository(self::createTempDir(), driver: $this->createStub(DriverInterface::class))->setLogger($this->createStub(LoggerInterface::class));
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testAnUnknownOptionIsRefused(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown option "foo".');
+
+        new Repository(self::createTempDir(), ['foo' => 1]);
     }
 
     #[Group('legacy')]

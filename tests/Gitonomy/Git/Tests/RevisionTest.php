@@ -14,6 +14,7 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -79,6 +80,17 @@ class RevisionTest extends AbstractTestCase
 
         $this->assertNotSame([], $hashes('HEAD~2..HEAD'));
         $this->assertSame($hashes('HEAD~2..HEAD'), $hashes('@~2..@'));
+    }
+
+    /**
+     * The message names the revision, without the "^{commit}" gitlib adds.
+     */
+    public function testARevisionStartingWithADashIsRefused(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"--output=/x" starts with a dash, which git would read as an option.');
+
+        self::createFoobarRepository()->getRevision('--output=/x')->getCommit();
     }
 
     #[DataProvider('provideBare')]

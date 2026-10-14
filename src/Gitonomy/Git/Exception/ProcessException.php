@@ -36,6 +36,11 @@ final class ProcessException extends DriverException implements GitExceptionInte
         // local changes ... would be overwritten by checkout:".
         $errorOutput = $process->getErrorOutput();
         $error = 1 === preg_match('/^(?:fatal|error):.*$/m', $errorOutput, $matches) ? $matches[0] : explode("\n", trim($errorOutput), 2)[0];
+        // A merge writes its conflicts on the standard output, like
+        // "CONFLICT (content): Merge conflict in README.md".
+        if ('' === trim($errorOutput) && 1 === preg_match('/^CONFLICT .*$/m', $process->getOutput(), $matches)) {
+            $error = $matches[0];
+        }
         $error = rtrim(trim($error), ':');
         if ('' !== $error) {
             $message .= ': '.$error;

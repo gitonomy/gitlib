@@ -14,6 +14,7 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Util\LeadingDash;
 
 /**
  * A name git resolves to a commit: a branch, a tag, a hash, "HEAD~2"...
@@ -52,6 +53,8 @@ class Revision
     public function getCommit(): Commit
     {
         $driver = $this->repository->getRepositoryDriver();
+        // Before the driver gets "^{commit}", which its message would quote.
+        LeadingDash::assertNone($this->revision);
 
         try {
             // "^{commit}" would be part of the text of ":/text", the commit

@@ -136,13 +136,20 @@ final class Commit extends Revision
         return $this->tree ??= $this->repository->getTree($this->getTreeHash());
     }
 
+    /**
+     * @throws ReferenceNotFoundException No commit up to this one changes $path
+     */
     public function getLastModification(?string $path = null): self
     {
         if (null !== $path && str_starts_with($path, '/')) {
             $path = substr($path, 1);
         }
 
-        return $this->getLog($path, null, 1)->getSingleCommit();
+        try {
+            return $this->getLog($path, null, 1)->getSingleCommit();
+        } catch (ReferenceNotFoundException $e) {
+            throw new ReferenceNotFoundException(\sprintf('No commit up to "%s" changes "%s".', $this->revision, $path), 0, $e);
+        }
     }
 
     /**
@@ -195,7 +202,7 @@ final class Commit extends Revision
         }
 
         if (!$local && !$remote) {
-            throw new InvalidArgumentException('You should a least set one argument to true.');
+            throw new InvalidArgumentException('Keep the local branches, the remote ones, or both: $local and $remote can\'t both be false.');
         }
 
         $fullnames = $this->repository->getRepositoryDriver()->getIncludingBranches($this->revision);

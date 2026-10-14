@@ -405,10 +405,11 @@ Errors
     the first line of its error output starting with `fatal:` or `error:`,
     after the warnings, or its first line: `The git command "clone" failed
     (exit 128): fatal: ...`, or `The git command "diff" failed (exit 1).`
-    when git writes no error. The command line, the rest of the error output
-    and the output are no longer in the message: `getErrorOutput()` and
-    `getOutput()` return the outputs of git. Its constructor takes the git
-    command as second argument, optional.
+    when git writes no error, but for the conflict of a merge, which git
+    writes on its output (`CONFLICT (content): ...`). The command line, the
+    rest of the error output and the output are no longer in the message:
+    `getErrorOutput()` and `getOutput()` return the outputs of git. Its
+    constructor takes the git command as second argument, optional.
 *   When git can't start, a missing binary for instance, `CliDriver` throws
     a `DriverException` instead of a `ProcessException`, with a message of
     one line, without the command line: `The git command "clone" could not

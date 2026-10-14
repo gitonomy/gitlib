@@ -111,7 +111,7 @@ class RemoteUrlTest extends AbstractTestCase
             $call($url, $dir.'/clone');
             $this->fail('A host starting with a dash is refused.');
         } catch (InvalidArgumentException $e) {
-            $this->assertSame(\sprintf('"%s" has a host or a user starting with a dash, which ssh would read as an option.', Credentials::redact($url)), $e->getMessage());
+            $this->assertSame(\sprintf('"%s" has a host or a user starting with a dash, which ssh, or the command of core.gitProxy, would read as an option.', Credentials::redact($url)), $e->getMessage());
         } finally {
             chdir($previousCwd);
         }

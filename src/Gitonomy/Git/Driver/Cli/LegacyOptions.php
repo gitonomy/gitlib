@@ -52,7 +52,7 @@ final readonly class LegacyOptions
 
         $unknownOptions = array_diff(array_keys($options), [...self::DRIVER_OPTIONS, 'debug', 'working_dir']);
         if ([] !== $unknownOptions) {
-            throw new InvalidArgumentException(\sprintf('Unknown options "%s".', implode('", "', $unknownOptions)));
+            throw new InvalidArgumentException(\sprintf(1 === \count($unknownOptions) ? 'Unknown option "%s".' : 'Unknown options "%s".', implode('", "', $unknownOptions)));
         }
 
         // PHP doesn't check the types of the options, unlike PHPStan.

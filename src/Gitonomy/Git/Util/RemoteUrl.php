@@ -55,7 +55,7 @@ final class RemoteUrl
         // the host of a git URL the same way. A valid host never starts with a dash.
         $authority = self::authority($url);
         if (null !== $authority && 1 === preg_match('/(?:^|@)\[?-/', $authority)) {
-            throw new InvalidArgumentException(\sprintf('"%s" has a host or a user starting with a dash, which ssh would read as an option.', Credentials::redact($url)));
+            throw new InvalidArgumentException(\sprintf('"%s" has a host or a user starting with a dash, which ssh, or the command of core.gitProxy, would read as an option.', Credentials::redact($url)));
         }
     }
 

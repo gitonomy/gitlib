@@ -376,10 +376,19 @@ class CommitTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository($bare);
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Keep the local branches, the remote ones, or both: $local and $remote can\'t both be false.');
 
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
         $commit->getIncludingBranches(false, false);
+    }
+
+    public function testTheLastModificationOfAPathNoCommitChanges(): void
+    {
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage(\sprintf('No commit up to "%s" changes "nope".', self::LONGFILE_COMMIT));
+
+        self::createFoobarRepository()->getCommit(self::LONGFILE_COMMIT)->getLastModification('nope');
     }
 
     #[DataProvider('provideBare')]
