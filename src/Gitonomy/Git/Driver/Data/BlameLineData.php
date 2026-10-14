@@ -22,13 +22,13 @@ namespace Gitonomy\Git\Driver\Data;
 final readonly class BlameLineData
 {
     /**
-     * @param int $originalLine The number of the line in the file of $commitHash
-     * @param int $finalLine    The number of the line in the blamed file
+     * @param int $number         The number of the line in the blamed file
+     * @param int $originalNumber The number of the line in the file of $commitHash
      */
     public function __construct(
         public string $commitHash,
-        public int $originalLine,
-        public int $finalLine,
+        public int $number,
+        public int $originalNumber,
         public string $content,
     ) {
     }

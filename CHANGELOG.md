@@ -33,6 +33,10 @@ deprecated until 3.0.
 - `Diff::parse()` throws for a diff without its raw information, deprecated since 1.6.0
   ([#229](https://github.com/gitonomy/gitlib/pull/229)): parse the output of
   `git diff --raw --patch`. ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- The constructors of `Commit`, `Tree`, `Blob`, `Revision`, the references and `ReferenceBag`
+  are internal: get these objects from `Repository`, which returns the same commit, tree or
+  blob while the application uses it, and reads the references again after its writes.
+  Extending `Revision` or `Reference` isn't supported anymore.
 - `ProcessException` has a message of one line, with the error of git, the first line of its
   error output starting with `fatal:` or `error:`, after the warnings:
   `The git command "clone" failed (exit 128): fatal: ...`. The command line, the rest of the
@@ -66,7 +70,8 @@ deprecated until 3.0.
   `isValidRepository()` and `isValidRepositoryAndBranch()`; see
   ["Create and access git repositories"](doc/admin.md).
   ([#253](https://github.com/gitonomy/gitlib/pull/253))
-- Add `Repository::getDiff($from, $to)`, `Repository::getMergeBase()` and `WorkingCopy::getDiff()`,
+- Add `Repository::getDiff($from, $to)`, `Repository::getMergeBase()`,
+  `Repository::getSizeInBytes()` and `WorkingCopy::getDiff()`,
   `WorkingCopy::checkoutNewBranch()`, `Branch::moveTo()` and `Branch::isMergedInto()`,
   `Log::withOffset()` and `withLimit()`, `Blame::getHunks()` and the line numbers of
   `Blame\Line`, `TreeEntry` and `Submodule`, `Diff\DiffLine` and `Diff\DiffLineType`,
@@ -113,6 +118,8 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
   `WorkingCopy::merge()`.
 - `Commit::getShortMessage()` and `getFixedShortHash()`, `Repository::shell()`,
   `PushReference::getReference()` and `getRevision()`.
+- `Repository::getSize()`, in kilobytes: use `getSizeInBytes()`.
+- `Exception\UnexpectedValueException`, which gitlib no longer throws.
 
 ### Security
 
@@ -187,6 +194,9 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 - Fix blame lines numbered from 1 for a range of lines. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Fix `Hooks` failing silently, in a repository without hooks directory, and writing the hooks
   of a linked worktree where git doesn't run them. ([#253](https://github.com/gitonomy/gitlib/pull/253))
+- Fix `Repository::getSize()` throwing for a link to a missing file in the git directory, like
+  a hook not deployed yet: it no longer follows links. A file git deletes meanwhile, like a lock
+  during a `gc` or a push, no longer makes it throw either.
 - Fix blame lines starting with a TAB character (`Blame\Line::getContent()`): code removing it
   must stop doing so. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 - Fix reading a commit whose `encoding` header isn't UTF-8, which threw: its message, author and

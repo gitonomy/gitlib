@@ -34,6 +34,8 @@ final class Tag extends Reference
     /**
      * @param string      $commitHash What the tag points to, through its annotated tag object
      * @param string|null $tagHash    The annotated tag object, null for a lightweight tag
+     *
+     * @internal Get it from Repository::getReferences(), which gitlib reads again after its writes
      */
     public function __construct(
         Repository $repository,

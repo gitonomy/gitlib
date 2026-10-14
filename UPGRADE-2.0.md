@@ -173,6 +173,10 @@ References
 
  * `ReferenceBag::getFirstBranch()` returns `null` instead of `false` when
    there is no branch, and only branches.
+ * `Repository::getHead()` returns a `Reference\Branch` or a `Commit`.
+   `HEAD` pointing to another reference, like a tag, which git allows,
+   throws a `ReferenceNotFoundException`, where 1.x returned the reference:
+   `getHeadCommit()` still returns its commit.
  * The getters of `Reference\Tag` (`getTaggerName()`, `getTaggerEmail()`,
    `getTaggerDate()`, `getMessage()`, `getSubjectMessage()`,
    `getBodyMessage()`, `getGpgSignature()`) return `null` instead of `false`
@@ -289,7 +293,8 @@ Trees
  * `CommitReference` is deprecated: it is `Submodule`. So is
    `Tree::getCommitReferenceEntries()`: use `getSubmoduleEntries()`.
  * `Tree::resolvePath()` throws an `InvalidArgumentException` explaining
-   why a path doesn't resolve, and resolves `/` to the tree.
+   why a path doesn't resolve, a path through a submodule included, which
+   threw an `UnexpectedValueException`, and resolves `/` to the tree.
 
 Working copy
 ------------
@@ -416,6 +421,9 @@ Errors
      failed;
    * `ReferenceBag` (`Repository::getReferences()`) only returns an empty bag
      for a repository without references, and throws for any other failure.
+ * `Gitonomy\Git\Exception\UnexpectedValueException` is deprecated: gitlib
+   no longer throws it. Catch `InvalidArgumentException` for
+   `Tree::resolvePath()`.
  * `Commit::getShortHash()` throws a `ReferenceNotFoundException` for an
    unknown commit, instead of a `ProcessException`.
  * `Hooks` throws a `RuntimeException` when a hook exists already, doesn't
@@ -501,9 +509,16 @@ Extending gitlib
  * These classes are `final readonly`: `Blame\Line`, `Diff\Diff`,
    `Diff\FileChange`, `Hooks`, `RevisionList`, `WorkingCopy`.
  * Every method has native parameter and return types. A class extending
-   `Revision`, `Reference` or `Parser\ParserBase`, which remain extendable,
-   must declare the same types, and must not redeclare their properties.
-   The constructor of `Reference` requires the commit hash.
+   `Parser\ParserBase`, which remains extendable, must declare the same
+   types, and must not redeclare its properties.
+ * The constructors of `Commit`, `Tree`, `Blob`, `Revision`, `Reference`,
+   `Reference\Tag` and `ReferenceBag` are internal: get these objects from
+   `Repository` (`getCommit()`, `getTree()`, `getBlob()`, `getRevision()`,
+   `getReferences()`), which returns the same commit, tree or blob while your
+   application uses it, and reads the references again after its writes.
+   The constructor of `Reference` requires the commit hash. Extending
+   `Revision` or `Reference` isn't supported anymore, and won't be possible
+   in 3.0: `Reference` declares `getName()`, abstract.
  * To change how gitlib runs git, for example in tests, implement
    `Gitonomy\Git\Driver\DriverInterface` and pass it as the driver of
    `Repository`, instead of extending `Repository`: see
@@ -563,3 +578,7 @@ Other changes
    `get()` throws a `RuntimeException`, as it can't read it, `set()` and
    `setSymlink()` refuse it, as a hook that exists already, and `remove()`
    removes the link.
+ * `Repository::getSize()` is deprecated: `getSizeInBytes()` returns bytes,
+   instead of kilobytes. Neither follows links: a link in the git directory,
+   to a hook not deployed yet for instance, counts for nothing, where
+   `getSize()` counted the file it points to, and threw for a missing one.

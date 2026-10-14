@@ -35,6 +35,9 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      */
     private ?array $references = null;
 
+    /**
+     * @internal Get it from Repository::getReferences(), which gitlib reads again after its writes
+     */
     public function __construct(
         private readonly Repository $repository,
     ) {

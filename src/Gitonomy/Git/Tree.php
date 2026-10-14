@@ -25,6 +25,9 @@ final class Tree
      */
     private ?array $entries = null;
 
+    /**
+     * @internal Get it from Repository::getTree(), which returns the same object while the application uses it
+     */
     public function __construct(
         private readonly Repository $repository,
         private readonly string $hash,

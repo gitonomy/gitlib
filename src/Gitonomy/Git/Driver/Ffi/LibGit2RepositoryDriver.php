@@ -587,9 +587,9 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
                 $hunk = $this->ffi->git_blame_hunk_byline($blame, $i);
                 $line = $this->ffi->git_blame_line_byindex($blame, $i);
                 $content = rtrim(\FFI::string($line->ptr, $line->len), "\n");
-                $originalLine = $hunk->orig_start_line_number + ($i - $hunk->final_start_line_number);
+                $originalNumber = $hunk->orig_start_line_number + ($i - $hunk->final_start_line_number);
 
-                $result[] = new BlameLineData($this->oidToHex(\FFI::addr($hunk->final_commit_id)), $originalLine, $i, $content);
+                $result[] = new BlameLineData($this->oidToHex(\FFI::addr($hunk->final_commit_id)), $i, $originalNumber, $content);
             }
 
             return $result;

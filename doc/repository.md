@@ -89,6 +89,8 @@ if ($repository->isHeadDetached()) {
 In a repository without commits yet, `HEAD` points to a branch that doesn't
 exist yet: `getHead()` and `getHeadCommit()` throw a
 `ReferenceNotFoundException`, and `isHeadAttached()` returns `true`.
+`getHead()` throws one too when `HEAD` points to a reference that isn't a
+branch, like a tag, which git allows.
 
 Commits, trees and blobs
 ------------------------
@@ -160,14 +162,18 @@ $repository->setDescription('My project');
 Compute size of a repository
 ----------------------------
 
-`getSize()` returns the size of the files of the git directory, working tree
-excluded, in kilobytes (1,000 bytes):
+`getSizeInBytes()` returns the size of the files of the git directory,
+working tree excluded, in bytes. It doesn't follow links, and leaves out a
+file git deletes meanwhile, like a lock during a `gc` or a push:
 
 ```php
-$size = $repository->getSize();
+$size = $repository->getSizeInBytes();
 
-echo 'Your repository size is '.$size.' KB';
+echo 'Your repository size is '.round($size / 1000).' KB';
 ```
+
+`getSize()`, which returns kilobytes (1,000 bytes), is deprecated since 2.0:
+use `getSizeInBytes()`.
 
 Running git commands
 --------------------

@@ -39,6 +39,8 @@ final class Commit extends Revision
     /**
      * @param Repository $repository Repository of the commit
      * @param string     $hash       Hash of the commit
+     *
+     * @internal Get it from Repository::getCommit(), which returns the same object while the application uses it
      */
     public function __construct(Repository $repository, string $hash, ?CommitData $data = null)
     {

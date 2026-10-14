@@ -40,6 +40,25 @@ class ReferenceTest extends AbstractTestCase
         $this->assertSame($branch->getCommitHash(), $branch->getCommit()->getHash(), 'Hash is correctly resolved');
     }
 
+    public function testEveryReferenceHasAName(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.email', 'test@example.com']);
+        self::git($repository, 'config', ['user.name', 'Test']);
+        file_put_contents($repository->getWorkingDir().'/README.md', "stashed\n");
+        self::git($repository, 'stash');
+
+        $names = [];
+        foreach ($repository->getReferences() as $fullname => $reference) {
+            $names[$fullname] = $reference->getName();
+        }
+
+        $this->assertSame('master', $names['refs/heads/master']);
+        $this->assertSame('origin/master', $names['refs/remotes/origin/master']);
+        $this->assertSame('0.1', $names['refs/tags/0.1']);
+        $this->assertSame('stash', $names['refs/stash']);
+    }
+
     #[DataProvider('provideBare')]
     public function testHasBranch(bool $bare): void
     {

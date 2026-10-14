@@ -123,6 +123,38 @@ class RepositoryTest extends AbstractTestCase
         $this->assertSame(self::LONGFILE_COMMIT, $repository->getHeadCommit()->getHash());
     }
 
+    public function testTheHeadOfARepositoryWithoutCommitsThrows(): void
+    {
+        $repository = self::createEmptyRepository();
+
+        // HEAD points to a branch without commits yet.
+        $this->assertTrue($repository->isHeadAttached());
+
+        try {
+            $repository->getHeadCommit();
+            $this->fail('A repository without commits has no HEAD commit.');
+        } catch (ReferenceNotFoundException) {
+        }
+
+        $this->expectException(ReferenceNotFoundException::class);
+
+        $repository->getHead();
+    }
+
+    public function testHeadPointingToATagIsNoBranch(): void
+    {
+        $repository = self::createFoobarRepository();
+        // Like a branch for git, which commits to the tag.
+        self::git($repository, 'symbolic-ref', ['HEAD', 'refs/tags/0.1']);
+
+        $this->assertSame(self::LONGFILE_COMMIT, $repository->getHeadCommit()->getHash());
+
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage('HEAD points to "refs/tags/0.1", which is not a branch.');
+
+        $repository->getHead();
+    }
+
     public function testObjectsAreTheSameWhileUsed(): void
     {
         $repository = self::createFoobarRepository();
@@ -311,10 +343,22 @@ class RepositoryTest extends AbstractTestCase
     public function testAnAbbreviatedHashNamesAnObjectOfTheRightType(): void
     {
         $repository = self::createFoobarRepository();
+        $hash = substr($repository->getCommit(self::LONGFILE_COMMIT)->getTreeHash(), 0, 8);
 
         $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage(\sprintf('The object "%s" is not a blob.', $hash));
 
-        $repository->getBlob(substr(self::LONGFILE_COMMIT, 0, 8));
+        $repository->getBlob($hash);
+    }
+
+    public function testAnAbbreviatedHashOfNoObject(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage('The object "12345678" does not exist.');
+
+        $repository->getTree('12345678');
     }
 
     public function testAnAbbreviatedCommitHashNamesNoTree(): void
@@ -539,13 +583,36 @@ class RepositoryTest extends AbstractTestCase
     }
 
     #[DataProvider('provideBare')]
-    public function testGetSize(bool $bare): void
+    public function testGetSizeInBytes(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
-        $size = $repository->getSize();
+        $size = $repository->getSizeInBytes();
         // The exact figure depends on git's packing/compression, which varies across versions.
-        $this->assertGreaterThanOrEqual(40, $size, 'Repository is at least 40KB');
-        $this->assertLessThan(84, $size, 'Repository is less than 84KB');
+        $this->assertGreaterThanOrEqual(40_000, $size, 'Repository is at least 40KB');
+        $this->assertLessThan(84_000, $size, 'Repository is less than 84KB');
+    }
+
+    public function testGetSizeInBytesFollowsNoLink(): void
+    {
+        $repository = self::createEmptyRepository();
+        $size = $repository->getSizeInBytes();
+
+        file_put_contents($repository->getGitDir().'/file', str_repeat('a', 1000));
+        // Like a hook linking to a file not deployed yet.
+        symlink($repository->getGitDir().'/missing', $repository->getGitDir().'/link');
+
+        $this->assertSame($size + 1000, $repository->getSizeInBytes());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetSizeInKilobytes(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::getSize()" method is deprecated, use "getSizeInBytes()" instead.');
+
+        $repository = self::createFoobarRepository();
+
+        $this->assertSame((int) round($repository->getSizeInBytes() / 1000), $repository->getSize());
     }
 
     public function testIsBare(): void

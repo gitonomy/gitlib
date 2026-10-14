@@ -15,10 +15,18 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 
 /**
+ * A name git resolves to a commit: a branch, a tag, a hash, "HEAD~2"...
+ *
+ * Commit and Reference extend it: extending it outside gitlib isn't
+ * supported, and won't be possible in 3.0.
+ *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
 class Revision
 {
+    /**
+     * @internal Get it from Repository::getRevision()
+     */
     public function __construct(
         protected readonly Repository $repository,
         protected readonly string $revision,

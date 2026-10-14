@@ -25,6 +25,7 @@ use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
+use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Util\WeakCache;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
@@ -238,24 +239,20 @@ final class Repository
 
     /**
      * Returns the HEAD resolved as a commit.
-     */
-    public function getHeadCommit(): Commit
-    {
-        $head = $this->getHead();
-
-        if ($head instanceof Reference) {
-            return $head->getCommit();
-        }
-
-        return $head;
-    }
-
-    /**
-     * @return Reference|Commit The branch HEAD points to, or the commit when HEAD is detached
      *
      * @throws ReferenceNotFoundException HEAD points to a branch without commits yet
      */
-    public function getHead(): Reference|Commit
+    public function getHeadCommit(): Commit
+    {
+        return $this->getRevision('HEAD')->getCommit();
+    }
+
+    /**
+     * @return Branch|Commit The branch HEAD points to, or the commit when HEAD is detached
+     *
+     * @throws ReferenceNotFoundException HEAD points to a branch without commits yet, or to a reference that isn't a branch
+     */
+    public function getHead(): Branch|Commit
     {
         $reference = $this->repositoryDriver->getHeadReference();
 
@@ -263,7 +260,13 @@ final class Repository
             return $this->getCommit($this->repositoryDriver->resolveRevision('HEAD'));
         }
 
-        return $this->getReferences()->get($reference);
+        $head = $this->getReferences()->get($reference);
+        // git lets HEAD point to any reference under "refs/", a tag included.
+        if (!$head instanceof Branch) {
+            throw new ReferenceNotFoundException(\sprintf('HEAD points to "%s", which is not a branch.', $reference));
+        }
+
+        return $head;
     }
 
     public function isHeadDetached(): bool
@@ -520,19 +523,44 @@ final class Repository
     }
 
     /**
+     * @return int The size of the files of the git directory, working tree excluded, in bytes
+     */
+    public function getSizeInBytes(): int
+    {
+        $size = 0;
+        /** @var \SplFileInfo $file */
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->gitDir, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            // A link isn't followed: it may point to a file not deployed yet, like a hook.
+            if ($file->isLink()) {
+                continue;
+            }
+
+            try {
+                $size += $file->getSize();
+            } catch (\RuntimeException $e) {
+                // git deleted it since it was listed, during a gc or a push:
+                // a lock, a temporary pack... It no longer counts.
+                if (file_exists($file->getPathname())) {
+                    throw $e;
+                }
+            }
+        }
+
+        return $size;
+    }
+
+    /**
      * Returns the size of repository, in kilobytes.
      *
      * @return int A sum, in kilobytes
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use getSizeInBytes() instead
      */
     public function getSize(): int
     {
-        $totalBytes = 0;
-        /** @var \SplFileInfo $file */
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->gitDir, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            $totalBytes += $file->getSize();
-        }
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getSizeInBytes()" instead.', __METHOD__);
 
-        return (int) round($totalBytes / 1000);
+        return (int) round($this->getSizeInBytes() / 1000);
     }
 
     /**
@@ -744,7 +772,19 @@ final class Repository
             return $hash;
         }
 
-        $fullHash = $this->repositoryDriver->resolveRevision($hash.'^{'.$type->value.'}');
+        try {
+            $fullHash = $this->repositoryDriver->resolveRevision($hash.'^{'.$type->value.'}');
+        } catch (ReferenceNotFoundException) {
+            // One more call, only on failure: an object of another type, or none.
+            try {
+                $this->repositoryDriver->resolveRevision($hash);
+            } catch (ReferenceNotFoundException) {
+                throw new ReferenceNotFoundException(\sprintf('The object "%s" does not exist.', $hash));
+            }
+
+            throw new ReferenceNotFoundException(\sprintf('The object "%s" is not a %s.', $hash, $type->value));
+        }
+
         // "^{tree}" also peels a commit to its tree.
         if (!str_starts_with($fullHash, $hash)) {
             throw new ReferenceNotFoundException(\sprintf('The object "%s" is not a %s.', $hash, $type->value));
