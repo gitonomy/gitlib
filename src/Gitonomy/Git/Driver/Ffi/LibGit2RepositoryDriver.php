@@ -326,9 +326,6 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             $tagger = $this->ffi->git_tag_tagger($tag);
 
             return TagData::fromSignedMessage(
-                $this->oidToHex($this->ffi->git_tag_target_id($tag)),
-                $this->objectType($this->ffi->git_tag_target_type($tag)),
-                $this->ffi->git_tag_name($tag),
                 null === $tagger ? null : \FFI::string($tagger->name),
                 null === $tagger ? null : \FFI::string($tagger->email),
                 null === $tagger ? null : $this->signatureDate($tagger),

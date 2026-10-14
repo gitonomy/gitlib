@@ -29,9 +29,6 @@ final readonly class TagData
      * @param \DateTimeImmutable|null $taggerDate At the UTC offset of the tagger, like git log shows it
      */
     public function __construct(
-        public string $objectHash,
-        public ObjectType $objectType,
-        public string $tagName,
         public ?string $taggerName,
         public ?string $taggerEmail,
         public ?\DateTimeImmutable $taggerDate,
@@ -43,12 +40,12 @@ final readonly class TagData
     /**
      * @param string $signedMessage The message of the tag object, followed by the signature git appends to it, if any
      */
-    public static function fromSignedMessage(string $objectHash, ObjectType $objectType, string $tagName, ?string $taggerName, ?string $taggerEmail, ?\DateTimeImmutable $taggerDate, string $signedMessage): self
+    public static function fromSignedMessage(?string $taggerName, ?string $taggerEmail, ?\DateTimeImmutable $taggerDate, string $signedMessage): self
     {
         if (!preg_match('/^(.*?)'.self::SIGNATURE.'(.*?)-----END \2-----/s', $signedMessage, $vars)) {
-            return new self($objectHash, $objectType, $tagName, $taggerName, $taggerEmail, $taggerDate, $signedMessage, null);
+            return new self($taggerName, $taggerEmail, $taggerDate, $signedMessage, null);
         }
 
-        return new self($objectHash, $objectType, $tagName, $taggerName, $taggerEmail, $taggerDate, $vars[1], $vars[3]);
+        return new self($taggerName, $taggerEmail, $taggerDate, $vars[1], $vars[3]);
     }
 }
