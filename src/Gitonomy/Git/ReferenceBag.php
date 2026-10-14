@@ -12,8 +12,8 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
-use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Stash;
 use Gitonomy\Git\Reference\Tag;
@@ -23,34 +23,17 @@ use Gitonomy\Git\Reference\Tag;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  * @author Julien DIDIER <genzo.wm@gmail.com>
+ *
+ * @implements \IteratorAggregate<string, Reference>
  */
 final class ReferenceBag implements \Countable, \IteratorAggregate
 {
     /**
-     * Associative array of fullname references.
+     * The references, by full name: null until read, and after every write.
      *
-     * @var array<string, Reference>
+     * @var array<string, Reference>|null
      */
-    private array $references = [];
-
-    /**
-     * List with all tags.
-     *
-     * @var Tag[]
-     */
-    private array $tags = [];
-
-    /**
-     * List with all branches.
-     *
-     * @var Branch[]
-     */
-    private array $branches = [];
-
-    /**
-     * A boolean indicating if the bag is already initialized.
-     */
-    private bool $initialized = false;
+    private ?array $references = null;
 
     public function __construct(
         private readonly Repository $repository,
@@ -64,20 +47,12 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      */
     public function get(string $fullname): Reference
     {
-        $this->initialize();
-
-        if (!isset($this->references[$fullname])) {
-            throw new ReferenceNotFoundException($fullname);
-        }
-
-        return $this->references[$fullname];
+        return $this->references()[$fullname] ?? throw new ReferenceNotFoundException(\sprintf('The reference "%s" does not exist.', $fullname));
     }
 
     public function has(string $fullname): bool
     {
-        $this->initialize();
-
-        return isset($this->references[$fullname]);
+        return isset($this->references()[$fullname]);
     }
 
     /**
@@ -86,45 +61,50 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      * @param T $reference
      *
      * @return T
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Branch::moveTo() instead
      */
     public function update(Reference $reference): Reference
     {
-        $fullname = $reference->getFullname();
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::moveTo()" instead.', __METHOD__, Branch::class);
 
-        $this->initialize();
-        $this->repository->run('update-ref', [$fullname, $reference->getCommitHash()]);
-
-        $this->references[$fullname] = $reference;
+        $this->repository->getRepositoryDriver()->updateReference($reference->getFullname(), $reference->getCommitHash());
+        $this->invalidate();
 
         return $reference;
     }
 
-    public function createBranch(string $name, string $commitHash): Branch
+    /**
+     * @throws InvalidArgumentException The branch exists already
+     */
+    public function createBranch(string $name, Revision|string $revision): Branch
     {
-        $branch = new Branch($this->repository, 'refs/heads/'.$name, $commitHash);
+        $this->create('refs/heads/'.$name, $revision);
 
-        return $this->update($branch);
+        return $this->getBranch($name);
     }
 
-    public function createTag(string $name, string $commitHash): Tag
+    /**
+     * Creates a lightweight tag.
+     *
+     * @throws InvalidArgumentException The tag exists already
+     */
+    public function createTag(string $name, Revision|string $revision): Tag
     {
-        $tag = new Tag($this->repository, 'refs/tags/'.$name, $commitHash);
+        $this->create('refs/tags/'.$name, $revision);
 
-        return $this->update($tag);
+        return $this->getTag($name);
     }
 
     public function delete(string $fullname): void
     {
-        $this->repository->run('update-ref', ['-d', $fullname]);
-
-        unset($this->references[$fullname]);
+        $this->repository->getRepositoryDriver()->deleteReference($fullname);
+        $this->invalidate();
     }
 
     public function hasBranches(): bool
     {
-        $this->initialize();
-
-        return \count($this->branches) > 0;
+        return [] !== $this->getBranches();
     }
 
     public function hasBranch(string $name): bool
@@ -142,74 +122,39 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
         return $this->has('refs/tags/'.$name);
     }
 
-    public function getFirstBranch(): Reference|false
+    public function getFirstBranch(): ?Branch
     {
-        $this->initialize();
-
-        return reset($this->branches);
+        return $this->getBranches()[0] ?? null;
     }
 
     /**
-     * @return Tag[] An array of Tag objects
+     * @return Tag[] The tags pointing to $commit, annotated or not
      */
-    public function resolveTags(Commit|string $hash): array
+    public function resolveTags(Commit|string $commit): array
     {
-        $this->initialize();
-
-        if ($hash instanceof Commit) {
-            $hash = $hash->getHash();
-        }
-
-        $tags = [];
-        foreach ($this->references as $reference) {
-            if ($reference instanceof Tag && $reference->getCommitHash() === $hash) {
-                $tags[] = $reference;
-            }
-        }
-
-        return $tags;
+        return array_values(array_filter($this->resolve($commit), static fn (Reference $reference): bool => $reference instanceof Tag));
     }
 
     /**
-     * @return Branch[] An array of Branch objects
+     * @return Branch[] The branches pointing to $commit
      */
-    public function resolveBranches(Commit|string $hash): array
+    public function resolveBranches(Commit|string $commit): array
     {
-        $this->initialize();
-
-        if ($hash instanceof Commit) {
-            $hash = $hash->getHash();
-        }
-
-        $branches = [];
-        foreach ($this->references as $reference) {
-            if ($reference instanceof Branch && $reference->getCommitHash() === $hash) {
-                $branches[] = $reference;
-            }
-        }
-
-        return $branches;
+        return array_values(array_filter($this->resolve($commit), static fn (Reference $reference): bool => $reference instanceof Branch));
     }
 
     /**
-     * @return Reference[] An array of references
+     * @return Reference[] The references pointing to $commit, through annotated tags
      */
-    public function resolve(Commit|string $hash): array
+    public function resolve(Commit|string $commit): array
     {
-        $this->initialize();
+        $hash = match (true) {
+            $commit instanceof Commit => $commit->getHash(),
+            1 === preg_match('/^[0-9a-f]{40}$/', $commit) => $commit,
+            default => $this->repository->getRevision($commit)->getCommit()->getHash(),
+        };
 
-        if ($hash instanceof Commit) {
-            $hash = $hash->getHash();
-        }
-
-        $result = [];
-        foreach ($this->references as $k => $reference) {
-            if ($reference->getCommitHash() === $hash) {
-                $result[] = $reference;
-            }
-        }
-
-        return $result;
+        return array_values(array_filter($this->references(), static fn (Reference $reference): bool => $reference->getCommitHash() === $hash));
     }
 
     /**
@@ -217,9 +162,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      */
     public function getTags(): array
     {
-        $this->initialize();
-
-        return $this->tags;
+        return array_values(array_filter($this->references(), static fn (Reference $reference): bool => $reference instanceof Tag));
     }
 
     /**
@@ -227,16 +170,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      */
     public function getBranches(): array
     {
-        $this->initialize();
-
-        $result = [];
-        foreach ($this->references as $reference) {
-            if ($reference instanceof Branch) {
-                $result[] = $reference;
-            }
-        }
-
-        return $result;
+        return array_values(array_filter($this->references(), static fn (Reference $reference): bool => $reference instanceof Branch));
     }
 
     /**
@@ -244,14 +178,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      */
     public function getLocalBranches(): array
     {
-        $result = [];
-        foreach ($this->getBranches() as $branch) {
-            if ($branch->isLocal()) {
-                $result[] = $branch;
-            }
-        }
-
-        return $result;
+        return array_values(array_filter($this->getBranches(), static fn (Branch $branch): bool => $branch->isLocal()));
     }
 
     /**
@@ -259,14 +186,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      */
     public function getRemoteBranches(): array
     {
-        $result = [];
-        foreach ($this->getBranches() as $branch) {
-            if ($branch->isRemote()) {
-                $result[] = $branch;
-            }
-        }
-
-        return $result;
+        return array_values(array_filter($this->getBranches(), static fn (Branch $branch): bool => $branch->isRemote()));
     }
 
     /**
@@ -274,29 +194,21 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      */
     public function getAll(): array
     {
-        $this->initialize();
-
-        return $this->references;
+        return $this->references();
     }
 
     public function getTag(string $name): Tag
     {
-        $this->initialize();
-
         return $this->getAs('refs/tags/'.$name, Tag::class);
     }
 
     public function getBranch(string $name): Branch
     {
-        $this->initialize();
-
         return $this->getAs('refs/heads/'.$name, Branch::class);
     }
 
     public function getRemoteBranch(string $name): Branch
     {
-        $this->initialize();
-
         return $this->getAs('refs/remotes/'.$name, Branch::class);
     }
 
@@ -305,19 +217,42 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      */
     public function count(): int
     {
-        $this->initialize();
-
-        return \count($this->references);
+        return \count($this->references());
     }
 
     /**
      * @see IteratorAggregate
+     *
+     * @return \ArrayIterator<string, Reference>
      */
     public function getIterator(): \ArrayIterator
     {
-        $this->initialize();
+        return new \ArrayIterator($this->references());
+    }
 
-        return new \ArrayIterator($this->references);
+    /**
+     * Reads the references again when next needed: gitlib calls it after
+     * every write, through this bag or not (checkout, merge, run()...).
+     *
+     * @internal
+     */
+    public function invalidate(): void
+    {
+        $this->references = null;
+    }
+
+    /**
+     * @throws InvalidArgumentException $fullname exists already
+     */
+    private function create(string $fullname, Revision|string $revision): void
+    {
+        if ($this->has($fullname)) {
+            throw new InvalidArgumentException(\sprintf('The reference "%s" exists already.', $fullname));
+        }
+
+        $hash = ($revision instanceof Revision ? $revision : $this->repository->getRevision($revision))->getCommit()->getHash();
+        $this->repository->getRepositoryDriver()->createReference($fullname, $hash);
+        $this->invalidate();
     }
 
     /**
@@ -332,45 +267,38 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
         $reference = $this->get($fullname);
 
         if (!$reference instanceof $class) {
-            throw new ReferenceNotFoundException($fullname);
+            throw new ReferenceNotFoundException(\sprintf('The reference "%s" does not exist.', $fullname));
         }
 
         return $reference;
     }
 
-    private function initialize(): void
+    /**
+     * @return array<string, Reference>
+     */
+    private function references(): array
     {
-        if (true === $this->initialized) {
-            return;
+        if (null !== $this->references) {
+            return $this->references;
         }
-        $this->initialized = true;
 
-        try {
-            $parser = new Parser\ReferenceParser();
-            $output = $this->repository->run('show-ref');
-        } catch (RuntimeException $e) {
-            return;
-        }
-        $parser->parse($output);
+        $references = [];
+        foreach ($this->repository->getRepositoryDriver()->getReferences() as $data) {
+            $fullname = $data->fullname;
 
-        foreach ($parser->references as $row) {
-            [$commitHash, $fullname] = $row;
-
-            if (preg_match('#^refs/(heads|remotes)/(.*)$#', $fullname)) {
-                if (preg_match('#.*HEAD$#', $fullname)) {
+            if (str_starts_with($fullname, 'refs/heads/') || str_starts_with($fullname, 'refs/remotes/')) {
+                // The default branch of a remote, a symbolic reference to one of its branches; a remote may be named "foo/bar".
+                if (str_ends_with($fullname, '/HEAD') && str_starts_with($fullname, 'refs/remotes/')) {
                     continue;
                 }
-                $reference = new Branch($this->repository, $fullname, $commitHash);
-                $this->references[$fullname] = $reference;
-                $this->branches[] = $reference;
-            } elseif (preg_match('#^refs/tags/(.*)$#', $fullname)) {
-                $reference = new Tag($this->repository, $fullname, $commitHash);
-                $this->references[$fullname] = $reference;
-                $this->tags[] = $reference;
+                $references[$fullname] = new Branch($this->repository, $fullname, $data->commitHash);
+            } elseif (str_starts_with($fullname, 'refs/tags/')) {
+                $references[$fullname] = new Tag($this->repository, $fullname, $data->commitHash, $data->tagHash);
             } elseif ('refs/stash' === $fullname) {
-                $reference = new Stash($this->repository, $fullname, $commitHash);
-                $this->references[$fullname] = $reference;
+                $references[$fullname] = new Stash($this->repository, $fullname, $data->commitHash);
             }
         }
+
+        return $this->references = $references;
     }
 }

@@ -10,41 +10,40 @@
  * with this source code in the file LICENSE.
  */
 
-namespace Gitonomy\Git\Parser;
+namespace Gitonomy\Git\Driver\Cli\Parser;
 
-use Gitonomy\Git\Blame\Line;
-use Gitonomy\Git\Repository;
+use Gitonomy\Git\Driver\Data\BlameLineData;
+use Gitonomy\Git\Parser\ParserBase;
 
+/**
+ * Parses the output of ``git blame -p``.
+ */
 final class BlameParser extends ParserBase
 {
     /**
-     * @var Line[]
+     * @var BlameLineData[]
      */
     public array $lines = [];
 
-    public function __construct(
-        protected readonly Repository $repository,
-    ) {
-    }
+    /**
+     * @var array<string, bool>
+     */
+    private array $seenHashes = [];
 
     protected function doParse(): void
     {
         $this->lines = [];
+        $this->seenHashes = [];
 
-        $memory = [];
-
-        $line = 1;
         while (!$this->isFinished()) {
             $hash = $this->consumeHash();
             $this->consume(' ');
-            $vars = $this->consumeRegexp('/(\d+) (\d+)( (\d+))?/A');
-            $sourceLine = $vars[1];
-            $targetLine = $vars[2];
-            $blockLine = $vars[4] ?? null;
+            // The number of lines of the group follows on its first line.
+            $vars = $this->consumeRegexp('/(\d+) (\d+)/A');
             $this->consumeTo("\n");
             $this->consumeNewLine();
 
-            if (!isset($memory[$hash])) {
+            if (!isset($this->seenHashes[$hash])) {
                 foreach (['author', 'author-mail', 'author-time', 'author-tz',
                     'committer', 'committer-mail', 'committer-time', 'committer-tz',
                     'summary', ] as $key) {
@@ -64,13 +63,13 @@ final class BlameParser extends ParserBase
                 $this->consume('filename');
                 $this->consumeTo("\n"); // filename
                 $this->consumeNewLine();
-                $memory[$hash] = $this->repository->getCommit($hash);
+                $this->seenHashes[$hash] = true;
             }
-            $content = $this->consumeTo("\n"); // content of line
+            $this->consume("\t");
+            $content = $this->consumeTo("\n");
             $this->consumeNewLine();
 
-            $this->lines[$line] = new Line($memory[$hash], $sourceLine, $targetLine, $blockLine, $content);
-            ++$line;
+            $this->lines[] = new BlameLineData($hash, (int) $vars[1], (int) $vars[2], $content);
         }
     }
 }

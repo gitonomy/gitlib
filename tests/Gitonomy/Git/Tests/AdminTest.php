@@ -13,179 +13,206 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
-use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Reference\Branch;
-use Gitonomy\Git\Repository;
-use PHPUnit\Framework\Attributes\After;
-use PHPUnit\Framework\Attributes\Before;
-use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use Psr\Log\LoggerInterface;
 
+/**
+ * Admin is deprecated: its methods must keep behaving like in 1.x, always
+ * with CliDriver, whatever the driver under test.
+ */
+#[Group('legacy')]
+#[IgnoreDeprecations]
 class AdminTest extends AbstractTestCase
 {
-    private string $tmpDir;
-
-    #[Before]
-    public function setUpTmpDir(): void
+    public function testInit(): void
     {
-        $this->tmpDir = self::createTempDir();
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::init()" method is deprecated, use "Gitonomy\Git\Repository::initBare()" instead.');
+
+        $repository = Admin::init(self::createTempDir(), options: self::getOptions());
+
+        $this->assertTrue($repository->isBare());
     }
 
-    #[After]
-    public function tearDownTmpDir(): void
+    public function testInitNotBare(): void
     {
-        self::deleteDir(self::createTempDir());
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::init()" method is deprecated, use "Gitonomy\Git\Repository::init()" instead.');
+
+        $repository = Admin::init(self::createTempDir(), false, self::getOptions());
+
+        $this->assertFalse($repository->isBare());
     }
 
-    public function testBare(): void
+    public function testIsValidRepository(): void
     {
-        $repository = Admin::init($this->tmpDir, true, self::getOptions());
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::isValidRepository()" method is deprecated, use "Gitonomy\Git\Repository::isValidRepository()" instead.');
 
-        $objectDir = $this->tmpDir.'/objects';
-
-        $this->assertTrue($repository->isBare(), 'Repository is bare');
-        $this->assertDirectoryExists($objectDir, 'objects/ folder is present');
-        $this->assertInstanceOf(Repository::class, $repository, 'Admin::init returns a repository');
-        $this->assertEquals($this->tmpDir, $repository->getGitDir(), 'The folder passed as argument is git dir');
-        $this->assertNull($repository->getWorkingDir(), 'No working dir in bare repository');
+        $this->assertTrue(Admin::isValidRepository(self::repositoryUrl(), self::getOptions()));
     }
 
-    public function testNotBare(): void
+    public function testIsValidRepositoryAndBranch(): void
     {
-        $repository = Admin::init($this->tmpDir, false, self::getOptions());
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::isValidRepositoryAndBranch()" method is deprecated, use "Gitonomy\Git\Repository::isValidRepositoryAndBranch()" instead.');
 
-        $objectDir = $this->tmpDir.'/.git/objects';
-
-        $this->assertFalse($repository->isBare(), 'Repository is not bare');
-        $this->assertDirectoryExists($objectDir, 'objects/ folder is present');
-        $this->assertInstanceOf(Repository::class, $repository, 'Admin::init returns a repository');
-        $this->assertEquals($this->tmpDir.'/.git', $repository->getGitDir(), 'git dir as subfolder of argument');
-        $this->assertEquals($this->tmpDir, $repository->getWorkingDir(), 'working dir present in bare repository');
+        $this->assertTrue(Admin::isValidRepositoryAndBranch(self::repositoryUrl(), 'new-feature', self::getOptions()));
+        $this->assertFalse(Admin::isValidRepositoryAndBranch(self::repositoryUrl(), 'unknown', self::getOptions()));
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testClone(Repository $repository): void
+    public function testCloneTo(): void
     {
-        $newDir = self::createTempDir();
-        $new = $repository->cloneTo($newDir, $repository->isBare(), self::getOptions());
-        self::registerDeletion($new);
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" instead, which takes the URL before the path.');
 
-        $newRefs = array_keys($new->getReferences()->getAll());
+        $repository = Admin::cloneTo(self::createTempDir(), self::repositoryUrl(), options: self::getOptions());
 
-        $this->assertContains('refs/heads/master', $newRefs);
-        $this->assertContains('refs/tags/0.1', $newRefs);
+        $this->assertTrue($repository->isBare());
+        $this->assertContains('refs/heads/new-feature', array_keys($repository->getReferences()->getAll()));
+    }
 
-        if ($repository->isBare()) {
-            $this->assertEquals($newDir, $new->getGitDir());
-            $this->assertContains('refs/heads/new-feature', $newRefs);
-        } else {
-            $this->assertEquals($newDir.'/.git', $new->getGitDir());
-            $this->assertEquals($newDir, $new->getWorkingDir());
+    public function testCloneToNotBare(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" instead, which takes the URL before the path.');
+
+        $repository = Admin::cloneTo(self::createTempDir(), self::repositoryUrl(), false, self::getOptions());
+
+        $this->assertFalse($repository->isBare());
+    }
+
+    public function testCloneBranchTo(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneBranchTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" with its "branch" argument instead, which takes the URL before the path.');
+
+        $repository = Admin::cloneBranchTo(self::createTempDir(), self::repositoryUrl(), 'new-feature', options: self::getOptions());
+
+        $this->assertTrue($repository->isBare());
+        $head = $repository->getHead();
+        $this->assertInstanceOf(Branch::class, $head);
+        $this->assertSame('new-feature', $head->getName());
+    }
+
+    public function testCloneBranchToNotBare(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneBranchTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" with its "branch" argument instead, which takes the URL before the path.');
+
+        $repository = Admin::cloneBranchTo(self::createTempDir(), self::repositoryUrl(), 'new-feature', false, self::getOptions());
+
+        $this->assertFalse($repository->isBare());
+        $head = $repository->getHead();
+        $this->assertInstanceOf(Branch::class, $head);
+        $this->assertSame('new-feature', $head->getName());
+    }
+
+    public function testMirrorTo(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::mirrorTo()" method is deprecated, use "Gitonomy\Git\Repository::mirrorFrom()" instead, which takes the URL before the path.');
+
+        $repository = Admin::mirrorTo(self::createTempDir(), self::repositoryUrl(), self::getOptions());
+
+        $this->assertSame('true', trim($repository->run('config', ['remote.origin.mirror'])));
+    }
+
+    public function testCloneRepositoryPassesItsArgumentsToGit(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneRepository()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()", "Gitonomy\Git\Repository::cloneBareFrom()" or "Gitonomy\Git\Repository::mirrorFrom()" instead, which take the URL before the path; they support no other argument of "git clone".');
+
+        // --config is the only argument --bare accepts on every git version.
+        $repository = Admin::cloneRepository(self::createTempDir(), self::repositoryUrl(), ['--bare', '--config', 'gitlib.test=yes'], self::getOptions());
+
+        $this->assertTrue($repository->isBare());
+        $this->assertSame('yes', trim($repository->run('config', ['gitlib.test'])));
+    }
+
+    public function testOptionsConfigureGitAndTheRepository(): void
+    {
+        $logger = $this->createStub(LoggerInterface::class);
+
+        $repository = Admin::init(self::createTempDir(), options: [...self::getOptions(), 'logger' => $logger, 'process_timeout' => 42]);
+
+        $this->assertSame($logger, $repository->getLogger());
+        $this->assertSame(42.0, $repository->runProcess('config', ['core.bare'])->getTimeout());
+    }
+
+    public function testCommandOptionRunsAnotherGitBinary(): void
+    {
+        $this->expectException(ProcessException::class);
+
+        Admin::init(self::createTempDir(), options: ['command' => 'not-git']);
+    }
+
+    public function testInheritEnvironmentVariablesOnlyAppliesToTheRepository(): void
+    {
+        if (\defined('PHP_WINDOWS_VERSION_MAJOR')) {
+            $this->markTestSkipped('The fake git binary is a shell script.');
         }
-    }
 
-    public function testCloneBranchBare(): void
-    {
-        // we can't use AbstractTestCase::createFoobarRepository()
-        // because it does not clone other branches than "master"
-        // so we test it directly against the remote repository
+        // A git binary logging its first argument, and whether it gets SECRET.
+        $dir = self::createTempDir();
+        file_put_contents($dir.'/git', \sprintf("#!/bin/sh\necho \"\$1 \${GITLIB_TEST_SECRET:-none}\" >> %s\nexec %s \"\$@\"\n", escapeshellarg($dir.'/log'), escapeshellarg(self::gitCommand())));
+        chmod($dir.'/git', 0o755);
+        // Like the credentials of an HTTP request, in $_SERVER only.
+        $_SERVER['GITLIB_TEST_SECRET'] = 'secret';
 
-        $newDir = self::createTempDir();
-        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature');
-        self::registerDeletion($new);
-
-        $head = $new->getHead();
-        $this->assertInstanceOf(Branch::class, $head, 'HEAD is a branch');
-        $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
-    }
-
-    public function testCloneBranchNotBare(): void
-    {
-        // we can't use AbstractTestCase::createFoobarRepository()
-        // because it does not clone other branches than "master"
-        // so we test it directly against remote repository
-
-        $newDir = self::createTempDir();
-        $new = Admin::cloneBranchTo($newDir, self::REPOSITORY_URL, 'new-feature', false);
-        self::registerDeletion($new);
-
-        $head = $new->getHead();
-        $this->assertInstanceOf(Branch::class, $head, 'HEAD is a branch');
-        $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
-    }
-
-    #[DataProvider('provideFoobar')]
-    public function testMirror(Repository $repository): void
-    {
-        $newDir = self::createTempDir();
-        $new = Admin::mirrorTo($newDir, $repository->getGitDir(), self::getOptions());
-        self::registerDeletion($new);
-
-        $newRefs = array_keys($new->getReferences()->getAll());
-
-        $this->assertContains('refs/heads/master', $newRefs);
-        $this->assertContains('refs/tags/0.1', $newRefs);
-        $this->assertEquals($newDir, $new->getGitDir());
-
-        if ($repository->isBare()) {
-            $this->assertContains('refs/heads/new-feature', $newRefs);
-        } else {
-            $this->assertContains('refs/remotes/origin/new-feature', $newRefs);
+        try {
+            $repository = Admin::init($dir.'/repository', options: [...self::getOptions(), 'command' => $dir.'/git', 'inherit_environment_variables' => true]);
+            $repository->run('config', ['core.bare']);
+        } finally {
+            unset($_SERVER['GITLIB_TEST_SECRET']);
         }
+
+        // Like in 1.x, git init doesn't get $_SERVER, the git processes of the repository do.
+        $this->assertSame("init none\n--git-dir secret\n", file_get_contents($dir.'/log'));
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCheckValidRepository(Repository $repository): void
+    public function testRemovedOptionsAreRefused(): void
     {
-        $url = $repository->getGitDir();
-        $this->assertTrue(Admin::isValidRepository($url));
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The "debug" option set to false is not supported anymore: a failing git operation always throws, catch its exception instead.');
+
+        Admin::init(self::createTempDir(), options: ['debug' => false]);
     }
 
-    public function testCheckInvalidRepository(): void
+    public function testRepositoryCloneTo(): void
     {
-        $url = $this->tmpDir.'/invalid.git';
-        mkdir($url);
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" with "getGitDir()" as URL instead.');
 
-        $this->assertFalse(Admin::isValidRepository($url));
+        $repository = self::createFoobarRepository();
+        $new = $repository->cloneTo(self::createTempDir());
+
+        $this->assertTrue($new->isBare());
+        $this->assertSame($repository->getHeadCommit()->getHash(), $new->getHeadCommit()->getHash());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCheckValidRepositoryAndBranch(Repository $repository): void
+    public function testRepositoryCloneToNotBare(): void
     {
-        $url = $repository->getGitDir();
-        $this->assertTrue(Admin::isValidRepositoryAndBranch($url, 'master'));
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" with "getGitDir()" as URL instead.');
+
+        $repository = self::createFoobarRepository();
+        $new = $repository->cloneTo(self::createTempDir(), false);
+
+        $this->assertFalse($new->isBare());
+        $this->assertSame($repository->getHeadCommit()->getHash(), $new->getHeadCommit()->getHash());
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testCheckInvalidRepositoryAndBranch(Repository $repository): void
+    public function testRepositoryCloneToWithGitOptions(): void
     {
-        $url = $repository->getGitDir();
-        $this->assertFalse(Admin::isValidRepositoryAndBranch($url, 'invalid-branch-name'));
+        $repository = self::createFoobarRepository();
+        $new = $repository->cloneTo(self::createTempDir(), options: [...self::getOptions(), 'process_timeout' => 42]);
+
+        $this->assertSame(42.0, $new->runProcess('config', ['core.bare'])->getTimeout());
     }
 
-    public function testExistingFile(): void
+    /**
+     * The options of 1.x running the git binary of the tests.
+     *
+     * @return array{command: string, environment_variables: array<string, string>}
+     */
+    private static function getOptions(): array
     {
-        $this->expectException(RuntimeException::class);
-
-        $file = $this->tmpDir.'/test';
-        touch($file);
-
-        Admin::init($file, true, self::getOptions());
-    }
-
-    public function testCloneRepository(): void
-    {
-        $newDir = self::createTempDir();
-        $args = [];
-
-        $new = Admin::cloneRepository($newDir, self::REPOSITORY_URL, $args, self::getOptions());
-        self::registerDeletion($new);
-
-        $newRefs = array_keys($new->getReferences()->getAll());
-
-        $this->assertContains('refs/heads/master', $newRefs);
-        $this->assertContains('refs/tags/0.1', $newRefs);
-
-        $this->assertEquals($newDir.'/.git', $new->getGitDir());
-        $this->assertEquals($newDir, $new->getWorkingDir());
+        return [
+            'command' => self::gitCommand(),
+            'environment_variables' => self::gitEnvs(),
+        ];
     }
 }

@@ -12,36 +12,49 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Exception\RuntimeException;
-use Symfony\Component\Process\Process;
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Driver\Cli\LegacyOptions;
 
 /**
  * Administration class for Git repositories.
  *
+ * Its methods behave like in 1.x: the git options of 1.x (command,
+ * environment_variables, inherit_environment_variables and process_timeout)
+ * configure the CliDriver they run, and the repositories they return;
+ * inherit_environment_variables only applies to these repositories.
+ *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @deprecated since gitonomy/gitlib 2.0, use the static methods of Repository instead
+ *
+ * @phpstan-import-type Options from LegacyOptions
  */
 final class Admin
 {
     /**
      * Initializes a repository and returns the instance.
      *
-     * @param string $path    path to the repository
-     * @param bool   $bare    indicate to create a bare repository
-     * @param array  $options options for Repository creation
+     * @param string  $path    path to the repository
+     * @param bool    $bare    indicate to create a bare repository
+     * @param Options $options options for Repository creation
      *
-     * @throws RuntimeException Directory exists or not writable (only if debug=true)
+     * @throws Exception\DriverException Directory exists or not writable
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::initBare() or Repository::init() instead
      */
     public static function init(string $path, bool $bare = true, array $options = []): Repository
     {
-        $process = self::getProcess('init', array_merge(['-q'], $bare ? ['--bare'] : [], [$path]), $options);
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" instead.', __METHOD__, Repository::class, $bare ? 'initBare' : 'init');
 
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new RuntimeException(\sprintf("Error on repository initialization, command wasn't successful (%s). Error output:\n%s", $process->getCommandLine(), $process->getErrorOutput()));
+        $options = new LegacyOptions($options);
+        $driver = $options->adminDriver() ?? new CliDriver();
+        if ($bare) {
+            $driver->initBare($path);
+        } else {
+            $driver->init($path);
         }
 
-        return new Repository($path, $options);
+        return new Repository($path, $options->workingDir, $options->repositoryDriver() ?? $driver);
     }
 
     /**
@@ -51,18 +64,18 @@ final class Admin
      * Usually, this command returns 0 when successful, and 128 when the
      * repository is not found.
      *
-     * @param string $url     url of repository to check
-     * @param array  $options options for Repository creation
+     * @param string  $url     url of repository to check
+     * @param Options $options options for Repository creation
      *
      * @return bool true if url is valid
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::isValidRepository() instead
      */
     public static function isValidRepository(string $url, array $options = []): bool
     {
-        $process = self::getProcess('ls-remote', [$url], $options);
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::isValidRepository()" instead.', __METHOD__, Repository::class);
 
-        $process->run();
-
-        return $process->isSuccessful();
+        return (new LegacyOptions($options)->adminDriver() ?? new CliDriver())->isValidRepository($url);
     }
 
     /**
@@ -73,106 +86,110 @@ final class Admin
      * Usually, this command returns 0 when successful, and 128 when the
      * repository is not found.
      *
-     * @param string $url        url of repository to check
-     * @param string $branchName name of branch to check
-     * @param array  $options    options for Repository creation
+     * @param string  $url        url of repository to check
+     * @param string  $branchName name of branch to check
+     * @param Options $options    options for Repository creation
      *
      * @return bool true if url is valid and branch exists
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::isValidRepositoryAndBranch() instead
      */
     public static function isValidRepositoryAndBranch(string $url, string $branchName, array $options = []): bool
     {
-        $process = self::getProcess('ls-remote', ['--heads', $url, $branchName], $options);
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::isValidRepositoryAndBranch()" instead.', __METHOD__, Repository::class);
 
-        $process->run();
-        $processOutput = $process->getOutput();
-
-        return $process->isSuccessful() && str_contains($processOutput, $branchName);
+        return (new LegacyOptions($options)->adminDriver() ?? new CliDriver())->isValidRepositoryAndBranch($url, $branchName);
     }
 
     /**
      * Clone a repository to a local path.
      *
-     * @param string $path    indicates where to clone repository
-     * @param string $url     url of repository to clone
-     * @param bool   $bare    indicates if repository should be bare or have a working copy
-     * @param array  $options options for Repository creation
+     * @param string  $path    indicates where to clone repository
+     * @param string  $url     url of repository to clone
+     * @param bool    $bare    indicates if repository should be bare or have a working copy
+     * @param Options $options options for Repository creation
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneBareFrom() or Repository::cloneFrom() instead
      */
     public static function cloneTo(string $path, string $url, bool $bare = true, array $options = []): Repository
     {
-        $args = $bare ? ['--bare'] : [];
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
 
-        return self::cloneRepository($path, $url, $args, $options);
+        $options = new LegacyOptions($options);
+        $driver = $options->adminDriver() ?? new CliDriver();
+        if ($bare) {
+            $driver->cloneBareFrom($url, $path, null);
+        } else {
+            $driver->cloneFrom($url, $path, null);
+        }
+
+        return new Repository($path, $options->workingDir, $options->repositoryDriver() ?? $driver);
     }
 
     /**
      * Clone a repository branch to a local path.
      *
-     * @param string $path    indicates where to clone repository
-     * @param string $url     url of repository to clone
-     * @param string $branch  branch to clone
-     * @param bool   $bare    indicates if repository should be bare or have a working copy
-     * @param array  $options options for Repository creation
+     * @param string  $path    indicates where to clone repository
+     * @param string  $url     url of repository to clone
+     * @param string  $branch  branch to clone
+     * @param bool    $bare    indicates if repository should be bare or have a working copy
+     * @param Options $options options for Repository creation
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneBareFrom() or Repository::cloneFrom() with their "branch" argument instead
      */
     public static function cloneBranchTo(string $path, string $url, string $branch, bool $bare = true, array $options = []): Repository
     {
-        $args = ['--branch', $branch];
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" with its "branch" argument instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
+
+        $options = new LegacyOptions($options);
+        $driver = $options->adminDriver() ?? new CliDriver();
         if ($bare) {
-            $args[] = '--bare';
+            $driver->cloneBareFrom($url, $path, $branch);
+        } else {
+            $driver->cloneFrom($url, $path, $branch);
         }
 
-        return self::cloneRepository($path, $url, $args, $options);
+        return new Repository($path, $options->workingDir, $options->repositoryDriver() ?? $driver);
     }
 
     /**
      * Mirrors a repository (fetch all revisions, not only branches).
      *
-     * @param string $path    indicates where to clone repository
-     * @param string $url     url of repository to clone
-     * @param array  $options options for Repository creation
+     * @param string  $path    indicates where to clone repository
+     * @param string  $url     url of repository to clone
+     * @param Options $options options for Repository creation
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::mirrorFrom() instead
      */
     public static function mirrorTo(string $path, string $url, array $options = []): Repository
     {
-        return self::cloneRepository($path, $url, ['--mirror'], $options);
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::mirrorFrom()" instead, which takes the URL before the path.', __METHOD__, Repository::class);
+
+        $options = new LegacyOptions($options);
+        $driver = $options->adminDriver() ?? new CliDriver();
+        $driver->mirrorFrom($url, $path);
+
+        return new Repository($path, $options->workingDir, $options->repositoryDriver() ?? $driver);
     }
 
     /**
      * Internal method to launch effective ``git clone`` command.
      *
-     * @param string $path    indicates where to clone repository
-     * @param string $url     url of repository to clone
-     * @param array  $args    arguments to be added to the command-line
-     * @param array  $options options for Repository creation
+     * @param string   $path    indicates where to clone repository
+     * @param string   $url     url of repository to clone
+     * @param string[] $args    arguments to be added to the command-line
+     * @param Options  $options options for Repository creation
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneFrom(), Repository::cloneBareFrom() or Repository::mirrorFrom() instead
      */
     public static function cloneRepository(string $path, string $url, array $args = [], array $options = []): Repository
     {
-        $process = self::getProcess('clone', array_merge(['-q'], $args, [$url, $path]), $options);
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%1$s()" method is deprecated, use "%2$s::cloneFrom()", "%2$s::cloneBareFrom()" or "%2$s::mirrorFrom()" instead, which take the URL before the path; they support no other argument of "git clone".', __METHOD__, Repository::class);
 
-        $process->run();
+        $options = new LegacyOptions($options);
+        $driver = $options->adminDriver() ?? new CliDriver();
+        $driver->cloneRepository($path, $url, $args);
 
-        if (!$process->isSuccessful()) {
-            throw new RuntimeException(\sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
-        }
-
-        return new Repository($path, $options);
-    }
-
-    /**
-     * This internal method is used to create a process object.
-     */
-    private static function getProcess(string $command, array $args = [], array $options = []): Process
-    {
-        $is_windows = \defined('PHP_WINDOWS_VERSION_BUILD');
-        $options = array_merge([
-            'environment_variables' => $is_windows ? ['PATH' => getenv('PATH')] : [],
-            'command' => 'git',
-            'process_timeout' => 3600,
-        ], $options);
-
-        $process = new Process(array_merge([$options['command'], $command], $args));
-        $process->setEnv($options['environment_variables']);
-        $process->setTimeout($options['process_timeout']);
-        $process->setIdleTimeout($options['process_timeout']);
-
-        return $process;
+        return new Repository($path, $options->workingDir, $options->repositoryDriver() ?? $driver);
     }
 }

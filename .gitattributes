@@ -1,2 +1,16 @@
 * text=auto
 /tests/fixtures/*.bundle binary
+
+# Left out of the archive Composer installs: only src/, the docs and the license ship.
+/.gitattributes export-ignore
+/.github export-ignore
+/.gitignore export-ignore
+/.php-cs-fixer.php export-ignore
+/benchmark.php export-ignore
+/castor.php export-ignore
+/phpstan-baseline.neon export-ignore
+/phpstan.neon export-ignore
+/phpunit.xml.dist export-ignore
+/test-git-versions.php export-ignore
+/tests export-ignore
+/tools export-ignore

@@ -1,0 +1,434 @@
+<?php
+
+/*
+ * This file is part of Gitonomy.
+ *
+ * (c) Alexandre Salomé <alexandre.salome@gmail.com>
+ * (c) Julien DIDIER <genzo.wm@gmail.com>
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Gitonomy\Git\Driver\Cli;
+
+use Gitonomy\Git\Driver\Cli\Parser\BlameParser;
+use Gitonomy\Git\Driver\Cli\Parser\LogParser;
+use Gitonomy\Git\Driver\Cli\Parser\ReferenceParser;
+use Gitonomy\Git\Driver\Cli\Parser\TagParser;
+use Gitonomy\Git\Driver\Cli\Parser\TreeParser;
+use Gitonomy\Git\Driver\Data\CommitData;
+use Gitonomy\Git\Driver\Data\DiffData;
+use Gitonomy\Git\Driver\Data\ObjectType;
+use Gitonomy\Git\Driver\Data\TagData;
+use Gitonomy\Git\Driver\RepositoryDriverInterface;
+use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\FastForward;
+use Gitonomy\Git\Parser\DiffParser;
+use Symfony\Component\Process\Process;
+
+/**
+ * Runs a git process for every operation on a repository.
+ *
+ * @author Grégoire Pineau <lyrixx@lyrixx.info>
+ *
+ * @internal
+ */
+final readonly class CliRepositoryDriver implements RepositoryDriverInterface
+{
+    // -z: the raw information gives the names as they are, without quoting.
+    // --no-abbrev: before git 2.16, --raw abbreviates hashes with a trailing "...".
+    private const array DIFF_ARGS = ['-r', '-p', '--raw', '-z', '-M', '--full-index', '--no-abbrev'];
+
+    /**
+     * The tree without any file: git knows it, even when no commit has it.
+     */
+    private const string EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+
+    public function __construct(
+        private GitRunner $runner,
+        private string $gitDir,
+        private ?string $workingDir,
+    ) {
+    }
+
+    public function getGitDir(): string
+    {
+        return $this->gitDir;
+    }
+
+    public function getWorkingDir(): ?string
+    {
+        return $this->workingDir;
+    }
+
+    public function getHeadReference(): ?string
+    {
+        $process = $this->execute('symbolic-ref', ['-q', 'HEAD']);
+
+        // -q: git exits with 1, without output, when HEAD is detached.
+        if (1 === $process->getExitCode() && '' === $process->getOutput()) {
+            return null;
+        }
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessException($process);
+        }
+
+        return trim($process->getOutput());
+    }
+
+    public function resolveRevision(string $revision): string
+    {
+        $process = $this->execute('rev-parse', ['--verify', '--quiet', $revision]);
+
+        // --quiet: git exits with 1, without output, when nothing has this name.
+        if (1 === $process->getExitCode() && '' === $process->getOutput()) {
+            throw new ReferenceNotFoundException(\sprintf('The revision "%s" does not exist.', $revision));
+        }
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessException($process);
+        }
+
+        return trim($process->getOutput());
+    }
+
+    public function getShortHash(string $hash): string
+    {
+        return trim($this->runOnObject($hash, null, 'log', ['--abbrev-commit', '--format=%h', '-n', '1', $hash]));
+    }
+
+    public function getCommitData(string $hash): CommitData
+    {
+        $parser = new LogParser();
+        $parser->parse($this->runOnObject($hash, ObjectType::Commit, 'log', ['--encoding=UTF-8', '--format=raw', '-n', '1', $hash]));
+
+        $commit = $parser->commits[0] ?? null;
+        // git log peels a tag to its commit.
+        if (null === $commit || !str_starts_with($commit->hash, $hash)) {
+            throw new ReferenceNotFoundException(\sprintf('The object "%s" is not a commit.', $hash));
+        }
+
+        return $commit;
+    }
+
+    public function getCommitLog(?array $includes, array $excludes, array $paths, int $offset, ?int $limit): array
+    {
+        if ([] === $includes) {
+            return [];
+        }
+
+        // Re-encodes the commits whose "encoding" header isn't UTF-8.
+        $args = ['--encoding=UTF-8', '--format=raw', '--skip='.$offset];
+
+        if (null !== $limit) {
+            $args[] = '-n';
+            $args[] = (string) $limit;
+        }
+
+        $parser = new LogParser();
+        $parser->parse($this->run('log', [...$args, ...self::revisions($includes, $excludes), '--', ...$paths]));
+
+        return $parser->commits;
+    }
+
+    public function countCommits(?array $includes, array $excludes, array $paths): int
+    {
+        if ([] === $includes) {
+            return 0;
+        }
+
+        return (int) $this->run('rev-list', ['--count', ...self::revisions($includes, $excludes), '--', ...$paths]);
+    }
+
+    public function getMergeBases(string $hash1, string $hash2): array
+    {
+        $process = $this->execute('merge-base', ['--all', $hash1, $hash2]);
+
+        // git exits with 1 and no output when there is no common ancestor; any
+        // other failure (unknown revision, corrupt repository...) is an error.
+        if (1 === $process->getExitCode() && '' === $process->getOutput()) {
+            return [];
+        }
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessException($process);
+        }
+
+        return explode("\n", trim($process->getOutput()));
+    }
+
+    public function getTreeEntries(string $hash): array
+    {
+        $parser = new TreeParser();
+        $parser->parse($this->readObject($hash, ObjectType::Tree));
+
+        return $parser->entries;
+    }
+
+    public function getBlobContent(string $hash): string
+    {
+        return $this->readObject($hash, ObjectType::Blob);
+    }
+
+    public function getTagData(string $hash): TagData
+    {
+        $parser = new TagParser();
+        $parser->parse($this->readObject($hash, ObjectType::Tag));
+
+        return $parser->data;
+    }
+
+    public function getReferences(): array
+    {
+        // Unlike for-each-ref in git 1.x, show-ref skips a dangling symbolic reference.
+        $process = $this->execute('show-ref', ['--dereference']);
+
+        // git exits with 1 and no output when there is no reference.
+        if (1 === $process->getExitCode() && '' === $process->getOutput()) {
+            return [];
+        }
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessException($process);
+        }
+
+        $parser = new ReferenceParser();
+        $parser->parse($process->getOutput());
+
+        return $parser->references;
+    }
+
+    public function createReference(string $fullname, string $hash): void
+    {
+        // Zeros as the old value: git refuses to update a reference that exists.
+        $this->run('update-ref', [$fullname, $hash, str_repeat('0', 40)]);
+    }
+
+    public function updateReference(string $fullname, string $hash): void
+    {
+        $this->run('update-ref', [$fullname, $hash]);
+    }
+
+    public function deleteReference(string $fullname): void
+    {
+        $this->run('update-ref', ['-d', $fullname]);
+    }
+
+    public function getIncludingBranches(string $hash): array
+    {
+        // for-each-ref only accepts --contains since git 2.7.
+        return [
+            ...$this->listBranches(['--contains', $hash], 'refs/heads/'),
+            ...$this->listBranches(['--remotes', '--contains', $hash], 'refs/remotes/'),
+        ];
+    }
+
+    public function getDiff(?string $from, string $to): DiffData
+    {
+        return $this->diff('diff-tree', [$from ?? self::EMPTY_TREE, $to]);
+    }
+
+    public function getWorkingTreeDiff(string $hash): DiffData
+    {
+        return $this->diff('diff', [$hash]);
+    }
+
+    public function getDiffPending(): DiffData
+    {
+        return $this->diff('diff', []);
+    }
+
+    public function getDiffStaged(): DiffData
+    {
+        return $this->diff('diff', ['--staged']);
+    }
+
+    public function getBlameLines(string $hash, string $path, ?int $firstLine, ?int $lastLine): array
+    {
+        $args = ['-p'];
+        if (null !== $firstLine || null !== $lastLine) {
+            $args[] = '-L';
+            $args[] = ($firstLine ?? 1).','.$lastLine;
+        }
+
+        $parser = new BlameParser();
+        $parser->parse($this->run('blame', [...$args, $hash, '--', $path]));
+
+        return $parser->lines;
+    }
+
+    public function getUntrackedFiles(): array
+    {
+        $files = [];
+        foreach (explode("\0", $this->run('status', ['--porcelain', '--untracked-files=all', '-z'])) as $entry) {
+            if (str_starts_with($entry, '?? ')) {
+                $files[] = substr($entry, 3);
+            }
+        }
+
+        return $files;
+    }
+
+    public function checkout(string $revision): void
+    {
+        $this->run('checkout', [$revision]);
+    }
+
+    public function checkoutNewBranch(string $branch, string $startHash): void
+    {
+        $this->run('checkout', ['-b', $branch, $startHash]);
+    }
+
+    public function merge(string $revision, FastForward $fastForward): void
+    {
+        $option = match ($fastForward) {
+            FastForward::Allow => '--ff',
+            FastForward::Never => '--no-ff',
+            FastForward::Only => '--ff-only',
+        };
+
+        $this->run('merge', [$option, $revision]);
+    }
+
+    /**
+     * Runs any git command, for what no driver method covers.
+     *
+     * @param array<int|string, int|string> $args
+     * @param string|null                   $input The standard input of git
+     *
+     * @throws ProcessException The command failed
+     */
+    public function runProcess(string $command, array $args = [], ?string $input = null): Process
+    {
+        $process = $this->execute($command, array_map(strval(...), $args), $input);
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessException($process);
+        }
+
+        return $process;
+    }
+
+    /**
+     * @param string[] $args
+     *
+     * @throws ProcessException
+     */
+    private function run(string $command, array $args): string
+    {
+        return $this->runProcess($command, $args)->getOutput();
+    }
+
+    /**
+     * @param string[] $args
+     */
+    private function diff(string $command, array $args): DiffData
+    {
+        $output = $this->run($command, [...self::DIFF_ARGS, ...$args]);
+
+        $parser = new DiffParser();
+        $parser->parse($output);
+
+        return new DiffData($parser->files, $output);
+    }
+
+    /**
+     * Reads the content of the object $hash, in the format git stores it.
+     *
+     * Unlike ``git cat-file <type>`` or ``git ls-tree``, refuses an object
+     * of another type, instead of reading the tree of a commit for instance.
+     *
+     * @throws ReferenceNotFoundException $hash doesn't exist, or isn't of the type $type
+     */
+    private function readObject(string $hash, ObjectType $type): string
+    {
+        $output = $this->runProcess('cat-file', ['--batch'], $hash."\n")->getOutput();
+
+        // "<hash> <type> <size>", or "<hash> missing".
+        $header = explode(' ', (string) strstr($output, "\n", true));
+        if (3 !== \count($header)) {
+            throw new ReferenceNotFoundException(\sprintf('The object "%s" does not exist.', $hash));
+        }
+        if ($type->value !== $header[1]) {
+            throw new ReferenceNotFoundException(\sprintf('The object "%s" is not a %s.', $hash, $type->value));
+        }
+
+        return substr($output, \strlen(implode(' ', $header)) + 1, (int) $header[2]);
+    }
+
+    /**
+     * Runs a command reading the object $hash.
+     *
+     * @param ObjectType|null $type The type $hash must have, null for any
+     * @param string[]        $args
+     *
+     * @throws ReferenceNotFoundException $hash doesn't exist, or isn't of the type $type
+     */
+    private function runOnObject(string $hash, ?ObjectType $type, string $command, array $args): string
+    {
+        try {
+            return $this->run($command, $args);
+        } catch (ProcessException $e) {
+            // Only checked when the command fails: one more process.
+            $process = $this->execute('cat-file', ['-t', $hash]);
+            if (!$process->isSuccessful()) {
+                throw new ReferenceNotFoundException(\sprintf('The object "%s" does not exist.', $hash), 0, $e);
+            }
+            if (null !== $type && $type->value !== trim($process->getOutput())) {
+                throw new ReferenceNotFoundException(\sprintf('The object "%s" is not a %s.', $hash, $type->value), 0, $e);
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * @param list<string>|null $includes
+     * @param list<string>      $excludes
+     *
+     * @return list<string>
+     */
+    private static function revisions(?array $includes, array $excludes): array
+    {
+        return [...$includes ?? ['--all'], ...array_map(static fn (string $hash): string => '^'.$hash, $excludes)];
+    }
+
+    /**
+     * @param string[] $args Arguments of ``git branch``
+     *
+     * @return string[] The full names of the branches git lists
+     */
+    private function listBranches(array $args, string $prefix): array
+    {
+        $branches = [];
+        foreach (explode("\n", rtrim($this->run('branch', ['--no-color', ...$args]), "\n")) as $line) {
+            // "* " flags the current branch, "(HEAD detached at ...)" a detached
+            // HEAD, and "origin/HEAD -> origin/main" a symbolic reference.
+            $name = substr($line, 2);
+            if ('' === $name || str_starts_with($name, '(') || str_contains($name, ' -> ')) {
+                continue;
+            }
+
+            $branches[] = $prefix.$name;
+        }
+
+        return $branches;
+    }
+
+    /**
+     * @param string[] $args
+     */
+    private function execute(string $command, array $args, ?string $input = null): Process
+    {
+        $globalOptions = ['--git-dir', $this->gitDir];
+        if (null !== $this->workingDir) {
+            $globalOptions = [...$globalOptions, '--work-tree', $this->workingDir];
+        }
+
+        // Relative paths, in arguments as in pathspecs, resolve against the repository.
+        return $this->runner->run($command, $args, $globalOptions, $this->workingDir ?? $this->gitDir, $input);
+    }
+}

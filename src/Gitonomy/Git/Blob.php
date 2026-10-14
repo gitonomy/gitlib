@@ -12,7 +12,7 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\RuntimeException;
 
 /**
  * Representation of a Blob commit.
@@ -28,7 +28,7 @@ final class Blob
 
     private ?string $content = null;
 
-    private string|false|null $mimetype = null;
+    private ?string $mimetype = null;
 
     private ?bool $text = null;
 
@@ -50,33 +50,25 @@ final class Blob
     /**
      * @return string content of the blob
      *
-     * @throws Exception\ProcessException Error occurred while getting content of blob
+     * @throws Exception\DriverException Error occurred while getting content of blob
      */
     public function getContent(): string
     {
         if (null === $this->content) {
-            $content = $this->repository->run('cat-file', ['-p', $this->hash]);
-            if (null === $content) {
-                throw new ReferenceNotFoundException($this->hash);
-            }
-
-            $this->content = $content;
+            $this->content = $this->repository->getRepositoryDriver()->getBlobContent($this->hash);
         }
 
         return $this->content;
     }
 
     /**
-     * Determine the mimetype of the blob.
+     * @return string The mimetype of the content, like "text/plain"
+     *
+     * @throws RuntimeException fileinfo can't read the content
      */
-    public function getMimetype(): string|false
+    public function getMimetype(): string
     {
-        if (null === $this->mimetype) {
-            $finfo = new \finfo(\FILEINFO_MIME);
-            $this->mimetype = $finfo->buffer($this->getContent());
-        }
-
-        return $this->mimetype;
+        return $this->mimetype ??= new \finfo(\FILEINFO_MIME_TYPE)->buffer($this->getContent()) ?: throw new RuntimeException(\sprintf('Unable to read the mimetype of the blob "%s".', $this->hash));
     }
 
     /**

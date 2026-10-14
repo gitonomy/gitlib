@@ -12,9 +12,16 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Admin;
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Driver\DriverInterface;
+use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
+use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\AfterClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Process\Process;
 
 abstract class AbstractTestCase extends TestCase
 {
@@ -34,9 +41,32 @@ abstract class AbstractTestCase extends TestCase
     public const SIGNED_COMMIT = 'e1a83f16ed61ae3807e5652c7ef894692c813513';
 
     /**
-     * Local clone of remote URL. Avoids network call on each test.
+     * Bare clone of REPOSITORY_URL, the fixture repositories are cloned from:
+     * for the tests of a class, as each class deletes it.
      */
     private static ?Repository $localRepository = null;
+
+    /**
+     * Materialized (unbundled) copy of REPOSITORY_URL, used in place of the
+     * raw .bundle file for drivers whose clone implementation doesn't
+     * understand the git bundle format (unlike the `git` CLI, which
+     * special-cases it) — currently LibGit2Driver.
+     */
+    private static ?string $materializedRepositoryUrl = null;
+
+    /**
+     * Directories created by createTempDir() for the current test.
+     *
+     * @var string[]
+     */
+    private static array $tempDirs = [];
+
+    /**
+     * Directories kept for the tests of a class.
+     *
+     * @var string[]
+     */
+    private static array $classTempDirs = [];
 
     /**
      * Creates an empty git repository and returns instance.
@@ -44,31 +74,21 @@ abstract class AbstractTestCase extends TestCase
     public static function createEmptyRepository(bool $bare = true): Repository
     {
         $dir = self::createTempDir();
-        $repository = Admin::init($dir, $bare, self::getOptions());
-        self::registerDeletion($repository);
 
-        return $repository;
+        return $bare ? Repository::initBare($dir, driver: self::getDriver()) : Repository::init($dir, driver: self::getDriver());
     }
 
     /**
-     * Can be used as data provider to get bare/not-bare repositories.
+     * Data provider of the "bare" argument of createFoobarRepository() and
+     * createEmptyRepository().
+     *
+     * @return array<string, array{bool}>
      */
-    public static function provideFoobar(): array
+    public static function provideBare(): array
     {
         return [
-            [self::createFoobarRepository()],
-            [self::createFoobarRepository(false)],
-        ];
-    }
-
-    /**
-     * Can be used as data provider to get bare/not-bare repositories.
-     */
-    public static function provideEmpty(): array
-    {
-        return [
-            [self::createEmptyRepository()],
-            [self::createEmptyRepository(false)],
+            'bare' => [true],
+            'working copy' => [false],
         ];
     }
 
@@ -78,37 +98,62 @@ abstract class AbstractTestCase extends TestCase
     public static function createFoobarRepository(bool $bare = true): Repository
     {
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, self::getOptions());
+            self::$localRepository = Repository::cloneBareFrom(self::repositoryUrl(), self::createClassTempDir(), driver: self::getDriver());
         }
 
-        $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare, self::getOptions());
-        self::registerDeletion($repository);
+        $dir = self::createTempDir();
+        $url = self::$localRepository->getGitDir();
 
-        return $repository;
-    }
-
-    public static function registerDeletion(Repository $repository): void
-    {
-        register_shutdown_function(static function () use ($repository): void {
-            if ($repository->getWorkingDir()) {
-                $dir = $repository->getWorkingDir();
-            } else {
-                $dir = $repository->getGitDir();
-            }
-            self::deleteDir($dir);
-        });
+        return $bare ? Repository::cloneBareFrom($url, $dir, driver: self::getDriver()) : Repository::cloneFrom($url, $dir, driver: self::getDriver());
     }
 
     /**
-     * Created an empty directory and return path to it.
+     * Creates an empty directory, deleted after the current test.
      */
     public static function createTempDir(): string
     {
-        $tmpDir = tempnam(sys_get_temp_dir(), 'gitlib_');
-        unlink($tmpDir);
-        mkdir($tmpDir);
+        return self::$tempDirs[] = self::createDir();
+    }
 
-        return $tmpDir;
+    #[After]
+    public function deleteTempDirs(): void
+    {
+        foreach (self::$tempDirs as $dir) {
+            self::deleteDir($dir);
+        }
+        self::$tempDirs = [];
+    }
+
+    #[AfterClass]
+    public static function deleteClassTempDirs(): void
+    {
+        foreach (self::$classTempDirs as $dir) {
+            self::deleteDir($dir);
+        }
+        self::$classTempDirs = [];
+        self::$localRepository = null;
+        self::$materializedRepositoryUrl = null;
+    }
+
+    /**
+     * Returns the source to clone the fixture from: the raw .bundle file for
+     * drivers that understand it (the `git` CLI does natively), or a
+     * one-time unbundled bare repository otherwise.
+     */
+    protected static function repositoryUrl(): string
+    {
+        if (self::getDriver() instanceof CliDriver) {
+            return self::REPOSITORY_URL;
+        }
+
+        if (null === self::$materializedRepositoryUrl) {
+            $dir = self::createClassTempDir();
+            $process = new Process([self::gitCommand(), 'clone', '-q', '--bare', self::REPOSITORY_URL, $dir]);
+            $process->mustRun();
+            self::$materializedRepositoryUrl = $dir;
+        }
+
+        return self::$materializedRepositoryUrl;
     }
 
     /**
@@ -116,15 +161,18 @@ abstract class AbstractTestCase extends TestCase
      */
     protected static function deleteDir(string $dir): void
     {
-        $iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS);
+        // Without FOLLOW_SYMLINKS: a link to a directory is deleted, never what it points to.
+        $iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS);
         $iterator = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::CHILD_FIRST);
+        /** @var \SplFileInfo $file */
         foreach ($iterator as $file) {
-            if (!is_link($file)) {
+            if (is_link($file)) {
+                unlink($file);
+            } elseif (is_dir($file)) {
                 chmod($file, 0o777);
-            }
-            if (is_dir($file)) {
                 rmdir($file);
             } else {
+                chmod($file, 0o777);
                 unlink($file);
             }
         }
@@ -133,15 +181,136 @@ abstract class AbstractTestCase extends TestCase
         rmdir($dir);
     }
 
-    protected static function getOptions(): array
+    /**
+     * Skips the current test under LibGit2Driver: use at the top of tests
+     * whose subject is the CLI-only Repository::run()/runProcess() escape
+     * hatch, or the configuration of CliDriver. For mere setup, use git().
+     */
+    protected function skipUnlessCliDriver(): void
+    {
+        if (!self::getDriver() instanceof CliDriver) {
+            self::markTestSkipped('This test is specific to CliDriver.');
+        }
+    }
+
+    /**
+     * Returns the branch HEAD points to, failing the test when it is detached.
+     */
+    protected static function headBranch(Repository $repository): Branch
+    {
+        $head = $repository->getHead();
+        self::assertInstanceOf(Branch::class, $head);
+
+        return $head;
+    }
+
+    /**
+     * Runs a git command on $repository through CliDriver, whatever the
+     * driver under test: for setup (committing, staging, tagging...) that no
+     * driver method covers.
+     *
+     * @param array<int|string, int|string> $args
+     */
+    protected static function git(Repository $repository, string $command, array $args = []): string
+    {
+        $cli = new Repository($repository->getPath(), driver: self::getCliDriver());
+
+        try {
+            return $cli->run($command, $args);
+        } finally {
+            // Like a write through $repository itself.
+            $repository->getReferences()->invalidate();
+        }
+    }
+
+    /**
+     * Writes a loose object, without the checks recent git versions apply to
+     * it (e.g. to a tag without tagger), nor the --literally option old ones lack.
+     *
+     * @return string The hash of the object
+     */
+    protected static function writeObject(Repository $repository, string $type, string $content): string
+    {
+        $object = $type.' '.\strlen($content)."\0".$content;
+        $hash = sha1($object);
+
+        $dir = $repository->getGitDir().'/objects/'.substr($hash, 0, 2);
+        if (!is_dir($dir)) {
+            mkdir($dir);
+        }
+        file_put_contents($dir.'/'.substr($hash, 2), gzcompress($object));
+
+        return $hash;
+    }
+
+    /**
+     * Returns the driver under test: LibGit2Driver when the GITLIB_DRIVER
+     * environment variable is "ffi", CliDriver otherwise.
+     */
+    protected static function getDriver(): DriverInterface
+    {
+        return 'ffi' === ($_SERVER['GITLIB_DRIVER'] ?? 'cli') ? new LibGit2Driver() : self::getCliDriver();
+    }
+
+    /**
+     * @param array<string, string> $environmentVariables Set on git processes, in addition to the GIT_ENVS environment variable
+     */
+    protected static function getCliDriver(array $environmentVariables = [], ?float $processTimeout = 60, ?LoggerInterface $logger = null): CliDriver
+    {
+        // git 2.29 and later run their maintenance after a commit, in the
+        // background since 2.46: it would write in the repositories the tests delete.
+        $envs = [...self::gitEnvs(), 'GIT_CONFIG_COUNT' => '1', 'GIT_CONFIG_KEY_0' => 'maintenance.auto', 'GIT_CONFIG_VALUE_0' => 'false'];
+
+        return new CliDriver(self::gitCommand(), [...$envs, ...$environmentVariables], processTimeout: $processTimeout, logger: $logger);
+    }
+
+    /**
+     * @return string The git binary of the tests: the GIT_COMMAND environment variable, or "git"
+     */
+    protected static function gitCommand(): string
     {
         $command = $_SERVER['GIT_COMMAND'] ?? 'git';
-        $envs = isset($_SERVER['GIT_ENVS']) ? (array) $_SERVER['GIT_ENVS'] : [];
+        if (!\is_string($command)) {
+            throw new \UnexpectedValueException('The GIT_COMMAND environment variable must be a string.');
+        }
 
-        return [
-            'command' => $command,
-            'environment_variables' => $envs,
-            'process_timeout' => 60,
-        ];
+        return $command;
+    }
+
+    /**
+     * @return array<string, string> The environment variables of git: GIT_ENVS, which the bootstrap sets on Windows
+     */
+    protected static function gitEnvs(): array
+    {
+        $envs = [];
+        $variables = $_SERVER['GIT_ENVS'] ?? [];
+        if (!\is_array($variables)) {
+            throw new \UnexpectedValueException('GIT_ENVS must be an array.');
+        }
+        foreach ($variables as $name => $value) {
+            if (!\is_string($name) || !\is_string($value)) {
+                throw new \UnexpectedValueException('GIT_ENVS must map names to values.');
+            }
+            $envs[$name] = $value;
+        }
+
+        return $envs;
+    }
+
+    /**
+     * Creates an empty directory, deleted after the last test of the class.
+     */
+    private static function createClassTempDir(): string
+    {
+        return self::$classTempDirs[] = self::createDir();
+    }
+
+    private static function createDir(): string
+    {
+        $dir = tempnam(sys_get_temp_dir(), 'gitlib_') ?: throw new \RuntimeException('Unable to create a temporary file.');
+        unlink($dir);
+        mkdir($dir);
+
+        return $dir;
     }
 }

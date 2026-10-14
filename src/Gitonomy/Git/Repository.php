@@ -13,9 +13,19 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Driver\Cli\CliRepositoryDriver;
+use Gitonomy\Git\Driver\Cli\LegacyOptions;
+use Gitonomy\Git\Driver\Data\ObjectType;
+use Gitonomy\Git\Driver\DriverInterface;
+use Gitonomy\Git\Driver\RepositoryDriverInterface;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Exception\UnsupportedOperationException;
+use Gitonomy\Git\Util\WeakCache;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 
@@ -25,6 +35,8 @@ use Symfony\Component\Process\Process;
  * Main entry point for browsing a Git repository.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @phpstan-import-type Options from LegacyOptions
  */
 final class Repository
 {
@@ -41,25 +53,25 @@ final class Repository
     private readonly ?string $workingDir;
 
     /**
-     * Cache of commit objects, indexed by hash.
+     * The commits, by hash, as long as the application uses them.
      *
-     * @var array<string, Commit>
+     * @var WeakCache<Commit>
      */
-    private array $commits = [];
+    private readonly WeakCache $commits;
 
     /**
-     * Cache of tree objects, indexed by hash.
+     * The trees, by hash, as long as the application uses them.
      *
-     * @var array<string, Tree>
+     * @var WeakCache<Tree>
      */
-    private array $trees = [];
+    private readonly WeakCache $trees;
 
     /**
-     * Cache of blob objects, indexed by hash.
+     * The blobs, by hash, as long as the application uses them.
      *
-     * @var array<string, Blob>
+     * @var WeakCache<Blob>
      */
-    private array $blobs = [];
+    private readonly WeakCache $blobs;
 
     /**
      * Reference bag associated to this repository.
@@ -67,83 +79,150 @@ final class Repository
     private ?ReferenceBag $referenceBag = null;
 
     /**
-     * Logger (can be null).
+     * Backend used to run operations.
      */
-    private ?LoggerInterface $logger;
+    private DriverInterface $driver;
 
     /**
-     * Path to git command.
+     * Operations on this repository, opened by the driver.
      */
-    private readonly string $command;
+    private RepositoryDriverInterface $repositoryDriver;
 
     /**
-     * Debug flag, indicating if errors should be thrown.
+     * Opens the repository in $dir: a bare repository, or a working tree with
+     * its ".git" directory or file (a linked worktree, a submodule...).
+     *
+     * An array of options as second argument is deprecated: its "working_dir"
+     * option is the $workingDir argument, and its "logger", "command",
+     * "environment_variables", "inherit_environment_variables" and
+     * "process_timeout" options configure a CliDriver.
+     *
+     * @param Options|string|null $workingDir The working tree, when $dir is a git directory kept apart from it
+     * @param DriverInterface     $driver     Backend running the operations
+     *
+     * @throws InvalidArgumentException      $dir doesn't exist or isn't a repository, or an option is unknown
+     * @throws DriverException               The driver can't open the repository
+     * @throws UnsupportedOperationException The repository uses SHA-256 hashes
      */
-    private readonly bool $debug;
-
-    /**
-     * Environment variables that should be set for every running process.
-     */
-    private readonly array $environmentVariables;
-
-    private readonly bool $inheritEnvironmentVariables;
-
-    /**
-     * Timeout that should be set for every running process.
-     */
-    private readonly int $processTimeout;
-
-    /**
-     * Constructs a new repository.
-     *
-     * Available options are:
-     *
-     * * working_dir : specify where working copy is located (option --work-tree)
-     *
-     * * debug : (default: true) enable/disable minimize errors and reduce log level
-     *
-     * * logger : a logger to use for logging actions (Psr\Log\LoggerInterface)
-     *
-     * * environment_variables : define environment variables for every ran process
-     *
-     * @param string $dir     path to git repository
-     * @param array  $options array of options values
-     *
-     * @throws InvalidArgumentException The folder does not exists
-     */
-    public function __construct(string $dir, array $options = [])
+    public function __construct(string $dir, array|string|null $workingDir = null, DriverInterface $driver = new CliDriver())
     {
-        $options = array_merge([
-            'working_dir' => null,
-            'debug' => true,
-            'logger' => null,
-            'command' => 'git',
-            'environment_variables' => [],
-            'inherit_environment_variables' => false,
-            'process_timeout' => 3600,
-        ], $options);
+        if (\is_array($workingDir)) {
+            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing an array of options to "%s()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.', __METHOD__);
 
-        if (null !== $options['logger'] && !$options['logger'] instanceof LoggerInterface) {
-            throw new InvalidArgumentException(\sprintf('Argument "logger" passed to Repository should be a Psr\Log\LoggerInterface. A %s was provided', \is_object($options['logger']) ? \get_class($options['logger']) : \gettype($options['logger'])));
+            $options = new LegacyOptions($workingDir);
+            $optionsDriver = $options->repositoryDriver();
+            if (null !== $optionsDriver) {
+                // The driver is the third argument.
+                if (\func_num_args() > 2) {
+                    throw new InvalidArgumentException('The driver argument can\'t be combined with the "logger" or git options: configure the driver instead.');
+                }
+
+                $driver = $optionsDriver;
+            }
+
+            $workingDir = $options->workingDir;
         }
 
-        $this->logger = $options['logger'];
-        [$this->gitDir, $this->workingDir] = self::resolveDir($dir, $options['working_dir']);
+        $this->commits = new WeakCache();
+        $this->trees = new WeakCache();
+        $this->blobs = new WeakCache();
+        $this->driver = $driver;
+        $this->repositoryDriver = $driver->open($dir, $workingDir);
+        $this->gitDir = $this->repositoryDriver->getGitDir();
+        $this->workingDir = $this->repositoryDriver->getWorkingDir();
+    }
 
-        $this->command = $options['command'];
-        $this->debug = (bool) $options['debug'];
-        $this->processTimeout = $options['process_timeout'];
+    /**
+     * Initializes a repository with a working directory in $path.
+     *
+     * @throws DriverException The directory can't be written, or is already a file
+     */
+    public static function init(string $path, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->init($path);
 
-        if (\defined('PHP_WINDOWS_VERSION_BUILD') && isset($_SERVER['PATH']) && !isset($options['environment_variables']['PATH'])) {
-            $options['environment_variables']['PATH'] = $_SERVER['PATH'];
-        }
+        return new self($path, null, $driver);
+    }
 
-        $this->environmentVariables = $options['environment_variables'];
-        $this->inheritEnvironmentVariables = $options['inherit_environment_variables'];
+    /**
+     * Initializes a bare repository in $path.
+     *
+     * @throws DriverException The directory can't be written, or is already a file
+     */
+    public static function initBare(string $path, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->initBare($path);
 
-        if (true === $this->debug && null !== $this->logger) {
-            $this->logger->debug(\sprintf('Repository created (git dir: "%s", working dir: "%s")', $this->gitDir, $this->workingDir ?: 'none'));
-        }
+        return new self($path, null, $driver);
+    }
+
+    /**
+     * Clones $url with a working directory in $path.
+     *
+     * @param string|null $branch The branch to check out, the default branch of $url when null
+     *
+     * @throws DriverException
+     */
+    public static function cloneFrom(string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->cloneFrom($url, $path, $branch);
+
+        return new self($path, null, $driver);
+    }
+
+    /**
+     * Clones the branches and the tags of $url into a bare repository in $path.
+     *
+     * @param string|null $branch The branch HEAD points to, the default branch of $url when null
+     *
+     * @throws DriverException
+     */
+    public static function cloneBareFrom(string $url, string $path, ?string $branch = null, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->cloneBareFrom($url, $path, $branch);
+
+        return new self($path, null, $driver);
+    }
+
+    /**
+     * Clones every reference of $url into a bare repository in $path, set up
+     * to mirror $url when fetching.
+     *
+     * @throws DriverException
+     */
+    public static function mirrorFrom(string $url, string $path, DriverInterface $driver = new CliDriver()): self
+    {
+        $driver->mirrorFrom($url, $path);
+
+        return new self($path, null, $driver);
+    }
+
+    /**
+     * Checks, without cloning it, that $url is a repository the driver can
+     * read: false when it doesn't exist, can't be reached, or refuses access.
+     */
+    public static function isValidRepository(string $url, DriverInterface $driver = new CliDriver()): bool
+    {
+        return $driver->isValidRepository($url);
+    }
+
+    /**
+     * Checks, without cloning it, that $url is a repository the driver can
+     * read, and that it has the $branch branch.
+     */
+    public static function isValidRepositoryAndBranch(string $url, string $branch, DriverInterface $driver = new CliDriver()): bool
+    {
+        return $driver->isValidRepositoryAndBranch($url, $branch);
+    }
+
+    /**
+     * Returns the operations on this repository, opened by the driver.
+     *
+     * @internal
+     */
+    public function getRepositoryDriver(): RepositoryDriverInterface
+    {
+        return $this->repositoryDriver;
     }
 
     /**
@@ -156,10 +235,8 @@ final class Repository
 
     /**
      * Returns the HEAD resolved as a commit.
-     *
-     * @return Commit|null returns a Commit or ``null`` if repository is empty
      */
-    public function getHeadCommit(): ?Commit
+    public function getHeadCommit(): Commit
     {
         $head = $this->getHead();
 
@@ -171,50 +248,19 @@ final class Repository
     }
 
     /**
-     * @return Reference|Commit|null current HEAD object or null if error occurs
+     * @return Reference|Commit The branch HEAD points to, or the commit when HEAD is detached
      *
-     * @throws RuntimeException Unable to find file HEAD (debug-mode only)
+     * @throws ReferenceNotFoundException HEAD points to a branch without commits yet
      */
-    public function getHead(): Reference|Commit|null
+    public function getHead(): Reference|Commit
     {
-        $file = $this->gitDir.'/HEAD';
+        $reference = $this->repositoryDriver->getHeadReference();
 
-        if (!file_exists($file)) {
-            $message = \sprintf('Unable to find HEAD file ("%s")', $file);
-
-            if (null !== $this->logger) {
-                $this->logger->error($message);
-            }
-
-            if (true === $this->debug) {
-                throw new RuntimeException($message);
-            }
+        if (null === $reference) {
+            return $this->getCommit($this->repositoryDriver->resolveRevision('HEAD'));
         }
 
-        $content = trim(file_get_contents($file));
-
-        if (null !== $this->logger) {
-            $this->logger->debug('HEAD file read: '.$content);
-        }
-
-        if (preg_match('/^ref: (.+)$/', $content, $vars)) {
-            return $this->getReferences()->get($vars[1]);
-        }
-        if (preg_match('/^[0-9a-f]{40}$/', $content)) {
-            return $this->getCommit($content);
-        }
-
-        $message = \sprintf('Unexpected HEAD file content (file: %s). Content of file: %s', $file, $content);
-
-        if (null !== $this->logger) {
-            $this->logger->error($message);
-        }
-
-        if (true === $this->debug) {
-            throw new RuntimeException($message);
-        }
-
-        return null;
+        return $this->getReferences()->get($reference);
     }
 
     public function isHeadDetached(): bool
@@ -224,7 +270,7 @@ final class Repository
 
     public function isHeadAttached(): bool
     {
-        return $this->getHead() instanceof Reference;
+        return null !== $this->repositoryDriver->getHeadReference();
     }
 
     /**
@@ -268,68 +314,122 @@ final class Repository
     }
 
     /**
-     * Returns the reference list associated to the repository.
+     * Returns the references of the repository, read again after every write
+     * gitlib makes. Open a new Repository to see the writes of other
+     * processes.
      *
-     * @param bool $reload Reload references from the filesystem
+     * Passing true, to read them again, is deprecated.
      */
     public function getReferences(bool $reload = false): ReferenceBag
     {
-        if (null === $this->referenceBag || $reload) {
-            $this->referenceBag = new ReferenceBag($this);
+        $this->referenceBag ??= new ReferenceBag($this);
+
+        if (\func_num_args() > 0) {
+            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing an argument to "%s()" is deprecated, gitlib reads the references again after its writes: open a new Repository to see the writes of other processes.', __METHOD__);
+        }
+
+        if ($reload) {
+            $this->referenceBag->invalidate();
         }
 
         return $this->referenceBag;
     }
 
     /**
-     * Instanciates a commit object or fetches one from the cache.
+     * Returns a commit, the same object while the application uses it.
      *
-     * @param string $hash A commit hash, with a length of 40
+     * @param string $hash The full hash of the commit: getRevision()->getCommit() resolves a name
+     *
+     * @throws ReferenceNotFoundException $hash isn't a full hash
      */
     public function getCommit(string $hash): Commit
     {
-        if (!isset($this->commits[$hash])) {
-            $this->commits[$hash] = new Commit($this, $hash);
+        $commit = $this->commits->get($hash);
+        if (null === $commit) {
+            $commit = new Commit($this, $hash);
+            $this->commits->set($hash, $commit);
         }
 
-        return $this->commits[$hash];
+        return $commit;
     }
 
     /**
-     * Instanciates a tree object or fetches one from the cache.
+     * Returns a tree, the same object while the application uses it.
      *
-     * @param string $hash A tree hash, with a length of 40
+     * @param string $hash The hash of the tree, abbreviated or not
+     *
+     * @throws ReferenceNotFoundException $hash isn't a hash, or names nothing
      */
     public function getTree(string $hash): Tree
     {
-        if (!isset($this->trees[$hash])) {
-            $this->trees[$hash] = new Tree($this, $hash);
+        $hash = $this->fullHash($hash, ObjectType::Tree);
+        $tree = $this->trees->get($hash);
+        if (null === $tree) {
+            $tree = new Tree($this, $hash);
+            $this->trees->set($hash, $tree);
         }
 
-        return $this->trees[$hash];
+        return $tree;
     }
 
     /**
-     * Instanciates a blob object or fetches one from the cache.
+     * Returns a blob, the same object while the application uses it.
      *
-     * @param string $hash A blob hash, with a length of 40
+     * @param string $hash The hash of the blob, abbreviated or not
+     *
+     * @throws ReferenceNotFoundException $hash isn't a hash, or names nothing
      */
     public function getBlob(string $hash): Blob
     {
-        if (!isset($this->blobs[$hash])) {
-            $this->blobs[$hash] = new Blob($this, $hash);
+        $hash = $this->fullHash($hash, ObjectType::Blob);
+        $blob = $this->blobs->get($hash);
+        if (null === $blob) {
+            $blob = new Blob($this, $hash);
+            $this->blobs->set($hash, $blob);
         }
 
-        return $this->blobs[$hash];
+        return $blob;
     }
 
-    public function getBlame(string|Revision $revision, string $file, ?string $lineRange = null): Blame
+    /**
+     * Returns the best common ancestor of two commits, the one "git diff a...b" compares to.
+     *
+     * @return Commit|null Null when they have no common history
+     */
+    public function getMergeBase(Revision|string $one, Revision|string $two): ?Commit
     {
-        if (\is_string($revision)) {
-            $revision = $this->getRevision($revision);
+        $hash = $this->repositoryDriver->getMergeBases($this->commitHash($one), $this->commitHash($two))[0] ?? null;
+
+        return null === $hash ? null : $this->getCommit($hash);
+    }
+
+    /**
+     * Returns the commits that last changed the lines of $file.
+     *
+     * A string as third argument, "<start>,<end>" or "<start>,+<count>" like
+     * "git blame -L", is deprecated.
+     *
+     * @param int|string|null $firstLine The first line to blame, from 1, the first one of the file when null
+     * @param int|null        $lastLine  The last line to blame, the last one of the file when null
+     */
+    public function getBlame(Revision|string $revision, string $file, int|string|null $firstLine = null, ?int $lastLine = null): Blame
+    {
+        if (\is_string($firstLine)) {
+            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing a range of lines as a string to "%s()" is deprecated, pass the first and the last lines instead.', __METHOD__);
+
+            if (!preg_match('/^(\d+),(\+?)(\d*)$/', $firstLine, $vars)) {
+                throw new InvalidArgumentException(\sprintf('Unsupported range of lines "%s": pass the first and the last lines instead.', $firstLine));
+            }
+
+            $firstLine = (int) $vars[1];
+            $lastLine = match (true) {
+                '' === $vars[3] => null,
+                '+' === $vars[2] => $firstLine + (int) $vars[3] - 1,
+                default => (int) $vars[3],
+            };
         }
 
-        return new Blame($this, $revision, $file, $lineRange);
+        return new Blame($this, \is_string($revision) ? $this->getRevision($revision) : $revision, $file, $firstLine, $lastLine);
     }
 
     /**
@@ -349,7 +449,38 @@ final class Repository
         return new Log($this, $revisions, $paths, $offset, $limit);
     }
 
-    public function getDiff(RevisionList|Revision|string|array|null $revisions): Diff
+    /**
+     * Returns the changes from the commit $from to the commit $to.
+     *
+     * Passing one argument is deprecated: an "a..b" or "a...b" range, two
+     * revisions in an array or a RevisionList, or one revision to compare
+     * with the working tree, like WorkingCopy::getDiff() does.
+     *
+     * @param RevisionList|Revision|string|array<Revision|string>|null $from
+     */
+    public function getDiff(RevisionList|Revision|string|array|null $from, Revision|string|null $to = null): Diff
+    {
+        if (null === $to) {
+            trigger_deprecation('gitonomy/gitlib', '2.0', 'Calling "%s()" with one argument is deprecated, pass the revisions to compare as "from" and "to" arguments, or use "%s::getDiff()" to compare a revision with the working tree.', __METHOD__, WorkingCopy::class);
+
+            return $this->getLegacyDiff($from);
+        }
+
+        if (\is_array($from) || $from instanceof RevisionList || null === $from) {
+            throw new InvalidArgumentException('The "from" argument of "Repository::getDiff()" must be a revision, when "to" is given.');
+        }
+
+        return Diff::fromData($this->repositoryDriver->getDiff($this->commitHash($from), $this->commitHash($to)), $this);
+    }
+
+    /**
+     * For the deprecated forms of getDiff() and Log::getDiff(), to be removed in 3.0.
+     *
+     * @param RevisionList|Revision|string|array<Revision|string>|null $revisions
+     *
+     * @internal
+     */
+    public function getLegacyDiff(RevisionList|Revision|string|array|null $revisions): Diff
     {
         if (null === $revisions) {
             throw new InvalidArgumentException('Cannot compute a diff without revisions.');
@@ -358,18 +489,31 @@ final class Repository
         if (!$revisions instanceof RevisionList) {
             $revisions = new RevisionList($this, $revisions);
         }
+        $revisions = $revisions->getAsTextArray();
 
-        $args = array_merge(['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index'], $revisions->getAsTextArray());
-
-        $result = $this->run('diff', $args);
-        if (null === $result) {
-            throw new RuntimeException('Unable to compute diff.');
+        if (2 === \count($revisions)) {
+            return $this->getDiff($revisions[0], $revisions[1]);
         }
 
-        $diff = Diff::parse($result);
-        $diff->setRepository($this);
+        if (1 === \count($revisions) && str_contains($revisions[0], '..')) {
+            $symmetric = str_contains($revisions[0], '...');
+            [$from, $to] = explode($symmetric ? '...' : '..', $revisions[0], 2);
+            $from = '' === $from ? 'HEAD' : $from;
+            $to = '' === $to ? 'HEAD' : $to;
 
-        return $diff;
+            if ($symmetric) {
+                // Like git diff: from the best common ancestor.
+                $from = $this->getMergeBase($from, $to) ?? throw new InvalidArgumentException(\sprintf('The revisions of "%s" have no common ancestor.', $revisions[0]));
+            }
+
+            return $this->getDiff($from, $to);
+        }
+
+        if (1 === \count($revisions)) {
+            return $this->getWorkingCopy()->getDiff($revisions[0]);
+        }
+
+        throw new InvalidArgumentException(\sprintf('Cannot compute a diff of "%s".', implode('", "', $revisions)));
     }
 
     /**
@@ -380,24 +524,25 @@ final class Repository
     public function getSize(): int
     {
         $totalBytes = 0;
-        $path = realpath($this->gitDir);
-        if ($path && file_exists($path)) {
-            /** @var \SplFileInfo $object */
-            foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)) as $object) {
-                $totalBytes += $object->getSize();
-            }
+        /** @var \SplFileInfo $file */
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->gitDir, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            $totalBytes += $file->getSize();
         }
 
-        return (int) ($totalBytes / 1000 + 0.5);
+        return (int) round($totalBytes / 1000);
     }
 
     /**
      * Executes a shell command on the repository, using PHP pipes.
      *
      * @param string $command The command to execute
+     *
+     * @deprecated since gitonomy/gitlib 2.0, run "git shell" with Symfony Process instead
      */
     public function shell(string $command, array $env = []): void
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, run "git shell" with Symfony Process instead: it ignores the driver.', __METHOD__);
+
         $argument = \sprintf('%s %s', $command, escapeshellarg($this->gitDir));
 
         $prefix = '';
@@ -424,21 +569,17 @@ final class Repository
     public function getDescription(): string
     {
         $file = $this->gitDir.'/description';
-        $exists = is_file($file);
 
-        if (null !== $this->logger && true === $this->debug) {
-            if (false === $exists) {
-                $this->logger->debug(\sprintf('no description file in repository ("%s")', $file));
-            } else {
-                $this->logger->debug(\sprintf('reading description file in repository ("%s")', $file));
-            }
-        }
-
-        if (false === $exists) {
+        if (!is_file($file)) {
             return self::DEFAULT_DESCRIPTION;
         }
 
-        return file_get_contents($this->gitDir.'/description');
+        $description = file_get_contents($file);
+        if (false === $description) {
+            throw new RuntimeException(\sprintf('Unable to read "%s".', $file));
+        }
+
+        return $description;
     }
 
     /**
@@ -456,12 +597,9 @@ final class Repository
      */
     public function setDescription(string $description): static
     {
-        $file = $this->gitDir.'/description';
-
-        if (null !== $this->logger && true === $this->debug) {
-            $this->logger->debug(\sprintf('change description file content to "%s" (file: %s)', $description, $file));
+        if (false === file_put_contents($this->gitDir.'/description', $description)) {
+            throw new RuntimeException(\sprintf('Unable to write the description of "%s".', $this->gitDir));
         }
-        file_put_contents($file, $description);
 
         return $this;
     }
@@ -478,15 +616,14 @@ final class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @return string|null output of a successful process or null if execution failed and debug-mode is disabled
+     * @return string output of the process
      *
-     * @throws RuntimeException Error while executing git command (debug-mode only)
+     * @throws ProcessException              Error while executing git command
+     * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
-    public function run(string $command, array $args = []): ?string
+    public function run(string $command, array $args = []): string
     {
-        $process = $this->runProcess($command, $args);
-
-        return $process->isSuccessful() ? $process->getOutput() : null;
+        return $this->runProcess($command, $args)->getOutput();
     }
 
     /**
@@ -500,132 +637,114 @@ final class Repository
      * @param string $command Git command to run (checkout, branch, tag)
      * @param array  $args    Arguments of git command
      *
-     * @throws RuntimeException Error while executing git command (debug-mode only)
+     * @throws ProcessException              Error while executing git command
+     * @throws UnsupportedOperationException The driver isn't a CliDriver
      */
     public function runProcess(string $command, array $args = []): Process
     {
-        $process = $this->getProcess($command, $args);
-
-        if ($this->logger) {
-            $this->logger->info(\sprintf('run command: %s "%s" ', $command, implode(' ', $args)));
-            $before = microtime(true);
+        if (!$this->repositoryDriver instanceof CliRepositoryDriver) {
+            throw new UnsupportedOperationException('Only CliDriver can run git commands.');
         }
 
-        $process->run();
-
-        if ($this->logger && $this->debug) {
-            $duration = microtime(true) - $before;
-            $this->logger->debug(\sprintf('last command (%s) duration: %sms', $command, \sprintf('%.2f', $duration * 1000)));
-            $this->logger->debug(\sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
-            $this->logger->debug(\sprintf('last command (%s) output: %s', $command, $process->getOutput()));
+        try {
+            return $this->repositoryDriver->runProcess($command, $args);
+        } finally {
+            // Any command may write references, even a failing one.
+            $this->referenceBag?->invalidate();
         }
-
-        if (!$process->isSuccessful()) {
-            $error = \sprintf("error while running %s\n output: \"%s\"", $command, $process->getErrorOutput());
-
-            if ($this->logger) {
-                $this->logger->error($error);
-            }
-
-            if ($this->debug) {
-                throw new ProcessException($process);
-            }
-        }
-
-        return $process;
     }
 
     /**
      * Set repository logger.
      *
-     * @param LoggerInterface $logger A logger
-     *
      * @return $this
+     *
+     * @throws UnsupportedOperationException The driver isn't a CliDriver
+     *
+     * @deprecated since gitonomy/gitlib 2.0, pass a CliDriver configured with the logger as driver argument instead
      */
     public function setLogger(LoggerInterface $logger): static
     {
-        $this->logger = $logger;
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, pass a "%s" configured with the logger as driver argument instead.', __METHOD__, CliDriver::class);
+
+        if (!$this->driver instanceof CliDriver) {
+            throw new UnsupportedOperationException('Only CliDriver logs the git commands it runs.');
+        }
+
+        $this->driver = $this->driver->withLogger($logger);
+        $this->repositoryDriver = $this->driver->open($this->gitDir, $this->workingDir);
 
         return $this;
     }
 
     /**
-     * Returns repository logger.
+     * Returns the logger of the CliDriver.
+     *
+     * @deprecated since gitonomy/gitlib 2.0, the logger is an argument of CliDriver
      */
     public function getLogger(): ?LoggerInterface
     {
-        return $this->logger;
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, the logger is an argument of "%s".', __METHOD__, CliDriver::class);
+
+        return $this->driver instanceof CliDriver ? $this->driver->getLogger() : null;
     }
 
     /**
      * Clones the current repository to a new directory and return instance of new repository.
      *
-     * @param string $path path to the new repository in which current repository will be cloned
-     * @param bool   $bare flag indicating if repository is bare or has a working-copy
+     * The clone uses the driver of the current repository.
+     *
+     * @param string  $path    path to the new repository in which current repository will be cloned
+     * @param bool    $bare    flag indicating if repository is bare or has a working-copy
+     * @param Options $options options of the new repository
      *
      * @return Repository the newly created repository
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneBareFrom() or Repository::cloneFrom() with getGitDir() as URL instead
      */
     public function cloneTo(string $path, bool $bare = true, array $options = []): self
     {
-        return Admin::cloneTo($path, $this->gitDir, $bare, $options);
-    }
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" with "getGitDir()" as URL instead.', __METHOD__, self::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
 
-    /**
-     * Resolves directory attributes for the repository.
-     *
-     * @param string      $gitDir     directory of a working copy with files checked out
-     * @param string|null $workingDir directory containing git files (objects, config...)
-     *
-     * @return array{string, string|null}
-     */
-    private static function resolveDir(string $gitDir, ?string $workingDir = null): array
-    {
-        $realGitDir = realpath($gitDir);
-
-        if (false === $realGitDir) {
-            throw new InvalidArgumentException(\sprintf('Directory "%s" does not exist or is not a directory', $gitDir));
-        }
-        if (!is_dir($realGitDir)) {
-            throw new InvalidArgumentException(\sprintf('Directory "%s" does not exist or is not a directory', $realGitDir));
-        }
-        if (null === $workingDir && is_dir($realGitDir.'/.git')) {
-            $workingDir = $realGitDir;
-            $realGitDir .= '/.git';
-        }
-
-        return [$realGitDir, $workingDir];
-    }
-
-    /**
-     * This internal method is used to create a process object.
-     *
-     * Made private to be sure that process creation is handled through the run method.
-     * run method ensures logging and debug.
-     *
-     * @see self::run
-     */
-    private function getProcess(string $command, array $args = []): Process
-    {
-        $base = [$this->command, '--git-dir', $this->gitDir];
-
-        if ($this->workingDir) {
-            $base = array_merge($base, ['--work-tree', $this->workingDir]);
-        }
-
-        $base[] = $command;
-
-        $process = new Process(array_merge($base, $args));
-        $process->setWorkingDirectory($this->getPath());
-
-        if ($this->inheritEnvironmentVariables) {
-            $process->setEnv(array_replace($_SERVER, $this->environmentVariables));
+        // Like in 1.x, the options configuring git apply to the clone.
+        $options = new LegacyOptions($options);
+        $driver = $options->adminDriver() ?? $this->driver;
+        if ($bare) {
+            $driver->cloneBareFrom($this->gitDir, $path, null);
         } else {
-            $process->setEnv($this->environmentVariables);
+            $driver->cloneFrom($this->gitDir, $path, null);
         }
 
-        $process->setTimeout($this->processTimeout);
-        $process->setIdleTimeout($this->processTimeout);
+        return new self($path, $options->workingDir, $options->repositoryDriver() ?? $driver);
+    }
 
-        return $process;
+    private function commitHash(Revision|string $revision): string
+    {
+        return ($revision instanceof Revision ? $revision : $this->getRevision($revision))->getCommit()->getHash();
+    }
+
+    /**
+     * @param ObjectType $type The type of the object, which an abbreviated hash must name
+     *
+     * @throws ReferenceNotFoundException $hash isn't a hash, or names no object of this type
+     */
+    private function fullHash(string $hash, ObjectType $type): string
+    {
+        if (!preg_match('/^[0-9a-f]{4,40}$/', $hash)) {
+            throw new ReferenceNotFoundException(\sprintf('"%s" is not a hash.', $hash));
+        }
+
+        // The type of an object of a full hash is checked when it is read.
+        if (40 === \strlen($hash)) {
+            return $hash;
+        }
+
+        $fullHash = $this->repositoryDriver->resolveRevision($hash.'^{'.$type->value.'}');
+        // "^{tree}" also peels a commit to its tree.
+        if (!str_starts_with($fullHash, $hash)) {
+            throw new ReferenceNotFoundException(\sprintf('The object "%s" is not a %s.', $hash, $type->value));
+        }
+
+        return $fullHash;
     }
 }

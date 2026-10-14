@@ -4,7 +4,8 @@
 # request touching it should be reviewed by hand (see CONTRIBUTING.md), but
 # this catches the obvious cases automatically:
 #   - a corrupted or incomplete bundle
-#   - refs that were not in the original fixture
+#   - refs that were not in the original fixture, or that moved: the tests
+#     rely on the commits they point to (bundle-heads.txt pins them)
 #   - a file that has silently grown well past its expected size
 #
 # Run it locally with: tests/fixtures/verify-bundle.sh
@@ -22,7 +23,7 @@ echo "== Verifying $BUNDLE =="
 VERIFY_OUTPUT="$(git bundle verify "$BUNDLE")"
 echo "$VERIFY_OUTPUT"
 
-SIZE_KB=$(( $(stat -c%s "$BUNDLE") / 1024 ))
+SIZE_KB=$(( $(wc -c < "$BUNDLE") / 1024 ))
 echo "Size: ${SIZE_KB}KB (limit: ${MAX_SIZE_KB}KB)"
 if [ "$SIZE_KB" -gt "$MAX_SIZE_KB" ]; then
     echo "ERROR: $BUNDLE is ${SIZE_KB}KB, which exceeds the ${MAX_SIZE_KB}KB limit." >&2
@@ -40,4 +41,10 @@ if [ -n "$UNEXPECTED_REFS" ]; then
     exit 1
 fi
 
-echo "OK: bundle structure and size are within expected bounds."
+if ! diff -u bundle-heads.txt <(git bundle list-heads "$BUNDLE"); then
+    echo "ERROR: the refs of $BUNDLE differ from tests/fixtures/bundle-heads.txt." >&2
+    echo "Existing refs must not move: add commits on new branches or tags, then add their lines to bundle-heads.txt." >&2
+    exit 1
+fi
+
+echo "OK: bundle structure, refs and size are within expected bounds."

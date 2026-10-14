@@ -12,10 +12,14 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Admin;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\LogicException;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\FastForward;
 use Gitonomy\Git\Reference\Branch;
+use Gitonomy\Git\Repository;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 
 class WorkingCopyTest extends AbstractTestCase
 {
@@ -24,7 +28,7 @@ class WorkingCopyTest extends AbstractTestCase
         $this->expectException(LogicException::class);
 
         $path = self::createTempDir();
-        $repo = Admin::init($path, true, self::getOptions());
+        $repo = Repository::initBare($path, driver: self::getDriver());
 
         $repo->getWorkingCopy();
     }
@@ -33,11 +37,36 @@ class WorkingCopyTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();
-        $wc->checkout('origin/new-feature', 'new-feature');
+        $wc->checkoutNewBranch('new-feature', 'origin/new-feature');
 
         $head = $repository->getHead();
         $this->assertInstanceOf(Branch::class, $head, 'HEAD is a branch');
-        $this->assertEquals('new-feature', $head->getName(), 'HEAD is branch new-feature');
+        $this->assertSame('new-feature', $head->getName(), 'HEAD is branch new-feature');
+    }
+
+    public function testCheckoutOfABranchObjectAttachesHead(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $branch = $repository->getReferences()->createBranch('twin', 'master');
+        $wc = $repository->getWorkingCopy();
+
+        $wc->checkout($repository->getRevision(self::INITIAL_COMMIT));
+        $this->assertTrue($repository->isHeadDetached());
+
+        $wc->checkout($branch);
+        $this->assertSame('refs/heads/twin', self::headBranch($repository)->getFullname());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyCheckoutOfANewBranch(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing a branch to create to "Gitonomy\Git\WorkingCopy::checkout()" is deprecated, use "checkoutNewBranch()" instead.');
+
+        $repository = self::createFoobarRepository(false);
+        $repository->getWorkingCopy()->checkout('origin/new-feature', 'new-feature');
+
+        $this->assertSame('new-feature', self::headBranch($repository)->getName());
     }
 
     public function testDiffStaged(): void
@@ -50,7 +79,7 @@ class WorkingCopyTest extends AbstractTestCase
 
         $file = $repository->getWorkingDir().'/foobar-test';
         file_put_contents($file, 'test');
-        $repository->run('add', [$file]);
+        self::git($repository, 'add', [$file]);
 
         $diffStaged = $wc->getDiffStaged();
         $this->assertCount(1, $diffStaged->getFiles());
@@ -69,6 +98,21 @@ class WorkingCopyTest extends AbstractTestCase
 
         $diffPending = $wc->getDiffPending();
         $this->assertCount(1, $diffPending->getFiles());
+    }
+
+    public function testDiffPendingWithAbbreviatedHashesLikeOldGit(): void
+    {
+        $this->skipUnlessCliDriver();
+
+        $repository = self::createFoobarRepository(false);
+        file_put_contents($repository->getWorkingDir().'/test.sh', 'test');
+        // Before 2.16, git always wrote "..." after the abbreviated hashes of --raw.
+        $repository = new Repository($repository->getPath(), driver: self::getCliDriver(['GIT_PRINT_SHA1_ELLIPSIS' => 'yes']));
+
+        $files = $repository->getWorkingCopy()->getDiffPending()->getFiles();
+
+        $this->assertCount(1, $files);
+        $this->assertSame(40, \strlen((string) $files[0]->getOldIndex()));
     }
 
     public function testCheckoutUnexisting(): void
@@ -114,8 +158,8 @@ class WorkingCopyTest extends AbstractTestCase
     public function testMerge(): void
     {
         $repository = self::createFoobarRepository(false);
-        $repository->run('config', ['--local', 'user.name', '"Unit Test"']);
-        $repository->run('config', ['--local', 'user.email', '"unit_test@unit-test.com"']);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
         $wc = $repository->getWorkingCopy();
         $wc->checkout('master');
 
@@ -123,17 +167,176 @@ class WorkingCopyTest extends AbstractTestCase
 
         $head = $repository->getHeadCommit();
         $this->assertCount(2, $head->getParents(), 'Merge produced a merge commit');
+        $this->assertSame("Merge remote-tracking branch 'origin/diff-features'", $head->getSubjectMessage());
         $this->assertFileExists($repository->getWorkingDir().'/script_A.php');
     }
 
     public function testMergeConflict(): void
     {
-        $this->expectException(RuntimeException::class);
+        $repository = self::createFoobarRepository(false);
+        $master = $repository->getHeadCommit()->getHash();
+        $wc = $repository->getWorkingCopy();
 
+        try {
+            $wc->merge('origin/new-feature');
+            $this->fail('The merge should have been refused.');
+        } catch (DriverException) {
+        }
+
+        $this->assertSame($master, $repository->getHeadCommit()->getHash(), 'No merge commit is created');
+    }
+
+    public function testMergeOnlyFastForwards(): void
+    {
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();
-        $wc->checkout('master');
 
-        $wc->merge('origin/new-feature');
+        $this->expectException(DriverException::class);
+
+        $wc->merge('origin/diff-features', FastForward::Only);
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyMergeArguments(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing arguments of "git merge" to "Gitonomy\Git\WorkingCopy::merge()" is deprecated, pass a "Gitonomy\Git\FastForward" instead.');
+
+        $repository = self::createFoobarRepository(false);
+        $head = $repository->getHeadCommit();
+
+        $repository->getWorkingCopy()->merge($head->getHash(), ['--no-ff']);
+
+        $this->assertSame($head->getHash(), $repository->getHeadCommit()->getHash());
+    }
+
+    public function testMergeFastForwardsTheCurrentBranch(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $master = $repository->getHeadCommit();
+        $repository->getReferences()->createBranch('behind', $master->getParentHashes()[0]);
+        $wc = $repository->getWorkingCopy();
+        $wc->checkout('behind');
+
+        $wc->merge('master');
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $this->assertSame('refs/heads/behind', self::headBranch($repository)->getFullname(), 'HEAD stays on the branch');
+        $this->assertSame($master->getHash(), $repository->getHeadCommit()->getHash());
+        $this->assertCount(0, $repository->getWorkingCopy()->getDiffPending()->getFiles());
+        $this->assertCount(0, $repository->getWorkingCopy()->getDiffStaged()->getFiles());
+    }
+
+    public function testMergeOfAnAncestorDoesNothing(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $head = $repository->getHeadCommit();
+        $wc = $repository->getWorkingCopy();
+
+        $wc->merge($head->getParentHashes()[0]);
+        $wc->merge($head->getHash(), FastForward::Never);
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $this->assertSame($head->getHash(), $repository->getHeadCommit()->getHash());
+    }
+
+    public function testCheckoutKeepsLocalChangesItDoesNotConflictWith(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $repository->getReferences()->createBranch('twin', $repository->getHeadCommit()->getHash());
+        $file = $repository->getWorkingDir().'/README.md';
+        file_put_contents($file, 'local change');
+
+        $repository->getWorkingCopy()->checkout('twin');
+
+        $this->assertSame('local change', file_get_contents($file));
+    }
+
+    public function testCheckoutRefusesToOverwriteLocalChanges(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $file = $repository->getWorkingDir().'/AUTHORS';
+        file_put_contents($file, 'local change');
+
+        try {
+            $repository->getWorkingCopy()->checkoutNewBranch('pagination', 'origin/pagination');
+            $this->fail('The checkout should have been refused.');
+        } catch (DriverException) {
+        }
+
+        $this->assertSame('local change', file_get_contents($file));
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $this->assertFalse($repository->getReferences()->hasBranch('pagination'), 'No branch is created when the checkout fails');
+    }
+
+    public function testUntrackedFilesInNewDirectories(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        mkdir($repository->getWorkingDir().'/newdir/sub', 0o777, true);
+        file_put_contents($repository->getWorkingDir().'/newdir/a.txt', 'a');
+        file_put_contents($repository->getWorkingDir().'/newdir/sub/b.txt', 'b');
+
+        $files = $repository->getWorkingCopy()->getUntrackedFiles();
+        sort($files);
+
+        $this->assertSame(['newdir/a.txt', 'newdir/sub/b.txt'], $files);
+    }
+
+    public function testCheckoutPrefersTheBranchToATagOfTheSameName(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $references = $repository->getReferences();
+        $references->createTag('twin', self::INITIAL_COMMIT);
+        $references->createBranch('twin', 'master');
+
+        $repository->getWorkingCopy()->checkout('twin');
+
+        $this->assertSame('refs/heads/twin', self::headBranch($repository)->getFullname());
+        $this->assertSame([], $repository->getWorkingCopy()->getDiffStaged()->getFiles());
+    }
+
+    public function testCheckoutNewBranchWithAnInvalidNameChangesNothing(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $head = $repository->getHeadCommit()->getHash();
+
+        try {
+            $repository->getWorkingCopy()->checkoutNewBranch('bad..name', self::INITIAL_COMMIT);
+            $this->fail('The checkout should have been refused.');
+        } catch (DriverException) {
+        }
+
+        $this->assertSame('refs/heads/master', self::headBranch($repository)->getFullname());
+        $this->assertSame($head, $repository->getHeadCommit()->getHash());
+        $this->assertSame([], $repository->getWorkingCopy()->getDiffStaged()->getFiles());
+    }
+
+    public function testMergeRefusesUnrelatedHistories(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        $tree = $repository->getHeadCommit()->getTreeHash();
+        $orphan = self::writeObject($repository, 'commit', "tree {$tree}\nauthor A <a@example.com> 1000000000 +0000\ncommitter A <a@example.com> 1000000000 +0000\n\nOrphan\n");
+
+        $this->expectException(DriverException::class);
+
+        $repository->getWorkingCopy()->merge($orphan);
+    }
+
+    public function testMergeRefusesStagedChanges(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        file_put_contents($repository->getWorkingDir().'/staged', 'staged');
+        self::git($repository, 'add', ['staged']);
+        $head = $repository->getHeadCommit()->getHash();
+
+        try {
+            $repository->getWorkingCopy()->merge('origin/diff-features');
+            $this->fail('The merge should have been refused.');
+        } catch (DriverException) {
+        }
+
+        $this->assertSame($head, $repository->getHeadCommit()->getHash());
     }
 }

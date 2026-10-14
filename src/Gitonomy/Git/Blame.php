@@ -12,9 +12,9 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Blame\Hunk;
 use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Parser\BlameParser;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -22,71 +22,87 @@ use Gitonomy\Git\Parser\BlameParser;
 final class Blame implements \Countable
 {
     /**
-     * @var Line[]|null
+     * @var array<int, Line>|null By number
      */
     private ?array $lines = null;
 
+    private readonly ?int $firstLine;
+
+    private readonly ?int $lastLine;
+
     /**
-     * @param string      $file      the file the blame is about
-     * @param string|null $lineRange argument to pass to git blame (-L).
-     *                               Can be a line range (40,60 or 40,+21)
-     *                               or a regexp ('/^function$/')
+     * Like "git blame -L 5,3", a last line before the first one blames the lines 3 to 5.
+     *
+     * @param string   $file      the file the blame is about
+     * @param int|null $firstLine The first line to blame, the first one of the file when null
+     * @param int|null $lastLine  The last line to blame, the last one of the file when null
+     *
+     * @throws InvalidArgumentException An invalid range of lines
      */
     public function __construct(
         private readonly Repository $repository,
         private readonly Revision $revision,
         private readonly string $file,
-        private readonly ?string $lineRange = null,
+        ?int $firstLine = null,
+        ?int $lastLine = null,
     ) {
+        if ((null !== $firstLine && $firstLine < 1) || (null !== $lastLine && $lastLine < 1)) {
+            throw new InvalidArgumentException(\sprintf('Invalid range of lines "%s,%s": the lines are numbered from 1.', $firstLine, $lastLine));
+        }
+
+        [$this->firstLine, $this->lastLine] = null !== $firstLine && null !== $lastLine && $lastLine < $firstLine ? [$lastLine, $firstLine] : [$firstLine, $lastLine];
     }
 
+    /**
+     * @param int $number The number of the line in the file
+     *
+     * @throws InvalidArgumentException The blame has no line $number
+     */
     public function getLine(int $number): Line
     {
-        if ($number < 1) {
-            throw new InvalidArgumentException('Line number should be at least 1');
+        return $this->getLines()[$number] ?? throw new InvalidArgumentException(\sprintf('The blame of "%s" has no line %d.', $this->file, $number));
+    }
+
+    /**
+     * @return list<Hunk> The consecutive lines last changed by the same commit
+     */
+    public function getHunks(): array
+    {
+        $hunks = [];
+        $commit = null;
+        $lines = [];
+        foreach ($this->getLines() as $number => $line) {
+            if ($commit !== $line->getCommit() && [] !== $lines) {
+                $hunks[] = new Hunk($commit, $lines);
+                $lines = [];
+            }
+            $commit = $line->getCommit();
+            $lines[$number] = $line;
         }
 
-        $lines = $this->getLines();
-
-        if (!isset($lines[$number])) {
-            throw new InvalidArgumentException('Line does not exist');
+        if (null !== $commit) {
+            $hunks[] = new Hunk($commit, $lines);
         }
 
-        return $lines[$number];
+        return $hunks;
     }
 
     /**
      * Returns lines grouped by commit.
      *
-     * @return array a list of two-elements array (commit, lines)
+     * @return list<array{Commit, array<int, Line>}>
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use getHunks() instead
      */
     public function getGroupedLines(): array
     {
-        $result = [];
-        $commit = null;
-        $current = [];
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getHunks()" instead.', __METHOD__);
 
-        foreach ($this->getLines() as $lineNumber => $line) {
-            if ($commit !== $line->getCommit()) {
-                if (\count($current)) {
-                    $result[] = [$commit, $current];
-                }
-                $commit = $line->getCommit();
-                $current = [];
-            }
-
-            $current[$lineNumber] = $line;
-        }
-
-        if (\count($current)) {
-            $result[] = [$commit, $current];
-        }
-
-        return $result;
+        return array_map(static fn (Hunk $hunk): array => [$hunk->getCommit(), $hunk->getLines()], $this->getHunks());
     }
 
     /**
-     * @return Line[] all lines of the blame
+     * @return array<int, Line> The lines of the blame, by number
      */
     public function getLines(): array
     {
@@ -94,20 +110,11 @@ final class Blame implements \Countable
             return $this->lines;
         }
 
-        $args = ['-p'];
-
-        if (null !== $this->lineRange) {
-            $args[] = '-L';
-            $args[] = $this->lineRange;
+        $hash = $this->revision->getCommit()->getHash();
+        $this->lines = [];
+        foreach ($this->repository->getRepositoryDriver()->getBlameLines($hash, $this->file, $this->firstLine, $this->lastLine) as $data) {
+            $this->lines[$data->finalLine] = new Line($this->repository->getCommit($data->commitHash), $data->finalLine, $data->originalLine, $data->content);
         }
-
-        $args[] = $this->revision->getRevision();
-        $args[] = '--';
-        $args[] = $this->file;
-
-        $parser = new BlameParser($this->repository);
-        $parser->parse($this->repository->run('blame', $args));
-        $this->lines = $parser->lines;
 
         return $this->lines;
     }

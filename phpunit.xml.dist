@@ -3,6 +3,10 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
          colors="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         failOnDeprecation="true"
+         failOnNotice="true"
+         failOnPhpunitDeprecation="true"
          failOnRisky="true"
          failOnWarning="true"
          beStrictAboutOutputDuringTests="true"
@@ -14,7 +18,8 @@
             <directory suffix="Test.php">./tests/Gitonomy/Git/Tests</directory>
         </testsuite>
     </testsuites>
-    <source>
+    <!-- Like symfony/phpunit-bridge: a test calling deprecated code fails, unless it is #[IgnoreDeprecations]. -->
+    <source ignoreIndirectDeprecations="true" ignoreSuppressionOfDeprecations="true">
         <include>
             <directory suffix=".php">./src/Gitonomy/Git</directory>
         </include>

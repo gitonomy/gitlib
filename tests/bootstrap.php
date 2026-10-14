@@ -13,7 +13,7 @@
 require __DIR__.'/../vendor/autoload.php';
 
 if (defined('PHP_WINDOWS_VERSION_BUILD')) {
-    $server = array_change_key_case($_SERVER, true);
+    $server = array_change_key_case($_SERVER, \CASE_UPPER);
     $_SERVER['GIT_ENVS'] = [];
     foreach (['PATH', 'SYSTEMROOT'] as $key) {
         if (isset($server[$key])) {

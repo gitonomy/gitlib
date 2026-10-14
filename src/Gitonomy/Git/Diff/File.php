@@ -13,22 +13,32 @@
 namespace Gitonomy\Git\Diff;
 
 use Gitonomy\Git\Blob;
+use Gitonomy\Git\Driver\Data\DiffFileData;
+use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Repository;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @phpstan-import-type FileChangeArray from FileChange
+ *
+ * @phpstan-type FileArray array{old_name: string|null, new_name: string|null, old_mode: string|null, new_mode: string|null, old_index: string|null, new_index: string|null, is_binary: bool, is_copy: bool, changes: list<FileChangeArray>}
  */
 final class File
 {
-    /**
-     * @var FileChange[]
-     */
-    private array $changes = [];
-
-    private ?Repository $repository = null;
+    private readonly string $name;
 
     /**
-     * Instanciates a new File object.
+     * @param string|null     $oldName    Null for a creation
+     * @param string|null     $newName    Null for a deletion
+     * @param string|null     $oldIndex   The hash of the old blob, null when there is none (a creation...)
+     * @param string|null     $newIndex   The hash of the new blob, null when there is none (a deletion, a modified submodule...); the hash of a file of the working tree isn't in the repository
+     * @param FileChange[]    $changes
+     * @param Repository|null $repository The repository to read the blobs from
+     *
+     * @throws InvalidArgumentException Both names are null
      */
     public function __construct(
         private readonly ?string $oldName,
@@ -39,11 +49,19 @@ final class File
         private readonly ?string $newIndex,
         private readonly bool $isBinary,
         private readonly bool $isCopy = false,
+        private array $changes = [],
+        private ?Repository $repository = null,
     ) {
+        $this->name = $newName ?? $oldName ?? throw new InvalidArgumentException('A file of a diff has an old name, a new name, or both.');
     }
 
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, give the changes to the constructor instead
+     */
     public function addChange(FileChange $change): void
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, give the changes to the constructor instead.', __METHOD__);
+
         $this->changes[] = $change;
     }
 
@@ -86,9 +104,19 @@ final class File
     /**
      * Indicates if the file mode has changed.
      */
-    public function isChangeMode(): bool
+    public function isModeChange(): bool
     {
         return $this->isModification() && $this->oldMode !== $this->newMode;
+    }
+
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, use isModeChange() instead
+     */
+    public function isChangeMode(): bool
+    {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "isModeChange()" instead.', __METHOD__);
+
+        return $this->isModeChange();
     }
 
     /**
@@ -100,11 +128,13 @@ final class File
     }
 
     /**
-     * Indicates if this diff file is a deletion.
+     * @deprecated since gitonomy/gitlib 2.0, use isDeletion() instead
      */
     public function isDelete(): bool
     {
-        return null === $this->newName;
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "isDeletion()" instead.', __METHOD__);
+
+        return $this->isDeletion();
     }
 
     /**
@@ -112,12 +142,7 @@ final class File
      */
     public function getAdditions(): int
     {
-        $result = 0;
-        foreach ($this->changes as $change) {
-            $result += $change->getCount(FileChange::LINE_ADD);
-        }
-
-        return $result;
+        return array_sum(array_map(static fn (FileChange $change): int => $change->getAdditions(), $this->changes));
     }
 
     /**
@@ -125,12 +150,7 @@ final class File
      */
     public function getDeletions(): int
     {
-        $result = 0;
-        foreach ($this->changes as $change) {
-            $result += $change->getCount(FileChange::LINE_REMOVE);
-        }
-
-        return $result;
+        return array_sum(array_map(static fn (FileChange $change): int => $change->getDeletions(), $this->changes));
     }
 
     public function getOldName(): ?string
@@ -143,13 +163,12 @@ final class File
         return $this->newName;
     }
 
-    public function getName(): ?string
+    /**
+     * @return string The new name, or the old one for a deletion
+     */
+    public function getName(): string
     {
-        if (null === $this->newName) {
-            return $this->oldName;
-        }
-
-        return $this->newName;
+        return $this->name;
     }
 
     public function getOldMode(): ?string
@@ -185,6 +204,9 @@ final class File
         return $this->changes;
     }
 
+    /**
+     * @return FileArray
+     */
     public function toArray(): array
     {
         return [
@@ -196,25 +218,45 @@ final class File
             'new_index' => $this->newIndex,
             'is_binary' => $this->isBinary,
             'is_copy' => $this->isCopy,
-            'changes' => array_map(static function (FileChange $change) {
-                return $change->toArray();
-            }, $this->changes),
+            'changes' => array_map(static fn (FileChange $change): array => $change->toArray(), array_values($this->changes)),
         ];
     }
 
-    public static function fromArray(array $array): self
+    /**
+     * @internal
+     */
+    public static function fromData(DiffFileData $data, ?Repository $repository): self
     {
-        $file = new self($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary'], $array['is_copy'] ?? false);
-
-        foreach ($array['changes'] as $change) {
-            $file->addChange(FileChange::fromArray($change));
-        }
-
-        return $file;
+        return new self($data->oldName, $data->newName, $data->oldMode, $data->newMode, $data->oldIndex, $data->newIndex, $data->isBinary, $data->isCopy, $data->changes, $repository);
     }
 
+    /**
+     * @param array{old_name: string|null, new_name: string|null, old_mode: string|null, new_mode: string|null, old_index: string|null, new_index: string|null, is_binary: bool, is_copy?: bool, changes: list<FileChangeArray>} $array Without "is_copy" from 1.x
+     */
+    public static function fromArray(array $array, ?Repository $repository = null): self
+    {
+        return new self(
+            $array['old_name'],
+            $array['new_name'],
+            $array['old_mode'],
+            $array['new_mode'],
+            // 1.x used an empty string for a missing hash.
+            '' === $array['old_index'] ? null : $array['old_index'],
+            '' === $array['new_index'] ? null : $array['new_index'],
+            $array['is_binary'],
+            $array['is_copy'] ?? false,
+            array_map(FileChange::fromArray(...), $array['changes']),
+            $repository,
+        );
+    }
+
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, a presentation concern: use substr($file->getNewIndex(), 0, 12) instead
+     */
     public function getAnchor(): string
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "substr($file->getNewIndex(), 0, 12)" instead.', __METHOD__);
+
         return substr($this->newIndex ?? '', 0, 12);
     }
 
@@ -223,42 +265,52 @@ final class File
         return $this->repository;
     }
 
+    /**
+     * @deprecated since gitonomy/gitlib 2.0, the diffs gitlib returns have their repository already
+     */
     public function setRepository(Repository $repository): void
     {
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, the diffs gitlib returns have their repository already.', __METHOD__);
+
         $this->repository = $repository;
     }
 
+    /**
+     * @throws LogicException   The file has no repository, or is a creation
+     * @throws RuntimeException The diff doesn't know the hash of the old blob
+     */
     public function getOldBlob(): Blob
     {
-        if (null === $this->repository) {
-            throw new \RuntimeException('Repository is missing to return Blob object.');
-        }
-
         if ($this->isCreation()) {
-            throw new \LogicException('Can\'t return old Blob on a creation');
+            throw new LogicException(\sprintf('"%s" is a creation: it has no old blob.', $this->name));
         }
 
-        if ('' === $this->oldIndex) {
-            throw new \RuntimeException('Index is missing to return Blob object.');
-        }
-
-        return $this->repository->getBlob($this->oldIndex);
+        return $this->blob($this->oldIndex, 'old');
     }
 
+    /**
+     * @throws LogicException   The file has no repository, or is a deletion
+     * @throws RuntimeException The diff doesn't know the hash of the new blob, like for a modified submodule
+     */
     public function getNewBlob(): Blob
     {
-        if (null === $this->repository) {
-            throw new \RuntimeException('Repository is missing to return Blob object.');
-        }
-
         if ($this->isDeletion()) {
-            throw new \LogicException('Can\'t return new Blob on a deletion');
+            throw new LogicException(\sprintf('"%s" is a deletion: it has no new blob.', $this->name));
         }
 
-        if ('' === $this->newIndex) {
-            throw new \RuntimeException('Index is missing to return Blob object.');
+        return $this->blob($this->newIndex, 'new');
+    }
+
+    private function blob(?string $hash, string $side): Blob
+    {
+        if (null === $this->repository) {
+            throw new LogicException('A diff without repository can\'t read blobs: get it from a repository.');
         }
 
-        return $this->repository->getBlob($this->newIndex);
+        if (null === $hash) {
+            throw new RuntimeException(\sprintf('The diff doesn\'t know the hash of the %s blob of "%s".', $side, $this->name));
+        }
+
+        return $this->repository->getBlob($hash);
     }
 }

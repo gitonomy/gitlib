@@ -13,7 +13,6 @@
 namespace Gitonomy\Git;
 
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\LogicException;
 use Gitonomy\Git\Exception\RuntimeException;
 
 /**
@@ -45,15 +44,21 @@ final readonly class Hooks
      *
      * @return string Content of the hook
      *
-     * @throws InvalidArgumentException Hook does not exist
+     * @throws InvalidArgumentException The hook does not exist
+     * @throws RuntimeException         The hook can't be read
      */
     public function get(string $name): string
     {
         if (!$this->has($name)) {
-            throw new InvalidArgumentException(\sprintf('Hook named "%s" is not present', $name));
+            throw new InvalidArgumentException(\sprintf('The hook "%s" does not exist.', $name));
         }
 
-        return file_get_contents($this->getPath($name));
+        $content = file_get_contents($this->getPath($name));
+        if (false === $content) {
+            throw new RuntimeException(\sprintf('Unable to read the hook "%s".', $name));
+        }
+
+        return $content;
     }
 
     /**
@@ -62,18 +67,14 @@ final readonly class Hooks
      * @param string $name Name of the hook to insert
      * @param string $file Target of symlink
      *
-     * @throws LogicException   Hook is already present
-     * @throws RuntimeException Error on symlink creation
+     * @throws RuntimeException The hook exists already, or can't be created
      */
     public function setSymlink(string $name, string $file): void
     {
-        if ($this->has($name)) {
-            throw new LogicException(\sprintf('A hook "%s" is already defined', $name));
-        }
+        $path = $this->createPath($name);
 
-        $path = $this->getPath($name);
-        if (false === symlink($file, $path)) {
-            throw new RuntimeException(\sprintf('Unable to create hook "%s" (%s)', $name, $path));
+        if (false === @symlink($file, $path)) {
+            throw new RuntimeException(\sprintf('Unable to create the hook "%s" (%s).', $name, $path));
         }
     }
 
@@ -83,17 +84,15 @@ final readonly class Hooks
      * @param string $name    Name of the hook
      * @param string $content Content of the hook
      *
-     * @throws LogicException The hook is already defined
+     * @throws RuntimeException The hook exists already, or can't be created
      */
     public function set(string $name, string $content): void
     {
-        if ($this->has($name)) {
-            throw new LogicException(\sprintf('A hook "%s" is already defined', $name));
-        }
+        $path = $this->createPath($name);
 
-        $path = $this->getPath($name);
-        file_put_contents($path, $content);
-        chmod($path, 0o700);
+        if (false === @file_put_contents($path, $content) || false === @chmod($path, 0o700)) {
+            throw new RuntimeException(\sprintf('Unable to create the hook "%s" (%s).', $name, $path));
+        }
     }
 
     /**
@@ -101,19 +100,60 @@ final readonly class Hooks
      *
      * @param string $name Name of the hook
      *
-     * @throws LogicException The hook is not present
+     * @throws RuntimeException The hook doesn't exist, or can't be removed
      */
     public function remove(string $name): void
     {
         if (!$this->has($name)) {
-            throw new LogicException(\sprintf('The hook "%s" was not found', $name));
+            throw new RuntimeException(\sprintf('The hook "%s" does not exist.', $name));
         }
 
-        unlink($this->getPath($name));
+        if (false === @unlink($this->getPath($name))) {
+            throw new RuntimeException(\sprintf('Unable to remove the hook "%s".', $name));
+        }
+    }
+
+    /**
+     * @throws RuntimeException The hook exists already, or the repository has no hooks directory
+     */
+    private function createPath(string $name): string
+    {
+        if ($this->has($name)) {
+            throw new RuntimeException(\sprintf('The hook "%s" exists already.', $name));
+        }
+
+        // A repository created with an empty template has none.
+        $directory = $this->getDirectory();
+        if (!is_dir($directory) && !@mkdir($directory) && !is_dir($directory)) {
+            throw new RuntimeException(\sprintf('Unable to create the hooks directory "%s".', $directory));
+        }
+
+        return $this->getPath($name);
     }
 
     private function getPath(string $name): string
     {
-        return $this->repository->getGitDir().'/hooks/'.$name;
+        return $this->getDirectory().'/'.$name;
+    }
+
+    /**
+     * @throws RuntimeException The "commondir" file of a linked worktree can't be read
+     */
+    private function getDirectory(): string
+    {
+        $gitDir = $this->repository->getGitDir();
+        // Like git, a linked worktree runs the hooks of the repository it belongs to.
+        if (!is_file($gitDir.'/commondir')) {
+            return $gitDir.'/hooks';
+        }
+
+        $commonDir = file_get_contents($gitDir.'/commondir');
+        if (false === $commonDir) {
+            throw new RuntimeException(\sprintf('Unable to read "%s/commondir".', $gitDir));
+        }
+
+        $commonDir = rtrim($commonDir, "\r\n");
+
+        return (preg_match('#^(/|[a-zA-Z]:[\\\/])#', $commonDir) ? $commonDir : $gitDir.'/'.$commonDir).'/hooks';
     }
 }

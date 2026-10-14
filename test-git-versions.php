@@ -25,11 +25,11 @@ use Symfony\Component\Process\Process;
 const GIT_URL = 'https://github.com/git/git.git';
 const BUILDS_PATH = __DIR__.'/git-builds';
 
-// One v1.x and several v2.y releases, picked for how long and how widely each
-// shipped as the default git on a major distro, rather than for a spread across
-// git's history: v1.7.1 (RHEL/CentOS 6), v1.8.3.1 (RHEL/CentOS 7), v2.17.1 (Ubuntu
-// 18.04), v2.25.1 (Ubuntu 20.04), v2.34.1 (Ubuntu 22.04), v2.43.0 (Ubuntu 24.04).
-const DEFAULT_VERSIONS = ['v1.7.1', 'v1.8.3.1', 'v2.17.1', 'v2.25.1', 'v2.34.1', 'v2.43.0'];
+// v1.8.4, the oldest version gitlib supports, and v2.y releases picked for how
+// long and how widely each shipped as the default git on a major distro, rather
+// than for a spread across git's history: v2.17.1 (Ubuntu 18.04), v2.25.1 (Ubuntu
+// 20.04), v2.34.1 (Ubuntu 22.04), v2.43.0 (Ubuntu 24.04).
+const DEFAULT_VERSIONS = ['v1.8.4', 'v2.17.1', 'v2.25.1', 'v2.34.1', 'v2.43.0'];
 
 function sh(array $args, ?string $cwd = null, ?string $logfile = null): Process
 {

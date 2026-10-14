@@ -6,7 +6,7 @@ We accept contributions via pull requests on GitHub. Please review these guideli
 
 ## Guidelines
 
-* Please follow the [PSR-12 Coding Style Guide](https://www.php-fig.org/psr/psr-12/).
+* Follow the coding standards of PHP-CS-Fixer, configured in `.php-cs-fixer.php` (the Symfony and PhpCsFixer rule sets): `castor cs` applies them.
 * Ensure that the current tests pass, and if you've added something new, add the tests where relevant.
 * Send a coherent commit history, making sure each commit in your pull request is meaningful.
 * You may need to [rebase](https://git-scm.com/book/en/v2/Git-Branching-Rebasing) to avoid merge conflicts.
@@ -62,10 +62,13 @@ locally, ready to receive new commits. `build` rebuilds `tests/fixtures/foobar.b
 from that directory, restricted to the refs listed in `tests/fixtures/bundle-refs.txt` —
 add your new branch or tag there first if you introduced one.
 
-Then update the commit SHA constants in `AbstractTestCase` to match, and run
-`tests/fixtures/verify-bundle.sh`. It checks the bundle's integrity, its ref list against
-`bundle-refs.txt`, and its size, since GitHub renders any change to this binary file as an
-opaque diff. If your change intentionally adds a ref or grows the file, update
+Existing refs must not move, since the tests rely on the commits they point to: add your
+commits on new branches or tags, and constants in `AbstractTestCase` for the ones your
+tests use. Then add the new refs to `tests/fixtures/bundle-heads.txt` (the output of
+`git bundle list-heads tests/fixtures/foobar.bundle`), and run
+`tests/fixtures/verify-bundle.sh`. It checks the bundle's integrity, its refs against
+`bundle-refs.txt` and `bundle-heads.txt`, and its size, since GitHub renders any change to
+this binary file as an opaque diff. If your change intentionally adds a ref or grows the file, update
 `tests/fixtures/bundle-refs.txt` or `MAX_SIZE_KB` in that script as part of the same pull
 request, so the reason for the change is explicit and reviewable rather than a silent
 binary diff.

@@ -13,14 +13,14 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Reference\Branch;
-use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class ReferenceBagTest extends AbstractTestCase
 {
-    #[DataProvider('provideFoobar')]
-    public function testGetFirstBranch(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testGetFirstBranch(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $branch = $repository->getReferences()->getFirstBranch();
 
         $this->assertInstanceOf(Branch::class, $branch);
@@ -36,23 +36,23 @@ class ReferenceBagTest extends AbstractTestCase
             $branch->delete();
         }
 
-        $refs = $repository->getReferences(true);
+        $refs = $repository->getReferences();
         $this->assertFalse($refs->hasBranches());
-        $this->assertFalse($refs->getFirstBranch(), 'getFirstBranch() must not return a non-branch reference');
+        $this->assertNull($refs->getFirstBranch(), 'getFirstBranch() must not return a non-branch reference');
     }
 
-    #[DataProvider('provideFoobar')]
-    public function testUnknownReference(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testUnknownReference(bool $bare): void
     {
+        $repository = self::createFoobarRepository($bare);
         $hash = $repository->getLog()->getSingleCommit()->getHash();
 
-        $repository->run('update-ref', ['refs/pipelines/1', $hash]);
-        $repository->run('update-ref', ['refs/merge-request/1/head', $hash]);
-        $repository->run('update-ref', ['refs/pull/1/head', $hash]);
-        $repository->run('update-ref', ['refs/notes/gtm-data', $hash]);
+        self::git($repository, 'update-ref', ['refs/pipelines/1', $hash]);
+        self::git($repository, 'update-ref', ['refs/merge-request/1/head', $hash]);
+        self::git($repository, 'update-ref', ['refs/pull/1/head', $hash]);
+        self::git($repository, 'update-ref', ['refs/notes/gtm-data', $hash]);
 
         $refs = $repository->getReferences()->getAll();
-        $this->assertIsArray($refs);
 
         // Check that at least it has the master ref
         $this->assertArrayHasKey('refs/heads/master', $refs);
@@ -64,10 +64,25 @@ class ReferenceBagTest extends AbstractTestCase
         $this->assertArrayNotHasKey('refs/notes/gtm-data', $refs);
     }
 
-    #[DataProvider('provideEmpty')]
-    public function testEmptyRepo(Repository $repository): void
+    #[DataProvider('provideBare')]
+    public function testEmptyRepo(bool $bare): void
     {
+        $repository = self::createEmptyRepository($bare);
         $refs = $repository->getReferences()->getAll();
         $this->assertSame([], $refs);
+    }
+
+    public function testReferencesAreSortedByName(): void
+    {
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'pack-refs', ['--all']);
+        self::git($repository, 'branch', ['aaa', 'master']);
+        self::git($repository, 'branch', ['zzz', 'master']);
+
+        $names = array_keys($repository->getReferences()->getAll());
+        $sorted = $names;
+        sort($sorted, \SORT_STRING);
+
+        $this->assertSame($sorted, $names);
     }
 }

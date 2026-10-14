@@ -12,25 +12,18 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Driver\Data\ObjectType;
 use Gitonomy\Git\Exception\InvalidArgumentException;
-use Gitonomy\Git\Exception\UnexpectedValueException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  */
 final class Tree
 {
-    private bool $isInitialized = false;
-
     /**
-     * @var array<string, array{string, CommitReference|Tree|Blob}>
+     * @var array<string, TreeEntry>|null By name, null until read
      */
-    private array $entries;
-
-    /**
-     * @var array{blob: array<string, array{string, Blob}>, tree: array<string, array{string, Tree}>, commit: array<string, array{string, CommitReference}>}
-     */
-    private array $entriesByType;
+    private ?array $entries = null;
 
     public function __construct(
         private readonly Repository $repository,
@@ -44,111 +37,90 @@ final class Tree
     }
 
     /**
-     * @return array<string, array{string, CommitReference|Tree|Blob}> An associative array name => $object
+     * @return array<string, TreeEntry> By name
      */
     public function getEntries(): array
     {
-        $this->initialize();
+        if (null !== $this->entries) {
+            return $this->entries;
+        }
+
+        $this->entries = [];
+        foreach ($this->repository->getRepositoryDriver()->getTreeEntries($this->hash) as $data) {
+            $object = match ($data->type) {
+                ObjectType::Blob => $this->repository->getBlob($data->hash),
+                ObjectType::Tree => $this->repository->getTree($data->hash),
+                // A commit in a tree is a submodule.
+                default => new Submodule($data->hash),
+            };
+            $this->entries[$data->name] = new TreeEntry($data->name, $data->mode, $object);
+        }
 
         return $this->entries;
     }
 
     /**
-     * @return array<string, array{string, CommitReference}> An associative array of name => [mode, commit reference]
+     * @return array<string, TreeEntry> The submodules, by name
+     */
+    public function getSubmoduleEntries(): array
+    {
+        return array_filter($this->getEntries(), static fn (TreeEntry $entry): bool => $entry->getObject() instanceof Submodule);
+    }
+
+    /**
+     * @return array<string, TreeEntry> The submodules, by name
+     *
+     * @deprecated since gitonomy/gitlib 2.0, use getSubmoduleEntries() instead
      */
     public function getCommitReferenceEntries(): array
     {
-        $this->initialize();
+        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getSubmoduleEntries()" instead.', __METHOD__);
 
-        return $this->entriesByType['commit'];
+        return $this->getSubmoduleEntries();
     }
 
     /**
-     * @return array<string, array{string, Tree}> An associative array of name => [mode, tree]
+     * @return array<string, TreeEntry> The trees, by name
      */
     public function getTreeEntries(): array
     {
-        $this->initialize();
-
-        return $this->entriesByType['tree'];
+        return array_filter($this->getEntries(), static fn (TreeEntry $entry): bool => $entry->getObject() instanceof self);
     }
 
     /**
-     * @return array<string, array{string, Blob}> An associative array of name => [mode, blob]
+     * @return array<string, TreeEntry> The blobs, by name
      */
     public function getBlobEntries(): array
     {
-        $this->initialize();
-
-        return $this->entriesByType['blob'];
+        return array_filter($this->getEntries(), static fn (TreeEntry $entry): bool => $entry->getObject() instanceof Blob);
     }
 
-    public function getEntry(string $name): CommitReference|self|Blob
+    /**
+     * @throws InvalidArgumentException The tree has no entry $name
+     */
+    public function getEntry(string $name): Submodule|self|Blob
     {
-        $this->initialize();
-
-        if (!isset($this->entries[$name])) {
-            throw new InvalidArgumentException('No entry '.$name);
-        }
-
-        return $this->entries[$name][1];
+        return ($this->getEntries()[$name] ?? throw new InvalidArgumentException(\sprintf('The tree "%s" has no entry "%s".', $this->hash, $name)))->getObject();
     }
 
-    public function resolvePath(string $path): CommitReference|self|Blob
+    /**
+     * @param string $path Relative to the tree, "" or "/" for the tree itself
+     *
+     * @throws InvalidArgumentException $path doesn't exist in the tree
+     */
+    public function resolvePath(string $path): Submodule|self|Blob
     {
-        if ('' == $path) {
-            return $this;
-        }
-
-        $path = preg_replace('#^/#', '', $path);
-
-        $segments = explode('/', $path);
         $element = $this;
-        foreach ($segments as $segment) {
-            if ($element instanceof self) {
-                $element = $element->getEntry($segment);
-            } elseif ($element instanceof Blob) {
-                throw new InvalidArgumentException('Unresolvable path');
-            } else {
-                throw new UnexpectedValueException('Unknow type of element');
+        $resolved = [];
+        foreach (array_filter(explode('/', $path), static fn (string $segment): bool => '' !== $segment) as $segment) {
+            if (!$element instanceof self) {
+                throw new InvalidArgumentException(\sprintf('Unable to resolve "%s": "%s" is a %s, not a tree.', $path, implode('/', $resolved), $element instanceof Blob ? 'file' : 'submodule'));
             }
+
+            $resolved[] = $segment;
+            $element = ($element->getEntries()[$segment] ?? throw new InvalidArgumentException(\sprintf('Unable to resolve "%s": "%s" doesn\'t exist.', $path, implode('/', $resolved))))->getObject();
         }
 
         return $element;
-    }
-
-    private function initialize(): void
-    {
-        if (true === $this->isInitialized) {
-            return;
-        }
-
-        $output = $this->repository->run('cat-file', ['-p', $this->hash]);
-        $parser = new Parser\TreeParser();
-        $parser->parse($output);
-
-        $this->entries = [];
-        $this->entriesByType = [
-            'blob' => [],
-            'tree' => [],
-            'commit' => [],
-        ];
-
-        foreach ($parser->entries as $entry) {
-            [$mode, $type, $hash, $name] = $entry;
-            if ('blob' == $type) {
-                $treeEntry = [$mode, $this->repository->getBlob($hash)];
-                $this->entriesByType['blob'][$name] = $treeEntry;
-            } elseif ('tree' == $type) {
-                $treeEntry = [$mode, $this->repository->getTree($hash)];
-                $this->entriesByType['tree'][$name] = $treeEntry;
-            } else {
-                $treeEntry = [$mode, new CommitReference($hash)];
-                $this->entriesByType['commit'][$name] = $treeEntry;
-            }
-            $this->entries[$name] = $treeEntry;
-        }
-
-        $this->isInitialized = true;
     }
 }

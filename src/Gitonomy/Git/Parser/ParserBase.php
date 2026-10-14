@@ -20,10 +20,10 @@ abstract class ParserBase
     protected string $content;
     protected int $length;
 
-    public function parse(?string $content): void
+    public function parse(string $content): void
     {
         $this->cursor = 0;
-        $this->content = $content ?? '';
+        $this->content = $content;
         $this->length = \strlen($this->content);
 
         $this->doParse();
@@ -44,6 +44,11 @@ abstract class ParserBase
         return $rest;
     }
 
+    /**
+     * Consumes $expected if the content continues with it.
+     *
+     * @phpstan-impure
+     */
     protected function expects(string $expected): bool
     {
         $length = \strlen($expected);
@@ -60,7 +65,7 @@ abstract class ParserBase
     protected function consumeShortHash(): string
     {
         if (!preg_match('/([A-Za-z0-9]{7,40})/A', $this->content, $vars, 0, $this->cursor)) {
-            throw new RuntimeException('No short hash found: '.substr($this->content, $this->cursor, 7));
+            throw new RuntimeException(\sprintf('Expected a hash, got "%s".', substr($this->content, $this->cursor, 7)));
         }
 
         $this->cursor += \strlen($vars[1]);
@@ -71,7 +76,7 @@ abstract class ParserBase
     protected function consumeHash(): string
     {
         if (!preg_match('/([A-Za-z0-9]{40})/A', $this->content, $vars, 0, $this->cursor)) {
-            throw new RuntimeException('No hash found: '.substr($this->content, $this->cursor, 40));
+            throw new RuntimeException(\sprintf('Expected a hash, got "%s".', substr($this->content, $this->cursor, 40)));
         }
 
         $this->cursor += 40;
@@ -82,7 +87,7 @@ abstract class ParserBase
     protected function consumeRegexp(string $regexp): array
     {
         if (!preg_match($regexp.'A', $this->content, $vars, 0, $this->cursor)) {
-            throw new RuntimeException('No match for regexp '.$regexp.' Upcoming: '.substr($this->content, $this->cursor, 500));
+            throw new RuntimeException(\sprintf('Expected %s, got "%s".', $regexp, substr($this->content, $this->cursor, 500)));
         }
 
         $this->cursor += \strlen($vars[0]);
@@ -95,7 +100,7 @@ abstract class ParserBase
         $pos = strpos($this->content, $text, $this->cursor);
 
         if (false === $pos) {
-            throw new RuntimeException(\sprintf('Unable to find "%s"', $text));
+            throw new RuntimeException(\sprintf('Expected "%s" after "%s".', $text, substr($this->content, $this->cursor, 100)));
         }
 
         $result = substr($this->content, $this->cursor, $pos - $this->cursor);
@@ -109,7 +114,7 @@ abstract class ParserBase
         $length = \strlen($expected);
         $actual = substr($this->content, $this->cursor, $length);
         if ($actual !== $expected) {
-            throw new RuntimeException(\sprintf('Expected "%s", but got "%s" (%s)', $expected, $actual, substr($this->content, $this->cursor, 10)));
+            throw new RuntimeException(\sprintf('Expected "%s", got "%s".', $expected, substr($this->content, $this->cursor, 10)));
         }
         $this->cursor += $length;
 
@@ -121,30 +126,31 @@ abstract class ParserBase
         return $this->consume("\n");
     }
 
-    protected function consumeGPGSignature(): string
+    /**
+     * @return array{string, string, \DateTimeImmutable} The name, email and date of an author, committer or tagger
+     */
+    protected function consumeNameEmailDate(): array
     {
-        $expected = "\ngpgsig ";
-        $length = \strlen($expected);
-        $actual = substr($this->content, $this->cursor, $length);
-        if ($actual != $expected) {
-            return '';
+        if (!preg_match('/(([^\n]*) <([^\n]*)> (\d+) [+-]\d{4})/A', $this->content, $vars, 0, $this->cursor)) {
+            throw new RuntimeException('Unable to parse name, email and date.');
         }
-        $this->cursor += $length;
 
-        return $this->consumeTo("\n\n");
+        $this->cursor += \strlen($vars[1]);
+
+        return [$vars[2], $vars[3], self::timestamp($vars[4])];
     }
 
-    protected function consumeMergeTag(): void
+    /**
+     * @param string $timestamp Seconds since the epoch, as git writes them
+     *
+     * @throws RuntimeException The date is out of range, in a corrupt object
+     */
+    protected static function timestamp(string $timestamp): \DateTimeImmutable
     {
-        $expected = "\nmergetag ";
-        $length = \strlen($expected);
-        $actual = substr($this->content, $this->cursor, $length);
-        if ($actual != $expected) {
-            return;
+        try {
+            return new \DateTimeImmutable('@'.$timestamp)->setTimezone(new \DateTimeZone('UTC'));
+        } catch (\DateMalformedStringException $e) {
+            throw new RuntimeException(\sprintf('The date "%s" is out of range.', $timestamp), 0, $e);
         }
-        $this->cursor += $length;
-
-        $this->consumeTo('-----END PGP SIGNATURE-----');
-        $this->consume('-----END PGP SIGNATURE-----');
     }
 }

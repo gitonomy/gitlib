@@ -1,104 +1,210 @@
-Computing diff
-==============
+Computing diffs
+===============
 
-Even if git is a diff-less storage engine, it's possible to compute
-them.
+Git stores snapshots of files, not diffs: gitlib computes them, like
+`git diff`.
 
-To compute a diff in git, you need to specify a *revision*. This
-revision can be a commit (*2bc7a8*) or a range (*2bc7a8..ff4c21b*).
+Comparing two commits
+---------------------
 
-For more informations about git revisions: *man gitrevisions*.
-
-When you have decided the revision you want and have your *Repository*
-object, you can call the *getDiff* method on the repository:
-
-```php
-$diff = $repository->getDiff('master@{2 days ago}..master');
-```
-
-You can also access it from a *Log* object:
+`Repository::getDiff($from, $to)` returns the changes from the commit
+`$from` to the commit `$to`. Each one is a revision name (a branch, a tag, a
+hash, `master~2`...) or a `Revision` object (a `Commit`, a `Branch`...):
 
 ```php
-$log  = $repository->getLog('master@{2 days ago}..master');
-$diff = $log->getDiff();
+$diff = $repository->getDiff('0.1', 'master');
 ```
+
+Like `git diff 0.1 master`, it compares the files of both commits. To compare
+a branch with the commit it forked from, like `git diff master...feature`,
+start from their best common ancestor:
+
+```php
+$diff = $repository->getDiff($repository->getMergeBase('master', 'feature'), 'feature');
+```
+
+Calling `getDiff()` with one argument (a range like `a..b` or `a...b`, two
+revisions in an array, or one revision to compare with the working tree)
+is deprecated since 2.0: see [UPGRADE-2.0.md](../UPGRADE-2.0.md).
+`Log::getDiff()` is deprecated too: it ignored the paths of the log.
+
+Other diffs
+-----------
+
+-   `Commit::getDiff()` returns the changes of a commit, against its first
+    parent: see [commit.md](commit.md#diff-of-a-commit).
+-   `WorkingCopy::getDiff($revision)` returns the changes of the working
+    tree, staged or not, since a revision (`HEAD` by default).
+-   `WorkingCopy::getDiffPending()` returns the changes of the working tree
+    not staged yet.
+-   `WorkingCopy::getDiffStaged()` returns the changes staged in the index.
+
+See [workingcopy.md](workingcopy.md) for the working copy.
+
+Every diff detects renames, like `git diff -M`. `LibGit2Driver` computes
+the similarity of files like libgit2 does: it can find a rename where git
+finds a deletion and a creation (see
+[Choosing a driver](repository.md#choosing-a-driver)). During a merge
+conflict, `WorkingCopy::getDiffStaged()` and `getDiffPending()` leave the
+unmerged files out, and `WorkingCopy::getDiff()` compares them, conflict
+markers included, to the revision, like `git diff HEAD`.
 
 Iterating a diff
 ----------------
 
-When you have a *Diff* object, you can iterate over files using method
-*getFiles()*. This method returns a list of *File* objects, who
-represents the modifications for a single file.
+`getFiles()` returns the files of a diff, `File` objects:
 
 ```php
 $files = $diff->getFiles();
-echo sprintf('%s files modified%s', count($files), PHP_EOL);
+echo count($files).' files changed'.PHP_EOL;
 
-foreach ($files as $fileDiff) {
-    echo sprintf('Old name: (%s) %s%s', $fileDiff->getOldMode(), $fileDiff->getOldName(), PHP_EOL);
-    echo sprintf('New name: (%s) %s%s', $fileDiff->getNewMode(), $fileDiff->getNewName(), PHP_EOL);
+foreach ($files as $file) {
+    echo $file->getName().': +'.$file->getAdditions().' -'.$file->getDeletions().PHP_EOL;
 }
 ```
 
 The File object
 ---------------
 
-Here is an exhaustive list of the *File* class methods:
+A `File` tells what happened to a file:
 
 ```php
-$file->getOldName();
-$file->getNewName();
-$file->getOldDiff();
-$file->getNewDiff();
-
-$file->isCreation();
-$file->isDeletion();
-$file->isModification();
-
+$file->isCreation();     // There is no old file
+$file->isDeletion();     // There is no new file
+$file->isModification(); // There are both: a rename, a copy or a mode change included
 $file->isRename();
-$file->isChangeMode();
-
-$file->getAdditions(); // Number of added lines
-$file->getDeletions(); // Number of deleted lines
-
-$file->isBinary(); // Binary files have no "lines"
-
-$file->getChanges(); // See next chapter
+$file->isCopy();         // Only for a diff detecting copies, like "git diff -C"
+$file->isModeChange();   // From "100644" to "100755", for example
+$file->isBinary();       // A binary file has no changes
 ```
+
+A type change, like a file replaced by a symbolic link, is a deletion
+followed by a creation, like git shows it.
+
+Its names, modes and blob hashes:
+
+```php
+$file->getName();    // The new name, or the old one for a deletion
+$file->getOldName(); // null for a creation
+$file->getNewName(); // null for a deletion
+
+$file->getOldMode(); // "100644", "100755", "120000" (a symbolic link)... null for a creation
+$file->getNewMode(); // null for a deletion
+
+$file->getOldIndex(); // The hash of the old blob, null for a creation
+$file->getNewIndex(); // The hash of the new blob, null for a deletion
+```
+
+`getOldBlob()` and `getNewBlob()` return the `Blob` objects, to read the
+content of the file before and after (see [blob.md](blob.md)):
+
+```php
+if (!$file->isCreation() && !$file->isBinary()) {
+    $before = $file->getOldBlob()->getContent();
+}
+```
+
+They throw a `LogicException` when there is no such file (`getOldBlob()`
+for a creation, `getNewBlob()` for a deletion), or when the diff has no
+repository. The diffs gitlib returns have one: see
+[Parsing a diff](#parsing-a-diff) for the others. They throw a
+`RuntimeException` when the diff doesn't know the hash of the blob.
+
+Two cases have no blob in the repository, and reading the content of their
+`Blob` throws a `ReferenceNotFoundException`:
+
+-   a submodule, of mode `160000`: its hashes are commits of the submodule;
+-   a file of the working tree not staged yet: read it from the working
+    tree instead.
+
+The number of lines added and deleted, and the changes themselves:
+
+```php
+$file->getAdditions();
+$file->getDeletions();
+
+$file->getChanges(); // FileChange objects: see below
+```
+
+`isChangeMode()`, `isDelete()` and `getAnchor()` are deprecated since 2.0:
+use `isModeChange()`, `isDeletion()` and `substr($file->getNewIndex(), 0, 12)`.
 
 The FileChange object
 ---------------------
 
-> **note**
->
-> This part of API is not very clean, very consistent. If you have any
-> idea or suggestion on how to enhance this, your comment would be
-> appreciated.
-
-A *File* object is composed of many changes. For each of those changes,
-a *FileChange* object is associated.
-
-To access changes from a file, use the *getChanges* method:
+The changes of a file are its hunks, the blocks starting with `@@` in a
+patch. Each one is a `FileChange` object, with the lines of the hunk,
+`DiffLine` objects:
 
 ```php
-$changes = $file->getChanges();
-foreach ($changes as $change) {
-    foreach ($lines as $data) {
-        list ($type, $line) = $data;
-        if ($type === FileChange::LINE_CONTEXT) {
-            echo ' '.$line.PHP_EOL;
-        } elseif ($type === FileChange::LINE_ADD) {
-            echo '+'.$line.PHP_EOL;
-        } else {
-            echo '-'.$line.PHP_EOL;
-        }
+use Gitonomy\Git\Diff\DiffLineType;
+
+foreach ($file->getChanges() as $change) {
+    echo sprintf('@@ -%d,%d +%d,%d @@', $change->getRangeOldStart(), $change->getRangeOldCount(), $change->getRangeNewStart(), $change->getRangeNewCount()).PHP_EOL;
+
+    foreach ($change->getLines() as $line) {
+        echo match ($line->getType()) {
+            DiffLineType::Addition => '+',
+            DiffLineType::Context => ' ',
+            DiffLineType::Deletion => '-',
+        }.$line->getContent().PHP_EOL;
     }
 }
 ```
 
-To get line numbers, use the range methods:
+-   `getRangeOldStart()` and `getRangeOldCount()` are the first line of the
+    hunk in the old file, and its number of lines there;
+-   `getRangeNewStart()` and `getRangeNewCount()` are the same in the new
+    file;
+-   `DiffLine::getType()` returns a `DiffLineType`: `Addition`, `Context` or
+    `Deletion`;
+-   `DiffLine::getContent()` returns the line, without its prefix (`+`,
+    `-` or a space) nor its line break.
+
+`getAdditions()` and `getDeletions()` count the lines the hunk adds and
+deletes.
+
+Reading a line as an array (`[$type, $content]`), the `FileChange::LINE_ADD`,
+`LINE_CONTEXT` and `LINE_REMOVE` constants, and `FileChange::getCount()` are
+deprecated since 2.0: use `getType()` and `getContent()`, `DiffLineType`,
+and `getAdditions()` or `getDeletions()`.
+
+Parsing a diff
+--------------
+
+`Diff::parse()` reads the output of `git diff --raw --patch`, with `-z` or
+not. The raw information gives the names, modes, hashes and status of the
+files: a patch without it throws an `InvalidArgumentException`. Pass the
+repository to read the blobs of the files. Here, the output comes from
+`Repository::run()`, which needs `CliDriver`:
 
 ```php
-echo sprintf('Previously from line %s to %s%s', $change->getOldRangeStart(), $change->getOldRangeEnd(), PHP_EOL);
-echo sprintf('Now from line %s to %s%s', $change->getNewRangeStart(), $change->getNewRangeEnd(), PHP_EOL);
+use Gitonomy\Git\Diff\Diff;
+
+$output = $repository->run('diff', ['--raw', '--patch', '0.1', 'master']);
+$diff = Diff::parse($output, $repository);
 ```
+
+`getRawDiff()` returns the output a diff was parsed from. It is empty for
+the diffs of `LibGit2Driver`, which runs no git command.
+
+Storing a diff
+--------------
+
+`toArray()` exports a diff as an array of scalars, to store it in a cache
+or as JSON. `Diff::fromArray()` reads it back, with the repository to read
+the blobs from:
+
+```php
+use Gitonomy\Git\Diff\Diff;
+
+$array = $diff->toArray();
+
+$diff = Diff::fromArray($array, $repository);
+```
+
+The arrays of 1.x are read too.
+
+`Diff::setRepository()`, `File::setRepository()` and `File::addChange()` are
+deprecated since 2.0: pass the repository to `Diff::parse()` or
+`Diff::fromArray()`, and the changes to the constructor of `File`.

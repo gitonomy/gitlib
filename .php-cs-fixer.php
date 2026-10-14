@@ -26,6 +26,7 @@ $finder = PhpCsFixer\Finder::create()
         __FILE__,
         'castor.php',
     ])
+    ->notPath('git-builds')
     ->notPath('var')
 ;
 
@@ -38,6 +39,7 @@ return new PhpCsFixer\Config()
         '@Symfony' => true,
         '@Symfony:risky' => true,
         'php_unit_internal_class' => false, // From @PhpCsFixer but we don't want it
+        'php_unit_strict' => true, // assertSame() instead of assertEquals()
         'php_unit_test_class_requires_covers' => false, // From @PhpCsFixer but we don't want it
         'phpdoc_add_missing_param_annotation' => false, // From @PhpCsFixer but we don't want it
         'header_comment' => ['header' => $fileHeaderComment],

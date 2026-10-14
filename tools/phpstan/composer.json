@@ -1,6 +1,7 @@
 {
     "require": {
-        "phpstan/phpstan": "^2.2.12"
+        "phpstan/phpstan": "^2.2.12",
+        "phpstan/phpstan-phpunit": "^2.0"
     },
     "config": {
         "bump-after-update": true,
