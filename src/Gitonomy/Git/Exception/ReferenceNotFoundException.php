@@ -12,6 +12,9 @@
 
 namespace Gitonomy\Git\Exception;
 
+/**
+ * @final since gitonomy/gitlib 1.7
+ */
 class ReferenceNotFoundException extends \InvalidArgumentException implements GitExceptionInterface
 {
     public function __construct($reference)

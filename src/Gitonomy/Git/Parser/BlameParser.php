@@ -15,6 +15,9 @@ namespace Gitonomy\Git\Parser;
 use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Repository;
 
+/**
+ * @deprecated since gitonomy/gitlib 1.7, gitlib 2.0 moves it to the internal parsers of its CliDriver
+ */
 class BlameParser extends ParserBase
 {
     public $lines;

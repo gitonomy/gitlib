@@ -16,11 +16,16 @@ use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 use Gitonomy\Git\Tree;
+use Gitonomy\Git\Util\StringHelper;
+use Symfony\Bridge\PhpUnit\ExpectDeprecationTrait;
 
 class CommitTest extends AbstractTest
 {
+    use ExpectDeprecationTrait;
+
     /**
      * @dataProvider provideFoobar
      */
@@ -229,9 +234,13 @@ class CommitTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
+     *
+     * @group legacy
      */
     public function testGetShortMessage($repository)
     {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Commit::getShortMessage()" method is deprecated, use symfony/string instead: "u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)".');
+
         // tests with a multi-line message
         $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
 
@@ -264,9 +273,12 @@ class CommitTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
+     *
+     * @group legacy
      */
     public function testGetIncludingBranchesException($repository)
     {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: Passing arguments to "Gitonomy\Git\Commit::getIncludingBranches()" is deprecated, filter the branches it returns with "Gitonomy\Git\Reference\Branch::isLocal()" or "isRemote()" instead.');
         $this->expectException(InvalidArgumentException::class);
 
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
@@ -279,6 +291,24 @@ class CommitTest extends AbstractTest
      */
     public function testGetIncludingBranches($repository)
     {
+        $commit = $repository->getCommit(self::INITIAL_COMMIT);
+
+        $branches = $commit->getIncludingBranches();
+        $this->assertCount(count($repository->getReferences()->getBranches()), $branches);
+        $this->assertCount(count($repository->getReferences()->getLocalBranches()), array_filter($branches, function (Branch $branch) {
+            return $branch->isLocal();
+        }));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     *
+     * @group legacy
+     */
+    public function testGetIncludingBranchesWithArguments($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: Passing arguments to "Gitonomy\Git\Commit::getIncludingBranches()" is deprecated, filter the branches it returns with "Gitonomy\Git\Reference\Branch::isLocal()" or "isRemote()" instead.');
+
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
         $branches = $commit->getIncludingBranches(true, false);
@@ -322,5 +352,43 @@ class CommitTest extends AbstractTest
         $commit = $repository->getCommit(self::ENCODING_COMMIT);
 
         $this->assertEquals('contribute to AUTHORS file', $commit->getSubjectMessage());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     *
+     * @group legacy
+     */
+    public function testGetFixedShortHash($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Commit::getFixedShortHash()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.');
+
+        $this->assertSame('74acd0', $repository->getCommit(self::INITIAL_COMMIT)->getFixedShortHash());
+    }
+
+    /**
+     * @runInSeparateProcess
+     *
+     * @group legacy
+     */
+    public function testStringHelperIsDeprecated()
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Util\StringHelper" class is deprecated, use symfony/string instead: gitlib 2.0 reads the logs in UTF-8 only.');
+
+        $this->assertSame(3, StringHelper::strlen('été'));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     *
+     * @group legacy
+     */
+    public function testConstructorWithData($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: Passing data to "Gitonomy\\Git\\Commit::__construct()" is deprecated, the constructor is internal in 2.0, and takes a "CommitData" instead of an array: get the commit from "Gitonomy\\Git\\Repository::getCommit()".');
+
+        $commit = new Commit($repository, self::INITIAL_COMMIT, ['subjectMessage' => 'Hello']);
+
+        $this->assertSame('Hello', $commit->getSubjectMessage());
     }
 }

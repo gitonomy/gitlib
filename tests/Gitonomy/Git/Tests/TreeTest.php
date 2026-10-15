@@ -14,63 +14,76 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\CommitReference;
+use Gitonomy\Git\Submodule;
+use Gitonomy\Git\Tree;
+use Gitonomy\Git\TreeEntry;
+use Symfony\Bridge\PhpUnit\ExpectDeprecationTrait;
 
 class TreeTest extends AbstractTest
 {
+    use ExpectDeprecationTrait;
+
     const PATH_RESOLVING_COMMIT = 'cc06ac171d884282202dff88c1ded499a1f89420';
 
     /**
      * @dataProvider provideFooBar
      */
-    public function testGetEntries($repository)
+    public function testIterate($repository)
     {
         $tree = $repository->getCommit(self::LONGFILE_COMMIT)->getTree();
 
-        $entries = $tree->getEntries();
+        $entries = iterator_to_array($tree);
 
-        $this->assertNotEmpty($entries['long.php'], 'long.php is present');
-        $this->assertTrue($entries['long.php'][1] instanceof Blob, 'long.php is a Blob');
-
-        $this->assertNotEmpty($entries['README.md'], 'README.md is present');
-        $this->assertTrue($entries['README.md'][1] instanceof Blob, 'README.md is a Blob');
+        $this->assertInstanceOf(TreeEntry::class, $entries['long.php']);
+        $this->assertSame('long.php', $entries['long.php']->getName());
+        $this->assertSame('100644', $entries['long.php']->getMode());
+        $this->assertInstanceOf(Blob::class, $entries['long.php']->getObject());
+        $this->assertInstanceOf(Blob::class, $entries['README.md']->getObject());
     }
 
     /**
      * @dataProvider provideFooBar
      */
-    public function testGetCommitReferenceEntries($repository)
+    public function testGetSubmodules($repository)
     {
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
-        $commits = $tree->getCommitReferenceEntries();
+        $submodules = $tree->getSubmodules();
 
-        $this->assertNotEmpty($commits['barbaz'], 'barbaz is present');
-        $this->assertTrue($commits['barbaz'][1] instanceof CommitReference, 'barbaz is a Commit');
+        $this->assertSame(['barbaz'], array_keys($submodules));
+        $this->assertSame('barbaz', $submodules['barbaz']->getName());
+        $this->assertSame('160000', $submodules['barbaz']->getMode());
+        $this->assertInstanceOf(Submodule::class, $submodules['barbaz']->getObject());
+        // A CommitReference, like in 1.6, which 2.0 makes an alias of Submodule.
+        $this->assertSame(CommitReference::class, get_class($submodules['barbaz']->getObject()));
+        $this->assertSame('5a519c47166f333e32091e166eb55f729106c964', $submodules['barbaz']->getObject()->getHash());
     }
 
     /**
      * @dataProvider provideFooBar
      */
-    public function testGetTreeEntries($repository)
+    public function testGetTrees($repository)
     {
-        $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+        $this->assertSame([], $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree()->getTrees());
 
-        $trees = $tree->getTreeEntries();
+        $trees = $repository->getCommit(self::PATH_RESOLVING_COMMIT)->getTree()->getTrees();
 
-        $this->assertEmpty($trees);
+        $this->assertSame('040000', $trees['test']->getMode());
+        $this->assertInstanceOf(Tree::class, $trees['test']->getObject());
     }
 
     /**
      * @dataProvider provideFooBar
      */
-    public function testGetBlobEntries($repository)
+    public function testGetBlobs($repository)
     {
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
-        $blobs = $tree->getBlobEntries();
+        $blobs = $tree->getBlobs();
 
-        $this->assertNotEmpty($blobs['README.md'], 'README.md is present');
-        $this->assertTrue($blobs['README.md'][1] instanceof Blob, 'README.md is a blob');
+        $this->assertSame('README.md', $blobs['README.md']->getName());
+        $this->assertInstanceOf(Blob::class, $blobs['README.md']->getObject());
+        $this->assertArrayNotHasKey('barbaz', $blobs);
     }
 
     /**
@@ -82,8 +95,73 @@ class TreeTest extends AbstractTest
         $path = 'test/a/b/c';
 
         $resolved = $tree->resolvePath($path);
-        $entries = $resolved->getEntries();
 
-        $this->assertNotEmpty($entries['d'], 'Successfully resolved source folder');
+        $this->assertArrayHasKey('d', iterator_to_array($resolved), 'Successfully resolved source folder');
+    }
+
+    /**
+     * @dataProvider provideFooBar
+     *
+     * @group legacy
+     */
+    public function testGetEntries($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getEntries()" method is deprecated, iterate the tree instead.');
+
+        $tree = $repository->getCommit(self::LONGFILE_COMMIT)->getTree();
+
+        $entries = $tree->getEntries();
+
+        $this->assertSame('100644', $entries['long.php'][0]);
+        $this->assertInstanceOf(Blob::class, $entries['long.php'][1]);
+        $this->assertInstanceOf(Blob::class, $entries['README.md'][1]);
+    }
+
+    /**
+     * @dataProvider provideFooBar
+     *
+     * @group legacy
+     */
+    public function testGetCommitReferenceEntries($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getCommitReferenceEntries()" method is deprecated, use "getSubmodules()" instead.');
+
+        $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $commits = $tree->getCommitReferenceEntries();
+
+        $this->assertSame('160000', $commits['barbaz'][0]);
+        $this->assertInstanceOf(CommitReference::class, $commits['barbaz'][1]);
+    }
+
+    /**
+     * @dataProvider provideFooBar
+     *
+     * @group legacy
+     */
+    public function testGetTreeEntries($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getTreeEntries()" method is deprecated, use "getTrees()" instead.');
+
+        $trees = $repository->getCommit(self::PATH_RESOLVING_COMMIT)->getTree()->getTreeEntries();
+
+        $this->assertSame('040000', $trees['test'][0]);
+        $this->assertInstanceOf(Tree::class, $trees['test'][1]);
+    }
+
+    /**
+     * @dataProvider provideFooBar
+     *
+     * @group legacy
+     */
+    public function testGetBlobEntries($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getBlobEntries()" method is deprecated, use "getBlobs()" instead.');
+
+        $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $blobs = $tree->getBlobEntries();
+
+        $this->assertInstanceOf(Blob::class, $blobs['README.md'][1]);
     }
 }

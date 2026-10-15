@@ -4,6 +4,9 @@ namespace Gitonomy\Git\Exception;
 
 use Symfony\Component\Process\Process;
 
+/**
+ * @final since gitonomy/gitlib 1.7
+ */
 class ProcessException extends RuntimeException implements GitExceptionInterface
 {
     protected $process;

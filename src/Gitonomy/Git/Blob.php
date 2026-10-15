@@ -16,6 +16,8 @@ namespace Gitonomy\Git;
  * Representation of a Blob commit.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @final since gitonomy/gitlib 1.7
  */
 class Blob
 {
@@ -52,6 +54,8 @@ class Blob
     /**
      * @param Repository $repository Repository where the blob is located
      * @param string     $hash       Hash of the blob
+     *
+     * In gitlib 2.0, the constructor is internal: get it from Repository::getBlob().
      */
     public function __construct(Repository $repository, $hash)
     {

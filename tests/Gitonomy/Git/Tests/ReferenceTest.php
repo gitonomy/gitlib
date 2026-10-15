@@ -12,12 +12,17 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Tag;
+use Gitonomy\Git\Repository;
+use Symfony\Bridge\PhpUnit\ExpectDeprecationTrait;
 
 class ReferenceTest extends AbstractTest
 {
+    use ExpectDeprecationTrait;
+
     /**
      * @dataProvider provideEmpty
      */
@@ -212,9 +217,13 @@ class ReferenceTest extends AbstractTest
 
     /**
      * @dataProvider provideFoobar
+     *
+     * @group legacy
      */
     public function testIsBranchMergedToMaster()
     {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Reference\Branch::isMergedTo()" method is deprecated, use "Gitonomy\Git\Reference\Branch::isMergedInto()" instead.');
+
         $repository = self::createFoobarRepository(false);
 
         $repository->run('config', ['--local', 'user.name', '"Unit Test"']);
@@ -236,5 +245,125 @@ class ReferenceTest extends AbstractTest
         $repository->run('commit', ['-m', 'foobar-test.txt updated']);
 
         $this->assertFalse($branch->isMergedTo('master'));
+    }
+
+    public function testIsMergedInto()
+    {
+        $repository = self::createFoobarRepository();
+        $references = $repository->getReferences();
+
+        $this->assertTrue($references->getBranch('master')->isMergedInto('master'));
+        $this->assertFalse($references->getBranch('new-feature')->isMergedInto('master'));
+        $this->assertTrue($references->createBranch('initial', self::INITIAL_COMMIT)->isMergedInto($references->getBranch('new-feature')));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testMoveTo($repository)
+    {
+        $references = $repository->getReferences();
+        $branch = $references->createBranch('foobar', self::INITIAL_COMMIT);
+
+        $moved = $branch->moveTo(self::LONGFILE_COMMIT);
+
+        $this->assertSame(self::LONGFILE_COMMIT, $moved->getCommitHash());
+        // The bag read before sees the move, like in 2.0.
+        $this->assertSame(self::LONGFILE_COMMIT, $references->getBranch('foobar')->getCommitHash());
+        $this->assertContains($moved, $references->getLocalBranches());
+        $this->assertSame(self::LONGFILE_COMMIT."\n", $repository->run('rev-parse', ['refs/heads/foobar']));
+        // The branch read before keeps its commit.
+        $this->assertSame(self::INITIAL_COMMIT, $branch->getCommitHash());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testMoveToAnAnnotatedTag($repository)
+    {
+        $branch = $repository->getReferences()->createBranch('foobar', self::INITIAL_COMMIT);
+
+        $moved = $branch->moveTo($repository->getReferences()->getTag('annotated'));
+
+        // The commit of the tag, not the tag object.
+        $this->assertSame($repository->getRevision('annotated^{commit}')->getCommit()->getHash(), $moved->getCommitHash());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     */
+    public function testCreateBranchFromARevision($repository)
+    {
+        $branch = $repository->getReferences()->createBranch('foobar', $repository->getRevision('master'));
+
+        $this->assertSame($repository->getReferences()->getBranch('master')->getCommitHash(), $branch->getCommitHash());
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     *
+     * @group legacy
+     */
+    public function testCreateExistingReferences($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: Creating the branch "master", which exists already, is deprecated, it throws in 2.0: use "Gitonomy\Git\Reference\Branch::moveTo()" instead.');
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: Creating the tag "0.1", which exists already, is deprecated, it throws in 2.0: delete it first.');
+
+        $references = $repository->getReferences();
+        $references->createBranch('master', self::INITIAL_COMMIT);
+        $references->createTag('0.1', self::INITIAL_COMMIT);
+
+        $this->assertSame(self::INITIAL_COMMIT."\n", $repository->run('rev-parse', ['refs/heads/master']));
+        $this->assertSame(self::INITIAL_COMMIT."\n", $repository->run('rev-parse', ['refs/tags/0.1']));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     *
+     * @group legacy
+     */
+    public function testDeleteOutsideRefs($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: Deleting "HEAD", which is not the full name of a reference under "refs/", is deprecated, it throws in 2.0.');
+
+        $repository->getReferences()->delete('HEAD');
+
+        // git deletes the branch HEAD points to.
+        $this->assertFalse((new Repository($repository->getGitDir(), null, self::getDriver()))->getReferences()->hasBranch('master'));
+    }
+
+    /**
+     * @dataProvider provideFoobar
+     *
+     * @group legacy
+     */
+    public function testUpdate($repository)
+    {
+        $this->expectDeprecation('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\ReferenceBag::update()" method is deprecated, use "Gitonomy\Git\Reference\Branch::moveTo()" instead.');
+
+        $repository->getReferences()->update(new Branch($repository, 'refs/heads/foobar', self::INITIAL_COMMIT));
+
+        $this->assertSame(self::INITIAL_COMMIT."\n", $repository->run('rev-parse', ['refs/heads/foobar']));
+    }
+
+    public function testCreateBranchFromAName()
+    {
+        $repository = self::createFoobarRepository();
+        $references = $repository->getReferences();
+        $master = $references->getBranch('master')->getCommitHash();
+
+        $branch = $references->createBranch('foobar', 'master');
+
+        // The name, like in 1.6, where 2.0 resolves it.
+        $this->assertSame('master', $branch->getCommitHash());
+        $this->assertSame($master."\n", $repository->run('rev-parse', ['refs/heads/foobar']));
+        $this->assertTrue($branch->isMergedInto('master'));
+    }
+
+    public function testCreateBranchFromAnUnknownName()
+    {
+        $this->expectException(ProcessException::class);
+
+        self::createFoobarRepository()->getReferences()->createBranch('foobar', 'unknown');
     }
 }

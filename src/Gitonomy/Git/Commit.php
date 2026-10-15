@@ -23,6 +23,8 @@ use Gitonomy\Git\Util\StringHelper;
  * Representation of a Git commit.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @final since gitonomy/gitlib 1.7
  */
 class Commit extends Revision
 {
@@ -38,9 +40,17 @@ class Commit extends Revision
      *
      * @param Repository $repository Repository of the commit
      * @param string     $hash       Hash of the commit
+     *
+     * In gitlib 2.0, the constructor is internal, and takes a CommitData
+     * instead of an array: get it from Repository::getCommit(). Passing data
+     * is deprecated.
      */
     public function __construct(Repository $repository, $hash, array $data = [])
     {
+        if ([] !== $data) {
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing data to "%s()" is deprecated, the constructor is internal in 2.0, and takes a "CommitData" instead of an array: get the commit from "%s::getCommit()".', __METHOD__, Repository::class);
+        }
+
         if (!preg_match('/^[a-f0-9]{40}$/', $hash)) {
             throw new ReferenceNotFoundException($hash);
         }
@@ -50,6 +60,9 @@ class Commit extends Revision
         $this->setData($data);
     }
 
+    /**
+     * In gitlib 2.0, it is internal, and takes a CommitData instead of an array.
+     */
     public function setData(array $data)
     {
         foreach ($data as $name => $value) {
@@ -64,10 +77,7 @@ class Commit extends Revision
     {
         $args = ['-r', '-p', '--raw', '-m', '-M', '--no-commit-id', '--full-index', $this->revision];
 
-        $diff = Diff::parse($this->repository->run('diff-tree', $args));
-        $diff->setRepository($this->repository);
-
-        return $diff;
+        return Diff::parse($this->repository->run('diff-tree', $args), $this->repository);
     }
 
     /**
@@ -94,10 +104,14 @@ class Commit extends Revision
      * Returns a fixed-with short hash.
      *
      * @return string Short hash
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use substr($commit->getHash(), 0, $length) instead
      */
     public function getFixedShortHash($length = 6)
     {
-        return StringHelper::substr($this->revision, 0, $length);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.', __METHOD__);
+
+        return substr($this->revision, 0, $length);
     }
 
     /**
@@ -149,7 +163,7 @@ class Commit extends Revision
     public function getLastModification($path = null)
     {
         if (0 === strpos($path, '/')) {
-            $path = StringHelper::substr($path, 1);
+            $path = substr($path, 1);
         }
 
         if ($getWorkingDir = $this->repository->getWorkingDir()) {
@@ -171,17 +185,23 @@ class Commit extends Revision
      * @param string $separator
      *
      * @return string
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use symfony/string instead: u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)
      */
     public function getShortMessage($length = 50, $preserve = false, $separator = '...')
     {
-        $message = $this->getData('subjectMessage');
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use symfony/string instead: "u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)".', __METHOD__);
 
-        if (StringHelper::strlen($message) > $length) {
-            if ($preserve && false !== ($breakpoint = StringHelper::strpos($message, ' ', $length))) {
+        $message = $this->getData('subjectMessage');
+        // The encoding StringHelper::setEncoding() set, without loading this deprecated class.
+        $encoding = class_exists(StringHelper::class, false) ? StringHelper::getEncoding() : 'utf-8';
+
+        if (mb_strlen($message, $encoding) > $length) {
+            if ($preserve && false !== ($breakpoint = mb_strpos($message, ' ', $length, $encoding))) {
                 $length = $breakpoint;
             }
 
-            return rtrim(StringHelper::substr($message, 0, $length)).$separator;
+            return rtrim(mb_substr($message, 0, $length, $encoding)).$separator;
         }
 
         return $message;
@@ -200,6 +220,8 @@ class Commit extends Revision
     /**
      * Find branch containing the commit.
      *
+     * Passing arguments, to keep local or remote branches only, is deprecated.
+     *
      * @param bool $local  set true to try to locate a commit on local repository
      * @param bool $remote set true to try to locate a commit on remote repository
      *
@@ -207,6 +229,10 @@ class Commit extends Revision
      */
     public function getIncludingBranches($local = true, $remote = true)
     {
+        if (func_num_args() > 0) {
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing arguments to "%s()" is deprecated, filter the branches it returns with "%s::isLocal()" or "isRemote()" instead.', __METHOD__, Branch::class);
+        }
+
         $arguments = ['--contains', $this->revision];
 
         if ($local && $remote) {
@@ -229,7 +255,7 @@ class Commit extends Revision
 
         $branchesName = explode("\n", trim(str_replace('*', '', $result)));
         $branchesName = array_filter($branchesName, function ($v) {
-            return false === StringHelper::strpos($v, '->');
+            return false === strpos($v, '->');
         });
         $branchesName = array_map('trim', $branchesName);
 
@@ -239,7 +265,7 @@ class Commit extends Revision
         foreach ($branchesName as $branchName) {
             if (false === $local) {
                 $branches[] = $references->getRemoteBranch($branchName);
-            } elseif (0 === StringHelper::strrpos($branchName, 'remotes/')) {
+            } elseif (0 === strrpos($branchName, 'remotes/')) {
                 $branches[] = $references->getRemoteBranch(str_replace('remotes/', '', $branchName));
             } else {
                 $branches[] = $references->getBranch($branchName);

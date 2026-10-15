@@ -17,8 +17,12 @@ use Gitonomy\Git\Exception\UnexpectedValueException;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @final since gitonomy/gitlib 1.7
+ *
+ * @implements \IteratorAggregate<string, TreeEntry>
  */
-class Tree
+class Tree implements \IteratorAggregate
 {
     protected $repository;
     protected $hash;
@@ -26,6 +30,9 @@ class Tree
     protected $entries;
     protected $entriesByType;
 
+    /**
+     * In gitlib 2.0, the constructor is internal: get it from Repository::getTree() or Commit::getTree().
+     */
     public function __construct(Repository $repository, $hash)
     {
         $this->repository = $repository;
@@ -71,10 +78,54 @@ class Tree
     }
 
     /**
-     * @return array<string, array{string, CommitReference|Tree|Blob}> An associative array name => $object
+     * @return \ArrayIterator<string, TreeEntry> The entries, by name
+     */
+    public function getIterator(): \ArrayIterator
+    {
+        $this->initialize();
+
+        return new \ArrayIterator(self::treeEntries($this->entries));
+    }
+
+    /**
+     * @return array<string, TreeEntry> The blobs, by name
+     */
+    public function getBlobs(): array
+    {
+        $this->initialize();
+
+        return self::treeEntries($this->entriesByType['blob']);
+    }
+
+    /**
+     * @return array<string, TreeEntry> The submodules, by name
+     */
+    public function getSubmodules(): array
+    {
+        $this->initialize();
+
+        return self::treeEntries($this->entriesByType['commit']);
+    }
+
+    /**
+     * @return array<string, TreeEntry> The trees, by name
+     */
+    public function getTrees(): array
+    {
+        $this->initialize();
+
+        return self::treeEntries($this->entriesByType['tree']);
+    }
+
+    /**
+     * @return array<string, array{string, CommitReference|Tree|Blob}> An associative array name => [mode, object], a CommitReference being a Submodule
+     *
+     * @deprecated since gitonomy/gitlib 1.7, iterate the tree instead
      */
     public function getEntries(): array
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, iterate the tree instead.', __METHOD__);
+
         $this->initialize();
 
         return $this->entries;
@@ -82,9 +133,13 @@ class Tree
 
     /**
      * @return array<string, array{string, CommitReference}> An associative array of name => [mode, commit reference]
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use getSubmodules() instead
      */
     public function getCommitReferenceEntries(): array
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getSubmodules()" instead.', __METHOD__);
+
         $this->initialize();
 
         return $this->entriesByType['commit'];
@@ -92,9 +147,13 @@ class Tree
 
     /**
      * @return array<string, array{string, Tree}> An associative array of name => [mode, tree]
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use getTrees() instead
      */
     public function getTreeEntries(): array
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getTrees()" instead.', __METHOD__);
+
         $this->initialize();
 
         return $this->entriesByType['tree'];
@@ -102,9 +161,13 @@ class Tree
 
     /**
      * @return array<string, array{string, Blob}> An associative array of name => [mode, blob]
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use getBlobs() instead
      */
     public function getBlobEntries(): array
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getBlobs()" instead.', __METHOD__);
+
         $this->initialize();
 
         return $this->entriesByType['blob'];
@@ -142,5 +205,20 @@ class Tree
         }
 
         return $element;
+    }
+
+    /**
+     * @param array<string, array{string, CommitReference|Tree|Blob}> $entries
+     *
+     * @return array<string, TreeEntry>
+     */
+    private static function treeEntries(array $entries): array
+    {
+        $treeEntries = [];
+        foreach ($entries as $name => [$mode, $object]) {
+            $treeEntries[$name] = new TreeEntry((string) $name, $mode, $object);
+        }
+
+        return $treeEntries;
     }
 }

@@ -49,7 +49,7 @@ class BlobTest extends AbstractTest
     {
         $this->expectException(RuntimeException::class);
 
-        $blob = $repository->getBlob('foobar');
+        $blob = $repository->getBlob('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef');
         $blob->getContent();
     }
 

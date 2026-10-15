@@ -27,6 +27,9 @@ class Revision
      */
     protected $revision;
 
+    /**
+     * In gitlib 2.0, the constructor is internal: get it from Repository::getRevision().
+     */
     public function __construct(Repository $repository, $revision)
     {
         $this->repository = $repository;

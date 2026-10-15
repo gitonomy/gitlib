@@ -14,6 +14,8 @@ namespace Gitonomy\Git;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @final since gitonomy/gitlib 1.7
  */
 class RevisionList implements \IteratorAggregate, \Countable
 {

@@ -16,6 +16,8 @@ use Gitonomy\Git\Commit;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @final since gitonomy/gitlib 1.7
  */
 class Line
 {
@@ -45,8 +47,29 @@ class Line
         return $this->content;
     }
 
+    /**
+     * @return int The number of the line in the blamed file
+     */
+    public function getNumber(): int
+    {
+        return (int) $this->targetLine;
+    }
+
+    /**
+     * @return int The number of the line in the file of the commit that last changed it
+     */
+    public function getOriginalNumber(): int
+    {
+        return (int) $this->sourceLine;
+    }
+
+    /**
+     * @deprecated since gitonomy/gitlib 1.7, use getOriginalNumber() instead
+     */
     public function getLine()
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getOriginalNumber()" instead.', __METHOD__);
+
         return $this->sourceLine;
     }
 

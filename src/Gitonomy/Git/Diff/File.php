@@ -13,9 +13,12 @@
 namespace Gitonomy\Git\Diff;
 
 use Gitonomy\Git\Repository;
+use Gitonomy\Git\Util\LegacyOverride;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @final since gitonomy/gitlib 1.7
  */
 class File
 {
@@ -55,6 +58,11 @@ class File
     protected $isBinary;
 
     /**
+     * @var bool
+     */
+    private $isCopy;
+
+    /**
      * @var FileChange[] An array of FileChange objects
      */
     protected $changes;
@@ -66,8 +74,11 @@ class File
 
     /**
      * Instanciates a new File object.
+     *
+     * @param FileChange[]    $changes
+     * @param Repository|null $repository The repository to read the blobs from
      */
-    public function __construct($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary)
+    public function __construct($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary, $isCopy = false, array $changes = [], ?Repository $repository = null)
     {
         $this->oldName = $oldName;
         $this->newName = $newName;
@@ -76,12 +87,18 @@ class File
         $this->oldIndex = $oldIndex;
         $this->newIndex = $newIndex;
         $this->isBinary = $isBinary;
-
-        $this->changes = [];
+        $this->isCopy = $isCopy;
+        $this->changes = $changes;
+        $this->repository = $repository;
     }
 
+    /**
+     * @deprecated since gitonomy/gitlib 1.7, give the changes to the constructor instead
+     */
     public function addChange(FileChange $change)
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, give the changes to the constructor instead.', __METHOD__);
+
         $this->changes[] = $change;
     }
 
@@ -108,21 +125,44 @@ class File
     /**
      * Indicates if it's a rename.
      *
-     * A rename can only occurs if it's a modification (not a creation or a deletion).
+     * A rename can only occurs if it's a modification (not a creation or a deletion), and is not a copy.
      *
      * @return bool
      */
     public function isRename()
     {
-        return $this->isModification() && $this->oldName !== $this->newName;
+        return $this->isModification() && $this->oldName !== $this->newName && !$this->isCopy;
+    }
+
+    /**
+     * Indicates if it's a copy.
+     *
+     * Unlike a rename, the source file of a copy still exists after the change.
+     * The diffs gitlib reads have no copies: git detects them with -C only.
+     */
+    public function isCopy(): bool
+    {
+        return $this->isCopy;
     }
 
     /**
      * Indicates if the file mode has changed.
      */
-    public function isChangeMode()
+    public function isModeChange(): bool
     {
         return $this->isModification() && $this->oldMode !== $this->newMode;
+    }
+
+    /**
+     * Indicates if the file mode has changed.
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use isModeChange() instead
+     */
+    public function isChangeMode()
+    {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isModeChange()" instead.', __METHOD__);
+
+        return $this->isModeChange();
     }
 
     /**
@@ -139,10 +179,14 @@ class File
      * Indicates if this diff file is a deletion.
      *
      * @return bool
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use isDeletion() instead
      */
     public function isDelete()
     {
-        return null === $this->newName;
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isDeletion()" instead.', __METHOD__);
+
+        return $this->isDeletion();
     }
 
     /**
@@ -152,7 +196,8 @@ class File
     {
         $result = 0;
         foreach ($this->changes as $change) {
-            $result += $change->getCount(FileChange::LINE_ADD);
+            // Like in 1.6, a subclass overriding FileChange::getCount() counts the lines.
+            $result += LegacyOverride::isOverridden($change, FileChange::class, 'getCount') ? $change->getCount(DiffLineType::Addition->value) : $change->getAdditions();
         }
 
         return $result;
@@ -165,7 +210,8 @@ class File
     {
         $result = 0;
         foreach ($this->changes as $change) {
-            $result += $change->getCount(FileChange::LINE_REMOVE);
+            // Like in 1.6, a subclass overriding FileChange::getCount() counts the lines.
+            $result += LegacyOverride::isOverridden($change, FileChange::class, 'getCount') ? $change->getCount(DiffLineType::Deletion->value) : $change->getDeletions();
         }
 
         return $result;
@@ -240,21 +286,31 @@ class File
     }
 
     /**
+     * @param Repository|null $repository The repository to read the blobs from
+     *
      * @return File
+     *
+     * @psalm-variadic The arguments this method gets with func_get_arg(), commented out in its signature
      */
-    public static function fromArray(array $array)
+    public static function fromArray(array $array /* , ?Repository $repository = null */)
     {
-        $file = new self($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary']);
+        // A second argument, without breaking the classes overriding this method.
+        $repository = 1 < \func_num_args() ? func_get_arg(1) : null;
 
-        foreach ($array['changes'] as $change) {
-            $file->addChange(FileChange::fromArray($change));
-        }
+        $changes = array_map(function (array $change) {
+            return FileChange::fromArray($change);
+        }, $array['changes']);
 
-        return $file;
+        return new self($array['old_name'], $array['new_name'], $array['old_mode'], $array['new_mode'], $array['old_index'], $array['new_index'], $array['is_binary'], $array['is_copy'] ?? false, $changes, $repository);
     }
 
+    /**
+     * @deprecated since gitonomy/gitlib 1.7, a presentation concern: use substr($file->getNewIndex(), 0, 12) instead
+     */
     public function getAnchor()
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "substr($file->getNewIndex(), 0, 12)" instead.', __METHOD__);
+
         return substr($this->newIndex, 0, 12);
     }
 
@@ -263,8 +319,13 @@ class File
         return $this->repository;
     }
 
+    /**
+     * @deprecated since gitonomy/gitlib 1.7, the diffs gitlib returns have their repository already
+     */
     public function setRepository(Repository $repository)
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, the diffs gitlib returns have their repository already.', __METHOD__);
+
         $this->repository = $repository;
     }
 

@@ -13,23 +13,21 @@ $tree = $commit->getTree();
 
 This tree is the entry point of all of your files.
 
-The main method for a tree is the *getEntries* method. This method will
-return an array, indexed by name. Each of those elements will be the
-entry mode and the entry object.
+Iterating a tree gives its entries, `TreeEntry` objects, by name. An
+entry has a name, a mode and an object: a `Blob`, a `Tree` or a
+`Submodule`.
 
 Let's understand how it works with a concrete example:
 
 ```php
 function displayTree(Tree $tree, $indent = 0)
 {
-    $indent = str_repeat(' ', $indent);
-    foreach ($tree->getEntries() as $name => $data) {
-        list($mode, $entry) = $data;
-        if ($entry instanceof Tree) {
-            echo $indent.$name.'/'.PHP_EOL;
-            displayTree($tree, $indent + 1);
+    foreach ($tree as $name => $entry) {
+        if ($entry->getObject() instanceof Tree) {
+            echo str_repeat(' ', $indent).$name.'/'.PHP_EOL;
+            displayTree($entry->getObject(), $indent + 1);
         } else {
-            echo $indent.$name.PHP_EOL;
+            echo str_repeat(' ', $indent).$name.PHP_EOL;
         }
     }
 }
@@ -38,6 +36,17 @@ displayTree($commit->getTree());
 ```
 
 This method will recursively display all entries of a tree.
+
+`getBlobs()`, `getTrees()` and `getSubmodules()` return the entries of
+one type, by name. A submodule is a `Submodule`, with the hash of the
+commit it points to: check it with `instanceof Submodule`. The
+`CommitReference` class of its objects, which extends `Submodule`, is
+deprecated.
+
+`getEntries()`, `getBlobEntries()`, `getTreeEntries()` and
+`getCommitReferenceEntries()`, which return the entries as arrays
+(`[$mode, $object]`), are deprecated: iterate the tree, or use
+`getBlobs()`, `getTrees()` and `getSubmodules()`.
 
 Resolve a path
 --------------
