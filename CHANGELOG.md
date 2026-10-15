@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [v1.7.0] - 2026-10-15
 
 Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0).
 
@@ -100,5 +100,5 @@ _Earlier versions are not documented here. See the
 [GitHub releases](https://github.com/gitonomy/gitlib/releases) and
 [commit history](https://github.com/gitonomy/gitlib/commits/v1.6.0) for prior changes._
 
-[Unreleased]: https://github.com/gitonomy/gitlib/compare/v1.6.0...1.x
+[v1.7.0]: https://github.com/gitonomy/gitlib/compare/v1.6.0...v1.7.0
 [v1.6.0]: https://github.com/gitonomy/gitlib/releases/tag/v1.6.0
