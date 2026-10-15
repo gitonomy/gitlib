@@ -8,31 +8,46 @@ to the constructor:
 $repository = new Repository('/path/to/repo');
 ```
 
-Repository options
-------------------
-
-The constructor of Repository takes an additional parameter: `$options`.
-This parameter can be used used to tune behavior of library.
-
-Available options are:
-
--   **debug** (default: true): Enables exception when edge cases are met
--   **environment\_variables**: (default: none) An array of environment
-    variables to be set in sub-process
--   **logger**: (default: none) Logger to use for reporting of execution
-    (a `Psr\Log\LoggerInterface`)
--   **command**: (default: `git`) Specify command to execute to run git
--   **working\_dir**: If you are using multiple working directories,
-    this option is for you
-
-An example:
+When the git directory is kept apart from the working directory, pass the
+working directory as second argument:
 
 ```php
-$repository = new Repository('/path/to/repo', [
-    'debug'  => true,
-    'logger' => new Monolog\Logger(),
-]);
+$repository = new Repository('/path/to/repo.git', '/path/to/working-dir');
 ```
+
+Configure git
+-------------
+
+The last argument of the constructor is a `Gitonomy\Git\Driver\Cli\CliDriver`,
+which configures how gitlib runs git:
+
+-   **command** (default: `git`): the git binary;
+-   **environmentVariables** (default: none): environment variables set on
+    every git process;
+-   **processTimeout** (default: 3600): in seconds, `null` for none;
+-   **logger** (default: none): a `Psr\Log\LoggerInterface` receiving every
+    git command run.
+
+```php
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Repository;
+
+$repository = new Repository('/path/to/repo', driver: new CliDriver(
+    command: '/home/alice/bin/git',
+    environmentVariables: ['GIT_SSH_COMMAND' => 'ssh -i /path/to/key'],
+    processTimeout: 60,
+    logger: new Monolog\Logger('repository'),
+));
+```
+
+`CliDriver` has the arguments of the one of gitlib 2.0, where it runs git
+itself: code using it works with both versions.
+
+An array of options as second argument is deprecated: its `working_dir`
+option is the second argument, and its `logger`, `command`,
+`environment_variables` and `process_timeout` options configure a
+`CliDriver`. Setting its `debug` option to `false` is deprecated: gitlib
+2.0 always throws when git fails.
 
 Test if a repository is bare
 ----------------------------
@@ -47,20 +62,17 @@ $repository->isBare();
 Compute size of a repository
 ----------------------------
 
-To know how much size a repository is using on your drive, you can use
-`getSize` method on a *Repository* object.
-
-> **warning**
->
-> This command was only tested with linux.
-
-The returned size is in kilobytes:
+To know how much size the git directory of a repository is using on your
+drive, you can use `getSizeInBytes` method on a *Repository* object. It
+doesn't follow the links.
 
 ```php
-$size = $repository->getSize();
+$size = $repository->getSizeInBytes();
 
-echo 'Your repository size is '.$size.'KB';
+echo 'Your repository size is '.$size.' bytes';
 ```
+
+`getSize()`, in kilobytes, is deprecated.
 
 Access HEAD
 -----------
@@ -78,27 +90,14 @@ if ($repository->isHeadDetached()) {
 }
 ```
 
-Options for repository
-----------------------
-
-### Logger
+Logger
+------
 
 If you are developing, you may appreciate to have a logger inside
-repository, telling you every executed command.
-
-You call method `setLogger` as an option on repository creation:
+repository, telling you every executed command:
 
 ```php
-$repository->setLogger(new Monolog\Logger('repository'));
-
-$repository->run('fetch', ['--all']);
-```
-
-You can also specify as an option on repository creation:
-
-```php
-$logger = new MonologLogger('repository');
-$repository = new Repository('/path/foo', ['logger' => $logger]);
+$repository = new Repository('/path/foo', driver: new CliDriver(logger: new Monolog\Logger('repository')));
 $repository->run('fetch', ['--all']);
 ```
 
@@ -111,37 +110,4 @@ debug last command (fetch) return code: 0
 debug last command (fetch) output: Fetching origin
 ```
 
-### Disable debug-mode
-
-Gitlib throws an exception when something seems wrong. If a `git` command exits
-with a non-zero code, then execution will be stopped, and a `RuntimeException`
-will be thrown. If you want to prevent this, set the `debug` option to` false`.
-This will make `Repository` log errors and return empty data instead of
-throwing exceptions. 
-
-```php
-$repository = new Repository('/tmp/foo', ['debug' => false, 'logger' => $logger]);
-```
-
-> **note**
->
-> If you plan to disable debug, you should rely on the logger to keep a trace
-> of the failing cases.
-
-### Specify git command to use
-
-You can pass the option `command` to specify which command to use to run git
-calls. If you have a git binary located somewhere else, use this option to
-specify to gitlib path to your git binary:
-
-```php
-$repository = new Gitonomy\Git\Repository('/tmp/foo', ['command' => '/home/alice/bin/git']); 
-```
-
-### Environment variables
-
-It is possible to send environment variables to the `git` commands.
-
-```php
-$repository = new Gitonomy\Git\Repository('/tmp/foo', ['environment_variables' => ['GIT_']])
-```
+`setLogger()` and `getLogger()` are deprecated.

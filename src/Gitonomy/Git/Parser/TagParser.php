@@ -14,6 +14,9 @@ namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Exception\RuntimeException;
 
+/**
+ * @deprecated since gitonomy/gitlib 1.7, gitlib 2.0 moves it to the internal parsers of its CliDriver
+ */
 class TagParser extends ParserBase
 {
     public $object;

@@ -31,7 +31,7 @@ For example, if you want to display all parents, starting from a commit:
 
 ```php
 function displayLog(Gitonomy\Git\Commit $commit) {
-    echo '- '.$commit->getShortMessage().PHP_EOL;
+    echo '- '.$commit->getSubjectMessage().PHP_EOL;
     foreach ($commit->getParents() as $parent) {
         displayLog($parent);
     }
@@ -94,24 +94,20 @@ To access the message, you can use the *getMessage* method:
 $commit->getMessage();
 ```
 
-For your convenience, this library provides a shortcut method to keep
-only the first line or first 50 characters if the first line is too
-long:
+To keep only the first line, or its first 50 characters if it is too
+long, use [symfony/string](https://symfony.com/doc/current/string.html):
 
 ```php
-$commit->getShortMessage();
+use function Symfony\Component\String\u;
+
+u($commit->getSubjectMessage())->truncate(50, '...');
+
+// Without cutting the last word
+u($commit->getSubjectMessage())->truncate(45, '.', false);
 ```
 
-You can customize it like this:
-
-```php
-$commit->getShortMessage(45, true, '.');
-```
-
--   The first parameter is the max length of the message.
--   The second parameter determine if the last word should be cut or
-    preserved
--   The third parameter is the separator
+`getShortMessage()`, which did it, is deprecated, as `getFixedShortHash()`:
+use `substr($commit->getHash(), 0, 6)`.
 
 There are also two other methods for your convenience:
 
@@ -165,7 +161,11 @@ Find every branches containing a commit
 ---------------------------------------
 
 ```php
-$branches       = $commit->getIncludingBranches($includeLocalBranches, $includeRemoteBranches);
-$localBranches  = $commit->getIncludingBranches(true, false);
-$remoteBranches = $commit->getIncludingBranches(false, true);
+use Gitonomy\Git\Reference\Branch;
+
+$branches       = $commit->getIncludingBranches();
+$localBranches  = array_filter($branches, static fn (Branch $branch): bool => $branch->isLocal());
+$remoteBranches = array_filter($branches, static fn (Branch $branch): bool => $branch->isRemote());
 ```
+
+Passing arguments to `getIncludingBranches()` is deprecated.

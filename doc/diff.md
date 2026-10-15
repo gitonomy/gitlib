@@ -4,24 +4,40 @@ Computing diff
 Even if git is a diff-less storage engine, it's possible to compute
 them.
 
-To compute a diff in git, you need to specify a *revision*. This
-revision can be a commit (*2bc7a8*) or a range (*2bc7a8..ff4c21b*).
+To compute a diff, pass the two revisions to compare to the *getDiff*
+method of the repository:
+
+```php
+$diff = $repository->getDiff('master@{2 days ago}', 'master');
+```
 
 For more informations about git revisions: *man gitrevisions*.
 
-When you have decided the revision you want and have your *Repository*
-object, you can call the *getDiff* method on the repository:
+To compare with the best common ancestor, like `git diff a...b`:
 
 ```php
-$diff = $repository->getDiff('master@{2 days ago}..master');
+$diff = $repository->getDiff($repository->getMergeBase('a', 'b'), 'b');
 ```
 
-You can also access it from a *Log* object:
+To compare the working tree, staged or not, with a revision:
 
 ```php
-$log  = $repository->getLog('master@{2 days ago}..master');
-$diff = $log->getDiff();
+$diff = $repository->getWorkingCopy()->getDiff('master');
 ```
+
+Calling `getDiff()` with one argument, a range or a list of revisions, is
+deprecated, as `Log::getDiff()`.
+
+To parse the output of `git diff --raw --patch` yourself, give the
+repository to read the blobs from:
+
+```php
+use Gitonomy\Git\Diff\Diff;
+
+$diff = Diff::parse($output, $repository);
+```
+
+`Diff::setRepository()` and `File::setRepository()` are deprecated.
 
 Iterating a diff
 ----------------
@@ -56,7 +72,7 @@ $file->isDeletion();
 $file->isModification();
 
 $file->isRename();
-$file->isChangeMode();
+$file->isModeChange();
 
 $file->getAdditions(); // Number of added lines
 $file->getDeletions(); // Number of deleted lines
@@ -78,27 +94,35 @@ The FileChange object
 A *File* object is composed of many changes. For each of those changes,
 a *FileChange* object is associated.
 
-To access changes from a file, use the *getChanges* method:
+To access changes from a file, use the *getChanges* method. The
+*getDiffLines* method of a change returns its lines, `DiffLine` objects:
 
 ```php
-$changes = $file->getChanges();
-foreach ($changes as $change) {
-    foreach ($lines as $data) {
-        list ($type, $line) = $data;
-        if ($type === FileChange::LINE_CONTEXT) {
-            echo ' '.$line.PHP_EOL;
-        } elseif ($type === FileChange::LINE_ADD) {
-            echo '+'.$line.PHP_EOL;
-        } else {
-            echo '-'.$line.PHP_EOL;
-        }
+use Gitonomy\Git\Diff\DiffLineType;
+
+foreach ($file->getChanges() as $change) {
+    foreach ($change->getDiffLines() as $line) {
+        echo match ($line->getType()) {
+            DiffLineType::Addition => '+',
+            DiffLineType::Context => ' ',
+            DiffLineType::Deletion => '-',
+        }.$line->getContent().PHP_EOL;
     }
 }
 ```
 
+`DiffLine::getContent()` returns the line, without its prefix (`+`, `-`
+or a space) nor its line break.
+
+`FileChange::getLines()`, which returns the lines as arrays
+(`[$type, $content]`), the `FileChange::LINE_ADD`, `LINE_CONTEXT` and
+`LINE_REMOVE` constants, and passing the lines to the constructor of
+`FileChange` as arrays are deprecated: use `getDiffLines()`, `DiffLineType`
+and `DiffLine` objects.
+
 To get line numbers, use the range methods:
 
 ```php
-echo sprintf('Previously from line %s to %s%s', $change->getOldRangeStart(), $change->getOldRangeEnd(), PHP_EOL);
-echo sprintf('Now from line %s to %s%s', $change->getNewRangeStart(), $change->getNewRangeEnd(), PHP_EOL);
+echo sprintf('Previously %s lines from line %s%s', $change->getRangeOldCount(), $change->getRangeOldStart(), PHP_EOL);
+echo sprintf('Now %s lines from line %s%s', $change->getRangeNewCount(), $change->getRangeNewStart(), PHP_EOL);
 ```

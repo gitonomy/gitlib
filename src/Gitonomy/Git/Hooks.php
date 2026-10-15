@@ -20,6 +20,8 @@ use Gitonomy\Git\Exception\RuntimeException;
  * Hooks collection, aggregated by repository.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @final since gitonomy/gitlib 1.7
  */
 class Hooks
 {

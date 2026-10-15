@@ -12,9 +12,14 @@
 
 namespace Gitonomy\Git\Parser;
 
+use Gitonomy\Git\Diff\DiffLine;
+use Gitonomy\Git\Diff\DiffLineType;
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Diff\FileChange;
 
+/**
+ * @final since gitonomy/gitlib 1.7
+ */
 class DiffParser extends ParserBase
 {
     public $files;
@@ -117,9 +122,8 @@ class DiffParser extends ParserBase
             $newIndex = $newIndex === null ? '' : $newIndex;
             $oldIndex = preg_match('/^0+$/', $oldIndex) ? null : $oldIndex;
             $newIndex = preg_match('/^0+$/', $newIndex) ? null : $newIndex;
-            $file = new File($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary);
-
             // 5. Diff
+            $changes = [];
             while ($this->expects('@@ ')) {
                 $vars = $this->consumeRegexp('/-(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))?/');
                 $rangeOldStart = (int) $vars[1];
@@ -134,11 +138,11 @@ class DiffParser extends ParserBase
                 $lines = [];
                 while (true) {
                     if ($this->expects(' ')) {
-                        $lines[] = [FileChange::LINE_CONTEXT, $this->consumeTo("\n")];
+                        $lines[] = new DiffLine(DiffLineType::Context, $this->consumeTo("\n"));
                     } elseif ($this->expects('+')) {
-                        $lines[] = [FileChange::LINE_ADD, $this->consumeTo("\n")];
+                        $lines[] = new DiffLine(DiffLineType::Addition, $this->consumeTo("\n"));
                     } elseif ($this->expects('-')) {
-                        $lines[] = [FileChange::LINE_REMOVE, $this->consumeTo("\n")];
+                        $lines[] = new DiffLine(DiffLineType::Deletion, $this->consumeTo("\n"));
                     } elseif ($this->expects("\ No newline at end of file")) {
                         // Ignore this case...
                     } else {
@@ -148,12 +152,10 @@ class DiffParser extends ParserBase
                     $this->consumeNewLine();
                 }
 
-                $change = new FileChange($rangeOldStart, $rangeOldCount, $rangeNewStart, $rangeNewCount, $lines);
-
-                $file->addChange($change);
+                $changes[] = new FileChange($rangeOldStart, $rangeOldCount, $rangeNewStart, $rangeNewCount, $lines);
             }
 
-            $this->files[] = $file;
+            $this->files[] = new File($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary, false, $changes);
         }
     }
 }

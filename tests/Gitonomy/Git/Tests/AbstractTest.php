@@ -12,7 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Admin;
+use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\TestCase;
 
@@ -42,7 +42,7 @@ abstract class AbstractTest extends TestCase
     public static function createEmptyRepository($bare = true)
     {
         $dir = self::createTempDir();
-        $repository = Admin::init($dir, $bare, self::getOptions());
+        $repository = $bare ? Repository::initBare($dir, self::getDriver()) : Repository::init($dir, self::getDriver());
         self::registerDeletion($repository);
 
         return $repository;
@@ -78,10 +78,11 @@ abstract class AbstractTest extends TestCase
     public static function createFoobarRepository($bare = true)
     {
         if (null === self::$localRepository) {
-            self::$localRepository = Admin::cloneTo(self::createTempDir(), self::REPOSITORY_URL, $bare, self::getOptions());
+            self::$localRepository = Repository::cloneBareFrom(self::REPOSITORY_URL, self::createTempDir(), null, self::getDriver());
         }
 
-        $repository = self::$localRepository->cloneTo(self::createTempDir(), $bare, self::getOptions());
+        $url = self::$localRepository->getGitDir();
+        $repository = $bare ? Repository::cloneBareFrom($url, self::createTempDir(), null, self::getDriver()) : Repository::cloneFrom($url, self::createTempDir(), null, self::getDriver());
         self::registerDeletion($repository);
 
         return $repository;
@@ -100,7 +101,7 @@ abstract class AbstractTest extends TestCase
     }
 
     /**
-     * Created an empty directory and return path to it.
+     * Created an empty directory, deleted at the end of the tests, and return path to it.
      *
      * @return string a fullpath
      */
@@ -109,6 +110,10 @@ abstract class AbstractTest extends TestCase
         $tmpDir = tempnam(sys_get_temp_dir(), 'gitlib_');
         unlink($tmpDir);
         mkdir($tmpDir);
+
+        register_shutdown_function(function () use ($tmpDir) {
+            self::deleteDir($tmpDir);
+        });
 
         return $tmpDir;
     }
@@ -120,6 +125,11 @@ abstract class AbstractTest extends TestCase
      */
     protected static function deleteDir($dir)
     {
+        // Deleted already, by another shutdown function.
+        if (!file_exists($dir)) {
+            return;
+        }
+
         $iterator = new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS);
         $iterator = new \RecursiveIteratorIterator($iterator, \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($iterator as $file) {
@@ -147,5 +157,12 @@ abstract class AbstractTest extends TestCase
             'environment_variables' => $envs,
             'process_timeout'       => 60,
         ];
+    }
+
+    protected static function getDriver(): CliDriver
+    {
+        $options = self::getOptions();
+
+        return new CliDriver($options['command'], $options['environment_variables'], $options['process_timeout']);
     }
 }

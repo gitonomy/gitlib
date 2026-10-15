@@ -17,12 +17,15 @@ use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Stash;
 use Gitonomy\Git\Reference\Tag;
+use Gitonomy\Git\Util\LegacyOverride;
 
 /**
  * Reference set associated to a repository.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  * @author Julien DIDIER <genzo.wm@gmail.com>
+ *
+ * @final since gitonomy/gitlib 1.7
  */
 class ReferenceBag implements \Countable, \IteratorAggregate
 {
@@ -65,6 +68,8 @@ class ReferenceBag implements \Countable, \IteratorAggregate
      * Constructor.
      *
      * @param Repository $repository The repository
+     *
+     * In gitlib 2.0, the constructor is internal: get it from Repository::getReferences().
      */
     public function __construct($repository)
     {
@@ -104,44 +109,63 @@ class ReferenceBag implements \Countable, \IteratorAggregate
 
     /**
      * @return Reference
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use Branch::moveTo() instead
      */
     public function update(Reference $reference)
     {
-        $fullname = $reference->getFullname();
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::moveTo()" instead.', __METHOD__, Branch::class);
 
-        $this->initialize();
-        $this->repository->run('update-ref', [$fullname, $reference->getCommitHash()]);
-
-        $this->references[$fullname] = $reference;
-
-        return $reference;
+        return $this->updateReference($reference);
     }
 
     /**
-     * @return Reference
+     * Creating a branch that exists already, which moves it, is deprecated.
+     *
+     * @param Revision|string $commitHash The hash of a commit, or a Revision
+     *
+     * @return Branch
      */
     public function createBranch($name, $commitHash)
     {
-        $branch = new Branch($this->repository, 'refs/heads/'.$name, $commitHash);
+        if ($this->has('refs/heads/'.$name)) {
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Creating the branch "%s", which exists already, is deprecated, it throws in 2.0: use "%s::moveTo()" instead.', $name, Branch::class);
+        }
 
-        return $this->update($branch);
+        $branch = new Branch($this->repository, 'refs/heads/'.$name, self::commitHash($commitHash));
+
+        return $this->write($branch);
     }
 
     /**
-     * @return Reference
+     * Creating a tag that exists already, which moves it, is deprecated.
+     *
+     * @param Revision|string $commitHash The hash of a commit, or a Revision
+     *
+     * @return Tag
      */
     public function createTag($name, $commitHash)
     {
-        $tag = new Tag($this->repository, 'refs/tags/'.$name, $commitHash);
+        if ($this->has('refs/tags/'.$name)) {
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Creating the tag "%s", which exists already, is deprecated, it throws in 2.0: delete it first.', $name);
+        }
 
-        return $this->update($tag);
+        $tag = new Tag($this->repository, 'refs/tags/'.$name, self::commitHash($commitHash));
+
+        return $this->write($tag);
     }
 
     /**
+     * Deleting a reference by another name than its full name under "refs/", like "HEAD" or "master", is deprecated.
+     *
      * @return void
      */
     public function delete($fullname)
     {
+        if (!str_starts_with($fullname, 'refs/')) {
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Deleting "%s", which is not the full name of a reference under "refs/", is deprecated, it throws in 2.0.', $fullname);
+        }
+
         $this->repository->run('update-ref', ['-d', $fullname]);
 
         unset($this->references[$fullname]);
@@ -380,6 +404,19 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     }
 
     /**
+     * Reads the references again when next needed.
+     *
+     * @internal
+     */
+    public function invalidate(): void
+    {
+        $this->initialized = false;
+        $this->references = [];
+        $this->tags = [];
+        $this->branches = [];
+    }
+
+    /**
      * @return int
      *
      * @see Countable
@@ -401,5 +438,38 @@ class ReferenceBag implements \Countable, \IteratorAggregate
         $this->initialize();
 
         return new \ArrayIterator($this->references);
+    }
+
+    /**
+     * @return Reference
+     */
+    private function updateReference(Reference $reference)
+    {
+        $fullname = $reference->getFullname();
+
+        $this->initialize();
+        $this->repository->run('update-ref', [$fullname, $reference->getCommitHash()]);
+
+        $this->references[$fullname] = $reference;
+
+        return $reference;
+    }
+
+    /**
+     * @return Reference
+     */
+    private function write(Reference $reference)
+    {
+        // Like in 1.6, a subclass overriding update() writes the reference.
+        return LegacyOverride::isOverridden($this, self::class, 'update') ? $this->update($reference) : $this->updateReference($reference);
+    }
+
+    /**
+     * @param Revision|string $commitHash
+     */
+    private static function commitHash($commitHash)
+    {
+        // A string as it is, like in 1.6: git resolves a name when writing the reference.
+        return $commitHash instanceof Revision ? $commitHash->getCommit()->getHash() : $commitHash;
     }
 }

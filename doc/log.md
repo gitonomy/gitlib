@@ -35,21 +35,24 @@ If you want to count overall commits, without offset or limit, use the
 
 ```php
 echo sprintf('This log contains %s commits%s', $log->countCommits(), PHP_EOL);
-
-// Countable interface
-echo sprintf('This log contains %s commits%s', count($log), PHP_EOL);
 ```
+
+`count($log)` counts them too, which is deprecated when the offset or
+the limit of the log leaves commits out: gitlib 2.0 counts the commits
+the log iterates.
 
 Offset and limit
 ----------------
 
-Use those methods:
+Use those methods, which return another log:
 
 ```php
-$log->setOffset(32);
-$log->setLimit(40);
+$page = $log->withOffset(32)->withLimit(40);
 
 // or read it:
-$log->getOffset();
-$log->getLimit();
+$page->getOffset();
+$page->getLimit();
 ```
+
+`setOffset()` and `setLimit()`, which changed the log, are deprecated, as
+a negative offset or limit.

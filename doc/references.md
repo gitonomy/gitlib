@@ -11,6 +11,11 @@ this object from a *Repository*, use the *getReferences* method:
 $references = $repository->getReferences();
 ```
 
+The bag reads the references once. To see the writes of
+`Repository::run()` or of other processes, open a new `Repository`:
+passing an argument to `getReferences()`, to read them again, is
+deprecated.
+
 First, you can test existence of tags and branches like this:
 
 ```php
@@ -64,15 +69,23 @@ on ReferenceBag object:
 ```php
 // create a branch
 $references = $repository->getReferences();
-$branch     = $references->createBranch('foobar', 'a8b7e4...'); // commit to reference
+$branch     = $references->createBranch('foobar', 'a8b7e4...'); // commit to reference, or a Revision
 
 // create a tag
 $references = $repository->getReferences();
-$tag        = $references->createTag('0.3', 'a8b7e4...'); // commit to reference
+$tag        = $references->createTag('0.3', 'a8b7e4...'); // commit to reference, or a Revision
+
+// move a branch, to a revision or its name
+$branch = $branch->moveTo('master');
 
 // delete a branch or a tag
 $branch->delete();
 ```
+
+Creating a branch or a tag that exists already, which moves it, is
+deprecated, as `ReferenceBag::update()`: use `Branch::moveTo()`. Deleting
+a reference by another name than its full name, like `HEAD` or `master`,
+is deprecated.
 
 Resolution from a commit
 ------------------------

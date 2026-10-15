@@ -25,6 +25,9 @@ abstract class Reference extends Revision
 {
     protected $commitHash;
 
+    /**
+     * In gitlib 2.0, the constructor is internal, and requires the commit hash: get it from Repository::getReferences().
+     */
     public function __construct(Repository $repository, $revision, $commitHash = null)
     {
         $this->repository = $repository;

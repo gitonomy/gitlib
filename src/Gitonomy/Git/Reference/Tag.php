@@ -24,6 +24,8 @@ use Gitonomy\Git\Reference;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  * @author Bruce Wells <brucekwells@gmail.com>
+ *
+ * @final since gitonomy/gitlib 1.7
  */
 class Tag extends Reference
 {

@@ -14,6 +14,9 @@ namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Exception\RuntimeException;
 
+/**
+ * @deprecated since gitonomy/gitlib 1.7, gitlib 2.0 merges it into the internal LogParser of its CliDriver
+ */
 class CommitParser extends ParserBase
 {
     public $tree;

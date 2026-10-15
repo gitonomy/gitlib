@@ -1,24 +1,25 @@
 Create and access git repositories
 ==================================
 
-gitlib provides methods to initialize new repositories.
+gitlib provides static methods of `Repository` to initialize and clone
+repositories. Each of them takes a `CliDriver` as last argument, to
+configure git (see [Repository](repository.md)).
+
+`Admin` and `Repository::cloneTo()`, which did it before 1.7, are
+deprecated.
 
 Create a repository
 -------------------
 
-To initialize a new repository, use method `Admin::init`.
-
 ```php
+use Gitonomy\Git\Repository;
+
+// Initialize a repository with a working directory
+$repository = Repository::init('/path/to/repository');
+
 // Initialize a bare repository
-$repository = Gitonomy\Git\Admin::init('/path/to/repository');
-
-// Initialize a non-bare repository
-$repository = Gitonomy\Git\Admin::init('/path/to/repository', false);
+$repository = Repository::initBare('/path/to/repository');
 ```
-
-Default behavior is to create a bare repository. If you want to
-initialize a repository with a working copy,pass `false` as third
-argument of Repository constructor.
 
 Cloning repositories
 --------------------
@@ -26,49 +27,48 @@ Cloning repositories
 You can clone a repository from an URL by doing:
 
 ```php
+// Clone to a repository with a working directory
+$repository = Repository::cloneFrom('https://github.com/gitonomy/gitlib.git', '/tmp/gitlib');
+
 // Clone to a bare repository
-$repository = Gitonomy\Git\Admin::cloneTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git');
-
-// Clone to a non-bare repository
-$repository = Gitonomy\Git\Admin::cloneTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', false);
+$repository = Repository::cloneBareFrom('https://github.com/gitonomy/gitlib.git', '/tmp/gitlib');
 ```
-
-Default behavior is to clone in a bare repository.
 
 You can also clone a repository and point it to a specific branch. In a
-non-bare repository, this branch will be checked out:
+repository with a working directory, this branch is checked out:
 
 ```php
-// Clone to a bare repository
-$repository = Gitonomy\Git\Admin::cloneBranchTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', 'a-branch');
+$repository = Repository::cloneFrom('https://github.com/gitonomy/gitlib.git', '/tmp/gitlib', 'a-branch');
 
-// Clone to a non-bare repository
-$repository = Gitonomy\Git\Admin::cloneBranchTo('/tmp/gitlib', 'https://github.com/gitonomy/gitlib.git', 'a-branch', false);
+$repository = Repository::cloneBareFrom('https://github.com/gitonomy/gitlib.git', '/tmp/gitlib', 'a-branch');
 ```
 
-Clone a Repository object
--------------------------
-
-If you already have a Repository instance and want to clone it, you can
-use this shortcut:
+To clone a `Repository` object, clone its git directory:
 
 ```php
-$new = $repository->cloneTo('/tmp/clone');
+$new = Repository::cloneBareFrom($repository->getGitDir(), '/tmp/clone');
 ```
 
 Mirror a repository
 -------------------
 
-If you want to mirror fully a repository and all references, use the
-`mirrorTo` method. This method takes only two arguments, where to mirror
-and what to mirror:
+To mirror a repository and all its references into a bare repository,
+use the `mirrorFrom` method:
 
 ```php
-// Mirror to a bare repository
-$mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitonomy/gitlib.git');
+$mirror = Repository::mirrorFrom('https://github.com/gitonomy/gitlib.git', '/tmp/mirror');
+```
 
-// Mirror to a non-bare repository
-$mirror = Gitonomy\Git\Admin::mirrorTo('/tmp/mirror', 'https://github.com/gitonomy/gitlib.git', false);
+Check a remote repository
+-------------------------
+
+To check that git can read a repository, without cloning it:
+
+```php
+Repository::isValidRepository('https://github.com/gitonomy/gitlib.git');
+
+// And that it has the branch "main", with this exact name
+Repository::isValidRepositoryAndBranch('https://github.com/gitonomy/gitlib.git', 'main');
 ```
 
 ### References

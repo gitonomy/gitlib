@@ -12,13 +12,18 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Exception\RuntimeException;
-use Symfony\Component\Process\Process;
+use Gitonomy\Git\Util\LegacyOverride;
 
 /**
  * Administration class for Git repositories.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
+ *
+ * @deprecated since gitonomy/gitlib 1.7, use the static methods of Repository instead
+ *
+ * @final since gitonomy/gitlib 1.7
  */
 class Admin
 {
@@ -32,15 +37,18 @@ class Admin
      * @throws RuntimeException Directory exists or not writable (only if debug=true)
      *
      * @return Repository
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::initBare() or Repository::init() instead
      */
     public static function init($path, $bare = true, array $options = [])
     {
-        $process = static::getProcess('init', array_merge(['-q'], $bare ? ['--bare'] : [], [$path]), $options);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::%s()" instead.', __METHOD__, Repository::class, $bare ? 'initBare' : 'init');
 
-        $process->run();
-
-        if (!$process->isSuccessFul()) {
-            throw new RuntimeException(sprintf("Error on repository initialization, command wasn't successful (%s). Error output:\n%s", $process->getCommandLine(), $process->getErrorOutput()));
+        $driver = CliDriver::fromOptions($options);
+        if ($bare) {
+            $driver->initBare($path);
+        } else {
+            $driver->init($path);
         }
 
         return new Repository($path, $options);
@@ -57,10 +65,15 @@ class Admin
      * @param array  $options options for Repository creation
      *
      * @return bool true if url is valid
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::isValidRepository() instead
      */
     public static function isValidRepository($url, array $options = [])
     {
-        $process = static::getProcess('ls-remote', [$url], $options);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::isValidRepository()" instead.', __METHOD__, Repository::class);
+
+        // Unlike Repository::isValidRepository(), in the working directory of PHP, where a relative path may name a remote.
+        $process = CliDriver::fromOptions($options)->createProcess('ls-remote', [$url]);
 
         $process->run();
 
@@ -80,10 +93,16 @@ class Admin
      * @param array  $options    options for Repository creation
      *
      * @return bool true if url is valid and branch exists
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::isValidRepositoryAndBranch() instead
      */
     public static function isValidRepositoryAndBranch($url, $branchName, array $options = [])
     {
-        $process = static::getProcess('ls-remote', ['--heads', $url, $branchName], $options);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::isValidRepositoryAndBranch()" instead.', __METHOD__, Repository::class);
+
+        // Unlike Repository::isValidRepositoryAndBranch(), "release" matches "feature/release", and "rel" "release",
+        // in the working directory of PHP.
+        $process = CliDriver::fromOptions($options)->createProcess('ls-remote', ['--heads', $url, $branchName]);
 
         $process->run();
         $processOutput = $process->getOutput();
@@ -100,12 +119,16 @@ class Admin
      * @param array  $options options for Repository creation
      *
      * @return Repository
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::cloneBareFrom() or Repository::cloneFrom() instead
      */
     public static function cloneTo($path, $url, $bare = true, array $options = [])
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::%s()" instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
+
         $args = $bare ? ['--bare'] : [];
 
-        return static::cloneRepository($path, $url, $args, $options);
+        return self::cloneWith($path, $url, $args, $options);
     }
 
     /**
@@ -118,15 +141,19 @@ class Admin
      * @param array  $options options for Repository creation
      *
      * @return Repository
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::cloneBareFrom() or Repository::cloneFrom() with their "branch" argument instead
      */
     public static function cloneBranchTo($path, $url, $branch, $bare = true, $options = [])
     {
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::%s()" with its "branch" argument instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
+
         $args = ['--branch', $branch];
         if ($bare) {
             $args[] = '--bare';
         }
 
-        return static::cloneRepository($path, $url, $args, $options);
+        return self::cloneWith($path, $url, $args, $options);
     }
 
     /**
@@ -137,10 +164,14 @@ class Admin
      * @param array  $options options for Repository creation
      *
      * @return Repository
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::mirrorFrom() instead
      */
     public static function mirrorTo($path, $url, array $options = [])
     {
-        return static::cloneRepository($path, $url, ['--mirror'], $options);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::mirrorFrom()" instead, which takes the URL before the path.', __METHOD__, Repository::class);
+
+        return self::cloneWith($path, $url, ['--mirror'], $options);
     }
 
     /**
@@ -152,37 +183,27 @@ class Admin
      * @param array  $options options for Repository creation
      *
      * @return Repository
+     *
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::cloneFrom(), Repository::cloneBareFrom() or Repository::mirrorFrom() instead
      */
     public static function cloneRepository($path, $url, array $args = [], array $options = [])
     {
-        $process = static::getProcess('clone', array_merge(['-q'], $args, [$url, $path]), $options);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%1$s()" method is deprecated, use "%2$s::cloneFrom()", "%2$s::cloneBareFrom()" or "%2$s::mirrorFrom()" instead, which take the URL before the path; they support no other argument of "git clone".', __METHOD__, Repository::class);
 
-        $process->run();
-
-        if (!$process->isSuccessFul()) {
-            throw new RuntimeException(sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
-        }
+        CliDriver::fromOptions($options)->cloneRepository($url, $path, $args);
 
         return new Repository($path, $options);
     }
 
-    /**
-     * This internal method is used to create a process object.
-     */
-    private static function getProcess($command, array $args = [], array $options = [])
+    private static function cloneWith($path, $url, array $args, array $options)
     {
-        $is_windows = defined('PHP_WINDOWS_VERSION_BUILD');
-        $options = array_merge([
-            'environment_variables' => $is_windows ? ['PATH' => getenv('PATH')] : [],
-            'command'               => 'git',
-            'process_timeout'       => 3600,
-        ], $options);
+        // Like in 1.6, a subclass overriding cloneRepository() clones the repository.
+        if (LegacyOverride::isOverridden(static::class, self::class, 'cloneRepository')) {
+            return static::cloneRepository($path, $url, $args, $options);
+        }
 
-        $process = new Process(array_merge([$options['command'], $command], $args));
-        $process->setEnv($options['environment_variables']);
-        $process->setTimeout($options['process_timeout']);
-        $process->setIdleTimeout($options['process_timeout']);
+        CliDriver::fromOptions($options)->cloneRepository($url, $path, $args);
 
-        return $process;
+        return new Repository($path, $options);
     }
 }
