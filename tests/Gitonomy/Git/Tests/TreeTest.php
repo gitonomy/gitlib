@@ -27,12 +27,12 @@ class TreeTest extends AbstractTestCase
     public const PATH_RESOLVING_COMMIT = 'cc06ac171d884282202dff88c1ded499a1f89420';
 
     #[DataProvider('provideBare')]
-    public function testGetEntries(bool $bare): void
+    public function testIterate(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
         $tree = $repository->getCommit(self::LONGFILE_COMMIT)->getTree();
 
-        $entries = $tree->getEntries();
+        $entries = iterator_to_array($tree);
 
         $this->assertInstanceOf(Blob::class, $entries['long.php']->getObject());
         $this->assertSame('long.php', $entries['long.php']->getName());
@@ -41,15 +41,15 @@ class TreeTest extends AbstractTestCase
     }
 
     #[DataProvider('provideBare')]
-    public function testGetEntriesWithNonAsciiNames(bool $bare): void
+    public function testIterateWithNonAsciiNames(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
-        $entries = $repository->getCommit(DiffTest::FILE_WITH_UMLAUTS_COMMIT)->getTree()->getEntries();
+        $entries = iterator_to_array($repository->getCommit(DiffTest::FILE_WITH_UMLAUTS_COMMIT)->getTree());
 
         $this->assertArrayHasKey('file_with_umlauts_äöü', $entries);
     }
 
-    public function testGetEntriesWithSpecialCharactersInNames(): void
+    public function testIterateWithSpecialCharactersInNames(): void
     {
         $repository = self::createFoobarRepository(false);
         self::git($repository, 'config', ['user.name', 'Unit Test']);
@@ -58,18 +58,18 @@ class TreeTest extends AbstractTestCase
         self::git($repository, 'add', ['--all']);
         self::git($repository, 'commit', ['-m', 'Add a file with special characters in its name']);
 
-        $entries = $repository->getHeadCommit()->getTree()->getEntries();
+        $entries = iterator_to_array($repository->getHeadCommit()->getTree());
 
         $this->assertArrayHasKey('back\slash'."\ttab\"quote", $entries);
     }
 
     #[DataProvider('provideBare')]
-    public function testGetSubmoduleEntries(bool $bare): void
+    public function testGetSubmodules(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
-        $submodules = $tree->getSubmoduleEntries();
+        $submodules = $tree->getSubmodules();
 
         $this->assertSame(['barbaz'], array_keys($submodules));
         $this->assertInstanceOf(Submodule::class, $submodules['barbaz']->getObject());
@@ -85,7 +85,7 @@ class TreeTest extends AbstractTestCase
     #[RunInSeparateProcess]
     public function testLegacyCommitReference(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\CommitReference" class is deprecated, use "Gitonomy\Git\Submodule" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\CommitReference" class is deprecated, use "Gitonomy\Git\Submodule" instead.');
 
         $this->assertTrue(class_exists(CommitReference::class));
     }
@@ -95,8 +95,7 @@ class TreeTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyGetCommitReferenceEntries(bool $bare): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Tree::getCommitReferenceEntries()" method is deprecated, use "getSubmoduleEntries()" instead.');
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Reading a "Gitonomy\Git\TreeEntry" as an array is deprecated, use its "getMode()" and "getObject()" methods instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getCommitReferenceEntries()" method is deprecated, use "getSubmodules()" instead.');
 
         $tree = self::createFoobarRepository($bare)->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
@@ -136,25 +135,69 @@ class TreeTest extends AbstractTestCase
     }
 
     #[DataProvider('provideBare')]
-    public function testGetTreeEntries(bool $bare): void
+    public function testGetTrees(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
-        $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
-        $trees = $tree->getTreeEntries();
+        $this->assertSame([], $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree()->getTrees());
 
-        $this->assertEmpty($trees);
+        $trees = $repository->getCommit(self::PATH_RESOLVING_COMMIT)->getTree()->getTrees();
+
+        $this->assertSame(['test'], array_keys($trees));
+        $this->assertInstanceOf(Tree::class, $trees['test']->getObject());
+        $this->assertSame('040000', $trees['test']->getMode());
     }
 
     #[DataProvider('provideBare')]
-    public function testGetBlobEntries(bool $bare): void
+    public function testGetBlobs(bool $bare): void
     {
         $repository = self::createFoobarRepository($bare);
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
+        $blobs = $tree->getBlobs();
+
+        $this->assertArrayNotHasKey('barbaz', $blobs);
+        $this->assertInstanceOf(Blob::class, $blobs['README.md']->getObject());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetEntries(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getEntries()" method is deprecated, iterate the tree instead.');
+
+        $tree = self::createFoobarRepository()->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $entries = $tree->getEntries();
+
+        $this->assertSame(array_keys(iterator_to_array($tree)), array_keys($entries));
+        $this->assertSame(['100644', $tree->getEntry('README.md')], $entries['README.md']);
+        $this->assertSame(['160000', $tree->getEntry('barbaz')], $entries['barbaz']);
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetBlobEntries(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getBlobEntries()" method is deprecated, use "getBlobs()" instead.');
+
+        $tree = self::createFoobarRepository()->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
         $blobs = $tree->getBlobEntries();
 
-        $this->assertInstanceOf(Blob::class, $blobs['README.md']->getObject());
+        $this->assertSame(array_keys($tree->getBlobs()), array_keys($blobs));
+        $this->assertSame(['100644', $tree->getEntry('README.md')], $blobs['README.md']);
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetTreeEntries(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getTreeEntries()" method is deprecated, use "getTrees()" instead.');
+
+        $tree = self::createFoobarRepository()->getCommit(self::PATH_RESOLVING_COMMIT)->getTree();
+
+        $this->assertSame(['test' => ['040000', $tree->getEntry('test')]], $tree->getTreeEntries());
     }
 
     #[DataProvider('provideBare')]
@@ -166,7 +209,7 @@ class TreeTest extends AbstractTestCase
 
         $resolved = $tree->resolvePath($path);
         $this->assertInstanceOf(Tree::class, $resolved);
-        $entries = $resolved->getEntries();
+        $entries = iterator_to_array($resolved);
 
         $this->assertArrayHasKey('d', $entries, 'Successfully resolved source folder');
     }

@@ -47,7 +47,7 @@ $repository = new Repository('/srv/project.git', '/srv/project', new CliDriver(p
 ```
 
 An array of options as second argument (`working_dir`, `logger`, `command`,
-`process_timeout`...) is deprecated since 2.0: pass the working directory,
+`process_timeout`...) is deprecated since 1.7: pass the working directory,
 and configure a `CliDriver` instead. See
 [UPGRADE-2.0.md](../UPGRADE-2.0.md#opening-a-repository).
 
@@ -151,7 +151,7 @@ gitlib reads them again after every write it makes: creating or deleting a
 reference, a checkout, a merge, `run()`... It doesn't see the writes of other
 processes (a push to the repository, another worker...): open a new
 `Repository` to see them. The `$reload` argument of `getReferences()` is
-deprecated since 2.0.
+deprecated since 1.7.
 
 Description
 -----------
@@ -176,7 +176,7 @@ $size = $repository->getSizeInBytes();
 echo 'Your repository size is '.round($size / 1000).' KB';
 ```
 
-`getSize()`, which returns kilobytes (1,000 bytes), is deprecated since 2.0:
+`getSize()`, which returns kilobytes (1,000 bytes), is deprecated since 1.7:
 use `getSizeInBytes()`.
 
 Running git commands
@@ -208,7 +208,7 @@ your users starting with a dash is an option for git, unless `--` comes
 before it. gitlib reads the references again after the command, which may
 have written them.
 
-`shell()` is deprecated since 2.0: run `git shell` with Symfony Process
+`shell()` is deprecated since 1.7: run `git shell` with Symfony Process
 instead.
 
 Errors
@@ -481,7 +481,7 @@ $repository = new Repository('/tmp/foo', driver: new CliDriver(
 ```
 
 The `command`, `environment_variables` and `process_timeout` options of
-`Repository` and `Admin`, from 1.x, are deprecated since 2.0 in favor of these
+`Repository` and `Admin`, from 1.x, are deprecated since 1.7 in favor of these
 arguments. So is `inherit_environment_variables`, which passed the entries of
 `$_SERVER` to git, the headers and credentials of an HTTP request included:
 pass the variables git needs to `environmentVariables`.

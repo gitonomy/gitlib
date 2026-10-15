@@ -339,7 +339,7 @@ class LogTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacySetOffset(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::setOffset()" method is deprecated, use "withOffset()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Log::setOffset()" method is deprecated, use "withOffset()" instead.');
 
         $log = self::createFoobarRepository()->getLog();
         $log->setOffset(2);
@@ -351,7 +351,7 @@ class LogTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacySetLimit(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::setLimit()" method is deprecated, use "withLimit()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Log::setLimit()" method is deprecated, use "withLimit()" instead.');
 
         $log = self::createFoobarRepository()->getLog(self::LONGFILE_COMMIT);
 
@@ -363,7 +363,7 @@ class LogTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyGetDiffIgnoresThePathsOfTheLog(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Log::getDiff()" method is deprecated, use "Gitonomy\Git\Repository::getDiff()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Log::getDiff()" method is deprecated, use "Gitonomy\Git\Repository::getDiff()" instead.');
 
         $repository = self::createFoobarRepository();
         $diff = $repository->getDiff(self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->toArray();

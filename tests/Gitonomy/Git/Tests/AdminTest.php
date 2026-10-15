@@ -30,7 +30,7 @@ class AdminTest extends AbstractTestCase
 {
     public function testInit(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::init()" method is deprecated, use "Gitonomy\Git\Repository::initBare()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::init()" method is deprecated, use "Gitonomy\Git\Repository::initBare()" instead.');
 
         $repository = Admin::init(self::createTempDir(), options: self::getOptions());
 
@@ -39,7 +39,7 @@ class AdminTest extends AbstractTestCase
 
     public function testInitNotBare(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::init()" method is deprecated, use "Gitonomy\Git\Repository::init()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::init()" method is deprecated, use "Gitonomy\Git\Repository::init()" instead.');
 
         $repository = Admin::init(self::createTempDir(), false, self::getOptions());
 
@@ -48,14 +48,14 @@ class AdminTest extends AbstractTestCase
 
     public function testIsValidRepository(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::isValidRepository()" method is deprecated, use "Gitonomy\Git\Repository::isValidRepository()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::isValidRepository()" method is deprecated, use "Gitonomy\Git\Repository::isValidRepository()" instead.');
 
         $this->assertTrue(Admin::isValidRepository(self::repositoryUrl(), self::getOptions()));
     }
 
     public function testIsValidRepositoryAndBranch(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::isValidRepositoryAndBranch()" method is deprecated, use "Gitonomy\Git\Repository::isValidRepositoryAndBranch()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::isValidRepositoryAndBranch()" method is deprecated, use "Gitonomy\Git\Repository::isValidRepositoryAndBranch()" instead.');
 
         $this->assertTrue(Admin::isValidRepositoryAndBranch(self::repositoryUrl(), 'new-feature', self::getOptions()));
         $this->assertFalse(Admin::isValidRepositoryAndBranch(self::repositoryUrl(), 'unknown', self::getOptions()));
@@ -63,7 +63,7 @@ class AdminTest extends AbstractTestCase
 
     public function testCloneTo(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" instead, which takes the URL before the path.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" instead, which takes the URL before the path.');
 
         $repository = Admin::cloneTo(self::createTempDir(), self::repositoryUrl(), options: self::getOptions());
 
@@ -73,7 +73,7 @@ class AdminTest extends AbstractTestCase
 
     public function testCloneToNotBare(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" instead, which takes the URL before the path.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" instead, which takes the URL before the path.');
 
         $repository = Admin::cloneTo(self::createTempDir(), self::repositoryUrl(), false, self::getOptions());
 
@@ -82,7 +82,7 @@ class AdminTest extends AbstractTestCase
 
     public function testCloneBranchTo(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneBranchTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" with its "branch" argument instead, which takes the URL before the path.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::cloneBranchTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" with its "branch" argument instead, which takes the URL before the path.');
 
         $repository = Admin::cloneBranchTo(self::createTempDir(), self::repositoryUrl(), 'new-feature', options: self::getOptions());
 
@@ -94,7 +94,7 @@ class AdminTest extends AbstractTestCase
 
     public function testCloneBranchToNotBare(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneBranchTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" with its "branch" argument instead, which takes the URL before the path.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::cloneBranchTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" with its "branch" argument instead, which takes the URL before the path.');
 
         $repository = Admin::cloneBranchTo(self::createTempDir(), self::repositoryUrl(), 'new-feature', false, self::getOptions());
 
@@ -106,7 +106,7 @@ class AdminTest extends AbstractTestCase
 
     public function testMirrorTo(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::mirrorTo()" method is deprecated, use "Gitonomy\Git\Repository::mirrorFrom()" instead, which takes the URL before the path.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::mirrorTo()" method is deprecated, use "Gitonomy\Git\Repository::mirrorFrom()" instead, which takes the URL before the path.');
 
         $repository = Admin::mirrorTo(self::createTempDir(), self::repositoryUrl(), self::getOptions());
 
@@ -115,7 +115,7 @@ class AdminTest extends AbstractTestCase
 
     public function testCloneRepositoryPassesItsArgumentsToGit(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Admin::cloneRepository()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()", "Gitonomy\Git\Repository::cloneBareFrom()" or "Gitonomy\Git\Repository::mirrorFrom()" instead, which take the URL before the path; they support no other argument of "git clone".');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Admin::cloneRepository()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()", "Gitonomy\Git\Repository::cloneBareFrom()" or "Gitonomy\Git\Repository::mirrorFrom()" instead, which take the URL before the path; they support no other argument of "git clone".');
 
         // --config is the only argument --bare accepts on every git version.
         $repository = Admin::cloneRepository(self::createTempDir(), self::repositoryUrl(), ['--bare', '--config', 'gitlib.test=yes'], self::getOptions());
@@ -176,7 +176,7 @@ class AdminTest extends AbstractTestCase
 
     public function testRepositoryCloneTo(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" with "getGitDir()" as URL instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Repository::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneBareFrom()" with "getGitDir()" as URL instead.');
 
         $repository = self::createFoobarRepository();
         $new = $repository->cloneTo(self::createTempDir());
@@ -187,7 +187,7 @@ class AdminTest extends AbstractTestCase
 
     public function testRepositoryCloneToNotBare(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" with "getGitDir()" as URL instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Repository::cloneTo()" method is deprecated, use "Gitonomy\Git\Repository::cloneFrom()" with "getGitDir()" as URL instead.');
 
         $repository = self::createFoobarRepository();
         $new = $repository->cloneTo(self::createTempDir(), false);

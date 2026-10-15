@@ -89,11 +89,11 @@ final class Commit extends Revision
     /**
      * Returns a fixed-with short hash.
      *
-     * @deprecated since gitonomy/gitlib 2.0, use substr($commit->getHash(), 0, $length) instead
+     * @deprecated since gitonomy/gitlib 1.7, use substr($commit->getHash(), 0, $length) instead
      */
     public function getFixedShortHash(int $length = 6): string
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.', __METHOD__);
 
         return new CodePointString($this->revision)->slice(0, $length)->toString();
     }
@@ -157,11 +157,11 @@ final class Commit extends Revision
      *
      * Ported from https://github.com/fabpot/Twig-extensions/blob/d67bc7e69788795d7905b52d31188bbc1d390e01/lib/Twig/Extensions/Extension/Text.php#L52-L109
      *
-     * @deprecated since gitonomy/gitlib 2.0, use symfony/string instead: u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)
+     * @deprecated since gitonomy/gitlib 1.7, use symfony/string instead: u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)
      */
     public function getShortMessage(int $length = 50, bool $preserve = false, string $separator = '...'): string
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use symfony/string instead: "u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)".', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use symfony/string instead: "u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)".', __METHOD__);
 
         $message = $this->getSubjectMessage();
 
@@ -198,7 +198,7 @@ final class Commit extends Revision
     public function getIncludingBranches(bool $local = true, bool $remote = true): array
     {
         if (\func_num_args() > 0) {
-            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing arguments to "%s()" is deprecated, filter the branches it returns with "%s::isLocal()" or "isRemote()" instead.', __METHOD__, Branch::class);
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing arguments to "%s()" is deprecated, filter the branches it returns with "%s::isLocal()" or "isRemote()" instead.', __METHOD__, Branch::class);
         }
 
         if (!$local && !$remote) {

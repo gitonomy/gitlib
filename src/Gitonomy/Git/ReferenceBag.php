@@ -65,11 +65,11 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
      *
      * @return T
      *
-     * @deprecated since gitonomy/gitlib 2.0, use Branch::moveTo() instead
+     * @deprecated since gitonomy/gitlib 1.7, use Branch::moveTo() instead
      */
     public function update(Reference $reference): Reference
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::moveTo()" instead.', __METHOD__, Branch::class);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::moveTo()" instead.', __METHOD__, Branch::class);
 
         $this->repository->getRepositoryDriver()->updateReference($reference->getFullname(), $reference->getCommitHash());
         $this->invalidate();

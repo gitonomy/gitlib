@@ -109,7 +109,7 @@ final class Repository
     public function __construct(string $dir, array|string|null $workingDir = null, DriverInterface $driver = new CliDriver())
     {
         if (\is_array($workingDir)) {
-            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing an array of options to "%s()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.', __METHOD__);
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing an array of options to "%s()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.', __METHOD__);
 
             $options = new LegacyOptions($workingDir);
             $optionsDriver = $options->repositoryDriver();
@@ -338,7 +338,7 @@ final class Repository
         $this->referenceBag ??= new ReferenceBag($this);
 
         if (\func_num_args() > 0) {
-            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing an argument to "%s()" is deprecated, gitlib reads the references again after its writes: open a new Repository to see the writes of other processes.', __METHOD__);
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing an argument to "%s()" is deprecated, gitlib reads the references again after its writes: open a new Repository to see the writes of other processes.', __METHOD__);
         }
 
         if ($reload) {
@@ -428,7 +428,7 @@ final class Repository
     public function getBlame(Revision|string $revision, string $file, int|string|null $firstLine = null, ?int $lastLine = null): Blame
     {
         if (\is_string($firstLine)) {
-            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing a range of lines as a string to "%s()" is deprecated, pass the first and the last lines instead.', __METHOD__);
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing a range of lines as a string to "%s()" is deprecated, pass the first and the last lines instead.', __METHOD__);
 
             if (!preg_match('/^(\d+),(\+?)(\d*)$/', $firstLine, $vars)) {
                 throw new InvalidArgumentException(\sprintf('Unsupported range of lines "%s": pass the first and the last lines instead.', $firstLine));
@@ -476,7 +476,7 @@ final class Repository
     public function getDiff(RevisionList|Revision|string|array|null $from, Revision|string|null $to = null): Diff
     {
         if (null === $to) {
-            trigger_deprecation('gitonomy/gitlib', '2.0', 'Calling "%s()" with one argument is deprecated, pass the revisions to compare as "from" and "to" arguments, or use "%s::getDiff()" to compare a revision with the working tree.', __METHOD__, WorkingCopy::class);
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Calling "%s()" with one argument is deprecated, pass the revisions to compare as "from" and "to" arguments, or use "%s::getDiff()" to compare a revision with the working tree.', __METHOD__, WorkingCopy::class);
 
             return $this->getLegacyDiff($from);
         }
@@ -546,11 +546,11 @@ final class Repository
      *
      * @return int A sum, in kilobytes
      *
-     * @deprecated since gitonomy/gitlib 2.0, use getSizeInBytes() instead
+     * @deprecated since gitonomy/gitlib 1.7, use getSizeInBytes() instead
      */
     public function getSize(): int
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getSizeInBytes()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getSizeInBytes()" instead.', __METHOD__);
 
         return (int) round($this->getSizeInBytes() / 1000);
     }
@@ -561,11 +561,11 @@ final class Repository
      * @param string                $command The command to execute
      * @param array<string, string> $env     Environment variables of the command
      *
-     * @deprecated since gitonomy/gitlib 2.0, run "git shell" with Symfony Process instead
+     * @deprecated since gitonomy/gitlib 1.7, run "git shell" with Symfony Process instead
      */
     public function shell(string $command, array $env = []): void
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, run "git shell" with Symfony Process instead: it ignores the driver.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, run "git shell" with Symfony Process instead: it ignores the driver.', __METHOD__);
 
         $argument = \sprintf('%s %s', $command, escapeshellarg($this->gitDir));
 
@@ -689,11 +689,11 @@ final class Repository
      *
      * @throws UnsupportedOperationException The driver isn't a CliDriver
      *
-     * @deprecated since gitonomy/gitlib 2.0, pass a CliDriver configured with the logger as driver argument instead
+     * @deprecated since gitonomy/gitlib 1.7, pass a CliDriver configured with the logger as driver argument instead
      */
     public function setLogger(LoggerInterface $logger): static
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, pass a "%s" configured with the logger as driver argument instead.', __METHOD__, CliDriver::class);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, pass a "%s" configured with the logger as driver argument instead.', __METHOD__, CliDriver::class);
 
         if (!$this->driver instanceof CliDriver) {
             throw new UnsupportedOperationException('Only CliDriver logs the git commands it runs.');
@@ -708,11 +708,11 @@ final class Repository
     /**
      * Returns the logger of the CliDriver.
      *
-     * @deprecated since gitonomy/gitlib 2.0, the logger is an argument of CliDriver
+     * @deprecated since gitonomy/gitlib 1.7, the logger is an argument of CliDriver
      */
     public function getLogger(): ?LoggerInterface
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, the logger is an argument of "%s".', __METHOD__, CliDriver::class);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, the logger is an argument of "%s".', __METHOD__, CliDriver::class);
 
         return $this->driver instanceof CliDriver ? $this->driver->getLogger() : null;
     }
@@ -728,11 +728,11 @@ final class Repository
      *
      * @return Repository the newly created repository
      *
-     * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneBareFrom() or Repository::cloneFrom() with getGitDir() as URL instead
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::cloneBareFrom() or Repository::cloneFrom() with getGitDir() as URL instead
      */
     public function cloneTo(string $path, bool $bare = true, array $options = []): self
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" with "getGitDir()" as URL instead.', __METHOD__, self::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::%s()" with "getGitDir()" as URL instead.', __METHOD__, self::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
 
         // Like in 1.x, the options configuring git apply to the clone.
         $options = new LegacyOptions($options);

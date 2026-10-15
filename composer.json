@@ -55,5 +55,10 @@
     "config": {
         "preferred-install": "dist",
         "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "2.0.x-dev"
+        }
     }
 }

@@ -53,11 +53,11 @@ final class PushReference
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use getFullname() instead
+     * @deprecated since gitonomy/gitlib 1.7, use getFullname() instead
      */
     public function getReference(): string
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getFullname()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getFullname()" instead.', __METHOD__);
 
         return $this->fullname;
     }
@@ -81,11 +81,11 @@ final class PushReference
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use getRange() instead
+     * @deprecated since gitonomy/gitlib 1.7, use getRange() instead
      */
     public function getRevision(): string
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getRange()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getRange()" instead.', __METHOD__);
 
         return $this->getRange();
     }
@@ -117,11 +117,11 @@ final class PushReference
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use isCreation() instead
+     * @deprecated since gitonomy/gitlib 1.7, use isCreation() instead
      */
     public function isCreate(): bool
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "isCreation()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isCreation()" instead.', __METHOD__);
 
         return $this->isCreation();
     }
@@ -135,11 +135,11 @@ final class PushReference
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use isDeletion() instead
+     * @deprecated since gitonomy/gitlib 1.7, use isDeletion() instead
      */
     public function isDelete(): bool
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "isDeletion()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isDeletion()" instead.', __METHOD__);
 
         return $this->isDeletion();
     }

@@ -53,11 +53,11 @@ final readonly class Line
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use getOriginalNumber() instead
+     * @deprecated since gitonomy/gitlib 1.7, use getOriginalNumber() instead
      */
     public function getLine(): string
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getOriginalNumber()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getOriginalNumber()" instead.', __METHOD__);
 
         return (string) $this->originalNumber;
     }

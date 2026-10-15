@@ -72,11 +72,11 @@ final class Log implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use Repository::getDiff() instead: it ignored the paths of the log
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::getDiff() instead: it ignored the paths of the log
      */
     public function getDiff(): Diff
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::getDiff()" instead.', __METHOD__, Repository::class);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::getDiff()" instead.', __METHOD__, Repository::class);
 
         return $this->repository->getLegacyDiff($this->revisions);
     }
@@ -113,11 +113,11 @@ final class Log implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use withOffset() instead
+     * @deprecated since gitonomy/gitlib 1.7, use withOffset() instead
      */
     public function setOffset(?int $offset): static
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "withOffset()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "withOffset()" instead.', __METHOD__);
 
         $this->offset = self::offset($offset);
 
@@ -143,11 +143,11 @@ final class Log implements \Countable, \IteratorAggregate
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use withLimit() instead
+     * @deprecated since gitonomy/gitlib 1.7, use withLimit() instead
      */
     public function setLimit(?int $limit): static
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "withLimit()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "withLimit()" instead.', __METHOD__);
 
         $this->limit = self::limit($limit);
 

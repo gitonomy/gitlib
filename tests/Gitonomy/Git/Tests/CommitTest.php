@@ -325,7 +325,7 @@ class CommitTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyGetFixedShortHash(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Commit::getFixedShortHash()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Commit::getFixedShortHash()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.');
 
         $this->assertSame(substr(self::LONGFILE_COMMIT, 0, 6), self::createFoobarRepository()->getCommit(self::LONGFILE_COMMIT)->getFixedShortHash());
     }
@@ -335,7 +335,7 @@ class CommitTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testGetShortMessage(bool $bare): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Commit::getShortMessage()" method is deprecated, use symfony/string instead: "u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)".');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Commit::getShortMessage()" method is deprecated, use symfony/string instead: "u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)".');
 
         $repository = self::createFoobarRepository($bare);
         // tests with a multi-line message
@@ -414,7 +414,7 @@ class CommitTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyGetIncludingLocalOrRemoteBranches(bool $bare): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing arguments to "Gitonomy\Git\Commit::getIncludingBranches()" is deprecated, filter the branches it returns with "Gitonomy\Git\Reference\Branch::isLocal()" or "isRemote()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing arguments to "Gitonomy\Git\Commit::getIncludingBranches()" is deprecated, filter the branches it returns with "Gitonomy\Git\Reference\Branch::isLocal()" or "isRemote()" instead.');
 
         $repository = self::createFoobarRepository($bare);
         $commit = $repository->getCommit(self::INITIAL_COMMIT);

@@ -41,7 +41,7 @@ $branch = $branch->moveTo('master~2');
 ```
 
 Like `git update-ref`, it doesn't touch the working tree, even for the
-branch checked out. `ReferenceBag::update()` is deprecated since 2.0: use
+branch checked out. `ReferenceBag::update()` is deprecated since 1.7: use
 `moveTo()`.
 
 Merged branches
@@ -56,7 +56,7 @@ if ($branch->isMergedInto('master')) {
 }
 ```
 
-`isMergedTo()` is deprecated since 2.0: use `isMergedInto()`, which has no
+`isMergedTo()` is deprecated since 1.7: use `isMergedInto()`, which has no
 default destination (`master`) nor flag to compare remote branches only.
 
 Branches containing a commit

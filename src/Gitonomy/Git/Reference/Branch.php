@@ -62,11 +62,11 @@ final class Branch extends Reference
      * Check if this branch is merged to a destination branch
      * Optionally, check only with remote branches.
      *
-     * @deprecated since gitonomy/gitlib 2.0, use isMergedInto() instead
+     * @deprecated since gitonomy/gitlib 1.7, use isMergedInto() instead
      */
     public function isMergedTo(string $destinationBranchName = 'master', bool $compareOnlyWithRemote = false): bool
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::isMergedInto()" instead.', __METHOD__, self::class);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::isMergedInto()" instead.', __METHOD__, self::class);
 
         if ($compareOnlyWithRemote && $this->isLocal()) {
             return false;

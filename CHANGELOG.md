@@ -16,8 +16,8 @@ deprecated until 3.0.
     missing revision or object a `ReferenceNotFoundException`, a timeout a
     `ProcessTimedOutException`; dates are `\DateTimeImmutable`; names in diffs and trees are
     UTF-8; references are read again after every write gitlib makes, and peel annotated tags;
-    the diff of a merge commit is against its first parent; blame lines, tree entries, diff
-    lines and logs are typed objects; the subject of a message is its first paragraph. See
+    the diff of a merge commit is against its first parent; blame lines and logs are typed
+    objects; the subject of a message is its first paragraph. See
     [UPGRADE-2.0.md](UPGRADE-2.0.md) for every change.
     ([#253](https://github.com/gitonomy/gitlib/pull/253))
 -   Return the dates of commits and tags at the UTC offset of their author, committer or tagger,
@@ -43,6 +43,9 @@ deprecated until 3.0.
     `The git command "clone" failed (exit 128): fatal: ...`. The command line, the rest of the
     error output and the output are no longer in the message: `getErrorOutput()` and
     `getOutput()` return the outputs of git. ([#254](https://github.com/gitonomy/gitlib/pull/254))
+-   `Tree::resolvePath()` throws an `InvalidArgumentException` for a path through a submodule,
+    instead of an `Exception\UnexpectedValueException`, which gitlib no longer throws.
+    ([#254](https://github.com/gitonomy/gitlib/pull/254))
 -   When git can't start, a missing binary for instance, `CliDriver` throws a `DriverException`
     instead of a `ProcessException`, with a message of one line, without the command line:
     `The git command "clone" could not start: ...`.
@@ -78,7 +81,9 @@ deprecated until 3.0.
     `Repository::getSizeInBytes()` and `WorkingCopy::getDiff()`,
     `WorkingCopy::checkoutNewBranch()`, `Branch::moveTo()` and `Branch::isMergedInto()`,
     `Log::withOffset()` and `withLimit()`, `Blame::getHunks()` and the line numbers of
-    `Blame\Line`, `TreeEntry` and `Submodule`, `Diff\DiffLine` and `Diff\DiffLineType`,
+    `Blame\Line`, `FileChange::getDiffLines()`, which returns `Diff\DiffLine` objects typed by
+    `Diff\DiffLineType`, iterating a `Tree`, which gives `TreeEntry` objects,
+    `Tree::getBlobs()`, `getTrees()` and `getSubmodules()`, `Submodule`,
     `File::isModeChange()`, `FileChange::getAdditions()` and `getDeletions()`,
     `PushReference::getFullname()`, `getRange()`, `isCreation()` and `isDeletion()`, and the SSH
     and X.509 signatures of tags. ([#253](https://github.com/gitonomy/gitlib/pull/253),
@@ -103,7 +108,8 @@ deprecated until 3.0.
 ### Deprecations
 
 All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
-([#253](https://github.com/gitonomy/gitlib/pull/253))
+([#253](https://github.com/gitonomy/gitlib/pull/253)) 1.7 deprecates them already: they are
+all deprecated since 1.7.
 
 -   `Admin`, replaced by the static methods of `Repository`, and `Repository::cloneTo()`,
     replaced by `cloneFrom()` and `cloneBareFrom()`.
@@ -116,17 +122,19 @@ All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     replaced by `Branch::moveTo()` and `isMergedInto()`.
 -   Calling `Repository::getDiff()` with one argument, `Log::getDiff()`, `Diff::setRepository()`,
     `File::setRepository()`, `addChange()`, `isChangeMode()`, `isDelete()` and `getAnchor()`,
-    `FileChange::getCount()` and its `LINE_*` constants, reading diff lines as arrays.
+    `FileChange::getCount()`, `getLines()`, replaced by `getDiffLines()`, and the `LINE_*`
+    constants, replaced by `DiffLineType`, lines passed to the constructor of `FileChange` as
+    arrays.
 -   `Log::setOffset()` and `setLimit()`.
 -   A range of lines as a string in `Repository::getBlame()`, `Blame::getGroupedLines()` and
     `Blame\Line::getLine()`.
--   `CommitReference`, `Tree::getCommitReferenceEntries()`, reading tree entries as arrays.
+-   `CommitReference`, `Tree::getCommitReferenceEntries()`, `getEntries()`, `getBlobEntries()`
+    and `getTreeEntries()`: iterate the tree, or use `getBlobs()`, `getTrees()` and
+    `getSubmodules()`.
 -   The branch to create of `WorkingCopy::checkout()`.
 -   `Commit::getShortMessage()` and `getFixedShortHash()`, `Repository::shell()`,
     `PushReference::getReference()`, `getRevision()`, `isCreate()` and `isDelete()`.
 -   `Repository::getSize()`, in kilobytes: use `getSizeInBytes()`.
-    ([#254](https://github.com/gitonomy/gitlib/pull/254))
--   `Exception\UnexpectedValueException`, which gitlib no longer throws.
     ([#254](https://github.com/gitonomy/gitlib/pull/254))
 
 ### Security

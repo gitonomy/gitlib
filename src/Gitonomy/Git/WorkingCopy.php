@@ -83,7 +83,7 @@ final readonly class WorkingCopy
     public function checkout(Revision|string $revision, ?string $branch = null): static
     {
         if (null !== $branch) {
-            trigger_deprecation('gitonomy/gitlib', '2.0', 'Passing a branch to create to "%s()" is deprecated, use "checkoutNewBranch()" instead.', __METHOD__);
+            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing a branch to create to "%s()" is deprecated, use "checkoutNewBranch()" instead.', __METHOD__);
 
             return $this->checkoutNewBranch($branch, $revision);
         }

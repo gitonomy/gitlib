@@ -138,5 +138,5 @@ $secondPage->getLimit();  // 10
 Diff of a log
 -------------
 
-`Log::getDiff()` is deprecated since 2.0: it ignored the paths of the log.
+`Log::getDiff()` is deprecated since 1.7: it ignored the paths of the log.
 Use `Repository::getDiff($from, $to)`, see [diff.md](diff.md).
