@@ -56,11 +56,11 @@ final class File
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, give the changes to the constructor instead
+     * @deprecated since gitonomy/gitlib 1.7, give the changes to the constructor instead
      */
     public function addChange(FileChange $change): void
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, give the changes to the constructor instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, give the changes to the constructor instead.', __METHOD__);
 
         $this->changes[] = $change;
     }
@@ -110,11 +110,11 @@ final class File
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use isModeChange() instead
+     * @deprecated since gitonomy/gitlib 1.7, use isModeChange() instead
      */
     public function isChangeMode(): bool
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "isModeChange()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isModeChange()" instead.', __METHOD__);
 
         return $this->isModeChange();
     }
@@ -128,11 +128,11 @@ final class File
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use isDeletion() instead
+     * @deprecated since gitonomy/gitlib 1.7, use isDeletion() instead
      */
     public function isDelete(): bool
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "isDeletion()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isDeletion()" instead.', __METHOD__);
 
         return $this->isDeletion();
     }
@@ -251,11 +251,11 @@ final class File
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, a presentation concern: use substr($file->getNewIndex(), 0, 12) instead
+     * @deprecated since gitonomy/gitlib 1.7, a presentation concern: use substr($file->getNewIndex(), 0, 12) instead
      */
     public function getAnchor(): string
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "substr($file->getNewIndex(), 0, 12)" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "substr($file->getNewIndex(), 0, 12)" instead.', __METHOD__);
 
         return substr($this->newIndex ?? '', 0, 12);
     }
@@ -266,11 +266,11 @@ final class File
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, the diffs gitlib returns have their repository already
+     * @deprecated since gitonomy/gitlib 1.7, the diffs gitlib returns have their repository already
      */
     public function setRepository(Repository $repository): void
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, the diffs gitlib returns have their repository already.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, the diffs gitlib returns have their repository already.', __METHOD__);
 
         $this->repository = $repository;
     }

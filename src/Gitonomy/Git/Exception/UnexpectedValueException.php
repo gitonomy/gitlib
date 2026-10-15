@@ -13,7 +13,8 @@
 namespace Gitonomy\Git\Exception;
 
 /**
- * @deprecated since gitonomy/gitlib 2.0, gitlib no longer throws it: Tree::resolvePath(), which threw it in 1.x, throws an InvalidArgumentException instead
+ * gitlib no longer throws it: Tree::resolvePath(), which threw it in 1.x,
+ * throws an InvalidArgumentException instead.
  */
 final class UnexpectedValueException extends \UnexpectedValueException implements GitExceptionInterface
 {

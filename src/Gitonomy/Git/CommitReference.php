@@ -12,7 +12,7 @@
 
 namespace Gitonomy\Git;
 
-trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s" class is deprecated, use "%s" instead.', CommitReference::class, Submodule::class);
+trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s" class is deprecated, use "%s" instead.', CommitReference::class, Submodule::class);
 
 // Declares the alias, unless Submodule already did.
 class_exists(Submodule::class);
@@ -20,7 +20,7 @@ class_exists(Submodule::class);
 // @phpstan-ignore if.alwaysFalse (Declares the class for IDEs only.)
 if (false) {
     /**
-     * @deprecated since gitonomy/gitlib 2.0, use Submodule instead
+     * @deprecated since gitonomy/gitlib 1.7, use Submodule instead
      */
     final readonly class CommitReference
     {

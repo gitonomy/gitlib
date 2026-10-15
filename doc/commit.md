@@ -30,7 +30,7 @@ $commit->getHash();      // "7e9ba14939b0ce67ab95d83e03bd64710db91ef4"
 $commit->getShortHash(); // "7e9ba14", abbreviated and unique in the repository
 ```
 
-`getFixedShortHash()` is deprecated since 2.0: use
+`getFixedShortHash()` is deprecated since 1.7: use
 `substr($commit->getHash(), 0, 6)`.
 
 Browsing parents
@@ -125,7 +125,7 @@ the subject is `"Fix the parser of dates"`, and the body
 `"It failed on leap years.\n"`. A message without an empty line has no
 body.
 
-`getShortMessage()` is deprecated since 2.0: truncate the subject with
+`getShortMessage()` is deprecated since 1.7: truncate the subject with
 `symfony/string`, a dependency of gitlib, instead:
 
 ```php
@@ -197,4 +197,4 @@ $remoteBranches = array_filter($branches, static fn (Branch $branch): bool => $b
 ```
 
 Passing arguments to `getIncludingBranches()`, to keep the local or the
-remote branches only, is deprecated since 2.0.
+remote branches only, is deprecated since 1.7.

@@ -14,13 +14,13 @@ $tree = $commit->getTree();
 Entries of a tree
 -----------------
 
-`getEntries()` returns the entries of a tree, keyed by their name. Each one
-is a `TreeEntry` object, with the name of the entry, its mode, and its
-object: a `Blob` for a file (see [blob.md](blob.md)), a `Tree` for a folder,
-or a `Submodule`.
+Iterating a tree gives its entries, keyed by their name. Each one is a
+`TreeEntry` object, with the name of the entry, its mode, and its object: a
+`Blob` for a file (see [blob.md](blob.md)), a `Tree` for a folder, or a
+`Submodule`.
 
 ```php
-foreach ($tree->getEntries() as $name => $entry) {
+foreach ($tree as $name => $entry) {
     $entry->getName();   // The name of the file or the folder, the same as $name
     $entry->getMode();   // The mode git stores: "100644", "100755" (executable), "120000" (symbolic link), "040000" (tree), "160000" (submodule)
     $entry->getObject(); // A Blob, a Tree or a Submodule
@@ -30,9 +30,9 @@ foreach ($tree->getEntries() as $name => $entry) {
 To keep one kind of entries only, also keyed by their name:
 
 ```php
-$folders = $tree->getTreeEntries();
-$files = $tree->getBlobEntries();
-$submodules = $tree->getSubmoduleEntries();
+$files = $tree->getBlobs();
+$submodules = $tree->getSubmodules();
+$folders = $tree->getTrees();
 ```
 
 To get the object of an entry by its name:
@@ -51,7 +51,7 @@ use Gitonomy\Git\Tree;
 
 function displayTree(Tree $tree, int $depth = 0): void
 {
-    foreach ($tree->getEntries() as $name => $entry) {
+    foreach ($tree as $name => $entry) {
         $object = $entry->getObject();
 
         echo str_repeat('    ', $depth).match (true) {
@@ -69,8 +69,9 @@ function displayTree(Tree $tree, int $depth = 0): void
 displayTree($commit->getTree());
 ```
 
-Reading an entry as an array (`[$mode, $object]`) is deprecated since 2.0:
-use `getMode()` and `getObject()`.
+`getEntries()`, `getBlobEntries()` and `getTreeEntries()`, which return
+the mode and the object of each entry as an array (`[$mode, $object]`), are
+deprecated since 1.7: iterate the tree, or use `getBlobs()` and `getTrees()`.
 
 Submodules
 ----------
@@ -80,13 +81,13 @@ holds the hash of this commit: gitlib doesn't read the submodule. Open it as
 a repository, from its folder in the working tree, to read it.
 
 ```php
-foreach ($tree->getSubmoduleEntries() as $name => $entry) {
+foreach ($tree->getSubmodules() as $name => $entry) {
     echo $name.' is at '.$entry->getObject()->getHash().PHP_EOL;
 }
 ```
 
-`CommitReference` is deprecated since 2.0: it is `Submodule`. So is
-`Tree::getCommitReferenceEntries()`: use `getSubmoduleEntries()`.
+`CommitReference` is deprecated since 1.7: it is `Submodule`. So is
+`Tree::getCommitReferenceEntries()`: use `getSubmodules()`.
 
 Resolve a path
 --------------

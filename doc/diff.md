@@ -25,7 +25,7 @@ $diff = $repository->getDiff($repository->getMergeBase('master', 'feature'), 'fe
 
 Calling `getDiff()` with one argument (a range like `a..b` or `a...b`, two
 revisions in an array, or one revision to compare with the working tree)
-is deprecated since 2.0: see [UPGRADE-2.0.md](../UPGRADE-2.0.md).
+is deprecated since 1.7: see [UPGRADE-2.0.md](../UPGRADE-2.0.md).
 `Log::getDiff()` is deprecated too: it ignored the paths of the log.
 
 Other diffs
@@ -126,15 +126,15 @@ $file->getDeletions();
 $file->getChanges(); // FileChange objects: see below
 ```
 
-`isChangeMode()`, `isDelete()` and `getAnchor()` are deprecated since 2.0:
+`isChangeMode()`, `isDelete()` and `getAnchor()` are deprecated since 1.7:
 use `isModeChange()`, `isDeletion()` and `substr($file->getNewIndex(), 0, 12)`.
 
 The FileChange object
 ---------------------
 
 The changes of a file are its hunks, the blocks starting with `@@` in a
-patch. Each one is a `FileChange` object, with the lines of the hunk,
-`DiffLine` objects:
+patch. Each one is a `FileChange` object: `getDiffLines()` returns the lines
+of the hunk, `DiffLine` objects:
 
 ```php
 use Gitonomy\Git\Diff\DiffLineType;
@@ -142,7 +142,7 @@ use Gitonomy\Git\Diff\DiffLineType;
 foreach ($file->getChanges() as $change) {
     echo sprintf('@@ -%d,%d +%d,%d @@', $change->getRangeOldStart(), $change->getRangeOldCount(), $change->getRangeNewStart(), $change->getRangeNewCount()).PHP_EOL;
 
-    foreach ($change->getLines() as $line) {
+    foreach ($change->getDiffLines() as $line) {
         echo match ($line->getType()) {
             DiffLineType::Addition => '+',
             DiffLineType::Context => ' ',
@@ -164,10 +164,12 @@ foreach ($file->getChanges() as $change) {
 `getAdditions()` and `getDeletions()` count the lines the hunk adds and
 deletes.
 
-Reading a line as an array (`[$type, $content]`), the `FileChange::LINE_ADD`,
-`LINE_CONTEXT` and `LINE_REMOVE` constants, and `FileChange::getCount()` are
-deprecated since 2.0: use `getType()` and `getContent()`, `DiffLineType`,
-and `getAdditions()` or `getDeletions()`.
+`getLines()`, which returns each line as an array (`[$type, $content]`), the
+`FileChange::LINE_ADD`, `LINE_CONTEXT` and `LINE_REMOVE` constants, and
+`FileChange::getCount()` are deprecated since 1.7: use `getDiffLines()`,
+`DiffLineType`, and `getAdditions()` or `getDeletions()`. So is passing the
+lines to the constructor of `FileChange` as arrays: pass `DiffLine`
+objects.
 
 Parsing a diff
 --------------
@@ -211,5 +213,5 @@ $diff = Diff::fromArray($array, $repository);
 The arrays of 1.x are read too.
 
 `Diff::setRepository()`, `File::setRepository()` and `File::addChange()` are
-deprecated since 2.0: pass the repository to `Diff::parse()` or
+deprecated since 1.7: pass the repository to `Diff::parse()` or
 `Diff::fromArray()`, and the changes to the constructor of `File`.

@@ -21,6 +21,7 @@ use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use Symfony\Component\Process\Process;
 
 class ReferenceTest extends AbstractTestCase
 {
@@ -283,7 +284,7 @@ class ReferenceTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyIsMergedTo(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Reference\Branch::isMergedTo()" method is deprecated, use "Gitonomy\Git\Reference\Branch::isMergedInto()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Reference\Branch::isMergedTo()" method is deprecated, use "Gitonomy\Git\Reference\Branch::isMergedInto()" instead.');
 
         $repository = self::createFoobarRepository(false);
         $references = $repository->getReferences();
@@ -344,7 +345,7 @@ class ReferenceTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyUpdate(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\ReferenceBag::update()" method is deprecated, use "Gitonomy\Git\Reference\Branch::moveTo()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\ReferenceBag::update()" method is deprecated, use "Gitonomy\Git\Reference\Branch::moveTo()" instead.');
 
         $repository = self::createFoobarRepository();
         $references = $repository->getReferences();
@@ -352,6 +353,19 @@ class ReferenceTest extends AbstractTestCase
         $references->update(new Branch($repository, 'refs/heads/master', self::INITIAL_COMMIT));
 
         $this->assertSame(self::INITIAL_COMMIT, $references->getBranch('master')->getCommitHash());
+    }
+
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testLegacyGetReferencesReadsThemAgain(): void
+    {
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing an argument to "Gitonomy\Git\Repository::getReferences()" is deprecated, gitlib reads the references again after its writes: open a new Repository to see the writes of other processes.');
+
+        $repository = self::createFoobarRepository();
+        $this->assertFalse($repository->getReferences()->hasBranch('elsewhere'));
+        new Process([self::gitCommand(), 'branch', 'elsewhere', 'master'], $repository->getGitDir(), self::gitEnvs())->mustRun();
+
+        $this->assertTrue($repository->getReferences(true)->hasBranch('elsewhere'));
     }
 
     public function testBranchesEndingWithHead(): void

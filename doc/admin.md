@@ -2,7 +2,7 @@ Create and access git repositories
 ==================================
 
 The static methods of `Repository` create new repositories, and return them.
-They replace `Admin`, deprecated since 2.0: see
+They replace `Admin`, deprecated since 1.7: see
 [UPGRADE-2.0.md](../UPGRADE-2.0.md#creating-repositories).
 
 To open a repository that exists already, use `new Repository($path)`: see

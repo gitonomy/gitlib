@@ -25,7 +25,7 @@ use Gitonomy\Git\Driver\Cli\LegacyOptions;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  *
- * @deprecated since gitonomy/gitlib 2.0, use the static methods of Repository instead
+ * @deprecated since gitonomy/gitlib 1.7, use the static methods of Repository instead
  *
  * @phpstan-import-type Options from LegacyOptions
  */
@@ -40,11 +40,11 @@ final class Admin
      *
      * @throws Exception\DriverException Directory exists or not writable
      *
-     * @deprecated since gitonomy/gitlib 2.0, use Repository::initBare() or Repository::init() instead
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::initBare() or Repository::init() instead
      */
     public static function init(string $path, bool $bare = true, array $options = []): Repository
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" instead.', __METHOD__, Repository::class, $bare ? 'initBare' : 'init');
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::%s()" instead.', __METHOD__, Repository::class, $bare ? 'initBare' : 'init');
 
         $options = new LegacyOptions($options);
         $driver = $options->adminDriver() ?? new CliDriver();
@@ -69,11 +69,11 @@ final class Admin
      *
      * @return bool true if url is valid
      *
-     * @deprecated since gitonomy/gitlib 2.0, use Repository::isValidRepository() instead
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::isValidRepository() instead
      */
     public static function isValidRepository(#[\SensitiveParameter] string $url, array $options = []): bool
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::isValidRepository()" instead.', __METHOD__, Repository::class);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::isValidRepository()" instead.', __METHOD__, Repository::class);
 
         return (new LegacyOptions($options)->adminDriver() ?? new CliDriver())->isValidRepository($url);
     }
@@ -92,11 +92,11 @@ final class Admin
      *
      * @return bool true if url is valid and branch exists
      *
-     * @deprecated since gitonomy/gitlib 2.0, use Repository::isValidRepositoryAndBranch() instead
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::isValidRepositoryAndBranch() instead
      */
     public static function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branchName, array $options = []): bool
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::isValidRepositoryAndBranch()" instead.', __METHOD__, Repository::class);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::isValidRepositoryAndBranch()" instead.', __METHOD__, Repository::class);
 
         return (new LegacyOptions($options)->adminDriver() ?? new CliDriver())->isValidRepositoryAndBranch($url, $branchName);
     }
@@ -109,11 +109,11 @@ final class Admin
      * @param bool    $bare    indicates if repository should be bare or have a working copy
      * @param Options $options options for Repository creation
      *
-     * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneBareFrom() or Repository::cloneFrom() instead
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::cloneBareFrom() or Repository::cloneFrom() instead
      */
     public static function cloneTo(string $path, #[\SensitiveParameter] string $url, bool $bare = true, array $options = []): Repository
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::%s()" instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
 
         $options = new LegacyOptions($options);
         $driver = $options->adminDriver() ?? new CliDriver();
@@ -135,11 +135,11 @@ final class Admin
      * @param bool    $bare    indicates if repository should be bare or have a working copy
      * @param Options $options options for Repository creation
      *
-     * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneBareFrom() or Repository::cloneFrom() with their "branch" argument instead
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::cloneBareFrom() or Repository::cloneFrom() with their "branch" argument instead
      */
     public static function cloneBranchTo(string $path, #[\SensitiveParameter] string $url, string $branch, bool $bare = true, array $options = []): Repository
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::%s()" with its "branch" argument instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::%s()" with its "branch" argument instead, which takes the URL before the path.', __METHOD__, Repository::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
 
         $options = new LegacyOptions($options);
         $driver = $options->adminDriver() ?? new CliDriver();
@@ -159,11 +159,11 @@ final class Admin
      * @param string  $url     url of repository to clone
      * @param Options $options options for Repository creation
      *
-     * @deprecated since gitonomy/gitlib 2.0, use Repository::mirrorFrom() instead
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::mirrorFrom() instead
      */
     public static function mirrorTo(string $path, #[\SensitiveParameter] string $url, array $options = []): Repository
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "%s::mirrorFrom()" instead, which takes the URL before the path.', __METHOD__, Repository::class);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::mirrorFrom()" instead, which takes the URL before the path.', __METHOD__, Repository::class);
 
         $options = new LegacyOptions($options);
         $driver = $options->adminDriver() ?? new CliDriver();
@@ -180,11 +180,11 @@ final class Admin
      * @param string[] $args    arguments to be added to the command-line
      * @param Options  $options options for Repository creation
      *
-     * @deprecated since gitonomy/gitlib 2.0, use Repository::cloneFrom(), Repository::cloneBareFrom() or Repository::mirrorFrom() instead
+     * @deprecated since gitonomy/gitlib 1.7, use Repository::cloneFrom(), Repository::cloneBareFrom() or Repository::mirrorFrom() instead
      */
     public static function cloneRepository(string $path, #[\SensitiveParameter] string $url, array $args = [], array $options = []): Repository
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%1$s()" method is deprecated, use "%2$s::cloneFrom()", "%2$s::cloneBareFrom()" or "%2$s::mirrorFrom()" instead, which take the URL before the path; they support no other argument of "git clone".', __METHOD__, Repository::class);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%1$s()" method is deprecated, use "%2$s::cloneFrom()", "%2$s::cloneBareFrom()" or "%2$s::mirrorFrom()" instead, which take the URL before the path; they support no other argument of "git clone".', __METHOD__, Repository::class);
 
         $options = new LegacyOptions($options);
         $driver = $options->adminDriver() ?? new CliDriver();

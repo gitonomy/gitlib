@@ -65,7 +65,7 @@ class WorkingCopyTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyCheckoutOfANewBranch(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing a branch to create to "Gitonomy\Git\WorkingCopy::checkout()" is deprecated, use "checkoutNewBranch()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing a branch to create to "Gitonomy\Git\WorkingCopy::checkout()" is deprecated, use "checkoutNewBranch()" instead.');
 
         $repository = self::createFoobarRepository(false);
         $repository->getWorkingCopy()->checkout('origin/new-feature', 'new-feature');

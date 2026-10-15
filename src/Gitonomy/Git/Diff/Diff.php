@@ -62,11 +62,11 @@ final readonly class Diff
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 2.0, the diffs gitlib returns have their repository already
+     * @deprecated since gitonomy/gitlib 1.7, the diffs gitlib returns have their repository already
      */
     public function setRepository(Repository $repository): void
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, the diffs gitlib returns have their repository already.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, the diffs gitlib returns have their repository already.', __METHOD__);
 
         foreach ($this->files as $file) {
             // Without one more deprecation for each file.

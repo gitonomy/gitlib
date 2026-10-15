@@ -12,6 +12,10 @@ call triggers a deprecation (`E_USER_DEPRECATED`, through
 them. Log the deprecations of your application to find them. The other
 changes, listed below too, break code that relies on them.
 
+Upgrade to 1.7 first, which requires PHP 8.1: it has most of the
+replacements, and triggers the deprecations of the API they replace (see
+[Supporting 1.x and 2.x](#supporting-1x-and-2x)).
+
 Requirements
 ------------
 
@@ -28,6 +32,65 @@ Requirements
 *   Repositories using SHA-256 hashes are refused, with an
     `UnsupportedOperationException`, by both drivers.
 
+Supporting 1.x and 2.x
+----------------------
+
+gitlib 1.7 has the API of 2.0 that can be added without breaking 1.x, and
+deprecates what 2.0 replaces or breaks: `new Repository($dir, $workingDir,
+$driver)` with a `CliDriver` of the same arguments, the static methods of
+`Repository` creating repositories, `Diff::parse($rawDiff, $repository)`,
+`Repository::getDiff($from, $to)`, `FileChange::getDiffLines()`, iterating
+a `Tree`, `Log::withLimit()`, `Branch::isMergedInto()`,
+`Blame::getHunks()`... Fix the deprecations of 1.7, then require
+`^1.7 || ^2.0`: a library supporting PHP 8.1 to 8.3 gets 1.7 there, and 2.0
+from PHP 8.4, with the same code.
+
+Before:
+
+```php
+$repository = new Repository($gitDir, ['working_dir' => $workingDir, 'logger' => $logger]);
+$diff = Diff::parse($rawDiff);
+$diff->setRepository($repository);
+```
+
+After, with 1.7 and 2.0:
+
+```php
+use Gitonomy\Git\Driver\Cli\CliDriver;
+
+$repository = new Repository($gitDir, $workingDir, new CliDriver(logger: $logger));
+$diff = Diff::parse($rawDiff, $repository);
+```
+
+1.7 breaks nothing of 1.x, so:
+
+*   Pass by position the arguments whose name changes in 2.0 (see
+    [Extending gitlib](#extending-gitlib)): 1.7 keeps the names of 1.x. So
+    do the arguments 1.7 adds to `Repository::getDiff()`, `getBlame()`,
+    `Diff::parse()`, `Diff::fromArray()` and `File::fromArray()`: their
+    signature leaves them out, not to break the classes overriding these
+    methods.
+*   `ReferenceBag::createBranch()` and `createTag()` keep a revision name as
+    the hash of the reference they return, like 1.x: pass a `Revision` to
+    get the hash of its commit with both versions.
+*   The submodules of trees are `CommitReference` objects, which extend
+    `Submodule` in 1.7: check them with `instanceof Submodule`.
+*   `File::toArray()` has no `is_copy` key in 1.7.
+
+What 1.7 can't bring, as it would break 1.x, behaves differently with
+both versions:
+
+*   With a range of lines, `Blame::getLines()` and `getLine()` number the
+    lines from 1 in 1.7, like the file in 2.0: use `Line::getNumber()`, or
+    `Blame::getHunks()`, numbered like the file in 1.7 too.
+*   1.7 doesn't read the references again after a write: open a new
+    `Repository` to read them, with both versions. `getReferences(true)` is
+    deprecated in 1.7 too.
+*   The classes `final` in 2.0 are only `@final` in 1.7: see
+    [Testing code using gitlib](#testing-code-using-gitlib).
+*   The other changes listed below: dates, the stricter parser of diffs,
+    the directory git runs in, the exceptions...
+
 Opening a repository
 --------------------
 
@@ -42,6 +105,16 @@ Opening a repository
     `$_SERVER` holds, under php-fpm, the headers and the credentials of the
     request. Pass the variables git needs to the `environmentVariables`
     argument instead.
+
+    git inherits `$_ENV`, and the variables of `getenv()` that `$_SERVER`
+    holds too, like Symfony Process passes them: a variable an application
+    only writes in `$_SERVER`, without `putenv()` nor `$_ENV`, which the
+    option passed, no longer reaches git. A command line application
+    relying on it passes `$_SERVER` itself:
+
+    ```php
+    $driver = new CliDriver(environmentVariables: array_filter($_SERVER, is_string(...)));
+    ```
 
     Before:
 
@@ -233,11 +306,13 @@ Diffs
     changes when constructed: `Diff::setRepository()`,
     `File::setRepository()` and `File::addChange()` are deprecated.
     `Diff::parse()` and `fromArray()` take the repository to read blobs from.
-*   The lines of a hunk, `FileChange::getLines()`, are `Diff\DiffLine`
-    objects, with `getType()`, a `Diff\DiffLineType`, and `getContent()`:
-    reading them as arrays is deprecated, as the `FileChange::LINE_*`
-    constants and `FileChange::getCount()`, replaced by `getAdditions()` and
-    `getDeletions()`.
+*   `FileChange::getDiffLines()` returns the lines of a hunk as
+    `Diff\DiffLine` objects, with `getType()`, a `Diff\DiffLineType`, and
+    `getContent()`: `FileChange::getLines()`, which returns them as arrays,
+    is deprecated, as the `FileChange::LINE_*` constants and
+    `FileChange::getCount()`, replaced by `getAdditions()` and
+    `getDeletions()`. The constructor of `FileChange` takes `DiffLine`
+    objects: arrays are deprecated.
 
     Before:
 
@@ -249,12 +324,12 @@ Diffs
     }
     ```
 
-    After:
+    After, with 1.7 and 2.0:
 
     ```php
     use Gitonomy\Git\Diff\DiffLineType;
 
-    foreach ($change->getLines() as $line) {
+    foreach ($change->getDiffLines() as $line) {
         if (DiffLineType::Addition === $line->getType()) {
             // ... $line->getContent()
         }
@@ -273,6 +348,13 @@ Diffs
     `git diff --raw --patch`, with `-z` or not. It reads the names of the
     files from the raw information: names with spaces are no longer split at
     the wrong place.
+*   It reads the status of a file, a creation, a modification, a deletion,
+    a rename..., from its raw line (`A`, `M`, `D`, `R100`...), instead of
+    the headers of the patch (`new file mode`...): a diff written by hand
+    where they disagree gives another result. Like git, the raw line
+    separates the status and the name with a TAB: spaces throw a
+    `RuntimeException`. Generate the diffs of your tests with git, with
+    `git diff --raw --patch --full-index`, instead of writing them.
 *   During a merge conflict, `WorkingCopy::getDiffPending()` and
     `getDiffStaged()` leave the unmerged files out, where they threw, and
     `WorkingCopy::getDiff()` compares them, conflict markers included, to the
@@ -295,12 +377,30 @@ Blame
 Trees
 -----
 
-*   `Tree::getEntries()`, `getTreeEntries()`, `getBlobEntries()` and
-    `getSubmoduleEntries()` return `TreeEntry` objects, with `getName()`,
-    `getMode()` and `getObject()`: reading them as arrays
-    (`[$mode, $object]`) is deprecated.
+*   Iterating a `Tree` gives its entries by name, `TreeEntry` objects with
+    `getName()`, `getMode()` and `getObject()`; `getBlobs()`, `getTrees()`
+    and `getSubmodules()` return them by kind. `getEntries()`,
+    `getBlobEntries()` and `getTreeEntries()`, which return them as arrays
+    (`[$mode, $object]`), are deprecated.
+
+    Before:
+
+    ```php
+    foreach ($tree->getEntries() as $name => [$mode, $object]) {
+        // ...
+    }
+    ```
+
+    After, with 1.7 and 2.0:
+
+    ```php
+    foreach ($tree as $name => $entry) {
+        // ... $entry->getMode(), $entry->getObject()
+    }
+    ```
+
 *   `CommitReference` is deprecated: it is `Submodule`. So is
-    `Tree::getCommitReferenceEntries()`: use `getSubmoduleEntries()`.
+    `Tree::getCommitReferenceEntries()`: use `getSubmodules()`.
 *   `Tree::resolvePath()` throws an `InvalidArgumentException` explaining
     why a path doesn't resolve, a path through a submodule included, which
     threw an `UnexpectedValueException`, and resolves `/` to the tree.
@@ -409,7 +509,9 @@ Errors
     writes on its output (`CONFLICT (content): ...`). The command line, the
     rest of the error output and the output are no longer in the message:
     `getErrorOutput()` and `getOutput()` return the outputs of git. Its
-    constructor takes the git command as second argument, optional.
+    constructor takes the git command as second argument, optional, and
+    reads the exit code and the outputs of the `Process`: a test double of
+    `Process` must return them.
 *   When git can't start, a missing binary for instance, `CliDriver` throws
     a `DriverException` instead of a `ProcessException`, with a message of
     one line, without the command line: `The git command "clone" could not
@@ -419,9 +521,8 @@ Errors
         failed;
     *   `ReferenceBag` (`Repository::getReferences()`) only returns an empty bag
         for a repository without references, and throws for any other failure.
-*   `Gitonomy\Git\Exception\UnexpectedValueException` is deprecated: gitlib
-    no longer throws it. Catch `InvalidArgumentException` for
-    `Tree::resolvePath()`.
+*   gitlib no longer throws `Gitonomy\Git\Exception\UnexpectedValueException`:
+    catch `InvalidArgumentException` for `Tree::resolvePath()`.
 *   `Commit::getShortHash()` throws a `ReferenceNotFoundException` for an
     unknown commit, instead of a `ProcessException`.
 *   `Hooks` throws a `RuntimeException` when a hook exists already, or can't
@@ -555,6 +656,27 @@ Extending gitlib
     be unserialized: clear such caches. `Diff::toArray()` and
     `Diff::fromArray()` remain compatible.
 
+Testing code using gitlib
+-------------------------
+
+The classes `final` in 2.0 can't be doubled: `createMock()` of PHPUnit,
+Prophecy and Mockery refuse them ("Class "Gitonomy\Git\WorkingCopy" is
+declared "final" and cannot be doubled", "could not reflect class
+Gitonomy\Git\WorkingCopy as it is marked final"). Instead, from the
+simplest:
+
+1.  Construct the value objects: `Diff`, `Diff\File`, `Diff\FileChange`
+    and `Diff\DiffLine` have public constructors. `new Diff([new File(...)],
+    '')` works with 1.x too.
+2.  Parse the real output of git: `Diff::parse()` of
+    `git diff --raw --patch --full-index` (see [Diffs](#diffs)).
+3.  Use a real repository, in a temporary directory:
+    `Repository::init($path)`, or `git init` with 1.x before 1.7. A
+    `WorkingCopy` needs one.
+4.  Implement `Gitonomy\Git\Driver\DriverInterface`, and pass it as the
+    driver of `Repository`: see
+    ["Using your own driver"](doc/repository.md#using-your-own-driver).
+
 Data returned
 -------------
 
@@ -590,9 +712,20 @@ Data returned
 Other changes
 -------------
 
-*   Relative paths, in the arguments of `Repository::run()` and in the paths
-    of a log, are relative to the repository instead of the current directory
-    of PHP.
+*   `Repository::run()` and `runProcess()` run git in the working directory
+    of the repository, or its git directory when it is bare, instead of the
+    current directory of PHP. Relative paths, in the arguments of `run()`
+    and in the paths of a log, are relative to the repository. When PHP runs
+    in a subdirectory of the repository, the output of the commands relative
+    to the current directory changes too, and so does their default scope:
+
+    | `run()` in `repository/sub`  | 1.x               | 2.0                           |
+    |------------------------------|-------------------|-------------------------------|
+    | `ls-files`                   | `in-sub.txt`      | `root.txt`, `sub/in-sub.txt`  |
+    | `status --short`             | ` M ../root.txt`  | ` M root.txt`                 |
+    | `rev-parse --show-prefix`    | `sub/`            | (empty)                       |
+
+    Nothing changes when PHP runs out of the repository.
 *   `Hooks::set()` makes hooks executable by their owner only (`0700`,
     instead of `0777`): change their permissions if another user runs them.
 *   `Repository::shell()` is deprecated: it ignored the driver. Run

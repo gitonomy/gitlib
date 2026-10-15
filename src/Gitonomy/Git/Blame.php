@@ -92,11 +92,11 @@ final class Blame implements \Countable
      *
      * @return list<array{Commit, array<int, Line>}>
      *
-     * @deprecated since gitonomy/gitlib 2.0, use getHunks() instead
+     * @deprecated since gitonomy/gitlib 1.7, use getHunks() instead
      */
     public function getGroupedLines(): array
     {
-        trigger_deprecation('gitonomy/gitlib', '2.0', 'The "%s()" method is deprecated, use "getHunks()" instead.', __METHOD__);
+        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getHunks()" instead.', __METHOD__);
 
         return array_map(static fn (Hunk $hunk): array => [$hunk->getCommit(), $hunk->getLines()], $this->getHunks());
     }

@@ -480,7 +480,7 @@ class RepositoryTest extends AbstractTestCase
 
         foreach ([
             'blob' => static fn () => $repository->getBlob(self::LONGFILE_COMMIT)->getContent(),
-            'tree' => static fn () => $repository->getTree(self::LONGFILE_COMMIT)->getEntries(),
+            'tree' => static fn () => iterator_to_array($repository->getTree(self::LONGFILE_COMMIT)),
             'commit' => static fn () => $repository->getCommit($treeHash)->getMessage(),
         ] as $type => $read) {
             try {
@@ -825,7 +825,7 @@ class RepositoryTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyGetSizeInKilobytes(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::getSize()" method is deprecated, use "getSizeInBytes()" instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Repository::getSize()" method is deprecated, use "getSizeInBytes()" instead.');
 
         $repository = self::createFoobarRepository();
 
@@ -955,7 +955,7 @@ class RepositoryTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacySetLogger(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::setLogger()" method is deprecated, pass a "Gitonomy\Git\Driver\Cli\CliDriver" configured with the logger as driver argument instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Repository::setLogger()" method is deprecated, pass a "Gitonomy\Git\Driver\Cli\CliDriver" configured with the logger as driver argument instead.');
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())
@@ -987,7 +987,7 @@ class RepositoryTest extends AbstractTestCase
             $this->markTestSkipped('The command of git shell is a shell script.');
         }
 
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: The "Gitonomy\Git\Repository::shell()" method is deprecated, run "git shell" with Symfony Process instead: it ignores the driver.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Repository::shell()" method is deprecated, run "git shell" with Symfony Process instead: it ignores the driver.');
 
         // git shell runs the commands of ~/git-shell-commands.
         $home = self::createTempDir();
@@ -1029,7 +1029,7 @@ class RepositoryTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyOptionsConfigureACliDriver(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing an array of options to "Gitonomy\Git\Repository::__construct()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing an array of options to "Gitonomy\Git\Repository::__construct()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.');
 
         $logger = $this->createStub(LoggerInterface::class);
         $repository = new Repository(self::createFoobarRepository()->getGitDir(), [
@@ -1056,7 +1056,7 @@ class RepositoryTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyDebugOption(): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing an array of options to "Gitonomy\Git\Repository::__construct()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing an array of options to "Gitonomy\Git\Repository::__construct()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.');
 
         $repository = new Repository(self::createFoobarRepository()->getGitDir(), ['debug' => true], self::getDriver());
 

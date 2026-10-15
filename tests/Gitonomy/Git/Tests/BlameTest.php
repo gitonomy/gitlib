@@ -154,7 +154,7 @@ class BlameTest extends AbstractTestCase
     #[IgnoreDeprecations]
     public function testLegacyBlameLineRange(bool $bare): void
     {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 2.0: Passing a range of lines as a string to "Gitonomy\Git\Repository::getBlame()" is deprecated, pass the first and the last lines instead.');
+        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing a range of lines as a string to "Gitonomy\Git\Repository::getBlame()" is deprecated, pass the first and the last lines instead.');
 
         $repository = self::createFoobarRepository($bare);
 

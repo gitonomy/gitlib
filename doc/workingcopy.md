@@ -72,7 +72,7 @@ overwrite the ones the checkout would change: they throw a
 `DriverException`. *checkoutNewBranch* then creates no branch.
 
 Passing the branch to create as second argument of *checkout* is deprecated
-since 2.0: use *checkoutNewBranch*.
+since 1.7: use *checkoutNewBranch*.
 
 Merge a revision
 ----------------
@@ -132,7 +132,7 @@ $diff = $wc->getDiff('master');
 ```
 
 Calling `Repository::getDiff()` with one revision, to compare it with the
-working copy, is deprecated since 2.0: use `WorkingCopy::getDiff()`.
+working copy, is deprecated since 1.7: use `WorkingCopy::getDiff()`.
 
 Staged modifications
 --------------------

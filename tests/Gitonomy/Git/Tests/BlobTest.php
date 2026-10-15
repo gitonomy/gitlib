@@ -39,7 +39,7 @@ class BlobTest extends AbstractTestCase
         // making sibling blobs unreadable.
         $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
 
-        $this->assertNotEmpty($tree->getSubmoduleEntries(), 'Tree contains a submodule entry');
+        $this->assertNotEmpty($tree->getSubmodules(), 'Tree contains a submodule entry');
 
         $blob = $tree->resolvePath('README.md');
 
