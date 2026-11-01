@@ -3,11 +3,11 @@
 click==8.5.0
 deepmerge==3.0.1
 jinja2==3.1.6
-markdown==3.11.1
+markdown==3.11.2
 markupsafe==3.0.4
 pathspec==1.1.1
 pygments==2.21.0
-pymdown-extensions==12.2
+pymdown-extensions==12.3
 pyyaml==6.0.3
 tomli==2.5.0
-zensical==0.0.70
+zensical==0.0.72
