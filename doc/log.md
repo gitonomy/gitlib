@@ -131,12 +131,3 @@ $secondPage = $firstPage->withOffset(10);
 $secondPage->getOffset(); // 10
 $secondPage->getLimit();  // 10
 ```
-
-`setOffset()` and `setLimit()`, which changed the log, are deprecated since
-2.0: use `withOffset()` and `withLimit()`.
-
-Diff of a log
--------------
-
-`Log::getDiff()` is deprecated since 1.7: it ignored the paths of the log.
-Use `Repository::getDiff($from, $to)`, see [diff.md](diff.md).

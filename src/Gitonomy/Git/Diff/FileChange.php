@@ -22,29 +22,12 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 final readonly class FileChange
 {
     /**
-     * @deprecated since gitonomy/gitlib 1.7, use DiffLineType::Context instead
-     */
-    public const int LINE_CONTEXT = 0;
-
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use DiffLineType::Deletion instead
-     */
-    public const int LINE_REMOVE = -1;
-
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use DiffLineType::Addition instead
-     */
-    public const int LINE_ADD = 1;
-
-    /**
      * @var list<DiffLine>
      */
     private array $lines;
 
     /**
-     * @param array<DiffLine|array{int, string}> $lines Passing arrays is deprecated
-     *
-     * @throws InvalidArgumentException An array has none of the types of line
+     * @param DiffLine[] $lines
      */
     public function __construct(
         private int $rangeOldStart,
@@ -53,21 +36,7 @@ final readonly class FileChange
         private int $rangeNewCount,
         array $lines,
     ) {
-        if ([] !== array_filter($lines, is_array(...))) {
-            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing the lines to "%s()" as arrays is deprecated, pass "%s" objects instead.', __METHOD__, DiffLine::class);
-        }
-
-        $this->lines = array_map(static fn (DiffLine|array $line): DiffLine => \is_array($line) ? new DiffLine(self::lineType($line[0]), $line[1]) : $line, array_values($lines));
-    }
-
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use getAdditions() or getDeletions() instead
-     */
-    public function getCount(int $type): int
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getAdditions()" or "getDeletions()" instead.', __METHOD__);
-
-        return $this->count(self::lineType($type));
+        $this->lines = array_values($lines);
     }
 
     public function getAdditions(): int
@@ -109,18 +78,6 @@ final readonly class FileChange
     }
 
     /**
-     * @return list<array{int, string}> The type of each line, one of the LINE_* constants, and its content
-     *
-     * @deprecated since gitonomy/gitlib 1.7, use getDiffLines() instead
-     */
-    public function getLines(): array
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getDiffLines()" instead.', __METHOD__);
-
-        return $this->linesToArray();
-    }
-
-    /**
      * @return FileChangeArray
      */
     public function toArray(): array
@@ -130,7 +87,7 @@ final readonly class FileChange
             'range_old_count' => $this->rangeOldCount,
             'range_new_start' => $this->rangeNewStart,
             'range_new_count' => $this->rangeNewCount,
-            'lines' => $this->linesToArray(),
+            'lines' => array_map(static fn (DiffLine $line): array => [$line->getType()->value, $line->getContent()], $this->lines),
         ];
     }
 
@@ -159,13 +116,5 @@ final readonly class FileChange
     private function count(DiffLineType $type): int
     {
         return \count(array_filter($this->lines, static fn (DiffLine $line): bool => $line->getType() === $type));
-    }
-
-    /**
-     * @return list<array{int, string}>
-     */
-    private function linesToArray(): array
-    {
-        return array_map(static fn (DiffLine $line): array => [$line->getType()->value, $line->getContent()], $this->lines);
     }
 }

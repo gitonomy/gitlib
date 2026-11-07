@@ -4,9 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0). To upgrade, see
-[UPGRADE-2.0.md](UPGRADE-2.0.md): most of the API of 1.x that 2.0 replaces keeps working,
-deprecated until 3.0.
+Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0). To upgrade, fix
+the deprecations of 1.7 first, then see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 
 ### Breaking changes
 
@@ -54,6 +53,32 @@ deprecated until 3.0.
     with both drivers: the name of a remote branch alone, like `feature` for `origin/feature`,
     created the local branch. Use `checkoutNewBranch()`.
     ([#254](https://github.com/gitonomy/gitlib/pull/254))
+-   Remove the API that 1.7 deprecates; see [UPGRADE-2.0.md](UPGRADE-2.0.md):
+    -   `Admin`, replaced by the static methods of `Repository`, and `Repository::cloneTo()`,
+        replaced by `cloneFrom()` and `cloneBareFrom()`.
+    -   The array of options of `Repository` (`working_dir`, `logger`, `command`,
+        `environment_variables`, `inherit_environment_variables`, `process_timeout`, `debug`): pass
+        the working directory and a `CliDriver` instead; `inherit_environment_variables` has no
+        counterpart, pass the variables git needs instead. `Repository::setLogger()` and
+        `getLogger()`.
+    -   The `$reload` argument of `Repository::getReferences()`, and the arguments of
+        `Commit::getIncludingBranches()`. `ReferenceBag::update()` and `Branch::isMergedTo()`,
+        replaced by `Branch::moveTo()` and `isMergedInto()`.
+    -   `Repository::getDiff()` with one argument, `Log::getDiff()`, `Diff::setRepository()`,
+        `File::setRepository()`, `addChange()`, `isChangeMode()`, `isDelete()` and `getAnchor()`,
+        `FileChange::getCount()`, `getLines()`, replaced by `getDiffLines()`, and the `LINE_*`
+        constants, replaced by `DiffLineType`, and the lines passed to the constructor of
+        `FileChange` as arrays.
+    -   `Log::setOffset()` and `setLimit()`.
+    -   A range of lines as a string in `Repository::getBlame()`, `Blame::getGroupedLines()` and
+        `Blame\Line::getLine()`.
+    -   `CommitReference`, `Tree::getCommitReferenceEntries()`, `getEntries()`, `getBlobEntries()`
+        and `getTreeEntries()`: iterate the tree, or use `getBlobs()`, `getTrees()` and
+        `getSubmodules()`.
+    -   The branch to create of `WorkingCopy::checkout()`.
+    -   `Commit::getShortMessage()` and `getFixedShortHash()`, `Repository::shell()`,
+        `PushReference::getReference()`, `getRevision()`, `isCreate()` and `isDelete()`.
+    -   `Repository::getSize()`, in kilobytes: use `getSizeInBytes()`.
 
 ### Features
 
@@ -104,38 +129,6 @@ deprecated until 3.0.
     flag, and `isRename()` no longer reports `true` for copies, since a copy's source file
     still exists afterward.
     ([#244](https://github.com/gitonomy/gitlib/pull/244), fixes #14)
-
-### Deprecations
-
-All are removed in 3.0; see [UPGRADE-2.0.md](UPGRADE-2.0.md).
-([#253](https://github.com/gitonomy/gitlib/pull/253)) 1.7 deprecates them already: they are
-all deprecated since 1.7.
-
--   `Admin`, replaced by the static methods of `Repository`, and `Repository::cloneTo()`,
-    replaced by `cloneFrom()` and `cloneBareFrom()`.
--   The array of options of `Repository` and `Admin` (`working_dir`, `logger`, `command`,
-    `environment_variables`, `inherit_environment_variables`, `process_timeout`, `debug`): pass
-    the working directory and a `CliDriver` instead; `inherit_environment_variables` has no
-    counterpart, pass the variables git needs instead. `Repository::setLogger()` and `getLogger()`.
--   Passing `$reload` to `Repository::getReferences()`, and arguments to
-    `Commit::getIncludingBranches()`. `ReferenceBag::update()` and `Branch::isMergedTo()`,
-    replaced by `Branch::moveTo()` and `isMergedInto()`.
--   Calling `Repository::getDiff()` with one argument, `Log::getDiff()`, `Diff::setRepository()`,
-    `File::setRepository()`, `addChange()`, `isChangeMode()`, `isDelete()` and `getAnchor()`,
-    `FileChange::getCount()`, `getLines()`, replaced by `getDiffLines()`, and the `LINE_*`
-    constants, replaced by `DiffLineType`, lines passed to the constructor of `FileChange` as
-    arrays.
--   `Log::setOffset()` and `setLimit()`.
--   A range of lines as a string in `Repository::getBlame()`, `Blame::getGroupedLines()` and
-    `Blame\Line::getLine()`.
--   `CommitReference`, `Tree::getCommitReferenceEntries()`, `getEntries()`, `getBlobEntries()`
-    and `getTreeEntries()`: iterate the tree, or use `getBlobs()`, `getTrees()` and
-    `getSubmodules()`.
--   The branch to create of `WorkingCopy::checkout()`.
--   `Commit::getShortMessage()` and `getFixedShortHash()`, `Repository::shell()`,
-    `PushReference::getReference()`, `getRevision()`, `isCreate()` and `isDelete()`.
--   `Repository::getSize()`, in kilobytes: use `getSizeInBytes()`.
-    ([#254](https://github.com/gitonomy/gitlib/pull/254))
 
 ### Security
 
@@ -246,8 +239,9 @@ all deprecated since 1.7.
 -   Fix blame lines numbered from 1 for a range of lines. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 -   Fix `Hooks` failing silently, in a repository without hooks directory, and writing the hooks
     of a linked worktree where git doesn't run them. ([#253](https://github.com/gitonomy/gitlib/pull/253))
--   Fix `Repository::getSize()` throwing for a link to a missing file in the git directory, like
-    a hook not deployed yet: it no longer follows links. A file or a directory git deletes
+-   Fix the size of a repository (`getSizeInBytes()`, which replaces `getSize()`) throwing for a
+    link to a missing file in the git directory, like a hook not deployed yet: it no longer follows
+    links. A file or a directory git deletes
     meanwhile, like a lock during a `gc` or the quarantine of a push, no longer makes it throw
     either, and one it can't read throws a `RuntimeException` of gitlib, instead of PHP's.
     ([#254](https://github.com/gitonomy/gitlib/pull/254), [#263](https://github.com/gitonomy/gitlib/pull/263))
@@ -256,7 +250,7 @@ all deprecated since 1.7.
 -   Fix reading a commit whose `encoding` header isn't UTF-8, which threw: its message, author and
     committer are now re-encoded to UTF-8, like `git log` does. ([#253](https://github.com/gitonomy/gitlib/pull/253))
 -   Fix file names holding non-ASCII or special characters (tab, quote, backslash) in trees
-    (`Tree::getEntries()`), and special characters in diffs, which kept git's C-style quoting.
+    (iterating a `Tree`), and special characters in diffs, which kept git's C-style quoting.
     ([#253](https://github.com/gitonomy/gitlib/pull/253))
 -   Fix relative paths not resolving against the repository in `Repository::run()`: the git
     process spawned by `run()` never had its working directory set, so commands such as
@@ -273,11 +267,8 @@ all deprecated since 1.7.
         branch existed.
     -   `Tag::getBodyMessage()` dropped or truncated a line for annotated tags using the
         standard `subject\n\nbody` convention.
-    -   `Repository::shell()` interpolated the repository path into the shell command without
-        escaping it; it is now passed through `escapeshellarg()`.
     -   `Hooks::set()` created hook scripts world-writable (`0777`); they are now created
         `0700`.
-    -   Fixed the `isSuccessFul()` casing typo in `Admin`.
 
 ### Minor
 

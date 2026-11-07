@@ -75,19 +75,11 @@ final readonly class WorkingCopy
      * a remote branch alone included, like "feature" for "origin/feature":
      * create its local branch with checkoutNewBranch().
      *
-     * Passing a branch to create as second argument is deprecated.
-     *
      * @throws ReferenceNotFoundException $revision names no commit
      * @throws DriverException            The checkout would overwrite local changes
      */
-    public function checkout(Revision|string $revision, ?string $branch = null): static
+    public function checkout(Revision|string $revision): static
     {
-        if (null !== $branch) {
-            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing a branch to create to "%s()" is deprecated, use "checkoutNewBranch()" instead.', __METHOD__);
-
-            return $this->checkoutNewBranch($branch, $revision);
-        }
-
         // A name that no revision has throws, where "git checkout" would create
         // the branch of a remote one, or discard the changes of a file.
         ($revision instanceof Revision ? $revision : $this->repository->getRevision($revision))->getCommit();

@@ -13,14 +13,10 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blob;
-use Gitonomy\Git\CommitReference;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Submodule;
 use Gitonomy\Git\Tree;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
-use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
 class TreeTest extends AbstractTestCase
 {
@@ -76,36 +72,6 @@ class TreeTest extends AbstractTestCase
         $this->assertSame('160000', $submodules['barbaz']->getMode());
     }
 
-    /**
-     * In a process of its own: once Submodule is loaded, it declares the alias,
-     * whose file isn't loaded anymore.
-     */
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    #[RunInSeparateProcess]
-    public function testLegacyCommitReference(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\CommitReference" class is deprecated, use "Gitonomy\Git\Submodule" instead.');
-
-        $this->assertTrue(class_exists(CommitReference::class));
-    }
-
-    #[DataProvider('provideBare')]
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetCommitReferenceEntries(bool $bare): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getCommitReferenceEntries()" method is deprecated, use "getSubmodules()" instead.');
-
-        $tree = self::createFoobarRepository($bare)->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
-
-        [$mode, $object] = $tree->getCommitReferenceEntries()['barbaz'];
-
-        $this->assertSame('160000', $mode);
-        // @phpstan-ignore method.impossibleType (PHPStan doesn't follow the alias of the deprecated class.)
-        $this->assertInstanceOf(CommitReference::class, $object);
-    }
-
     public function testResolvePathThroughASubmoduleThrows(): void
     {
         $tree = self::createFoobarRepository()->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
@@ -158,46 +124,6 @@ class TreeTest extends AbstractTestCase
 
         $this->assertArrayNotHasKey('barbaz', $blobs);
         $this->assertInstanceOf(Blob::class, $blobs['README.md']->getObject());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetEntries(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getEntries()" method is deprecated, iterate the tree instead.');
-
-        $tree = self::createFoobarRepository()->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
-
-        $entries = $tree->getEntries();
-
-        $this->assertSame(array_keys(iterator_to_array($tree)), array_keys($entries));
-        $this->assertSame(['100644', $tree->getEntry('README.md')], $entries['README.md']);
-        $this->assertSame(['160000', $tree->getEntry('barbaz')], $entries['barbaz']);
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetBlobEntries(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getBlobEntries()" method is deprecated, use "getBlobs()" instead.');
-
-        $tree = self::createFoobarRepository()->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
-
-        $blobs = $tree->getBlobEntries();
-
-        $this->assertSame(array_keys($tree->getBlobs()), array_keys($blobs));
-        $this->assertSame(['100644', $tree->getEntry('README.md')], $blobs['README.md']);
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetTreeEntries(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Tree::getTreeEntries()" method is deprecated, use "getTrees()" instead.');
-
-        $tree = self::createFoobarRepository()->getCommit(self::PATH_RESOLVING_COMMIT)->getTree();
-
-        $this->assertSame(['test' => ['040000', $tree->getEntry('test')]], $tree->getTreeEntries());
     }
 
     #[DataProvider('provideBare')]

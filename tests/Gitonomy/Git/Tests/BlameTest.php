@@ -18,8 +18,6 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 
 class BlameTest extends AbstractTestCase
 {
@@ -147,23 +145,5 @@ class BlameTest extends AbstractTestCase
         // Like git.
         $this->assertSame($lines('README.md'), $lines('./README.md'));
         $this->assertSame($lines('README.md'), $lines('dir/../README.md'));
-    }
-
-    #[DataProvider('provideBare')]
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyBlameLineRange(bool $bare): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing a range of lines as a string to "Gitonomy\Git\Repository::getBlame()" is deprecated, pass the first and the last lines instead.');
-
-        $repository = self::createFoobarRepository($bare);
-
-        foreach (['3,+3', '3,5'] as $lineRange) {
-            $blame = $repository->getBlame(self::LONGFILE_COMMIT, 'README.md', $lineRange);
-
-            $this->assertSame([3, 4, 5], array_keys($blame->getLines()), $lineRange);
-            $this->assertSame('3', $blame->getLine(3)->getLine(), $lineRange);
-        }
-        $this->assertSame(self::INITIAL_COMMIT, $repository->getBlame(self::LONGFILE_COMMIT, 'README.md')->getGroupedLines()[0][0]->getHash());
     }
 }

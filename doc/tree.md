@@ -69,10 +69,6 @@ function displayTree(Tree $tree, int $depth = 0): void
 displayTree($commit->getTree());
 ```
 
-`getEntries()`, `getBlobEntries()` and `getTreeEntries()`, which return
-the mode and the object of each entry as an array (`[$mode, $object]`), are
-deprecated since 1.7: iterate the tree, or use `getBlobs()` and `getTrees()`.
-
 Submodules
 ----------
 
@@ -85,9 +81,6 @@ foreach ($tree->getSubmodules() as $name => $entry) {
     echo $name.' is at '.$entry->getObject()->getHash().PHP_EOL;
 }
 ```
-
-`CommitReference` is deprecated since 1.7: it is `Submodule`. So is
-`Tree::getCommitReferenceEntries()`: use `getSubmodules()`.
 
 Resolve a path
 --------------

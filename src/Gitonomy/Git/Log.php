@@ -12,7 +12,6 @@
 
 namespace Gitonomy\Git;
 
-use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 
@@ -71,16 +70,6 @@ final class Log implements \Countable, \IteratorAggregate
         $this->limit = self::limit($limit);
     }
 
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use Repository::getDiff() instead: it ignored the paths of the log
-     */
-    public function getDiff(): Diff
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::getDiff()" instead.', __METHOD__, Repository::class);
-
-        return $this->repository->getLegacyDiff($this->revisions);
-    }
-
     public function getRevisions(): ?RevisionList
     {
         return $this->revisions;
@@ -112,18 +101,6 @@ final class Log implements \Countable, \IteratorAggregate
         return $log;
     }
 
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use withOffset() instead
-     */
-    public function setOffset(?int $offset): static
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "withOffset()" instead.', __METHOD__);
-
-        $this->offset = self::offset($offset);
-
-        return $this;
-    }
-
     public function getLimit(): ?int
     {
         return $this->limit;
@@ -140,18 +117,6 @@ final class Log implements \Countable, \IteratorAggregate
         $log->limit = self::limit($limit);
 
         return $log;
-    }
-
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use withLimit() instead
-     */
-    public function setLimit(?int $limit): static
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "withLimit()" instead.', __METHOD__);
-
-        $this->limit = self::limit($limit);
-
-        return $this;
     }
 
     /**

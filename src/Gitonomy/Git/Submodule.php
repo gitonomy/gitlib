@@ -31,8 +31,3 @@ final readonly class Submodule
         return $this->hash;
     }
 }
-
-// For the deprecated name, like Symfony renames classes.
-if (!class_exists(CommitReference::class, false)) {
-    class_alias(Submodule::class, CommitReference::class);
-}

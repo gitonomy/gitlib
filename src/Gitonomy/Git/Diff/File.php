@@ -26,9 +26,9 @@ use Gitonomy\Git\Repository;
  *
  * @phpstan-type FileArray array{old_name: string|null, new_name: string|null, old_mode: string|null, new_mode: string|null, old_index: string|null, new_index: string|null, is_binary: bool, is_copy: bool, changes: list<FileChangeArray>}
  */
-final class File
+final readonly class File
 {
-    private readonly string $name;
+    private string $name;
 
     /**
      * @param string|null     $oldName    Null for a creation
@@ -41,28 +41,18 @@ final class File
      * @throws InvalidArgumentException Both names are null
      */
     public function __construct(
-        private readonly ?string $oldName,
-        private readonly ?string $newName,
-        private readonly ?string $oldMode,
-        private readonly ?string $newMode,
-        private readonly ?string $oldIndex,
-        private readonly ?string $newIndex,
-        private readonly bool $isBinary,
-        private readonly bool $isCopy = false,
+        private ?string $oldName,
+        private ?string $newName,
+        private ?string $oldMode,
+        private ?string $newMode,
+        private ?string $oldIndex,
+        private ?string $newIndex,
+        private bool $isBinary,
+        private bool $isCopy = false,
         private array $changes = [],
         private ?Repository $repository = null,
     ) {
         $this->name = $newName ?? $oldName ?? throw new InvalidArgumentException('A file of a diff has an old name, a new name, or both.');
-    }
-
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, give the changes to the constructor instead
-     */
-    public function addChange(FileChange $change): void
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, give the changes to the constructor instead.', __METHOD__);
-
-        $this->changes[] = $change;
     }
 
     /**
@@ -110,31 +100,11 @@ final class File
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 1.7, use isModeChange() instead
-     */
-    public function isChangeMode(): bool
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isModeChange()" instead.', __METHOD__);
-
-        return $this->isModeChange();
-    }
-
-    /**
      * Indicates if this diff file is a deletion.
      */
     public function isDeletion(): bool
     {
         return null === $this->newName;
-    }
-
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use isDeletion() instead
-     */
-    public function isDelete(): bool
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isDeletion()" instead.', __METHOD__);
-
-        return $this->isDeletion();
     }
 
     /**
@@ -250,29 +220,9 @@ final class File
         );
     }
 
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, a presentation concern: use substr($file->getNewIndex(), 0, 12) instead
-     */
-    public function getAnchor(): string
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "substr($file->getNewIndex(), 0, 12)" instead.', __METHOD__);
-
-        return substr($this->newIndex ?? '', 0, 12);
-    }
-
     public function getRepository(): ?Repository
     {
         return $this->repository;
-    }
-
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, the diffs gitlib returns have their repository already
-     */
-    public function setRepository(Repository $repository): void
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, the diffs gitlib returns have their repository already.', __METHOD__);
-
-        $this->repository = $repository;
     }
 
     /**

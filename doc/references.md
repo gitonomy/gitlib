@@ -13,8 +13,7 @@ $references = $repository->getReferences();
 
 The bag reads the references again after every write gitlib makes: creating
 or deleting a reference, a checkout, a merge, `Repository::run()`... To see
-the writes of other processes, open a new `Repository`. Passing an argument
-to `getReferences()`, to read them again, is deprecated since 1.7.
+the writes of other processes, open a new `Repository`.
 
 First, you can test the existence of tags and branches like this:
 
@@ -109,8 +108,7 @@ like `refs/heads/foobar`, and does nothing when it doesn't exist, like
 
 `createBranch()` and `createTag()` throw an `InvalidArgumentException` when
 the reference exists: they never move it. To move a branch, use
-`Branch::moveTo()`: see [branch.md](branch.md). `ReferenceBag::update()` is
-deprecated since 1.7: use `Branch::moveTo()`.
+`Branch::moveTo()`: see [branch.md](branch.md).
 
 Tags
 ----

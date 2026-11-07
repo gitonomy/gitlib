@@ -21,8 +21,6 @@ use Gitonomy\Git\FastForward;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\TestWith;
 
 class WorkingCopyTest extends AbstractTestCase
@@ -59,18 +57,6 @@ class WorkingCopyTest extends AbstractTestCase
 
         $wc->checkout($branch);
         $this->assertSame('refs/heads/twin', self::headBranch($repository)->getFullname());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyCheckoutOfANewBranch(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing a branch to create to "Gitonomy\Git\WorkingCopy::checkout()" is deprecated, use "checkoutNewBranch()" instead.');
-
-        $repository = self::createFoobarRepository(false);
-        $repository->getWorkingCopy()->checkout('origin/new-feature', 'new-feature');
-
-        $this->assertSame('new-feature', self::headBranch($repository)->getName());
     }
 
     public function testDiffStaged(): void

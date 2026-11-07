@@ -29,8 +29,6 @@ use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 
@@ -821,17 +819,6 @@ class RepositoryTest extends AbstractTestCase
         }
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetSizeInKilobytes(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Repository::getSize()" method is deprecated, use "getSizeInBytes()" instead.');
-
-        $repository = self::createFoobarRepository();
-
-        $this->assertSame((int) round($repository->getSizeInBytes() / 1000), $repository->getSize());
-    }
-
     public function testIsBare(): void
     {
         $bare = self::createFoobarRepository(true);
@@ -949,128 +936,6 @@ class RepositoryTest extends AbstractTestCase
         $repository = new Repository($dir, '/elsewhere', $driver);
 
         $this->assertSame(self::INITIAL_COMMIT, $repository->getReferences()->getBranch('main')->getCommitHash());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacySetLogger(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Repository::setLogger()" method is deprecated, pass a "Gitonomy\Git\Driver\Cli\CliDriver" configured with the logger as driver argument instead.');
-
-        $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())
-            ->method('info')
-            ->with('run command: remote "" ')
-        ;
-
-        $repository = new Repository(self::createFoobarRepository()->getPath(), driver: self::getCliDriver());
-        $repository->setLogger($logger);
-        $repository->run('remote');
-
-        $this->assertSame($logger, $repository->getLogger());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacySetLoggerRequiresCliDriver(): void
-    {
-        $this->expectException(UnsupportedOperationException::class);
-
-        new Repository(self::createTempDir(), driver: $this->createStub(DriverInterface::class))->setLogger($this->createStub(LoggerInterface::class));
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyShell(): void
-    {
-        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
-            $this->markTestSkipped('The command of git shell is a shell script.');
-        }
-
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Repository::shell()" method is deprecated, run "git shell" with Symfony Process instead: it ignores the driver.');
-
-        // git shell runs the commands of ~/git-shell-commands.
-        $home = self::createTempDir();
-        mkdir($home.'/git-shell-commands');
-        file_put_contents($home.'/git-shell-commands/record', "#!/bin/sh\n".'echo "$1" > "$HOME/recorded"'."\n");
-        chmod($home.'/git-shell-commands/record', 0o700);
-        $repository = self::createFoobarRepository();
-
-        $repository->shell('record', ['HOME' => $home]);
-
-        // shell() doesn't wait for git.
-        for ($i = 0; $i < 100 && !is_file($home.'/recorded'); ++$i) {
-            usleep(50_000);
-        }
-        $this->assertStringEqualsFile($home.'/recorded', $repository->getGitDir()."\n");
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testAnUnknownOptionIsRefused(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown option "foo".');
-
-        new Repository(self::createTempDir(), ['foo' => 1]);
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testUnknownOptionsAreRefused(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown options "foo", "bar".');
-
-        new Repository(self::createTempDir(), ['foo' => 1, 'bar' => 2]);
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyOptionsConfigureACliDriver(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing an array of options to "Gitonomy\Git\Repository::__construct()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.');
-
-        $logger = $this->createStub(LoggerInterface::class);
-        $repository = new Repository(self::createFoobarRepository()->getGitDir(), [
-            'command' => self::gitCommand(),
-            'logger' => $logger,
-            'process_timeout' => 42,
-        ]);
-
-        $this->assertSame($logger, $repository->getLogger());
-        $this->assertSame(42.0, $repository->runProcess('rev-parse', ['HEAD'])->getTimeout());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyOptionsCantBeCombinedWithADriver(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The driver argument can\'t be combined with the "logger" or git options: configure the driver instead.');
-
-        new Repository(self::createTempDir(), ['process_timeout' => 60], self::getDriver());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyDebugOption(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing an array of options to "Gitonomy\Git\Repository::__construct()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.');
-
-        $repository = new Repository(self::createFoobarRepository()->getGitDir(), ['debug' => true], self::getDriver());
-
-        $this->assertSame(self::LONGFILE_COMMIT, $repository->getCommit(self::LONGFILE_COMMIT)->getHash());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testDebugOptionSetToFalseIsRefused(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('The "debug" option set to false is not supported anymore: a failing git operation always throws, catch its exception instead.');
-
-        new Repository(self::createTempDir(), ['debug' => false]);
     }
 
     /**
