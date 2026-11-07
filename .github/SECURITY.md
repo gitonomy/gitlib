@@ -2,10 +2,10 @@
 
 ## Supported Versions
 
-Only 2.x gets security fixes: 1.x is no longer maintained. 2.0 fixes security
-issues 1.x has, which won't be fixed there, like revisions and URLs starting
-with a dash, which git reads as options, or the credentials of URLs in the
-messages of exceptions. To upgrade, see
+Only 2.x gets security fixes: 1.x is no longer maintained. 1.7.1 has the
+security fixes of 2.0 that break nothing of 1.x, and
+[its changelog](https://github.com/gitonomy/gitlib/blob/1.x/CHANGELOG.md) lists
+the ones it doesn't have. To upgrade, see
 [UPGRADE-2.0.md](https://github.com/gitonomy/gitlib/blob/main/UPGRADE-2.0.md).
 
 After each new major release from 3.0 on, the previous release will be

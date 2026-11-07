@@ -139,6 +139,9 @@ all deprecated since 1.7.
 
 ### Security
 
+1.7.1 has those that break nothing of 1.x: see
+[its changelog](https://github.com/gitonomy/gitlib/blob/1.x/CHANGELOG.md).
+
 -   Refuse a revision, a reference, a hash or a URL starting with a dash, which git read as an
     option: `getRevision('--output=/path')`, `WorkingCopy::checkout()` or `merge()` could write
     a file, and `Repository::isValidRepository('--upload-pack=...')` run a command. A path may
