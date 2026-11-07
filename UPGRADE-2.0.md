@@ -12,7 +12,7 @@ call triggers a deprecation (`E_USER_DEPRECATED`, through
 them. Log the deprecations of your application to find them. The other
 changes, listed below too, break code that relies on them.
 
-Upgrade to 1.7 first, which requires PHP 8.1: it has most of the
+Upgrade to 1.7.1 first, which requires PHP 8.1: it has most of the
 replacements, and triggers the deprecations of the API they replace (see
 [Supporting 1.x and 2.x](#supporting-1x-and-2x)).
 
@@ -42,7 +42,7 @@ $driver)` with a `CliDriver` of the same arguments, the static methods of
 `Repository::getDiff($from, $to)`, `FileChange::getDiffLines()`, iterating
 a `Tree`, `Log::withLimit()`, `Branch::isMergedInto()`,
 `Blame::getHunks()`... Fix the deprecations of 1.7, then require
-`^1.7 || ^2.0`: a library supporting PHP 8.1 to 8.3 gets 1.7 there, and 2.0
+`^1.7.1 || ^2.0`: a library supporting PHP 8.1 to 8.3 gets 1.7 there, and 2.0
 from PHP 8.4, with the same code.
 
 Before:
