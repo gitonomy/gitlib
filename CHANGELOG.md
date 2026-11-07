@@ -2,6 +2,71 @@
 
 All notable changes to this project are documented in this file.
 
+## [v1.7.1] - Unreleased
+
+Changes since [v1.7.0](https://github.com/gitonomy/gitlib/releases/tag/v1.7.0).
+
+1.7.1 has the security fixes of 2.0 that break nothing of 1.6. Where 2.0 refuses every option,
+1.7.1 only refuses what reads or writes a file: the other options of `git log` as revisions stay
+deprecated, and work. The checks of a URL keep returning `false`, and clones keep throwing a
+`RuntimeException`, where 2.0 throws an `InvalidArgumentException`.
+
+### Security
+
+-   Refuse `--output` as a revision, which made git write a file: `getRevision('--output=/path')`
+    and everything reading a revision through it, `getLog()`, `getDiff()`, `getMergeBase()` or
+    `Branch::moveTo()` for instance.
+-   Refuse the options of `git blame` reading or writing a file as a revision:
+    `getBlame('--contents=/path', 'README.md')` returned the lines of any file, and the error of
+    `--ignore-revs-file` or `-S` printed its first line.
+-   Refuse a URL starting with a dash, which git read as an option:
+    `Admin::isValidRepository('--upload-pack=...')` ran the command in a repository with a remote,
+    `Admin::isValidRepositoryAndBranch()` and the clones when the second argument was a
+    repository. A path may start with a dash: `init()` and the clones end the options of git with
+    `--`, as `cloneFrom($url, '--upload-pack=...')` ran the command too.
+-   Refuse a hash starting with a dash in `ReferenceBag::createBranch()` and `createTag()`:
+    `createBranch('foo', '-d')` deleted the branch. So do the branch and the start point of
+    `WorkingCopy::checkoutNewBranch()`.
+-   Refuse an `fd::` URL, which makes git talk through a file descriptor it inherits from PHP, like
+    the socket of a database, and wait on it.
+-   Refuse an ssh URL whose host or user starts with a dash, even encoded (`%2D`), like
+    `ssh://-oProxyCommand=.../repository`: git before 2.14.1 passes it to ssh, which reads it as an
+    option and runs the command (CVE-2017-1000117). A `git://` URL whose host starts with a dash
+    is refused too: git passes it to the command of `core.gitProxy`.
+-   Hide the credentials of URLs (`https://user:token@host`), a password holding a `#` or a `?`
+    included, in the messages of `ProcessException` and of failed clones, in the logs, and in the
+    messages of the exceptions of Symfony Process, a timeout for instance, which keep their class.
+    From PHP 8.2, the traces hide them too (`#[\SensitiveParameter]`).
+-   Refuse a hook name leading out of the hooks directory: `Hooks::set('../../file', ...)`,
+    `remove('../config')` and `get('../config')` wrote, deleted and read files of the repository.
+    The names staying in the directory, like `post-receive.d/notify`, still work.
+-   Fix `Hooks` writing through a symbolic link to a missing file, out of the hooks directory:
+    `has()` returned `false` for it, and `set()` followed it.
+-   Ignore `core.fsmonitor`: git ran the command the configuration of a repository names there to
+    read the working tree, and even to diff a commit.
+-   Fix deleting a symbolic reference, which deleted the branch it points to instead:
+    `ReferenceBag::delete('refs/remotes/origin/HEAD')` deleted `origin/main`.
+-   Fix `ReferenceBag::delete('HEAD')` deleting a detached `HEAD`, which left no repository: it
+    throws an `InvalidArgumentException`.
+-   Require `symfony/process` 5.4.51, 6.4.33, 7.3.11, 7.4.5 or 8.0.5 and later: the older versions
+    escape the arguments wrongly on Windows (CVE-2024-51736, CVE-2026-24739).
+
+### Not fixed
+
+These fixes of 2.0 would break code written for 1.6. An application giving gitlib values it can't
+trust has to check them itself:
+
+-   `ext::` URLs stay accepted, as an application may use this transport on purpose. git refuses
+    them by default since 2.12: before that, `ext::sh -c ...` runs the command.
+-   The replacements of objects (`git replace`, `refs/replace/`) stay read, as `git replace --graft`
+    relies on them: whoever can push such a reference changes the message of a commit, or the
+    content of a blob, gitlib reads for a hash. Set `GIT_NO_REPLACE_OBJECTS` to `1` in the
+    `environmentVariables` of `CliDriver` to ignore them.
+-   `WorkingCopy::checkout()` still takes a path or an option: `checkout('README.md')` discards the
+    changes of the file, and `checkout('--force')` all of them.
+-   Moving a symbolic reference, with `Branch::moveTo()` or `ReferenceBag::update()`, still moves
+    the branch it points to.
+
 ## [v1.7.0] - 2026-10-15
 
 Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0).
@@ -100,5 +165,6 @@ _Earlier versions are not documented here. See the
 [GitHub releases](https://github.com/gitonomy/gitlib/releases) and
 [commit history](https://github.com/gitonomy/gitlib/commits/v1.6.0) for prior changes._
 
+[v1.7.1]: https://github.com/gitonomy/gitlib/compare/v1.7.0...v1.7.1
 [v1.7.0]: https://github.com/gitonomy/gitlib/compare/v1.6.0...v1.7.0
 [v1.6.0]: https://github.com/gitonomy/gitlib/releases/tag/v1.6.0

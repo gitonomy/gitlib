@@ -16,6 +16,7 @@ use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Util\LeadingDash;
 use Gitonomy\Git\Util\LegacyOverride;
 use Gitonomy\Git\Util\StringHelper;
 
@@ -59,6 +60,8 @@ class Log implements \Countable, \IteratorAggregate
      * @param array                            $paths      paths to filter on
      * @param int|null                         $offset     start list from a given position
      * @param int|null                         $limit      limit number of fetched elements
+     *
+     * @throws InvalidArgumentException A revision is an option making git write a file
      */
     public function __construct(Repository $repository, $revisions = null, $paths = null, $offset = null, $limit = null)
     {
@@ -67,11 +70,13 @@ class Log implements \Countable, \IteratorAggregate
         }
 
         foreach (null === $revisions ? [] : $revisions->getAll() as $revision) {
+            $name = $revision->getRevision();
+            LeadingDash::assertNoLogFileOption($name);
+
             if ($revision instanceof Commit || $revision instanceof Reference) {
                 continue;
             }
 
-            $name = $revision->getRevision();
             if (str_starts_with($name, '-') && '--all' !== $name) {
                 trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing "%s", an option of "git log", as revision to "%s()" is deprecated, it throws in 2.0: pass revisions, ranges, names to exclude or "--all".', $name, __METHOD__);
             }

@@ -17,6 +17,7 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\LogicException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
+use Gitonomy\Git\Util\LeadingDash;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -116,14 +117,18 @@ class WorkingCopy
      *
      * @return $this
      *
+     * @throws InvalidArgumentException   $branch or $startPoint starts with a dash
      * @throws ReferenceNotFoundException $startPoint names no commit
      */
     public function checkoutNewBranch(string $branch, Revision|string $startPoint = 'HEAD'): self
     {
+        $startPointName = $startPoint instanceof Revision ? $startPoint->getRevision() : $startPoint;
+        LeadingDash::assertNone($branch, $startPointName);
+
         // Like in 2.0. git gets the name, which tells a remote branch, to track it.
         ($startPoint instanceof Revision ? $startPoint : $this->repository->getRevision($startPoint))->getCommit();
 
-        $this->run('checkout', ['-b', $branch, $startPoint instanceof Revision ? $startPoint->getRevision() : $startPoint]);
+        $this->run('checkout', ['-b', $branch, $startPointName]);
 
         return $this;
     }

@@ -18,6 +18,8 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Util\Credentials;
+use Gitonomy\Git\Util\LeadingDash;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 
@@ -217,7 +219,7 @@ class Repository
      *
      * @throws RuntimeException
      */
-    public static function cloneFrom(string $url, string $path, ?string $branch = null, ?CliDriver $driver = null): self
+    public static function cloneFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch = null, ?CliDriver $driver = null): self
     {
         $driver = $driver ?? new CliDriver();
         $driver->cloneFrom($url, $path, $branch);
@@ -233,7 +235,7 @@ class Repository
      *
      * @throws RuntimeException
      */
-    public static function cloneBareFrom(string $url, string $path, ?string $branch = null, ?CliDriver $driver = null): self
+    public static function cloneBareFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch = null, ?CliDriver $driver = null): self
     {
         $driver = $driver ?? new CliDriver();
         $driver->cloneBareFrom($url, $path, $branch);
@@ -249,7 +251,7 @@ class Repository
      *
      * @throws RuntimeException
      */
-    public static function mirrorFrom(string $url, string $path, ?CliDriver $driver = null): self
+    public static function mirrorFrom(#[\SensitiveParameter] string $url, string $path, ?CliDriver $driver = null): self
     {
         $driver = $driver ?? new CliDriver();
         $driver->mirrorFrom($url, $path);
@@ -263,7 +265,7 @@ class Repository
      *
      * @param CliDriver|null $driver Configures git, a CliDriver with its default arguments when null
      */
-    public static function isValidRepository(string $url, ?CliDriver $driver = null): bool
+    public static function isValidRepository(#[\SensitiveParameter] string $url, ?CliDriver $driver = null): bool
     {
         return ($driver ?? new CliDriver())->isValidRepository($url);
     }
@@ -274,7 +276,7 @@ class Repository
      *
      * @param CliDriver|null $driver Configures git, a CliDriver with its default arguments when null
      */
-    public static function isValidRepositoryAndBranch(string $url, string $branch, ?CliDriver $driver = null): bool
+    public static function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branch, ?CliDriver $driver = null): bool
     {
         return ($driver ?? new CliDriver())->isValidRepositoryAndBranch($url, $branch);
     }
@@ -637,6 +639,8 @@ class Repository
             $revisions = new RevisionList($this, $revisions);
         }
 
+        LeadingDash::assertNoLogFileOption(...$revisions->getAsTextArray());
+
         return $this->runDiff($revisions->getAsTextArray());
     }
 
@@ -768,7 +772,7 @@ class Repository
      *
      * @return string Output of a successful process or null if execution failed and debug-mode is disabled.
      */
-    public function run($command, $args = [])
+    public function run($command, #[\SensitiveParameter] $args = [])
     {
         $process = $this->execute($command, $args);
 
@@ -853,22 +857,22 @@ class Repository
     /**
      * Runs a git command, and logs it.
      */
-    private function execute($command, $args = []): Process
+    private function execute($command, #[\SensitiveParameter] $args = []): Process
     {
         $process = $this->getProcess($command, $args);
 
         if ($this->logger) {
-            $this->logger->info(sprintf('run command: %s "%s" ', $command, implode(' ', $args)));
+            $this->logger->info(Credentials::redact(sprintf('run command: %s "%s" ', $command, implode(' ', $args))));
             $before = microtime(true);
         }
 
-        $process->run();
+        Credentials::runProcess($process);
 
         if ($this->logger && $this->debug) {
             $duration = microtime(true) - $before;
             $this->logger->debug(sprintf('last command (%s) duration: %sms', $command, sprintf('%.2f', $duration * 1000)));
             $this->logger->debug(sprintf('last command (%s) return code: %s', $command, $process->getExitCode()));
-            $this->logger->debug(sprintf('last command (%s) output: %s', $command, $process->getOutput()));
+            $this->logger->debug(Credentials::redact(sprintf('last command (%s) output: %s', $command, $process->getOutput())));
         }
 
         return $process;
@@ -882,7 +886,7 @@ class Repository
     private function fail($command, Process $process): void
     {
         if ($this->logger) {
-            $this->logger->error(sprintf("error while running %s\n output: \"%s\"", $command, $process->getErrorOutput()));
+            $this->logger->error(Credentials::redact(sprintf("error while running %s\n output: \"%s\"", $command, $process->getErrorOutput())));
         }
 
         if ($this->debug) {
@@ -910,11 +914,16 @@ class Repository
 
         $process = new Process(array_merge($base, $args));
 
-        if ($this->inheritEnvironmentVariables) {
-            $process->setEnv(array_replace($_SERVER, $this->environmentVariables));
-        } else {
-            $process->setEnv($this->environmentVariables);
-        }
+        $environmentVariables = $this->inheritEnvironmentVariables ? array_replace($_SERVER, $this->environmentVariables) : $this->environmentVariables;
+
+        // git runs the command core.fsmonitor names, which the configuration of a
+        // repository may set, to read the working tree, and even to diff a commit.
+        // What "git -c" sets, in its old format, the only one git before 2.31 reads:
+        // git before 1.7.2 has no -c. After the values of git's parent, to win over them.
+        $configParameters = (string) ($environmentVariables['GIT_CONFIG_PARAMETERS'] ?? getenv('GIT_CONFIG_PARAMETERS'));
+        $environmentVariables['GIT_CONFIG_PARAMETERS'] = ltrim($configParameters." 'core.fsmonitor=false'");
+
+        $process->setEnv($environmentVariables);
 
         $process->setTimeout($this->processTimeout);
         $process->setIdleTimeout($this->processTimeout);

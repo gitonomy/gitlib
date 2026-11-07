@@ -16,6 +16,7 @@ use Gitonomy\Git\Blame\Hunk;
 use Gitonomy\Git\Blame\Line;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Parser\BlameParser;
+use Gitonomy\Git\Util\LeadingDash;
 
 /**
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
@@ -166,6 +167,8 @@ class Blame implements \Countable
         if (null !== $this->lines) {
             return $this->lines;
         }
+
+        LeadingDash::assertNoBlameFileOption($this->revision->getRevision());
 
         $args = ['-p'];
 

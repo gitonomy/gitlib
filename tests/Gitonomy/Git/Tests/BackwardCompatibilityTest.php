@@ -14,9 +14,11 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Admin;
 use Gitonomy\Git\Blame;
+use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Diff\FileChange;
+use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Log;
 use Gitonomy\Git\PushReference;
 use Gitonomy\Git\Reference;
@@ -29,6 +31,114 @@ use Gitonomy\Git\Repository;
  */
 class BackwardCompatibilityTest extends AbstractTest
 {
+    /**
+     * The options of "git log" as revisions are deprecated, not removed: 1.x
+     * only refuses --output, which writes a file.
+     *
+     * @group legacy
+     */
+    public function testLogsKeepTheOptionsOfGit()
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->assertNotCount(0, $repository->getLog('--all')->getCommits());
+        $this->assertNotCount(0, $repository->getLog(['--no-merges', 'master'])->getCommits());
+        $this->assertNotCount(0, $repository->getLog(['--since=1970-01-01', 'master'])->getCommits());
+        $this->assertSame(self::LONGFILE_COMMIT, $repository->getLog([self::LONGFILE_COMMIT, '--max-count=1'])->getSingleCommit()->getHash());
+        $this->assertInstanceOf(Commit::class, $repository->getRevision('--all')->getCommit());
+    }
+
+    /**
+     * @group legacy
+     */
+    public function testDiffsKeepTheOptionsOfGit()
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->assertCount(1, $repository->getDiff(['--no-renames', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT])->getFiles());
+    }
+
+    public function testBlamesKeepTheOptionsOfGitReadingNoFile()
+    {
+        $repository = self::createFoobarRepository(false);
+
+        $this->assertNotCount(0, $repository->getBlame('-w', 'README.md'));
+    }
+
+    public function testCheckoutKeepsThePreviousBranch()
+    {
+        $repository = self::createFoobarRepository(false);
+        $repository->run('checkout', ['-q', '-b', 'foo']);
+        $repository->run('checkout', ['-q', 'master']);
+
+        $repository->getWorkingCopy()->checkout('-');
+
+        $this->assertSame("foo\n", $repository->run('rev-parse', ['--abbrev-ref', 'HEAD']));
+    }
+
+    public function testHooksKeepTheNamesThatStayInTheHooksDirectory()
+    {
+        $repository = self::createEmptyRepository();
+        mkdir($repository->getGitDir().'/hooks/post-receive.d');
+
+        $hooks = $repository->getHooks();
+        $hooks->set('post-receive.d/notify', 'content');
+        $hooks->set('.common', 'content');
+        $hooks->set('foo..bar', 'content');
+
+        $this->assertSame('content', $hooks->get('post-receive.d/notify'));
+        $this->assertSame('content', $hooks->get('.common'));
+        $this->assertSame('content', $hooks->get('foo..bar'));
+    }
+
+    /**
+     * A failing check is false, and a failing clone a RuntimeException, like
+     * in 1.6: code validating a URL handles nothing else.
+     *
+     * @group legacy
+     */
+    public function testRefusedUrlsKeepTheContractsOf16()
+    {
+        $this->assertFalse(Admin::isValidRepository('--upload-pack=foo', self::getOptions()));
+        $this->assertFalse(Admin::isValidRepositoryAndBranch('--upload-pack=foo', 'master', self::getOptions()));
+        $this->assertFalse(Admin::isValidRepository(null, self::getOptions()));
+
+        $this->expectException(RuntimeException::class);
+
+        Admin::cloneTo(self::createTempDir().'/clone', '--upload-pack=foo', true, self::getOptions());
+    }
+
+    /**
+     * The transport an application allows through git's protocol.ext.allow
+     * setting, or GIT_ALLOW_PROTOCOL.
+     *
+     * @group legacy
+     */
+    public function testAnExtUrlIsUpToGit()
+    {
+        $bare = self::createFoobarRepository()->getGitDir();
+        $options = self::getOptions();
+        $options['environment_variables']['GIT_ALLOW_PROTOCOL'] = 'ext:file';
+
+        $this->assertTrue(Admin::isValidRepository('ext::git-upload-pack '.$bare, $options));
+    }
+
+    /**
+     * Like in 1.6, deleting an attached HEAD deletes its branch.
+     *
+     * @group legacy
+     */
+    public function testDeletingAnAttachedHeadStillDeletesItsBranch()
+    {
+        $repository = self::createFoobarRepository(false);
+        $repository->run('checkout', ['-q', '-b', 'foo']);
+
+        $repository->getReferences()->delete('HEAD');
+
+        $this->assertStringNotContainsString('refs/heads/foo', $repository->run('show-ref'));
+        $this->assertFileExists($repository->getGitDir().'/HEAD');
+    }
+
     public function testEmptyOptions()
     {
         $source = self::createFoobarRepository(false);
