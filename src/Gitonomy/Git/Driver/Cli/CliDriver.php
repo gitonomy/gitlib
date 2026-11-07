@@ -13,6 +13,8 @@
 namespace Gitonomy\Git\Driver\Cli;
 
 use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Util\Credentials;
+use Gitonomy\Git\Util\RemoteUrl;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 
@@ -77,7 +79,8 @@ final class CliDriver
      */
     public function init(string $path): void
     {
-        $this->initRepository(['-q', $path]);
+        // --: a path may start with a dash.
+        $this->initRepository(['-q', '--', $path]);
     }
 
     /**
@@ -87,7 +90,7 @@ final class CliDriver
      */
     public function initBare(string $path): void
     {
-        $this->initRepository(['-q', '--bare', $path]);
+        $this->initRepository(['-q', '--bare', '--', $path]);
     }
 
     /**
@@ -95,7 +98,7 @@ final class CliDriver
      *
      * @throws RuntimeException
      */
-    public function cloneFrom(string $url, string $path, ?string $branch): void
+    public function cloneFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch): void
     {
         $this->cloneRepository($url, $path, null === $branch ? [] : ['--branch', $branch]);
     }
@@ -105,7 +108,7 @@ final class CliDriver
      *
      * @throws RuntimeException
      */
-    public function cloneBareFrom(string $url, string $path, ?string $branch): void
+    public function cloneBareFrom(#[\SensitiveParameter] string $url, string $path, ?string $branch): void
     {
         $this->cloneRepository($url, $path, null === $branch ? ['--bare'] : ['--branch', $branch, '--bare']);
     }
@@ -115,7 +118,7 @@ final class CliDriver
      *
      * @throws RuntimeException
      */
-    public function mirrorFrom(string $url, string $path): void
+    public function mirrorFrom(#[\SensitiveParameter] string $url, string $path): void
     {
         $this->cloneRepository($url, $path, ['--mirror']);
     }
@@ -123,10 +126,14 @@ final class CliDriver
     /**
      * @internal For Repository::isValidRepository()
      */
-    public function isValidRepository(string $url): bool
+    public function isValidRepository(#[\SensitiveParameter] string $url): bool
     {
+        if (null !== RemoteUrl::unsafeReason($url)) {
+            return false;
+        }
+
         $process = $this->createLsRemoteProcess([], $url, []);
-        $process->run();
+        Credentials::runProcess($process);
 
         return $process->isSuccessful();
     }
@@ -134,11 +141,15 @@ final class CliDriver
     /**
      * @internal For Repository::isValidRepositoryAndBranch()
      */
-    public function isValidRepositoryAndBranch(string $url, string $branch): bool
+    public function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branch): bool
     {
+        if (null !== RemoteUrl::unsafeReason($url)) {
+            return false;
+        }
+
         // git lists the branches whose name ends with the pattern: "release" matches "feature/release".
         $process = $this->createLsRemoteProcess(['--heads'], $url, ['refs/heads/'.$branch]);
-        $process->run();
+        Credentials::runProcess($process);
         if (!$process->isSuccessful()) {
             return false;
         }
@@ -159,13 +170,19 @@ final class CliDriver
      *
      * @throws RuntimeException
      */
-    public function cloneRepository(string $url, string $path, array $args): void
+    public function cloneRepository(#[\SensitiveParameter] string $url, string $path, array $args): void
     {
-        $process = $this->createProcess('clone', array_merge(['-q'], $args, [$url, $path]));
-        $process->run();
+        $reason = RemoteUrl::unsafeReason($url);
+        if (null !== $reason) {
+            throw new RuntimeException(sprintf('Error while initializing repository: %s', $reason));
+        }
+
+        // --: a path may start with a dash.
+        $process = $this->createProcess('clone', array_merge(['-q'], $args, ['--', $url, $path]));
+        Credentials::runProcess($process);
 
         if (!$process->isSuccessful()) {
-            throw new RuntimeException(sprintf('Error while initializing repository: %s', $process->getErrorOutput()));
+            throw new RuntimeException(sprintf('Error while initializing repository: %s', Credentials::redact($process->getErrorOutput())));
         }
     }
 

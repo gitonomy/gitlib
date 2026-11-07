@@ -39,7 +39,7 @@
         "ext-pcre": "*",
         "symfony/deprecation-contracts": "^2.5 || ^3",
         "symfony/polyfill-mbstring": "^1.7",
-        "symfony/process": "^5.4 || ^6.0 || ^7.0 || ^8.0"
+        "symfony/process": "^5.4.51 || ^6.4.33 || ~7.3.11 || ^7.4.5 || ^8.0.5"
     },
     "require-dev": {
         "ext-fileinfo": "*",

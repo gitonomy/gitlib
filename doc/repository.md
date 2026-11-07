@@ -49,6 +49,24 @@ option is the second argument, and its `logger`, `command`,
 `CliDriver`. Setting its `debug` option to `false` is deprecated: gitlib
 2.0 always throws when git fails.
 
+Ignore the replacements of objects
+----------------------------------
+
+git reads the replacements of a repository (`git replace`): whoever can
+push one changes the message of a commit, or the content of a blob, you
+read for a hash. For a repository you don't trust, ignore them:
+
+```php
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Repository;
+
+$repository = new Repository('/path/to/repo', driver: new CliDriver(
+    environmentVariables: ['GIT_NO_REPLACE_OBJECTS' => '1'],
+));
+```
+
+gitlib 2.0 always ignores them.
+
 Test if a repository is bare
 ----------------------------
 

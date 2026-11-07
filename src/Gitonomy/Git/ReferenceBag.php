@@ -12,11 +12,13 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Reference\Stash;
 use Gitonomy\Git\Reference\Tag;
+use Gitonomy\Git\Util\LeadingDash;
 use Gitonomy\Git\Util\LegacyOverride;
 
 /**
@@ -158,15 +160,28 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * Deleting a reference by another name than its full name under "refs/", like "HEAD" or "master", is deprecated.
      *
+     * @throws InvalidArgumentException HEAD is detached: deleting it would leave no repository
+     *
      * @return void
      */
     public function delete($fullname)
     {
+        // --no-deref: a symbolic reference, like refs/remotes/origin/HEAD, is
+        // deleted, not the branch it points to.
+        $args = ['--no-deref', '-d', $fullname];
+
         if (!str_starts_with($fullname, 'refs/')) {
             trigger_deprecation('gitonomy/gitlib', '1.7', 'Deleting "%s", which is not the full name of a reference under "refs/", is deprecated, it throws in 2.0.', $fullname);
+
+            if ('HEAD' === $fullname && $this->repository->isHeadDetached()) {
+                throw new InvalidArgumentException('A detached HEAD can\'t be deleted, which would leave no repository.');
+            }
+
+            // Like in 1.6: deleting an attached HEAD deletes its branch.
+            $args = ['-d', $fullname];
         }
 
-        $this->repository->run('update-ref', ['-d', $fullname]);
+        $this->repository->run('update-ref', $args);
 
         unset($this->references[$fullname]);
     }
@@ -447,8 +462,12 @@ class ReferenceBag implements \Countable, \IteratorAggregate
     {
         $fullname = $reference->getFullname();
 
+        $hash = $reference->getCommitHash();
+        // "git update-ref refs/heads/foo -d" deletes the branch.
+        LeadingDash::assertNone($hash);
+
         $this->initialize();
-        $this->repository->run('update-ref', [$fullname, $reference->getCommitHash()]);
+        $this->repository->run('update-ref', [$fullname, $hash]);
 
         $this->references[$fullname] = $reference;
 

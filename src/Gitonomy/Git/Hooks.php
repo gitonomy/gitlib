@@ -43,11 +43,17 @@ class Hooks
      *
      * @param string $name Name of the hook
      *
+     * @throws InvalidArgumentException The name leads out of the hooks directory
+     *
      * @return bool
      */
     public function has($name)
     {
-        return file_exists($this->getPath($name));
+        $path = $this->getPath($name);
+
+        // A symbolic link to a file not deployed yet is a hook too: set()
+        // would write through it, out of the hooks directory.
+        return is_link($path) || file_exists($path);
     }
 
     /**
@@ -55,13 +61,13 @@ class Hooks
      *
      * @param string $name Name of the hook
      *
-     * @throws InvalidArgumentException Hook does not exist
+     * @throws InvalidArgumentException Hook does not exist, or the name leads out of the hooks directory
      *
      * @return string Content of the hook
      */
     public function get($name)
     {
-        if (!$this->has($name)) {
+        if (!$this->has($name) || !file_exists($this->getPath($name))) {
             throw new InvalidArgumentException(sprintf('Hook named "%s" is not present', $name));
         }
 
@@ -74,8 +80,9 @@ class Hooks
      * @param string $name Name of the hook to insert
      * @param string $file Target of symlink
      *
-     * @throws LogicException   Hook is already present
-     * @throws RuntimeException Error on symlink creation
+     * @throws InvalidArgumentException The name leads out of the hooks directory
+     * @throws LogicException           Hook is already present
+     * @throws RuntimeException         Error on symlink creation
      */
     public function setSymlink($name, $file)
     {
@@ -95,7 +102,8 @@ class Hooks
      * @param string $name    Name of the hook
      * @param string $content Content of the hook
      *
-     * @throws LogicException The hook is already defined
+     * @throws InvalidArgumentException The name leads out of the hooks directory
+     * @throws LogicException           The hook is already defined
      */
     public function set($name, $content)
     {
@@ -113,7 +121,8 @@ class Hooks
      *
      * @param string $name Name of the hook
      *
-     * @throws LogicException The hook is not present
+     * @throws InvalidArgumentException The name leads out of the hooks directory
+     * @throws LogicException           The hook is not present
      */
     public function remove($name)
     {
@@ -125,10 +134,19 @@ class Hooks
     }
 
     /**
+     * Unlike 2.0, 1.x accepts a name in a subdirectory, like "post-receive.d/notify",
+     * or starting with a dot.
+     *
+     * @throws InvalidArgumentException The name leads out of the hooks directory
+     *
      * @return string
      */
     protected function getPath($name)
     {
+        if (1 === preg_match('#(?:^|[/\\\\])\.\.(?:[/\\\\]|$)#', (string) $name)) {
+            throw new InvalidArgumentException(sprintf('The name of the hook "%s" leads out of the hooks directory.', $name));
+        }
+
         return $this->repository->getGitDir().'/hooks/'.$name;
     }
 }
