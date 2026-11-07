@@ -46,11 +46,6 @@ use Gitonomy\Git\Repository;
 $repository = new Repository('/srv/project.git', '/srv/project', new CliDriver(processTimeout: 60));
 ```
 
-An array of options as second argument (`working_dir`, `logger`, `command`,
-`process_timeout`...) is deprecated since 1.7: pass the working directory,
-and configure a `CliDriver` instead. See
-[UPGRADE-2.0.md](../UPGRADE-2.0.md#opening-a-repository).
-
 A directory that doesn't exist, or that isn't a repository, throws an
 `InvalidArgumentException`.
 
@@ -150,8 +145,7 @@ $references = $repository->getReferences();
 gitlib reads them again after every write it makes: creating or deleting a
 reference, a checkout, a merge, `run()`... It doesn't see the writes of other
 processes (a push to the repository, another worker...): open a new
-`Repository` to see them. The `$reload` argument of `getReferences()` is
-deprecated since 1.7.
+`Repository` to see them.
 
 Description
 -----------
@@ -175,9 +169,6 @@ $size = $repository->getSizeInBytes();
 
 echo 'Your repository size is '.round($size / 1000).' KB';
 ```
-
-`getSize()`, which returns kilobytes (1,000 bytes), is deprecated since 1.7:
-use `getSizeInBytes()`.
 
 Running git commands
 --------------------
@@ -207,9 +198,6 @@ relative to the repository. The arguments go to git as they are: a value from
 your users starting with a dash is an option for git, unless `--` comes
 before it. gitlib reads the references again after the command, which may
 have written them.
-
-`shell()` is deprecated since 1.7: run `git shell` with Symfony Process
-instead.
 
 Errors
 ------
@@ -480,12 +468,6 @@ $repository = new Repository('/tmp/foo', driver: new CliDriver(
 ));
 ```
 
-The `command`, `environment_variables` and `process_timeout` options of
-`Repository` and `Admin`, from 1.x, are deprecated since 1.7 in favor of these
-arguments. So is `inherit_environment_variables`, which passed the entries of
-`$_SERVER` to git, the headers and credentials of an HTTP request included:
-pass the variables git needs to `environmentVariables`.
-
 Git configuration
 -----------------
 
@@ -559,9 +541,6 @@ debug last command (fetch) output: Fetching origin
 A failing command also logs its error output, at the `debug` level: the
 exception it throws reports the failure. The logs hide the credentials of
 URLs, like exceptions. `LibGit2Driver` logs nothing.
-
-`Repository::setLogger()` and `Repository::getLogger()` are deprecated since
-2.0: give the logger to `CliDriver`.
 
 Using your own driver
 ---------------------

@@ -76,57 +76,6 @@ final class Tree implements \IteratorAggregate
     }
 
     /**
-     * @return array<string, array{string, Blob|Tree|Submodule}> The mode and the object of each entry, by name
-     *
-     * @deprecated since gitonomy/gitlib 1.7, iterate the tree instead
-     */
-    public function getEntries(): array
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, iterate the tree instead.', __METHOD__);
-
-        return self::toArrays($this->entries());
-    }
-
-    /**
-     * @return array<string, array{string, Blob}> The mode and the blob of each blob, by name
-     *
-     * @deprecated since gitonomy/gitlib 1.7, use getBlobs() instead
-     */
-    public function getBlobEntries(): array
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getBlobs()" instead.', __METHOD__);
-
-        // @phpstan-ignore return.type (getBlobs() returns blobs only.)
-        return self::toArrays($this->getBlobs());
-    }
-
-    /**
-     * @return array<string, array{string, Submodule}> The mode and the submodule of each submodule, by name
-     *
-     * @deprecated since gitonomy/gitlib 1.7, use getSubmodules() instead
-     */
-    public function getCommitReferenceEntries(): array
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getSubmodules()" instead.', __METHOD__);
-
-        // @phpstan-ignore return.type (getSubmodules() returns submodules only.)
-        return self::toArrays($this->getSubmodules());
-    }
-
-    /**
-     * @return array<string, array{string, Tree}> The mode and the tree of each tree, by name
-     *
-     * @deprecated since gitonomy/gitlib 1.7, use getTrees() instead
-     */
-    public function getTreeEntries(): array
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getTrees()" instead.', __METHOD__);
-
-        // @phpstan-ignore return.type (getTrees() returns trees only.)
-        return self::toArrays($this->getTrees());
-    }
-
-    /**
      * @throws InvalidArgumentException The tree has no entry $name
      */
     public function getEntry(string $name): Submodule|self|Blob
@@ -176,17 +125,5 @@ final class Tree implements \IteratorAggregate
         }
 
         return $this->entries;
-    }
-
-    /**
-     * The entries in the format of 1.x.
-     *
-     * @param array<string, TreeEntry> $entries
-     *
-     * @return array<string, array{string, Blob|Tree|Submodule}>
-     */
-    private static function toArrays(array $entries): array
-    {
-        return array_map(static fn (TreeEntry $entry): array => [$entry->getMode(), $entry->getObject()], $entries);
     }
 }

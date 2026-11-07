@@ -24,8 +24,6 @@ use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 
 class DiffTest extends AbstractTestCase
 {
@@ -438,52 +436,6 @@ class DiffTest extends AbstractTestCase
         $this->assertSame("caf\u{e9}\t.txt", $files[0]->getName());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetDiffOfARange(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Calling "Gitonomy\Git\Repository::getDiff()" with one argument is deprecated, pass the revisions to compare as "from" and "to" arguments, or use "Gitonomy\Git\WorkingCopy::getDiff()" to compare a revision with the working tree.');
-
-        $repository = self::createFoobarRepository();
-
-        $this->assertSame($repository->getDiff(self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->toArray(), $repository->getDiff(self::BEFORE_LONGFILE_COMMIT.'..'.self::LONGFILE_COMMIT)->toArray());
-        $this->assertSame($repository->getDiff(self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->toArray(), $repository->getDiff([self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT])->toArray());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetLines(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Diff\FileChange::getLines()" method is deprecated, use "getDiffLines()" instead.');
-
-        $change = new FileChange(1, 1, 1, 2, [new DiffLine(DiffLineType::Context, 'kept'), new DiffLine(DiffLineType::Addition, 'added')]);
-
-        $this->assertSame([[FileChange::LINE_CONTEXT, 'kept'], [FileChange::LINE_ADD, 'added']], $change->getLines());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyConstructorWithLinesAsArrays(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing the lines to "Gitonomy\Git\Diff\FileChange::__construct()" as arrays is deprecated, pass "Gitonomy\Git\Diff\DiffLine" objects instead.');
-
-        $change = new FileChange(1, 1, 1, 2, [[FileChange::LINE_CONTEXT, 'kept'], new DiffLine(DiffLineType::Addition, 'added')]);
-
-        $this->assertSame([[DiffLineType::Context, 'kept'], [DiffLineType::Addition, 'added']], array_map(static fn (DiffLine $line): array => [$line->getType(), $line->getContent()], $change->getDiffLines()));
-        $this->assertSame(1, $change->getAdditions());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyConstructorRefusesAnUnknownTypeOfLine(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing the lines to "Gitonomy\Git\Diff\FileChange::__construct()" as arrays is deprecated, pass "Gitonomy\Git\Diff\DiffLine" objects instead.');
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown type of line 2: the types are 1 (an addition), 0 (a context line) and -1 (a deletion).');
-
-        new FileChange(1, 1, 1, 1, [[2, 'line']]);
-    }
-
     public function testFromArrayRefusesAnUnknownTypeOfLine(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -522,83 +474,6 @@ class DiffTest extends AbstractTestCase
         $this->expectExceptionMessage('A diff without repository can\'t read blobs: get it from a repository.');
 
         $file->getOldBlob();
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacySetRepository(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Diff\File::setRepository()" method is deprecated, the diffs gitlib returns have their repository already.');
-
-        $repository = self::createFoobarRepository();
-        $file = new File('README.md', 'README.md', '100644', '100644', null, null, false);
-        $file->setRepository($repository);
-
-        $this->assertSame($repository, $file->getRepository());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyDiffSetRepository(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Diff\Diff::setRepository()" method is deprecated, the diffs gitlib returns have their repository already.');
-
-        $repository = self::createFoobarRepository();
-        $diff = Diff::parse(":100644 100644 1111111111111111111111111111111111111111 2222222222222222222222222222222222222222 M\tREADME.md\n");
-        $diff->setRepository($repository);
-
-        $this->assertSame($repository, $diff->getFiles()[0]->getRepository());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyAddChange(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Diff\File::addChange()" method is deprecated, give the changes to the constructor instead.');
-
-        $file = new File('README.md', 'README.md', '100644', '100644', null, null, false);
-        $change = new FileChange(1, 1, 1, 1, [new DiffLine(DiffLineType::Addition, 'added')]);
-        $file->addChange($change);
-
-        $this->assertSame([$change], $file->getChanges());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyIsChangeMode(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Diff\File::isChangeMode()" method is deprecated, use "isModeChange()" instead.');
-
-        $this->assertTrue(new File('run.sh', 'run.sh', '100644', '100755', null, null, false)->isChangeMode());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyFileIsDelete(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Diff\File::isDelete()" method is deprecated, use "isDeletion()" instead.');
-
-        $this->assertTrue(new File('README.md', null, '100644', null, null, null, false)->isDelete());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetAnchor(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Diff\File::getAnchor()" method is deprecated, use "substr($file->getNewIndex(), 0, 12)" instead.');
-
-        $this->assertSame('222222222222', new File('README.md', 'README.md', '100644', '100644', str_repeat('1', 40), str_repeat('2', 40), false)->getAnchor());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetCount(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Diff\FileChange::getCount()" method is deprecated, use "getAdditions()" or "getDeletions()" instead.');
-
-        $change = new FileChange(1, 1, 1, 2, [new DiffLine(DiffLineType::Context, 'kept'), new DiffLine(DiffLineType::Addition, 'added')]);
-
-        $this->assertSame(1, $change->getCount(FileChange::LINE_ADD));
     }
 
     public function testMnemonicPrefix(): void

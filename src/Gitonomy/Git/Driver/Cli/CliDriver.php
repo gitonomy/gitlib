@@ -102,35 +102,17 @@ final readonly class CliDriver implements DriverInterface
     }
 
     /**
-     * @internal For the deprecated Admin::cloneRepository(), to be removed in 3.0
-     *
      * @param string[] $args Arguments of ``git clone``
      *
      * @throws ProcessException
      */
-    public function cloneRepository(string $path, #[\SensitiveParameter] string $url, array $args): void
+    private function cloneRepository(string $path, #[\SensitiveParameter] string $url, array $args): void
     {
         // Like isValidRepository(), whose ls-remote can't take "--".
         RemoteUrl::assertSafe($url);
 
         // --: a path may start with a dash.
         $this->mustRun('clone', ['-q', ...$args, '--', $url, $path]);
-    }
-
-    /**
-     * @internal For the deprecated Repository::getLogger(), to be removed in 3.0
-     */
-    public function getLogger(): ?LoggerInterface
-    {
-        return $this->logger;
-    }
-
-    /**
-     * @internal For the deprecated Repository::setLogger(), to be removed in 3.0
-     */
-    public function withLogger(LoggerInterface $logger): self
-    {
-        return new self($this->command, $this->environmentVariables, $this->processTimeout, $logger);
     }
 
     private function runner(): GitRunner

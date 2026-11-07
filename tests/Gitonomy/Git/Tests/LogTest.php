@@ -23,8 +23,6 @@ use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Log;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\TestWith;
 
 class LogTest extends AbstractTestCase
@@ -333,46 +331,6 @@ class LogTest extends AbstractTestCase
         $this->assertSame(2, $limited->getLimit());
         $this->assertSame(1, $limited->getOffset());
         $this->assertSame(\array_slice(self::hashes($log), 0, 2), self::hashes($limited));
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacySetOffset(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Log::setOffset()" method is deprecated, use "withOffset()" instead.');
-
-        $log = self::createFoobarRepository()->getLog();
-        $log->setOffset(2);
-
-        $this->assertSame(2, $log->getOffset());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacySetLimit(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Log::setLimit()" method is deprecated, use "withLimit()" instead.');
-
-        $log = self::createFoobarRepository()->getLog(self::LONGFILE_COMMIT);
-
-        $this->assertSame($log, $log->setLimit(1));
-        $this->assertCount(1, $log->getCommits());
-    }
-
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetDiffIgnoresThePathsOfTheLog(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Log::getDiff()" method is deprecated, use "Gitonomy\Git\Repository::getDiff()" instead.');
-
-        $repository = self::createFoobarRepository();
-        $diff = $repository->getDiff(self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->toArray();
-        $legacyDiff = $repository->getLog(self::BEFORE_LONGFILE_COMMIT.'..'.self::LONGFILE_COMMIT, 'README.md')->getDiff();
-
-        // A log of README.md, but the diff of the range, which changes long.php only.
-        $this->assertSame(['long.php'], array_map(static fn (File $file): string => $file->getName(), $legacyDiff->getFiles()));
-        $this->assertSame($diff, $legacyDiff->toArray());
-        $this->assertSame($diff, $repository->getLog([self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT])->getDiff()->toArray());
     }
 
     public function testLogOfExcludedAndSymmetricRevisions(): void

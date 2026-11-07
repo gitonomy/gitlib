@@ -23,11 +23,6 @@ start from their best common ancestor:
 $diff = $repository->getDiff($repository->getMergeBase('master', 'feature'), 'feature');
 ```
 
-Calling `getDiff()` with one argument (a range like `a..b` or `a...b`, two
-revisions in an array, or one revision to compare with the working tree)
-is deprecated since 1.7: see [UPGRADE-2.0.md](../UPGRADE-2.0.md).
-`Log::getDiff()` is deprecated too: it ignored the paths of the log.
-
 Other diffs
 -----------
 
@@ -126,9 +121,6 @@ $file->getDeletions();
 $file->getChanges(); // FileChange objects: see below
 ```
 
-`isChangeMode()`, `isDelete()` and `getAnchor()` are deprecated since 1.7:
-use `isModeChange()`, `isDeletion()` and `substr($file->getNewIndex(), 0, 12)`.
-
 The FileChange object
 ---------------------
 
@@ -163,13 +155,6 @@ foreach ($file->getChanges() as $change) {
 
 `getAdditions()` and `getDeletions()` count the lines the hunk adds and
 deletes.
-
-`getLines()`, which returns each line as an array (`[$type, $content]`), the
-`FileChange::LINE_ADD`, `LINE_CONTEXT` and `LINE_REMOVE` constants, and
-`FileChange::getCount()` are deprecated since 1.7: use `getDiffLines()`,
-`DiffLineType`, and `getAdditions()` or `getDeletions()`. So is passing the
-lines to the constructor of `FileChange` as arrays: pass `DiffLine`
-objects.
 
 Parsing a diff
 --------------
@@ -211,7 +196,3 @@ $diff = Diff::fromArray($array, $repository);
 ```
 
 The arrays of 1.x are read too.
-
-`Diff::setRepository()`, `File::setRepository()` and `File::addChange()` are
-deprecated since 1.7: pass the repository to `Diff::parse()` or
-`Diff::fromArray()`, and the changes to the constructor of `File`.

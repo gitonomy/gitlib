@@ -14,11 +14,9 @@ namespace Gitonomy\Git;
 
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Driver\Data\CommitData;
-use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Util\Message;
-use Symfony\Component\String\CodePointString;
 
 /**
  * Representation of a Git commit.
@@ -87,18 +85,6 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns a fixed-with short hash.
-     *
-     * @deprecated since gitonomy/gitlib 1.7, use substr($commit->getHash(), 0, $length) instead
-     */
-    public function getFixedShortHash(int $length = 6): string
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.', __METHOD__);
-
-        return new CodePointString($this->revision)->slice(0, $length)->toString();
-    }
-
-    /**
      * Returns parent hashes.
      *
      * @return string[] An array of SHA1 hashes
@@ -153,32 +139,6 @@ final class Commit extends Revision
     }
 
     /**
-     * Returns the first line of the commit, and the first 50 characters.
-     *
-     * Ported from https://github.com/fabpot/Twig-extensions/blob/d67bc7e69788795d7905b52d31188bbc1d390e01/lib/Twig/Extensions/Extension/Text.php#L52-L109
-     *
-     * @deprecated since gitonomy/gitlib 1.7, use symfony/string instead: u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)
-     */
-    public function getShortMessage(int $length = 50, bool $preserve = false, string $separator = '...'): string
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use symfony/string instead: "u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)".', __METHOD__);
-
-        $message = $this->getSubjectMessage();
-
-        $codePointMessage = new CodePointString($message);
-
-        if ($codePointMessage->length() > $length) {
-            if ($preserve && null !== ($breakpoint = $codePointMessage->indexOf(' ', $length))) {
-                $length = $breakpoint;
-            }
-
-            return rtrim($codePointMessage->slice(0, $length)->toString()).$separator;
-        }
-
-        return $message;
-    }
-
-    /**
      * Resolves all references associated to this commit.
      *
      * @return Reference[] An array of references (Branch, Tag, Squash)
@@ -191,20 +151,10 @@ final class Commit extends Revision
     /**
      * Returns the local and remote branches whose history contains the commit.
      *
-     * Passing arguments, to keep local or remote branches only, is deprecated.
-     *
      * @return Branch[]
      */
-    public function getIncludingBranches(bool $local = true, bool $remote = true): array
+    public function getIncludingBranches(): array
     {
-        if (\func_num_args() > 0) {
-            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing arguments to "%s()" is deprecated, filter the branches it returns with "%s::isLocal()" or "isRemote()" instead.', __METHOD__, Branch::class);
-        }
-
-        if (!$local && !$remote) {
-            throw new InvalidArgumentException('Keep the local branches, the remote ones, or both: $local and $remote can\'t both be false.');
-        }
-
         $fullnames = $this->repository->getRepositoryDriver()->getIncludingBranches($this->revision);
         $references = $this->repository->getReferences();
         // A branch another process created since gitlib read the references.
@@ -221,7 +171,7 @@ final class Commit extends Revision
             }
 
             $branch = $references->get($fullname);
-            if ($branch instanceof Branch && ($branch->isLocal() ? $local : $remote)) {
+            if ($branch instanceof Branch) {
                 $branches[] = $branch;
             }
         }

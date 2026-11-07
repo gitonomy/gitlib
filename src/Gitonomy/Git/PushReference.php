@@ -52,16 +52,6 @@ final class PushReference
         return $this->fullname;
     }
 
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use getFullname() instead
-     */
-    public function getReference(): string
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getFullname()" instead.', __METHOD__);
-
-        return $this->fullname;
-    }
-
     public function getBefore(): string
     {
         return $this->before;
@@ -78,16 +68,6 @@ final class PushReference
     public function getLog(array $excludes = []): Log
     {
         return $this->repository->getLog([$this->getRange(), ...array_map(static fn (string $exclude): string => '^'.$exclude, $excludes)]);
-    }
-
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use getRange() instead
-     */
-    public function getRevision(): string
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getRange()" instead.', __METHOD__);
-
-        return $this->getRange();
     }
 
     /**
@@ -117,31 +97,11 @@ final class PushReference
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 1.7, use isCreation() instead
-     */
-    public function isCreate(): bool
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isCreation()" instead.', __METHOD__);
-
-        return $this->isCreation();
-    }
-
-    /**
      * @return bool Whether the push deletes the reference, like File::isDeletion() for a file
      */
     public function isDeletion(): bool
     {
         return $this->isZero($this->after);
-    }
-
-    /**
-     * @deprecated since gitonomy/gitlib 1.7, use isDeletion() instead
-     */
-    public function isDelete(): bool
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "isDeletion()" instead.', __METHOD__);
-
-        return $this->isDeletion();
     }
 
     public function isForce(): bool

@@ -25,9 +25,6 @@ Like git, the blame stops at the end of the file, and a first line after it
 throws a `DriverException`. A last line before the first one blames the lines
 in order, like `git blame -L 5,3`.
 
-Passing a range as a string (`'2,3'` or `'2,+2'`, like `git blame -L`) is
-deprecated since 1.7: pass the first and the last lines instead.
-
 Line-per-line iteration
 -----------------------
 
@@ -66,9 +63,6 @@ $line->getCommit();         // The commit that last changed it
 $author = $line->getCommit()->getAuthorName();
 ```
 
-`Line::getLine()` is deprecated since 1.7: use `getOriginalNumber()`, which
-returns an integer.
-
 Group reading by commit
 -----------------------
 
@@ -86,5 +80,3 @@ foreach ($blame->getHunks() as $hunk) {
     }
 }
 ```
-
-`getGroupedLines()` is deprecated since 1.7: use `getHunks()`.

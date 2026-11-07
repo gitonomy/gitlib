@@ -62,19 +62,6 @@ final readonly class Diff
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 1.7, the diffs gitlib returns have their repository already
-     */
-    public function setRepository(Repository $repository): void
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, the diffs gitlib returns have their repository already.', __METHOD__);
-
-        foreach ($this->files as $file) {
-            // Without one more deprecation for each file.
-            \Closure::bind(static fn () => $file->repository = $repository, null, File::class)();
-        }
-    }
-
-    /**
      * Get list of files modified in the diff's revision.
      *
      * @return File[] An array of Diff\File objects

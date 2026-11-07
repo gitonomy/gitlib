@@ -15,7 +15,6 @@ namespace Gitonomy\Git;
 use Gitonomy\Git\Diff\Diff;
 use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Driver\Cli\CliRepositoryDriver;
-use Gitonomy\Git\Driver\Cli\LegacyOptions;
 use Gitonomy\Git\Driver\Data\ObjectType;
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\RepositoryDriverInterface;
@@ -28,7 +27,6 @@ use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Util\WeakCache;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 
 /**
@@ -37,8 +35,6 @@ use Symfony\Component\Process\Process;
  * Main entry point for browsing a Git repository.
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
- *
- * @phpstan-import-type Options from LegacyOptions
  */
 final class Repository
 {
@@ -81,54 +77,26 @@ final class Repository
     private ?ReferenceBag $referenceBag = null;
 
     /**
-     * Backend used to run operations.
-     */
-    private DriverInterface $driver;
-
-    /**
      * Operations on this repository, opened by the driver.
      */
-    private RepositoryDriverInterface $repositoryDriver;
+    private readonly RepositoryDriverInterface $repositoryDriver;
 
     /**
      * Opens the repository in $dir: a bare repository, or a working tree with
      * its ".git" directory or file (a linked worktree, a submodule...).
      *
-     * An array of options as second argument is deprecated: its "working_dir"
-     * option is the $workingDir argument, and its "logger", "command",
-     * "environment_variables", "inherit_environment_variables" and
-     * "process_timeout" options configure a CliDriver.
+     * @param string|null     $workingDir The working tree, when $dir is a git directory kept apart from it
+     * @param DriverInterface $driver     Backend running the operations
      *
-     * @param Options|string|null $workingDir The working tree, when $dir is a git directory kept apart from it
-     * @param DriverInterface     $driver     Backend running the operations
-     *
-     * @throws InvalidArgumentException      $dir doesn't exist or isn't a repository, or an option is unknown
+     * @throws InvalidArgumentException      $dir doesn't exist or isn't a repository
      * @throws DriverException               The driver can't open the repository
      * @throws UnsupportedOperationException The repository uses SHA-256 hashes, or with LibGit2Driver the reftable format
      */
-    public function __construct(string $dir, array|string|null $workingDir = null, DriverInterface $driver = new CliDriver())
+    public function __construct(string $dir, ?string $workingDir = null, DriverInterface $driver = new CliDriver())
     {
-        if (\is_array($workingDir)) {
-            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing an array of options to "%s()" is deprecated, pass the working directory as "workingDir" argument, and configure the logger and git through the "driver" argument.', __METHOD__);
-
-            $options = new LegacyOptions($workingDir);
-            $optionsDriver = $options->repositoryDriver();
-            if (null !== $optionsDriver) {
-                // The driver is the third argument.
-                if (\func_num_args() > 2) {
-                    throw new InvalidArgumentException('The driver argument can\'t be combined with the "logger" or git options: configure the driver instead.');
-                }
-
-                $driver = $optionsDriver;
-            }
-
-            $workingDir = $options->workingDir;
-        }
-
         $this->commits = new WeakCache();
         $this->trees = new WeakCache();
         $this->blobs = new WeakCache();
-        $this->driver = $driver;
         $this->repositoryDriver = $driver->open($dir, $workingDir);
         $this->gitDir = $this->repositoryDriver->getGitDir();
         $this->workingDir = $this->repositoryDriver->getWorkingDir();
@@ -330,22 +298,10 @@ final class Repository
      * Returns the references of the repository, read again after every write
      * gitlib makes. Open a new Repository to see the writes of other
      * processes.
-     *
-     * Passing true, to read them again, is deprecated.
      */
-    public function getReferences(bool $reload = false): ReferenceBag
+    public function getReferences(): ReferenceBag
     {
-        $this->referenceBag ??= new ReferenceBag($this);
-
-        if (\func_num_args() > 0) {
-            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing an argument to "%s()" is deprecated, gitlib reads the references again after its writes: open a new Repository to see the writes of other processes.', __METHOD__);
-        }
-
-        if ($reload) {
-            $this->referenceBag->invalidate();
-        }
-
-        return $this->referenceBag;
+        return $this->referenceBag ??= new ReferenceBag($this);
     }
 
     /**
@@ -419,29 +375,13 @@ final class Repository
     /**
      * Returns the commits that last changed the lines of $file.
      *
-     * A string as third argument, "<start>,<end>" or "<start>,+<count>" like
-     * "git blame -L", is deprecated.
+     * @param int|null $firstLine The first line to blame, from 1, the first one of the file when null
+     * @param int|null $lastLine  The last line to blame, the last one of the file when null
      *
-     * @param int|string|null $firstLine The first line to blame, from 1, the first one of the file when null
-     * @param int|null        $lastLine  The last line to blame, the last one of the file when null
+     * @throws InvalidArgumentException An invalid range of lines
      */
-    public function getBlame(Revision|string $revision, string $file, int|string|null $firstLine = null, ?int $lastLine = null): Blame
+    public function getBlame(Revision|string $revision, string $file, ?int $firstLine = null, ?int $lastLine = null): Blame
     {
-        if (\is_string($firstLine)) {
-            trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing a range of lines as a string to "%s()" is deprecated, pass the first and the last lines instead.', __METHOD__);
-
-            if (!preg_match('/^(\d+),(\+?)(\d*)$/', $firstLine, $vars)) {
-                throw new InvalidArgumentException(\sprintf('Unsupported range of lines "%s": pass the first and the last lines instead.', $firstLine));
-            }
-
-            $firstLine = (int) $vars[1];
-            $lastLine = match (true) {
-                '' === $vars[3] => null,
-                '+' === $vars[2] => $firstLine + (int) $vars[3] - 1,
-                default => (int) $vars[3],
-            };
-        }
-
         return new Blame($this, \is_string($revision) ? $this->getRevision($revision) : $revision, $file, $firstLine, $lastLine);
     }
 
@@ -466,69 +406,10 @@ final class Repository
 
     /**
      * Returns the changes from the commit $from to the commit $to.
-     *
-     * Passing one argument is deprecated: an "a..b" or "a...b" range, two
-     * revisions in an array or a RevisionList, or one revision to compare
-     * with the working tree, like WorkingCopy::getDiff() does.
-     *
-     * @param RevisionList|Revision|string|array<Revision|string>|null $from
      */
-    public function getDiff(RevisionList|Revision|string|array|null $from, Revision|string|null $to = null): Diff
+    public function getDiff(Revision|string $from, Revision|string $to): Diff
     {
-        if (null === $to) {
-            trigger_deprecation('gitonomy/gitlib', '1.7', 'Calling "%s()" with one argument is deprecated, pass the revisions to compare as "from" and "to" arguments, or use "%s::getDiff()" to compare a revision with the working tree.', __METHOD__, WorkingCopy::class);
-
-            return $this->getLegacyDiff($from);
-        }
-
-        if (\is_array($from) || $from instanceof RevisionList || null === $from) {
-            throw new InvalidArgumentException('The "from" argument of "Repository::getDiff()" must be a revision, when "to" is given.');
-        }
-
         return Diff::fromData($this->repositoryDriver->getDiff($this->commitHash($from), $this->commitHash($to)), $this);
-    }
-
-    /**
-     * For the deprecated forms of getDiff() and Log::getDiff(), to be removed in 3.0.
-     *
-     * @param RevisionList|Revision|string|array<Revision|string>|null $revisions
-     *
-     * @internal
-     */
-    public function getLegacyDiff(RevisionList|Revision|string|array|null $revisions): Diff
-    {
-        if (null === $revisions) {
-            throw new InvalidArgumentException('Cannot compute a diff without revisions.');
-        }
-
-        if (!$revisions instanceof RevisionList) {
-            $revisions = new RevisionList($this, $revisions);
-        }
-        $revisions = $revisions->getAsTextArray();
-
-        if (2 === \count($revisions)) {
-            return $this->getDiff($revisions[0], $revisions[1]);
-        }
-
-        if (1 === \count($revisions) && str_contains($revisions[0], '..')) {
-            $symmetric = str_contains($revisions[0], '...');
-            [$from, $to] = explode($symmetric ? '...' : '..', $revisions[0], 2);
-            $from = '' === $from ? 'HEAD' : $from;
-            $to = '' === $to ? 'HEAD' : $to;
-
-            if ($symmetric) {
-                // Like git diff: from the best common ancestor.
-                $from = $this->getMergeBase($from, $to) ?? throw new InvalidArgumentException(\sprintf('The revisions of "%s" have no common ancestor.', $revisions[0]));
-            }
-
-            return $this->getDiff($from, $to);
-        }
-
-        if (1 === \count($revisions)) {
-            return $this->getWorkingCopy()->getDiff($revisions[0]);
-        }
-
-        throw new InvalidArgumentException(\sprintf('Cannot compute a diff of "%s".', implode('", "', $revisions)));
     }
 
     /**
@@ -539,42 +420,6 @@ final class Repository
     public function getSizeInBytes(): int
     {
         return self::directorySize($this->gitDir);
-    }
-
-    /**
-     * Returns the size of repository, in kilobytes.
-     *
-     * @return int A sum, in kilobytes
-     *
-     * @deprecated since gitonomy/gitlib 1.7, use getSizeInBytes() instead
-     */
-    public function getSize(): int
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getSizeInBytes()" instead.', __METHOD__);
-
-        return (int) round($this->getSizeInBytes() / 1000);
-    }
-
-    /**
-     * Executes a shell command on the repository, using PHP pipes.
-     *
-     * @param string                $command The command to execute
-     * @param array<string, string> $env     Environment variables of the command
-     *
-     * @deprecated since gitonomy/gitlib 1.7, run "git shell" with Symfony Process instead
-     */
-    public function shell(string $command, array $env = []): void
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, run "git shell" with Symfony Process instead: it ignores the driver.', __METHOD__);
-
-        $argument = \sprintf('%s %s', $command, escapeshellarg($this->gitDir));
-
-        $prefix = '';
-        foreach ($env as $name => $value) {
-            $prefix .= \sprintf('export %s=%s;', escapeshellarg($name), escapeshellarg($value));
-        }
-
-        proc_open($prefix.'git shell -c '.escapeshellarg($argument), [\STDIN, \STDOUT, \STDERR], $pipes);
     }
 
     /**
@@ -680,70 +525,6 @@ final class Repository
             // Any command may write references, even a failing one.
             $this->referenceBag?->invalidate();
         }
-    }
-
-    /**
-     * Set repository logger.
-     *
-     * @return $this
-     *
-     * @throws UnsupportedOperationException The driver isn't a CliDriver
-     *
-     * @deprecated since gitonomy/gitlib 1.7, pass a CliDriver configured with the logger as driver argument instead
-     */
-    public function setLogger(LoggerInterface $logger): static
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, pass a "%s" configured with the logger as driver argument instead.', __METHOD__, CliDriver::class);
-
-        if (!$this->driver instanceof CliDriver) {
-            throw new UnsupportedOperationException('Only CliDriver logs the git commands it runs.');
-        }
-
-        $this->driver = $this->driver->withLogger($logger);
-        $this->repositoryDriver = $this->driver->open($this->gitDir, $this->workingDir);
-
-        return $this;
-    }
-
-    /**
-     * Returns the logger of the CliDriver.
-     *
-     * @deprecated since gitonomy/gitlib 1.7, the logger is an argument of CliDriver
-     */
-    public function getLogger(): ?LoggerInterface
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, the logger is an argument of "%s".', __METHOD__, CliDriver::class);
-
-        return $this->driver instanceof CliDriver ? $this->driver->getLogger() : null;
-    }
-
-    /**
-     * Clones the current repository to a new directory and return instance of new repository.
-     *
-     * The clone uses the driver of the current repository.
-     *
-     * @param string  $path    path to the new repository in which current repository will be cloned
-     * @param bool    $bare    flag indicating if repository is bare or has a working-copy
-     * @param Options $options options of the new repository
-     *
-     * @return Repository the newly created repository
-     *
-     * @deprecated since gitonomy/gitlib 1.7, use Repository::cloneBareFrom() or Repository::cloneFrom() with getGitDir() as URL instead
-     */
-    public function cloneTo(string $path, bool $bare = true, array $options = []): self
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "%s::%s()" with "getGitDir()" as URL instead.', __METHOD__, self::class, $bare ? 'cloneBareFrom' : 'cloneFrom');
-
-        // Like in 1.x, the options configuring git apply to the clone.
-        $options = new LegacyOptions($options);
-        $driver = $options->adminDriver() ?? $this->driver;
-        if ($bare) {
-            $driver->cloneBareFrom($this->gitDir, $path, null);
-        } else {
-            $driver->cloneFrom($this->gitDir, $path, null);
-        }
-
-        return new self($path, $options->workingDir, $options->repositoryDriver() ?? $driver);
     }
 
     private function commitHash(Revision|string $revision): string

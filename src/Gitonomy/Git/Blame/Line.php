@@ -53,16 +53,6 @@ final readonly class Line
     }
 
     /**
-     * @deprecated since gitonomy/gitlib 1.7, use getOriginalNumber() instead
-     */
-    public function getLine(): string
-    {
-        trigger_deprecation('gitonomy/gitlib', '1.7', 'The "%s()" method is deprecated, use "getOriginalNumber()" instead.', __METHOD__);
-
-        return (string) $this->originalNumber;
-    }
-
-    /**
      * @return Commit The commit that last changed the line
      */
     public function getCommit(): Commit

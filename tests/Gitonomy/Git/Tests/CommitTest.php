@@ -15,14 +15,11 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff\File;
-use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use Symfony\Component\Process\Process;
 
 class CommitTest extends AbstractTestCase
@@ -321,38 +318,6 @@ class CommitTest extends AbstractTestCase
         $this->assertSame('signed commit'."\n", $commit->getMessage());
     }
 
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetFixedShortHash(): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Commit::getFixedShortHash()" method is deprecated, use "substr($commit->getHash(), 0, $length)" instead.');
-
-        $this->assertSame(substr(self::LONGFILE_COMMIT, 0, 6), self::createFoobarRepository()->getCommit(self::LONGFILE_COMMIT)->getFixedShortHash());
-    }
-
-    #[DataProvider('provideBare')]
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testGetShortMessage(bool $bare): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: The "Gitonomy\Git\Commit::getShortMessage()" method is deprecated, use symfony/string instead: "u($commit->getSubjectMessage())->truncate($length, $separator, !$preserve)".');
-
-        $repository = self::createFoobarRepository($bare);
-        // tests with a multi-line message
-        $commit = $repository->getCommit(self::LONGMESSAGE_COMMIT);
-
-        $this->assertSame('Fixed perm...', $commit->getShortMessage(10));
-        $this->assertSame('Fixed perm!!!', $commit->getShortMessage(10, false, '!!!'));
-        $this->assertSame('Fixed permissions!!!', $commit->getShortMessage(10, true, '!!!'));
-
-        // tests with a single-line message
-        $commit = $repository->getCommit(self::INITIAL_COMMIT);
-
-        $this->assertSame('Add README', $commit->getShortMessage(20));
-        $this->assertSame('A', $commit->getShortMessage(1, false, ''));
-        $this->assertSame('Add!!!', $commit->getShortMessage(1, true, '!!!'));
-    }
-
     public function testSubjectIsTheFirstParagraph(): void
     {
         $repository = self::createFoobarRepository();
@@ -378,20 +343,6 @@ class CommitTest extends AbstractTestCase
         $this->assertSame('', $commit->getBodyMessage());
     }
 
-    #[DataProvider('provideBare')]
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testGetIncludingBranchesException(bool $bare): void
-    {
-        $repository = self::createFoobarRepository($bare);
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Keep the local branches, the remote ones, or both: $local and $remote can\'t both be false.');
-
-        $commit = $repository->getCommit(self::INITIAL_COMMIT);
-
-        $commit->getIncludingBranches(false, false);
-    }
-
     public function testTheLastModificationOfAPathNoCommitChanges(): void
     {
         $this->expectException(ReferenceNotFoundException::class);
@@ -407,20 +358,6 @@ class CommitTest extends AbstractTestCase
         $commit = $repository->getCommit(self::INITIAL_COMMIT);
 
         $this->assertSame($repository->getReferences()->getBranches(), $commit->getIncludingBranches());
-    }
-
-    #[DataProvider('provideBare')]
-    #[Group('legacy')]
-    #[IgnoreDeprecations]
-    public function testLegacyGetIncludingLocalOrRemoteBranches(bool $bare): void
-    {
-        $this->expectUserDeprecationMessage('Since gitonomy/gitlib 1.7: Passing arguments to "Gitonomy\Git\Commit::getIncludingBranches()" is deprecated, filter the branches it returns with "Gitonomy\Git\Reference\Branch::isLocal()" or "isRemote()" instead.');
-
-        $repository = self::createFoobarRepository($bare);
-        $commit = $repository->getCommit(self::INITIAL_COMMIT);
-
-        $this->assertSame($repository->getReferences()->getLocalBranches(), $commit->getIncludingBranches(true, false));
-        $this->assertSame($repository->getReferences()->getRemoteBranches(), $commit->getIncludingBranches(false, true));
     }
 
     public function testGetIncludingBranchesNamedLikeRemoteOnes(): void
