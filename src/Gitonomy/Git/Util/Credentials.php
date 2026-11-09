@@ -30,7 +30,10 @@ final class Credentials
     {
         // Up to the last "@" before the host, as a password may hold one, or a
         // "#" or a "?", which git and libgit2 accept unencoded there.
+        // Without a scheme too: git prints "user:token@host" when it can't
+        // resolve the host of a git:// URL. A token alone stays, as nothing
+        // tells it from the "git@host" of the errors of ssh.
         // @phpstan-ignore return.type (possessive quantifiers never reach the backtracking limit, and without "u" there is no UTF-8 to fail on)
-        return preg_replace('#\b([a-z][a-z0-9+.-]*+://)(?:[^/\s@]*+@)++#i', '$1***@', $text);
+        return preg_replace('#(?:\b([a-z][a-z0-9+.-]*+://)|(?<!\S)[^/\s@:]++:)(?:[^/\s@]*+@)++#i', '$1***@', $text);
     }
 }

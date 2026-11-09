@@ -212,7 +212,13 @@ class CredentialsTest extends AbstractTestCase
         yield 'password holding a "?"' => ['https://***@example.com/a.git', 'https://user:p?ss@example.com/a.git'];
         yield 'several URLs' => ['ssh://***@a.com/x and https://***@b.com/y', 'ssh://git@a.com/x and https://user:password@b.com/y'];
         yield 'no user information' => ['https://example.com/a@b.git', 'https://example.com/a@b.git'];
+        yield 'no user information, with a port' => ['https://example.com:8080/a@b.git', 'https://example.com:8080/a@b.git'];
         yield 'no scheme' => ['git@example.com:a.git', 'git@example.com:a.git'];
+        yield 'no scheme, the error of ssh' => ['git@example.com: Permission denied (publickey).', 'git@example.com: Permission denied (publickey).'];
+        yield 'no scheme, an address after a label' => ['Author: jane@example.com', 'Author: jane@example.com'];
+        yield 'no scheme, the host git prints for a git:// URL' => ['fatal: unable to look up ***@example.com (port 9418)', 'fatal: unable to look up user:password@example.com (port 9418)'];
+        yield 'no scheme, with a port' => ['unable to look up ***@example.com:9418', 'unable to look up user:password@example.com:9418'];
+        yield 'no scheme, password holding an "@"' => ['unable to look up ***@example.com', 'unable to look up user:p@ss@example.com'];
     }
 
     /**
