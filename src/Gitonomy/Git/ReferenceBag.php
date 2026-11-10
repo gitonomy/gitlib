@@ -121,7 +121,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * @return Tag[] The tags pointing to $commit, annotated or not
      */
-    public function resolveTags(Commit|string $commit): array
+    public function resolveTags(Revision|string $commit): array
     {
         return array_values(array_filter($this->resolve($commit), static fn (Reference $reference): bool => $reference instanceof Tag));
     }
@@ -129,7 +129,7 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * @return Branch[] The branches pointing to $commit
      */
-    public function resolveBranches(Commit|string $commit): array
+    public function resolveBranches(Revision|string $commit): array
     {
         return array_values(array_filter($this->resolve($commit), static fn (Reference $reference): bool => $reference instanceof Branch));
     }
@@ -137,11 +137,11 @@ final class ReferenceBag implements \Countable, \IteratorAggregate
     /**
      * @return Reference[] The references pointing to $commit, through annotated tags
      */
-    public function resolve(Commit|string $commit): array
+    public function resolve(Revision|string $commit): array
     {
         $hash = match (true) {
-            $commit instanceof Commit => $commit->getHash(),
-            1 === preg_match('/^[0-9a-f]{40}$/', $commit) => $commit,
+            $commit instanceof Revision => $commit->getCommit()->getHash(),
+            1 === preg_match('/^[0-9a-f]{40}$/D', $commit) => $commit,
             default => $this->repository->getRevision($commit)->getCommit()->getHash(),
         };
 

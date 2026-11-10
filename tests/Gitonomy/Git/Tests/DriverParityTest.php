@@ -20,6 +20,7 @@ use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Driver\RepositoryDriverInterface;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\Before;
+use Symfony\Component\Process\Process;
 
 /**
  * Both drivers read the same data from the same repository, but where
@@ -106,6 +107,24 @@ class DriverParityTest extends AbstractTestCase
         $this->assertSame([['README', 'README.md']], self::readmeNames($libgit2));
         $this->assertCount(13, $cli);
         $this->assertCount(12, $libgit2);
+    }
+
+    /**
+     * A shallow clone has the commits it cuts the history at, without their
+     * parents, which git still prints.
+     */
+    public function testShallowClone(): void
+    {
+        $dir = self::createTempDir();
+        new Process([self::gitCommand(), 'clone', '-q', '--depth', '1', 'file://'.$this->cli->getGitDir(), $dir])->mustRun();
+        $cli = new Repository($dir, driver: self::getCliDriver())->getRepositoryDriver();
+        $libgit2 = new Repository($dir, driver: new LibGit2Driver())->getRepositoryDriver();
+        $head = $cli->resolveRevision('HEAD');
+
+        $this->assertSame([], $cli->getCommitData($head)->parentHashes);
+        $this->assertSameData($cli->getCommitData($head), $libgit2->getCommitData($head));
+        $this->assertSameData($cli->getCommitLog(null, [], [], 0, null), $libgit2->getCommitLog(null, [], [], 0, null));
+        $this->assertSameData($cli->getDiff(null, $head)->files, $libgit2->getDiff(null, $head)->files);
     }
 
     public function testBlame(): void

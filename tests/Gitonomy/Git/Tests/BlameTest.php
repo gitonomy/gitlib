@@ -13,7 +13,6 @@
 namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Blame\Line;
-use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Repository;
@@ -91,9 +90,26 @@ class BlameTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository();
 
-        $this->expectException(DriverException::class);
+        $this->expectDriverException('blame', 'fatal: file README.md has only 7 lines.', 'The file "README.md" has only 7 lines.');
 
         $repository->getBlame(self::LONGFILE_COMMIT, 'README.md', 100)->getLines();
+    }
+
+    /**
+     * git reads the path after "--": never as an option.
+     */
+    public function testBlameOfAFileWhoseNameStartsWithADash(): void
+    {
+        $repository = Repository::init(self::createTempDir(), self::getDriver());
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        file_put_contents($repository->getWorkingDir().'/--porcelain', "L1\nL2\n");
+        self::git($repository, 'add', ['--', '--porcelain']);
+        self::git($repository, 'commit', ['-q', '-m', 'An option of git blame']);
+
+        $blame = $repository->getBlame('HEAD', '--porcelain');
+
+        $this->assertSame([1 => 'L1', 2 => 'L2'], array_map(static fn (Line $line): string => $line->getContent(), $blame->getLines()));
     }
 
     /**

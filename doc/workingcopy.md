@@ -69,7 +69,9 @@ this name too, with a `DriverException`: use its full name,
 
 Like `git checkout`, both methods keep the local changes, and refuse to
 overwrite the ones the checkout would change: they throw a
-`DriverException`. *checkoutNewBranch* then creates no branch.
+`DriverException`. *checkoutNewBranch* then creates no branch. With
+`CliDriver`, a `post-checkout` hook that fails throws one too, once the
+branch is created and checked out, like with `git checkout -b`.
 
 Merge a revision
 ----------------

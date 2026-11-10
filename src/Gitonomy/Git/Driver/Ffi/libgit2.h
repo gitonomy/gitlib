@@ -90,6 +90,7 @@ int git_libgit2_opts(int option, ...);
 
 void git_buf_dispose(git_buf *buffer);
 int git_signature_default_from_env(git_signature **author_out, git_signature **committer_out, git_repository *repo);
+int git_signature_from_buffer(git_signature **out, const char *buf);
 void git_signature_free(git_signature *sig);
 void git_oidarray_dispose(git_oidarray *array);
 void git_strarray_dispose(git_strarray *array);
@@ -119,6 +120,8 @@ int git_repository_index(git_index **out, git_repository *repo);
 
 /* -- config -- */
 
+int git_config_delete_entry(git_config *cfg, const char *name);
+int git_config_get_bool(int *out, const git_config *cfg, const char *name);
 int git_config_set_string(git_config *cfg, const char *name, const char *value);
 void git_config_free(git_config *cfg);
 
@@ -138,6 +141,7 @@ const char *git_commit_message(const git_commit *commit);
 const char *git_commit_message_encoding(const git_commit *commit);
 const git_signature *git_commit_committer(const git_commit *commit);
 const git_signature *git_commit_author(const git_commit *commit);
+const char *git_commit_raw_header(const git_commit *commit);
 int git_commit_tree(git_tree **tree_out, const git_commit *commit);
 const git_oid *git_commit_tree_id(const git_commit *commit);
 unsigned int git_commit_parentcount(const git_commit *commit);

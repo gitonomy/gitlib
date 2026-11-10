@@ -58,6 +58,16 @@ class NulByteTest extends AbstractTestCase
         new Repository(self::createTempDir()."\0junk", driver: self::getDriver());
     }
 
+    public function testACommandWithANulByteIsRefused(): void
+    {
+        $this->skipUnlessCliDriver();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('"status\000junk" contains a NUL byte, which git doesn\'t accept.');
+
+        self::createFoobarRepository()->run("status\0junk");
+    }
+
     public function testAUrlWithANulByteIsRefused(): void
     {
         $this->expectException(InvalidArgumentException::class);

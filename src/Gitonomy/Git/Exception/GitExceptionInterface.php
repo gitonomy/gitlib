@@ -12,6 +12,6 @@
 
 namespace Gitonomy\Git\Exception;
 
-interface GitExceptionInterface
+interface GitExceptionInterface extends \Throwable
 {
 }

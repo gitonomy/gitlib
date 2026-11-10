@@ -31,6 +31,20 @@ final class LibGit2
     private const int GIT_CONFIG_LEVEL_SYSTEM = 2;
     private const int GIT_FEATURE_SHA256 = 1 << 11;
     private const int GIT_OPT_SET_SEARCH_PATH = 5;
+    private const int GIT_OPT_SET_SERVER_CONNECT_TIMEOUT = 39;
+    private const int GIT_OPT_SET_SERVER_TIMEOUT = 41;
+
+    /**
+     * How long libgit2 waits for a server to accept a connection: the
+     * system gives up after about 75 seconds anyway.
+     */
+    private const int SERVER_CONNECT_TIMEOUT_IN_MILLISECONDS = 60_000;
+
+    /**
+     * How long libgit2 waits for a server to send or to take data, which is
+     * forever by default: the default timeout of a process of CliDriver.
+     */
+    private const int SERVER_TIMEOUT_IN_MILLISECONDS = 3_600_000;
 
     /**
      * The only libgit2 version libgit2.h is written for: libgit2 changes its
@@ -98,14 +112,27 @@ final class LibGit2
     }
 
     /**
-     * @throws DriverException When $rc is a libgit2 error code
+     * @throws DriverException               When $rc is a libgit2 error code
+     * @throws UnsupportedOperationException When libgit2 doesn't read the format of the repository, or of its index
      */
     public static function check(\FFI $ffi, int $rc, #[\SensitiveParameter] string $context): void
     {
-        if ($rc < 0) {
-            // $context and libgit2 may name a URL holding credentials.
-            throw new DriverException(Credentials::redact(\sprintf('%s: %s', $context, self::lastErrorMessage($ffi))));
+        if ($rc >= 0) {
+            return;
         }
+
+        // $context and libgit2 may name a URL holding credentials.
+        $message = Credentials::redact(\sprintf('%s: %s', $context, self::lastErrorMessage($ffi)));
+
+        // libgit2 has no error code for an extension of the repository it
+        // doesn't know ("extensions.*" in its configuration), nor for a
+        // mandatory one of the index, like "link" of a split index or "sdir"
+        // of a sparse one.
+        if (1 === preg_match('/: unsupported (?:extension name|mandatory extension)/', $message)) {
+            throw new UnsupportedOperationException($message.' LibGit2Driver doesn\'t support it; use CliDriver.');
+        }
+
+        throw new DriverException($message);
     }
 
     /**
@@ -231,6 +258,12 @@ final class LibGit2
         if (filter_var(getenv('GIT_CONFIG_NOSYSTEM'), \FILTER_VALIDATE_BOOL) && $ffi->git_libgit2_opts(self::GIT_OPT_SET_SEARCH_PATH, self::GIT_CONFIG_LEVEL_SYSTEM, '') < 0) {
             throw new UnsupportedOperationException(\sprintf('Unable to ignore the system configuration: %s', self::lastErrorMessage($ffi)));
         }
+
+        // A server that keeps a connection open without answering would
+        // block PHP forever, whatever max_execution_time. libgit2 only
+        // refuses a negative timeout.
+        $ffi->git_libgit2_opts(self::GIT_OPT_SET_SERVER_CONNECT_TIMEOUT, self::SERVER_CONNECT_TIMEOUT_IN_MILLISECONDS);
+        $ffi->git_libgit2_opts(self::GIT_OPT_SET_SERVER_TIMEOUT, self::SERVER_TIMEOUT_IN_MILLISECONDS);
     }
 
     private static function locate(): string

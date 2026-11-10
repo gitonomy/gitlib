@@ -48,6 +48,12 @@ final class TreeParser extends ParserBase
             }
             $this->cursor += 20;
 
+            // Like "git ls-tree" since 2.17, and libgit2: old versions of git
+            // wrote other modes for a file, like "100664".
+            if (str_starts_with($mode, '100')) {
+                $mode = 0 === (octdec($mode) & 0o100) ? '100644' : '100755';
+            }
+
             $type = match ($mode) {
                 '040000' => ObjectType::Tree,
                 // A submodule: the hash is a commit of another repository.

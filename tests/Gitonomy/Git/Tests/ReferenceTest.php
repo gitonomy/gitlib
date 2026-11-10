@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
@@ -55,6 +56,15 @@ class ReferenceTest extends AbstractTestCase
         $this->assertSame('origin/master', $names['refs/remotes/origin/master']);
         $this->assertSame('0.1', $names['refs/tags/0.1']);
         $this->assertSame('stash', $names['refs/stash']);
+    }
+
+    #[DataProvider('provideBare')]
+    public function testGetLastModification(bool $bare): void
+    {
+        $tag = self::createFoobarRepository($bare)->getReferences()->getTag('0.1');
+
+        $this->assertSame(self::LONGFILE_COMMIT, $tag->getLastModification()->getHash(), 'Without a path, the commit of the reference');
+        $this->assertSame(self::BEFORE_LONGFILE_COMMIT, $tag->getLastModification('image.jpg')->getHash());
     }
 
     #[DataProvider('provideBare')]
@@ -135,6 +145,32 @@ class ReferenceTest extends AbstractTestCase
 
         $this->assertSame('2023-11-14T15:13:22-07:00', $date?->format(\DATE_ATOM));
         $this->assertSame(1700000002, $date->getTimestamp());
+    }
+
+    /**
+     * Like git and libgit2, which read the tags other tools write: with a
+     * header after the tagger, or without the empty line before the message.
+     */
+    #[DataProvider('provideTagsOfOtherTools')]
+    public function testATagOfAnotherToolIsReadLikeGit(string $end, string $message): void
+    {
+        $repository = self::createFoobarRepository();
+        $hash = self::writeObject($repository, 'tag', \sprintf("object %s\ntype commit\ntag other\ntagger A <a@example.com> 1700000000 +0000\n%s", self::LONGFILE_COMMIT, $end));
+        self::git($repository, 'update-ref', ['refs/tags/other', $hash]);
+
+        $tag = $repository->getReferences()->getTag('other');
+
+        $this->assertSame('A', $tag->getTaggerName());
+        $this->assertSame($message, $tag->getMessage());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideTagsOfOtherTools(): iterable
+    {
+        yield 'a header after the tagger' => ["encoding ISO-8859-1\n\nMessage\n", "Message\n"];
+        yield 'no message, without the empty line' => ['', ''];
     }
 
     #[DataProvider('provideBare')]
@@ -427,6 +463,50 @@ class ReferenceTest extends AbstractTestCase
             foreach (['HEAD', 'master'] as $fullname) {
                 yield $writeName.' '.$fullname => [$write, $fullname];
             }
+        }
+    }
+
+    /**
+     * Like "git update-ref", which writes a tree, or even the tag of a
+     * commit, under any name but the one of a branch.
+     *
+     * @param \Closure(Repository, string, string): void $write
+     */
+    #[DataProvider('provideWritesOfAnObjectThatIsNoCommit')]
+    public function testABranchOnlyPointsToACommit(\Closure $write, string $revision): void
+    {
+        $repository = self::createFoobarRepository();
+        $hash = trim(self::git($repository, 'rev-parse', [$revision]));
+
+        try {
+            $write($repository, 'refs/heads/no-commit', $hash);
+            $this->fail('A branch only points to a commit.');
+        } catch (DriverException $e) {
+            if (self::getDriver() instanceof LibGit2Driver) {
+                $this->assertMatchesRegularExpression(\sprintf('/^Unable to write the reference "refs\/heads\/no-commit": the object "%s" is a (?:tree|tag), and a branch only points to a commit\.$/', $hash), $e->getMessage());
+            }
+        }
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $this->assertFalse($repository->getReferences()->hasBranch('no-commit'));
+
+        $write($repository, 'refs/tags/no-commit', $hash);
+        $this->assertSame($hash, trim(self::git($repository, 'rev-parse', ['refs/tags/no-commit'])));
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(Repository, string, string): void, string}>
+     */
+    public static function provideWritesOfAnObjectThatIsNoCommit(): iterable
+    {
+        $writes = [
+            'create' => static function (Repository $repository, string $fullname, string $hash): void { $repository->getRepositoryDriver()->createReference($fullname, $hash); },
+            'update' => static function (Repository $repository, string $fullname, string $hash): void { $repository->getRepositoryDriver()->updateReference($fullname, $hash); },
+        ];
+
+        foreach ($writes as $writeName => $write) {
+            yield $writeName.' to a tree' => [$write, 'master^{tree}'];
+            yield $writeName.' to an annotated tag' => [$write, 'refs/tags/annotated'];
         }
     }
 

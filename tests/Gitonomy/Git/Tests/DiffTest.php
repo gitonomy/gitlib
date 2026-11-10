@@ -43,6 +43,19 @@ class DiffTest extends AbstractTestCase
         $this->verifyCreateCommitDiff($diff);
     }
 
+    /**
+     * A file reads its blobs in the repository of its diff: a parsed diff has none, unless given one.
+     */
+    public function testAFileHasTheRepositoryOfItsDiff(): void
+    {
+        $repository = self::createFoobarRepository();
+        $rawDiff = ":000000 100644 0000000000000000000000000000000000000000 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 A\0empty\0";
+
+        $this->assertSame($repository, $repository->getCommit(self::CREATE_COMMIT)->getDiff()->getFiles()[0]->getRepository());
+        $this->assertSame($repository, Diff::parse($rawDiff, $repository)->getFiles()[0]->getRepository());
+        $this->assertNull(Diff::parse($rawDiff)->getFiles()[0]->getRepository());
+    }
+
     #[DataProvider('provideBare')]
     public function testGetFilesAddition(bool $bare): void
     {
@@ -348,6 +361,10 @@ class DiffTest extends AbstractTestCase
 
     public function testTypeChangeIsADeletionAndACreation(): void
     {
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('git stores no symbolic link on Windows.');
+        }
+
         $repository = self::createWorkingCopy();
         self::commitFile($repository, 'link', "target\n");
         self::commitFile($repository, 'renamed', "moved\n");
@@ -368,6 +385,78 @@ class DiffTest extends AbstractTestCase
         // The hashes of a rename without changes come from the raw information.
         $this->assertTrue($files[2]->isRename());
         $this->assertSame("moved\n", $files[2]->getNewBlob()->getContent());
+    }
+
+    /**
+     * The trees old versions of git wrote have files of mode 100664, which
+     * git diffs as 100644, like "git diff-tree".
+     */
+    public function testDiffReadsTheModesOfOldTreesLikeGit(): void
+    {
+        $repository = self::createEmptyRepository();
+        $blob = self::writeObject($repository, 'blob', "content\n");
+        $oldTree = self::writeObject($repository, 'tree', "100664 file\0".hex2bin($blob));
+        $tree = self::writeObject($repository, 'tree', "100644 file\0".hex2bin($blob));
+        $old = self::writeObject($repository, 'commit', "tree {$oldTree}\nauthor A <a@example.com> 1700000000 +0000\ncommitter A <a@example.com> 1700000000 +0000\n\nOld\n");
+        $new = self::writeObject($repository, 'commit', "tree {$tree}\nparent {$old}\nauthor A <a@example.com> 1700000001 +0000\ncommitter A <a@example.com> 1700000001 +0000\n\nNew\n");
+
+        $files = $repository->getCommit($old)->getDiff()->getFiles();
+
+        $this->assertCount(1, $files);
+        $this->assertSame('100644', $files[0]->getNewMode());
+        $this->assertSame([], $repository->getCommit($new)->getDiff()->getFiles());
+    }
+
+    /**
+     * Like git, which compares a file once its filters have normalized its
+     * line endings.
+     */
+    public function testPendingDiffLeavesOutAFileWhoseLineEndingsAloneDiffer(): void
+    {
+        if (!self::getDriver() instanceof LibGit2Driver && version_compare(self::gitVersion(), '2.17.0', '<')) {
+            $this->markTestSkipped('git 1.8.4 lists the file, without any change: git 2.17 leaves it out.');
+        }
+
+        $repository = self::createWorkingCopy();
+        self::commitFile($repository, 'file', "a\nb\n");
+        self::git($repository, 'config', ['core.autocrlf', 'true']);
+        file_put_contents($repository->getWorkingDir().'/file', "a\r\nb\r\n");
+
+        $this->assertSame([], $repository->getWorkingCopy()->getDiffPending()->getFiles());
+        $this->assertSame([], $repository->getWorkingCopy()->getDiff()->getFiles());
+    }
+
+    /**
+     * git writes no hash for it: its content didn't change.
+     */
+    public function testAFileOfTheWorkingTreeWhoseModeAloneChangedHasItsHash(): void
+    {
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('Windows has no executable bit.');
+        }
+
+        $repository = self::createWorkingCopy();
+        self::commitFile($repository, 'script', "#!/bin/sh\n");
+        chmod($repository->getWorkingDir().'/script', 0o755);
+
+        foreach ([$repository->getWorkingCopy()->getDiffPending(), $repository->getWorkingCopy()->getDiff()] as $diff) {
+            $files = $diff->getFiles();
+
+            $this->assertCount(1, $files);
+            $this->assertSame('100644', $files[0]->getOldMode());
+            $this->assertSame('100755', $files[0]->getNewMode());
+            $this->assertNotNull($files[0]->getOldIndex());
+            $this->assertSame($files[0]->getOldIndex(), $files[0]->getNewIndex());
+        }
+    }
+
+    public function testAChangeRefusesTheLinesOf1x(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The lines of a change must be "Gitonomy\Git\Diff\DiffLine" objects, "array" given.');
+
+        // @phpstan-ignore argument.type (PHP doesn't check the types of the elements, unlike PHPStan.)
+        new FileChange(1, 1, 1, 1, [[0, 'context']]);
     }
 
     public function testDiffsOfAConflictLeaveUnmergedPathsOut(): void

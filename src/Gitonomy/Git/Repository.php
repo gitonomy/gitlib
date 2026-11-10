@@ -539,7 +539,7 @@ final class Repository
      */
     private function fullHash(string $hash, ObjectType $type): string
     {
-        if (!preg_match('/^[0-9a-f]{4,40}$/', $hash)) {
+        if (!preg_match('/^[0-9a-f]{4,40}$/D', $hash)) {
             throw new ReferenceNotFoundException(\sprintf('"%s" is not a hash.', $hash));
         }
 

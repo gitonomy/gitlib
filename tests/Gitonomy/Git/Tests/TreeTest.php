@@ -47,6 +47,10 @@ class TreeTest extends AbstractTestCase
 
     public function testIterateWithSpecialCharactersInNames(): void
     {
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('Windows has no file name with a backslash, a tab or a quote.');
+        }
+
         $repository = self::createFoobarRepository(false);
         self::git($repository, 'config', ['user.name', 'Unit Test']);
         self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
@@ -70,6 +74,39 @@ class TreeTest extends AbstractTestCase
         $this->assertSame(['barbaz'], array_keys($submodules));
         $this->assertInstanceOf(Submodule::class, $submodules['barbaz']->getObject());
         $this->assertSame('160000', $submodules['barbaz']->getMode());
+    }
+
+    #[DataProvider('provideBare')]
+    public function testASubmoduleHasTheHashOfItsCommit(bool $bare): void
+    {
+        $repository = self::createFoobarRepository($bare);
+        $submodule = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree()->getSubmodules()['barbaz']->getObject();
+
+        $this->assertInstanceOf(Submodule::class, $submodule);
+        $this->assertSame('5a519c47166f333e32091e166eb55f729106c964', $submodule->getHash());
+    }
+
+    #[DataProvider('provideBare')]
+    public function testGetEntry(bool $bare): void
+    {
+        $repository = self::createFoobarRepository($bare);
+        $tree = $repository->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $blob = $tree->getEntry('README.md');
+        $this->assertInstanceOf(Blob::class, $blob);
+        $this->assertSame('07eeea94584fb6f1d8fe55e5b78adc4668c02508', $blob->getHash());
+        $this->assertInstanceOf(Submodule::class, $tree->getEntry('barbaz'));
+        $this->assertInstanceOf(Tree::class, $repository->getCommit(self::PATH_RESOLVING_COMMIT)->getTree()->getEntry('test'));
+    }
+
+    public function testGetEntryOfAMissingNameThrows(): void
+    {
+        $tree = self::createFoobarRepository()->getCommit(self::NO_MESSAGE_COMMIT)->getTree();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The tree "c4491f20ce7f24f0b5a344c823afb0dff58449fb" has no entry "nope".');
+
+        $tree->getEntry('nope');
     }
 
     public function testResolvePathThroughASubmoduleThrows(): void
@@ -138,5 +175,23 @@ class TreeTest extends AbstractTestCase
         $entries = iterator_to_array($resolved);
 
         $this->assertArrayHasKey('d', $entries, 'Successfully resolved source folder');
+    }
+
+    /**
+     * Old versions of git wrote other modes than 100644 and 100755 for a
+     * file: "git ls-tree", since 2.17, and libgit2 read them as these two.
+     */
+    public function testTheModeOfAFileOfAnOldTreeIsReadLikeGit(): void
+    {
+        $repository = self::createEmptyRepository();
+        $blob = self::writeObject($repository, 'blob', "content\n");
+        $tree = self::writeObject($repository, 'tree', "100664 file\0".hex2bin($blob)."100775 script\0".hex2bin($blob));
+
+        $modes = [];
+        foreach ($repository->getTree($tree) as $name => $entry) {
+            $modes[$name] = $entry->getMode();
+        }
+
+        $this->assertSame(['file' => '100644', 'script' => '100755'], $modes);
     }
 }

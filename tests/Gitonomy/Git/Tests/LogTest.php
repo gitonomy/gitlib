@@ -14,10 +14,12 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff\File;
+use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Driver\Cli\Parser\LogParser;
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\InvalidArgumentException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\Log;
@@ -127,7 +129,7 @@ class LogTest extends AbstractTestCase
 
             EOT;
 
-        $parser = new LogParser();
+        $parser = new LogParser([]);
         $parser->parse($logContent);
 
         $log = $parser->commits;
@@ -222,10 +224,25 @@ class LogTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository();
 
-        // Like git.
-        $this->expectException(DriverException::class);
+        // Like git, whose versions word it differently: recent ones name the path twice, then the repository.
+        if (self::getDriver() instanceof CliDriver) {
+            $this->expectException(ProcessException::class);
+            $this->expectExceptionMessageMatches('/^The git command "log" failed \(exit 128\): fatal: (?:\/README\.md: )?\'\/README\.md\' is outside repository(?: at \'.+\')?\.$/');
+        } else {
+            $this->expectException(DriverException::class);
+            $this->expectExceptionMessageMatches('/^The path "\/README\.md" is outside the repository\.$/');
+        }
 
         $repository->getLog('master', '/README.md')->getCommits();
+    }
+
+    public function testGetPaths(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->assertSame([], $repository->getLog('master')->getPaths());
+        $this->assertSame(['README.md'], $repository->getLog('master', 'README.md')->getPaths(), 'A path alone is a list of one');
+        $this->assertSame(['README.md', 'image.jpg'], $repository->getLog('master', ['README.md', 'image.jpg'])->getPaths());
     }
 
     public function testLogOfAnAbsolutePathInTheWorkingTree(): void
@@ -247,6 +264,24 @@ class LogTest extends AbstractTestCase
         self::commit($repository, 'dir/file.md', 'markdown');
 
         $this->assertSame([$text], self::hashes($repository->getLog('main', 'dir/*.txt')));
+    }
+
+    /**
+     * Like git, a path names the file of this very name, and the ones it
+     * matches once its backslash is read as the escape of a wildcard.
+     */
+    public function testLogOfAPathWithABackslash(): void
+    {
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('Windows has no file name with a backslash.');
+        }
+
+        $repository = self::createRepositoryToCommitTo();
+        $literal = self::commit($repository, 'back\slash', 'literal');
+        $escaped = self::commit($repository, 'backslash', 'escaped');
+        self::commit($repository, 'other', 'other');
+
+        $this->assertSame([$escaped, $literal], self::hashes($repository->getLog('main', 'back\slash')));
     }
 
     public function testLogOfAPathNormalizesIt(): void

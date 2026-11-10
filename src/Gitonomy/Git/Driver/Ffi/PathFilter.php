@@ -80,6 +80,12 @@ final readonly class PathFilter
         $needsDiff = false;
         foreach ($this->paths as $i => $path) {
             $prefix = $this->prefixes[$i];
+            // Like git, which also matches the file of this very name:
+            // libgit2 only reads a backslash as the escape of a wildcard.
+            if (str_contains($path, '\\') && $this->entryId($oldTree, $path) !== $this->entryId($newTree, $path)) {
+                return true;
+            }
+
             if ($this->entryId($oldTree, $prefix) === $this->entryId($newTree, $prefix)) {
                 continue;
             }

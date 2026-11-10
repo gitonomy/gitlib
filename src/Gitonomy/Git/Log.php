@@ -161,9 +161,9 @@ final class Log implements \Countable, \IteratorAggregate
     /**
      * @see IteratorAggregate
      *
-     * @return \ArrayIterator<int, Commit>
+     * @return \Traversable<int, Commit>
      */
-    public function getIterator(): \ArrayIterator
+    public function getIterator(): \Traversable
     {
         return new \ArrayIterator($this->getCommits());
     }

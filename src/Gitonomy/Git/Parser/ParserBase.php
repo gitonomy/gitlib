@@ -14,6 +14,9 @@ namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Exception\RuntimeException;
 
+/**
+ * @internal
+ */
 abstract class ParserBase
 {
     protected int $cursor;
