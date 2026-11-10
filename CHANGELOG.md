@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [v2.0.0] - 2026-11-10
 
 Changes since [v1.6.0](https://github.com/gitonomy/gitlib/releases/tag/v1.6.0). To upgrade, fix
 the deprecations of 1.7 first, then see [UPGRADE-2.0.md](UPGRADE-2.0.md).
@@ -337,5 +337,5 @@ _Earlier versions are not documented here. See the
 [GitHub releases](https://github.com/gitonomy/gitlib/releases) and
 [commit history](https://github.com/gitonomy/gitlib/commits/v1.6.0) for prior changes._
 
-[Unreleased]: https://github.com/gitonomy/gitlib/compare/v1.6.0...HEAD
+[v2.0.0]: https://github.com/gitonomy/gitlib/compare/v1.6.0...v2.0.0
 [v1.6.0]: https://github.com/gitonomy/gitlib/releases/tag/v1.6.0
