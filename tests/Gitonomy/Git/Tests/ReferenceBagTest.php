@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git\Tests;
 
+use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Reference\Branch;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -39,6 +40,16 @@ class ReferenceBagTest extends AbstractTestCase
         $refs = $repository->getReferences();
         $this->assertFalse($refs->hasBranches());
         $this->assertNull($refs->getFirstBranch(), 'getFirstBranch() must not return a non-branch reference');
+    }
+
+    public function testHasRemoteBranch(): void
+    {
+        $references = self::createFoobarRepository(false)->getReferences();
+
+        $this->assertTrue($references->hasRemoteBranch('origin/master'));
+        $this->assertFalse($references->hasRemoteBranch('origin/missing'));
+        $this->assertFalse($references->hasRemoteBranch('master'), 'A local branch is no remote one');
+        $this->assertFalse(self::createFoobarRepository()->getReferences()->hasRemoteBranch('origin/master'), 'A bare clone has no remote branch');
     }
 
     #[DataProvider('provideBare')]
@@ -70,6 +81,29 @@ class ReferenceBagTest extends AbstractTestCase
         $repository = self::createEmptyRepository($bare);
         $refs = $repository->getReferences()->getAll();
         $this->assertSame([], $refs);
+    }
+
+    /**
+     * It named no reference, instead of no commit.
+     */
+    public function testResolveRefusesAHashEndingWithANewLine(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->expectException(ReferenceNotFoundException::class);
+
+        $repository->getReferences()->resolve(self::LONGFILE_COMMIT."\n");
+    }
+
+    public function testResolveTakesAnyRevision(): void
+    {
+        $references = self::createFoobarRepository()->getReferences();
+        $master = $references->getBranch('master');
+
+        $this->assertContains($master, $references->resolve($master));
+        $this->assertSame($references->resolve($master->getCommitHash()), $references->resolve($master));
+        $this->assertSame([$master], $references->resolveBranches($master));
+        $this->assertSame([], $references->resolveTags($master));
     }
 
     public function testReferencesAreSortedByName(): void

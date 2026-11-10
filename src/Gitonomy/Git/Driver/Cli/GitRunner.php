@@ -21,6 +21,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Exception\ProcessStartFailedException;
 use Symfony\Component\Process\Exception\ProcessTimedOutException as SymfonyProcessTimedOutException;
 use Symfony\Component\Process\Exception\RuntimeException as SymfonyRuntimeException;
+use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
 /**
@@ -32,6 +33,15 @@ use Symfony\Component\Process\Process;
  */
 final readonly class GitRunner
 {
+    /**
+     * gitlib reads messages of git, which a translation changes: the list of
+     * "git branch", where "(HEAD detached at ...)" may lose its parenthesis,
+     * and the "fatal:" of the errors. Unlike LC_ALL, LANGUAGE leaves the
+     * character encoding as it is, for the hooks and the filters of the
+     * repository too.
+     */
+    private const array ENVIRONMENT_VARIABLES = ['LANGUAGE' => 'C'];
+
     /**
      * @param array<string, string|\Stringable|false> $environmentVariables
      */
@@ -50,15 +60,15 @@ final readonly class GitRunner
      * @param string[]    $globalOptions Options of git itself, before $command (--git-dir...)
      * @param string|null $input         The standard input of git
      *
-     * @throws InvalidArgumentException An argument contains a NUL byte
+     * @throws InvalidArgumentException The command or an argument contains a NUL byte
      * @throws DriverException          git can't start, or is killed
      */
     public function run(string $command, #[\SensitiveParameter] array $args, array $globalOptions = [], ?string $workingDirectory = null, ?string $input = null): Process
     {
-        NulByte::assertNone(...$globalOptions, ...$args);
+        NulByte::assertNone($command, ...$globalOptions, ...$args);
 
         $process = new Process([$this->command, ...$globalOptions, $command, ...$args], $workingDirectory);
-        $process->setEnv($this->environmentVariables);
+        $process->setEnv([...self::ENVIRONMENT_VARIABLES, ...$this->environmentVariables]);
         $process->setInput($input);
 
         $process->setTimeout($this->timeout);
@@ -99,6 +109,11 @@ final readonly class GitRunner
 
         // Symfony Process runs git through a shell, which exits with them when it can't find or run git.
         if (\in_array($process->getExitCode(), [126, 127], true)) {
+            throw self::notStarted($command, $process->getErrorOutput());
+        }
+
+        // The shell of Windows exits with 1 instead, like git for a failure of its own.
+        if ('\\' === \DIRECTORY_SEPARATOR && 1 === $process->getExitCode() && !is_file($this->command) && null === new ExecutableFinder()->find($this->command)) {
             throw self::notStarted($command, $process->getErrorOutput());
         }
 

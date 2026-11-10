@@ -25,7 +25,7 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
 final class RemoteUrl
 {
     /**
-     * @throws InvalidArgumentException $url is empty, starts with a dash, uses the "ext::" or "fd::" transport, or has a host or a user starting with a dash, encoded or not
+     * @throws InvalidArgumentException $url is empty, starts with a dash, uses the "ext::" or "fd::" transport, or has a host, a user or a port starting with a dash, encoded or not
      */
     public static function assertSafe(#[\SensitiveParameter] string $url): void
     {
@@ -52,10 +52,11 @@ final class RemoteUrl
         // Before 2.14.1 (CVE-2017-1000117), git passes the "user@host" of an ssh
         // URL to ssh, without its brackets: ssh reads "ssh://-oProxyCommand=..."
         // as an option, and runs the command. The command of core.gitProxy gets
-        // the host of a git URL the same way. A valid host never starts with a dash.
+        // the host of a git URL the same way, and whatever follows its colon as
+        // the port. A valid host or port never starts with a dash.
         $authority = self::authority($url);
-        if (null !== $authority && 1 === preg_match('/(?:^|@)\[?-/', $authority)) {
-            throw new InvalidArgumentException(\sprintf('"%s" has a host or a user starting with a dash, which ssh, or the command of core.gitProxy, would read as an option.', Credentials::redact($url)));
+        if (null !== $authority && 1 === preg_match('/(?:^|[@:])\[?-/', $authority)) {
+            throw new InvalidArgumentException(\sprintf('"%s" has a host, a user or a port starting with a dash, which ssh, or the command of core.gitProxy, would read as an option.', Credentials::redact($url)));
         }
     }
 

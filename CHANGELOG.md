@@ -22,8 +22,9 @@ the deprecations of 1.7 first, then see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 -   Return the dates of commits and tags at the UTC offset of their author, committer or tagger,
     like `git log` shows them, instead of in UTC: the instant doesn't change, but `format()`
     returns their local time. ([#254](https://github.com/gitonomy/gitlib/pull/254))
--   Require PHP 8.4 or later, Symfony 7.4/8.1+: most classes are `final` (some `readonly`),
-    and every method has native types. ([#238](https://github.com/gitonomy/gitlib/pull/238))
+-   Require PHP 8.4 or later, and `symfony/process` `^6.4.33`, `^7.4.5` or `^8.1`: most classes
+    are `final` (some `readonly`), and every method has native types.
+    ([#238](https://github.com/gitonomy/gitlib/pull/238))
 -   Remove `Gitonomy\Git\Util\StringHelper`, replaced by `symfony/string`, and its configurable
     encoding: gitlib reads everything in UTF-8. ([#252](https://github.com/gitonomy/gitlib/pull/252))
 -   Require git 1.8.4 or later, the oldest version the test suite passes with: it simplifies the
@@ -53,7 +54,8 @@ the deprecations of 1.7 first, then see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     with both drivers: the name of a remote branch alone, like `feature` for `origin/feature`,
     created the local branch. Use `checkoutNewBranch()`.
     ([#254](https://github.com/gitonomy/gitlib/pull/254))
--   Remove the API that 1.7 deprecates; see [UPGRADE-2.0.md](UPGRADE-2.0.md):
+-   Remove the API that 1.7 deprecates
+    ([#271](https://github.com/gitonomy/gitlib/pull/271)); see [UPGRADE-2.0.md](UPGRADE-2.0.md):
     -   `Admin`, replaced by the static methods of `Repository`, and `Repository::cloneTo()`,
         replaced by `cloneFrom()` and `cloneBareFrom()`.
     -   The array of options of `Repository` (`working_dir`, `logger`, `command`,
@@ -79,6 +81,15 @@ the deprecations of 1.7 first, then see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     -   `Commit::getShortMessage()` and `getFixedShortHash()`, `Repository::shell()`,
         `PushReference::getReference()`, `getRevision()`, `isCreate()` and `isDelete()`.
     -   `Repository::getSize()`, in kilobytes: use `getSizeInBytes()`.
+-   Make `Parser\DiffParser` and `Parser\ParserBase` internal, like the other parsers: parse a
+    diff with `Diff::parse()`.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
+-   `Log::getIterator()` returns a `\Traversable` instead of an `\ArrayIterator`: iterate the
+    log, or use `getCommits()`.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
+-   Run git in English with `CliDriver` (`LANGUAGE=C`), unless its `environmentVariables` set
+    `LANGUAGE`: gitlib reads messages of git, see the bug fixes.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
 
 ### Features
 
@@ -132,7 +143,7 @@ the deprecations of 1.7 first, then see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 
 ### Security
 
-1.7.1 has those that break nothing of 1.x: see
+1.7.2 has those that break nothing of 1.x: see
 [its changelog](https://github.com/gitonomy/gitlib/blob/1.x/CHANGELOG.md).
 
 -   Refuse a revision, a reference, a hash or a URL starting with a dash, which git read as an
@@ -149,13 +160,16 @@ the deprecations of 1.7 first, then see [UPGRADE-2.0.md](UPGRADE-2.0.md).
     ([#254](https://github.com/gitonomy/gitlib/pull/254), [#263](https://github.com/gitonomy/gitlib/pull/263))
 -   Refuse an ssh URL whose host or user starts with a dash, even encoded (`%2D`), like
     `ssh://-oProxyCommand=.../repository`: git before 2.14.1 passes it to ssh, which reads it as an
-    option and runs the command (CVE-2017-1000117). A `git://` URL whose host starts with a dash
-    is refused too: git passes it to the command of `core.gitProxy`.
-    ([#254](https://github.com/gitonomy/gitlib/pull/254))
+    option and runs the command (CVE-2017-1000117). A `git://` URL whose host or port starts with
+    a dash is refused too: git passes them to the command of `core.gitProxy`.
+    ([#254](https://github.com/gitonomy/gitlib/pull/254),
+    [#274](https://github.com/gitonomy/gitlib/pull/274))
 -   Hide the credentials of URLs (`https://user:token@host`), a password holding a `#` or a `?`
     included, in the messages of exceptions, in their traces (`#[\SensitiveParameter]`), and in
-    the logs. The exceptions of Symfony Process, which hold the command line, no longer leak, not
-    even as the previous exception. ([#254](https://github.com/gitonomy/gitlib/pull/254))
+    the logs, and those git prints without their scheme (`user:token@host`). The exceptions of
+    Symfony Process, which hold the command line, no longer leak, not even as the previous
+    exception. ([#254](https://github.com/gitonomy/gitlib/pull/254),
+    [#272](https://github.com/gitonomy/gitlib/pull/272))
 -   Refuse a hook name that isn't the one of a file of the hooks directory:
     `Hooks::set('../config', ...)` and `remove('../config')` wrote and deleted the
     configuration of the repository. ([#254](https://github.com/gitonomy/gitlib/pull/254))
@@ -183,6 +197,26 @@ the deprecations of 1.7 first, then see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 
 ### Bug fixes
 
+-   Fix a translated git adding a branch to `Commit::getIncludingBranches()` on a detached HEAD,
+    in Chinese, and hiding the error of git from the message of a `ProcessException`, in French,
+    German and others: `CliDriver` runs git with `LANGUAGE=C`.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
+-   Fix the parents of the commits a shallow clone cuts the history at: `Commit::getParents()`
+    returned commits the repository doesn't have, and `Commit::getDiff()` threw. They have no
+    parent, like in `git log`.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
+-   Fix a missing git binary taken for a failure of git on Windows: `isValidRepository()`
+    returned `false`, instead of throwing a `DriverException`.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
+-   Fix `WorkingCopy::getUntrackedFiles()` returning the former name of a staged rename.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
+-   Fix a hash followed by a new line read as a hash by `Repository::getCommit()`, `getTree()`,
+    `getBlob()` and `ReferenceBag::resolve()`.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
+-   Fix the tags of other tools throwing, with headers after their tagger, or without the empty
+    line before their message, and the mode of a file in a tree old versions of git wrote, like
+    `100664`: it is `100644` or `100755`, like `git ls-tree` prints it.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
 -   Fix `Commit::getIncludingBranches()` and `Repository::getHead()` throwing for a branch another
     process created or checked out since gitlib read the references, and
     `getIncludingBranches()` throwing for a regular `refs/remotes/origin/HEAD`, as a mirror leaves
@@ -272,6 +306,14 @@ the deprecations of 1.7 first, then see [UPGRADE-2.0.md](UPGRADE-2.0.md).
 
 ### Minor
 
+-   `GitExceptionInterface` extends `\Throwable`. `ReferenceBag::resolve()`, `resolveBranches()`
+    and `resolveTags()` take any revision, a branch for instance. `Blob::getMimetype()` throws a
+    `RuntimeException` without the fileinfo extension, instead of an `Error`.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
+-   CI also runs every week, with `symfony/process` 7.4, with the lowest dependencies and
+    libgit2, on the next version of PHP, which may fail, and on macOS and Windows. The tests call
+    every method of the drivers with the arguments they must refuse.
+    ([#274](https://github.com/gitonomy/gitlib/pull/274))
 -   CI tests git 1.8.4 and 2.25.1, analyses the tests and the libgit2 driver with PHPStan,
     without baseline, checks the archive Composer installs, pins the third-party actions by
     commit, and the suite deletes what it creates, in any order.

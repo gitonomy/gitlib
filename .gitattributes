@@ -1,4 +1,5 @@
-* text=auto
+# With LF on Windows too: the tests hold the outputs of git they parse.
+* text=auto eol=lf
 /tests/fixtures/*.bundle binary
 
 # Left out of the archive Composer installs: only src/, the docs and the license ship.

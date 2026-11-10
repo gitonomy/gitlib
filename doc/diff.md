@@ -23,6 +23,8 @@ start from their best common ancestor:
 $diff = $repository->getDiff($repository->getMergeBase('master', 'feature'), 'feature');
 ```
 
+`getMergeBase()` returns `null` when the branches have no common history.
+
 Other diffs
 -----------
 

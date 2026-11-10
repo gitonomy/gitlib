@@ -14,14 +14,15 @@ $tree = $commit->getTree();
 Entries of a tree
 -----------------
 
-Iterating a tree gives its entries, keyed by their name. Each one is a
+Iterating a tree gives its entries, keyed by their name: an integer for a
+name made of digits only, like `2026`, as in any PHP array. Each one is a
 `TreeEntry` object, with the name of the entry, its mode, and its object: a
 `Blob` for a file (see [blob.md](blob.md)), a `Tree` for a folder, or a
 `Submodule`.
 
 ```php
 foreach ($tree as $name => $entry) {
-    $entry->getName();   // The name of the file or the folder, the same as $name
+    $entry->getName();   // The name of the file or the folder, always a string
     $entry->getMode();   // The mode git stores: "100644", "100755" (executable), "120000" (symbolic link), "040000" (tree), "160000" (submodule)
     $entry->getObject(); // A Blob, a Tree or a Submodule
 }

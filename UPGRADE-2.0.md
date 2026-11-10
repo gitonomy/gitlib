@@ -6,7 +6,7 @@ default, runs the `git` binary like 1.x did, and the experimental
 `LibGit2Driver` runs libgit2 in-process (see
 ["Choosing a driver"](doc/repository.md#choosing-a-driver)).
 
-2.0 removes the API of 1.x that it replaces. Upgrade to 1.7.1 first, which
+2.0 removes the API of 1.x that it replaces. Upgrade to 1.7.2 first, which
 requires PHP 8.1: it has the replacements, and each call to the API that
 2.0 removes triggers a deprecation (`E_USER_DEPRECATED`) naming its
 replacement. Log the deprecations of your application to find them, and fix
@@ -39,7 +39,7 @@ $driver)` with a `CliDriver` of the same arguments, the static methods of
 `Repository::getDiff($from, $to)`, `FileChange::getDiffLines()`, iterating
 a `Tree`, `Log::withLimit()`, `Branch::isMergedInto()`,
 `Blame::getHunks()`... Fix the deprecations of 1.7, then require
-`^1.7.1 || ^2.0`: a library supporting PHP 8.1 to 8.3 gets 1.7 there, and 2.0
+`^1.7.2 || ^2.0`: a library supporting PHP 8.1 to 8.3 gets 1.7 there, and 2.0
 from PHP 8.4, with the same code.
 
 Before:
@@ -98,6 +98,9 @@ Opening a repository
     `Gitonomy\Git\Driver\Cli\CliDriver`, which `Repository` takes as its last
     argument, and its `debug` option is removed: a failing git operation
     always throws, see [Errors](#errors).
+*   The driver can't be `null`, for `Repository` nor for its static
+    methods, which 1.7 accepts without a deprecation: leave the argument
+    out, or pass `$driver ?? new CliDriver()`, to get a `CliDriver`.
 *   The `inherit_environment_variables` option has no counterpart in
     `CliDriver`: git inherits the environment variables of PHP anyway, and
     `$_SERVER` holds, under php-fpm, the headers and the credentials of the
@@ -277,6 +280,10 @@ History
     revision throws a `ReferenceNotFoundException` naming it.
 *   `Log::getDiff()` is removed: it ignored the paths of the log. Use
     `Repository::getDiff()`.
+*   `Log::getIterator()` returns a `\Traversable` instead of an
+    `\ArrayIterator`: iterate the log, or use `getCommits()` for an array.
+*   The commits a shallow clone cuts the history at have no parent, like in
+    `git log`: `getParents()` returned commits the repository doesn't have.
 
 Diffs
 -----
@@ -290,6 +297,9 @@ Diffs
     | `$repository->getDiff(['a', 'b'])` | `$repository->getDiff('a', 'b')`                                 |
     | `$repository->getDiff('a...b')`    | `$repository->getDiff($repository->getMergeBase('a', 'b'), 'b')` |
     | `$repository->getDiff('a')`        | `$repository->getWorkingCopy()->getDiff('a')`                    |
+
+    `getMergeBase()` returns `null` when the commits have no common history,
+    which `getDiff()` doesn't take.
 
 *   The diff of a merge commit, `Commit::getDiff()`, is against its first
     parent, like GitHub shows it, with both drivers.
@@ -361,7 +371,10 @@ Blame
     the first blamed line, instead of from 1.
 *   `Blame\Line::getNumber()` and `getOriginalNumber()` return the number of
     the line in the file and in the commit that changed it, as integers:
-    `Line::getLine()` is removed.
+    `Line::getLine()` is removed. Its constructor is `new Line($commit,
+    $number, $originalNumber, $content)`, where 1.x took the original number
+    first, and the number of the line in its block: `$commit, $sourceLine,
+    $targetLine, $blockLine, $content`.
 *   `Blame::getGroupedLines()` is removed: `getHunks()` returns
     `Blame\Hunk` objects.
 
@@ -519,8 +532,9 @@ Errors
 *   `Hooks` throws a `RuntimeException` when a hook exists already, or can't
     be written, instead of a `LogicException` or a silent failure, and
     creates the hooks directory. `remove()` of a hook that doesn't exist
-    throws an `InvalidArgumentException`, like `get()`, still a
-    `LogicException`.
+    throws an `InvalidArgumentException`, like `get()`: still a
+    `\LogicException` of PHP, but no longer a
+    `Gitonomy\Git\Exception\LogicException`.
 *   An argument holding a NUL byte throws an `InvalidArgumentException`,
     where PHP threw a `ValueError`: git and libgit2 read their arguments as C
     strings, which end at the first NUL byte.
@@ -564,6 +578,11 @@ Git configuration
     Run git yourself to read them.
 *   `CliDriver` ignores `core.fsmonitor`, whose command git runs to read the
     working tree: `run()` and `runProcess()` too.
+*   `CliDriver` runs git in English, with `LANGUAGE=C`, `run()` and
+    `runProcess()` included: gitlib reads messages of git, and a translation
+    changed the branches of a commit or the message of a `ProcessException`.
+    To keep a translation, pass it yourself:
+    `new CliDriver(environmentVariables: ['LANGUAGE' => 'fr'])`.
 
 Dates
 -----
@@ -601,9 +620,7 @@ Extending gitlib
     `UnexpectedValueException`.
 *   These classes are `final readonly`: `Blame\Line`, `Diff\Diff`,
     `Diff\File`, `Diff\FileChange`, `Hooks`, `RevisionList`, `WorkingCopy`.
-*   Every method has native parameter and return types. A class extending
-    `Parser\ParserBase`, which remains extendable, must declare the same
-    types, and must not redeclare its properties.
+*   Every method has native parameter and return types.
 *   The constructors of `Commit`, `Tree`, `Blob`, `Revision`, `Reference`,
     `Reference\Tag` and `ReferenceBag` are internal: get these objects from
     `Repository` (`getCommit()`, `getTree()`, `getBlob()`, `getRevision()`,
@@ -629,20 +646,15 @@ Extending gitlib
     instead of an array, and `Commit::setData()` is internal.
 *   `Gitonomy\Git\Util\StringHelper` is removed, with its configurable
     encoding: use `symfony/string`. Logs are always read in UTF-8.
-*   The parsers of the git output moved to `Gitonomy\Git\Driver\Cli\Parser`,
-    and are `final` and internal, used by `CliDriver` only, except
-    `Parser\DiffParser` and `Parser\ParserBase`. `ParserBase` loses
-    `consumeGPGSignature()` and `consumeMergeTag()`, and gets
-    `consumeNameEmailDate()`, `parseSignature()` and `signatureDate()`.
-    `CommitParser` is merged into `LogParser`, and their results are objects
-    of `Gitonomy\Git\Driver\Data`: `LogParser::$commits` (instead of `$log`),
-    `TagParser::$data`, `ReferenceParser::$references`, `TreeParser::$entries`
-    and `BlameParser::$lines`. `TreeParser` parses `git ls-tree -z`, and
-    `BlameParser` no longer takes a `Repository`. `ParserBase::parse()`
-    takes a `string`.
-*   Objects serialized with 1.x (a `Commit` or a `Diff` in a cache...) can't
-    be unserialized: clear such caches. `Diff::toArray()` and
-    `Diff::fromArray()` remain compatible.
+*   The parsers of the git output are internal, `Parser\DiffParser` and
+    `Parser\ParserBase` included: parse a diff with `Diff::parse()`. The
+    others moved to `Gitonomy\Git\Driver\Cli\Parser`, for `CliDriver` only,
+    and `CommitParser` is merged into `LogParser`. Their results are objects
+    of `Gitonomy\Git\Driver\Data`.
+*   A `Commit`, and a `Diff` or a `Diff\File` read from a repository, can't
+    be serialized anymore, and objects serialized with 1.x (in a cache...)
+    can't be unserialized: clear such caches, and store `Diff::toArray()`,
+    which `Diff::fromArray()` reads, as in 1.x.
 
 Testing code using gitlib
 -------------------------

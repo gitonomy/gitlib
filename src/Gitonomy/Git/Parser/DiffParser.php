@@ -25,6 +25,8 @@ use Gitonomy\Git\Exception\RuntimeException;
  * information, and the hunks from the patches.
  *
  * Unmerged paths, during a conflict, are left out.
+ *
+ * @internal Parse a diff with Diff::parse()
  */
 final class DiffParser extends ParserBase
 {
@@ -167,18 +169,26 @@ final class DiffParser extends ParserBase
         $this->consumeTo("\n");
         $this->consumeNewLine();
 
+        $hasIndex = false;
         while (true) {
             // The hashes of the files of the working tree, which the raw information leaves out.
             if ($this->expects('index ')) {
                 $vars = $this->consumeRegexp('/'.self::HASH.'\.\.'.self::HASH.'/');
                 $oldHash = self::nullIfZeros($vars[1]);
                 $newHash = self::nullIfZeros($vars[2]);
+                $hasIndex = true;
             } elseif (!$this->expectsOneOf(self::HEADERS)) {
                 break;
             }
 
             $this->consumeTo("\n");
             $this->consumeNewLine();
+        }
+
+        // git writes no "index" line for a content that didn't change, when
+        // the mode alone did: the file of the working tree has the same hash.
+        if (!$hasIndex && null !== $newName) {
+            $newHash ??= $oldHash;
         }
 
         $isBinary = false;

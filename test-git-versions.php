@@ -182,7 +182,8 @@ final class TestCommand extends Command
             $io->writeln(sprintf('Command: %s', $binary));
 
             // The bootstrap of the tests gives git a configuration of its own.
-            $process = new Process(['vendor/bin/phpunit'], __DIR__, ['GIT_COMMAND' => $binary], timeout: null);
+            // GITLIB_DRIVER: with "ffi" in the environment, the tests wouldn't run this git.
+            $process = new Process(['vendor/bin/phpunit'], __DIR__, ['GIT_COMMAND' => $binary, 'GITLIB_DRIVER' => 'cli'], timeout: null);
             $process->run(static function (string $type, string $data) use ($output): void {
                 $output->write($data);
             });

@@ -20,12 +20,12 @@ use Gitonomy\Git\Exception\InvalidArgumentException;
  *
  * @author Alexandre Salomé <alexandre.salome@gmail.com>
  *
- * @implements \IteratorAggregate<string, TreeEntry>
+ * @implements \IteratorAggregate<int|string, TreeEntry>
  */
 final class Tree implements \IteratorAggregate
 {
     /**
-     * @var array<string, TreeEntry>|null By name, null until read
+     * @var array<int|string, TreeEntry>|null By name, null until read
      */
     private ?array $entries = null;
 
@@ -44,7 +44,7 @@ final class Tree implements \IteratorAggregate
     }
 
     /**
-     * @return \ArrayIterator<string, TreeEntry> The entries, by name
+     * @return \ArrayIterator<int|string, TreeEntry> The entries, by name
      */
     public function getIterator(): \ArrayIterator
     {
@@ -52,7 +52,7 @@ final class Tree implements \IteratorAggregate
     }
 
     /**
-     * @return array<string, TreeEntry> The blobs, by name
+     * @return array<int|string, TreeEntry> The blobs, by name
      */
     public function getBlobs(): array
     {
@@ -60,7 +60,7 @@ final class Tree implements \IteratorAggregate
     }
 
     /**
-     * @return array<string, TreeEntry> The submodules, by name
+     * @return array<int|string, TreeEntry> The submodules, by name
      */
     public function getSubmodules(): array
     {
@@ -68,7 +68,7 @@ final class Tree implements \IteratorAggregate
     }
 
     /**
-     * @return array<string, TreeEntry> The trees, by name
+     * @return array<int|string, TreeEntry> The trees, by name
      */
     public function getTrees(): array
     {
@@ -105,7 +105,7 @@ final class Tree implements \IteratorAggregate
     }
 
     /**
-     * @return array<string, TreeEntry> By name
+     * @return array<int|string, TreeEntry> By name
      */
     private function entries(): array
     {

@@ -16,6 +16,8 @@ use Gitonomy\Git\Commit;
 use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Revision;
+use Gitonomy\Git\RevisionList;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class RevisionTest extends AbstractTestCase
@@ -39,6 +41,34 @@ class RevisionTest extends AbstractTestCase
         $this->expectExceptionMessage('The revision "non-existent-commit" does not exist, or names no commit.');
 
         $repository->getRevision('non-existent-commit')->getCommit();
+    }
+
+    /**
+     * "git rev-parse" prints "^<hash>" for it: the commits to leave out of a log.
+     */
+    public function testARevisionToExcludeNamesNoCommit(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage('The revision "^HEAD" does not exist, or names no commit.');
+
+        $repository->getRevision('^HEAD')->getCommit();
+    }
+
+    /**
+     * "git rev-parse" takes a full hash at its word.
+     */
+    public function testTheDriverResolvesNoHashWithoutAnObject(): void
+    {
+        $driver = self::createFoobarRepository()->getRepositoryDriver();
+        $this->assertSame(self::LONGFILE_COMMIT, $driver->resolveRevision(self::LONGFILE_COMMIT));
+        $hash = str_repeat('1', 40);
+
+        $this->expectException(ReferenceNotFoundException::class);
+        $this->expectExceptionMessage(\sprintf('The revision "%s" does not exist.', $hash));
+
+        $driver->resolveRevision($hash);
     }
 
     /**
@@ -103,5 +133,41 @@ class RevisionTest extends AbstractTestCase
         $this->assertSame(2, $log->getOffset(), 'Log offset is passed');
         $this->assertSame(3, $log->getLimit(), 'Log limit is passed');
         $this->assertSame([$revision], $log->getRevisions()?->getAll(), 'Revision is passed');
+    }
+
+    public function testGetRepository(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->assertSame($repository, $repository->getRevision('master')->getRepository());
+        $this->assertSame($repository, new Revision($repository, self::LONGFILE_COMMIT)->getRepository());
+    }
+
+    public function testARevisionListCountsItsRevisions(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->assertCount(1, new RevisionList($repository, 'master'));
+        $this->assertCount(1, new RevisionList($repository, $repository->getRevision('master')));
+        $this->assertCount(3, new RevisionList($repository, ['master', self::LONGFILE_COMMIT, $repository->getRevision('0.1')]));
+    }
+
+    public function testARevisionListIteratesOverItsRevisions(): void
+    {
+        $repository = self::createFoobarRepository();
+        $tag = $repository->getRevision('0.1');
+
+        $revisions = iterator_to_array(new RevisionList($repository, ['master', $tag]));
+
+        $this->assertCount(2, $revisions);
+        $this->assertSame('master', $revisions[0]->getRevision(), 'A name becomes a revision');
+        $this->assertSame($tag, $revisions[1]);
+    }
+
+    public function testARevisionListAsTextArray(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->assertSame(['master', self::LONGFILE_COMMIT, '0.1'], new RevisionList($repository, ['master', $repository->getCommit(self::LONGFILE_COMMIT), $repository->getRevision('0.1')])->getAsTextArray());
     }
 }

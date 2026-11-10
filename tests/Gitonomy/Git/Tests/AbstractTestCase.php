@@ -15,6 +15,8 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Driver\Cli\CliDriver;
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
+use Gitonomy\Git\Exception\DriverException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
 use PHPUnit\Framework\Attributes\After;
@@ -194,6 +196,26 @@ abstract class AbstractTestCase extends TestCase
     }
 
     /**
+     * Expects the failure of an operation, whose message each driver words
+     * its own way: the error of git, in a ProcessException, with CliDriver.
+     *
+     * @param string $gitError The first line of the error output of git
+     */
+    protected function expectDriverException(string $gitCommand, string $gitError, string $libGit2Message): void
+    {
+        if (self::getDriver() instanceof CliDriver) {
+            $this->expectException(ProcessException::class);
+            $message = \sprintf('The git command "%s" failed (exit 128): %s', $gitCommand, $gitError);
+        } else {
+            $this->expectException(DriverException::class);
+            $message = $libGit2Message;
+        }
+
+        // The whole message: expectExceptionMessage() looks for a part of it.
+        $this->expectExceptionMessageMatches('/^'.preg_quote($message, '/').'$/');
+    }
+
+    /**
      * Returns the branch HEAD points to, failing the test when it is detached.
      */
     protected static function headBranch(Repository $repository): Branch
@@ -245,11 +267,18 @@ abstract class AbstractTestCase extends TestCase
 
     /**
      * Returns the driver under test: LibGit2Driver when the GITLIB_DRIVER
-     * environment variable is "ffi", CliDriver otherwise.
+     * environment variable is "ffi", CliDriver when it is "cli" or not set.
      */
     protected static function getDriver(): DriverInterface
     {
-        return 'ffi' === ($_SERVER['GITLIB_DRIVER'] ?? 'cli') ? new LibGit2Driver() : self::getCliDriver();
+        $driver = $_SERVER['GITLIB_DRIVER'] ?? 'cli';
+
+        return match ($driver) {
+            'cli' => self::getCliDriver(),
+            'ffi' => new LibGit2Driver(),
+            // A typo would run the suite of CliDriver, and pass.
+            default => throw new \UnexpectedValueException(\sprintf('The GITLIB_DRIVER environment variable must be "cli" or "ffi", %s given.', \is_string($driver) ? '"'.$driver.'"' : get_debug_type($driver))),
+        };
     }
 
     /**

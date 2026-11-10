@@ -228,9 +228,9 @@ or empty data instead. Every exception of gitlib implements
     byte, which git doesn't accept, a revision, a reference, a hash or a URL
     starting with a dash, which git would read as an option
     (`getRevision('--output=/path')`), an `ext::` URL, whose command git
-    would run, an `fd::` URL, a URL whose ssh host or user starts with a
-    dash, which ssh would read as an option, or a reference to delete
-    outside `refs/`, like `HEAD`.
+    would run, an `fd::` URL, an ssh or git URL whose host, user or port
+    starts with a dash, which ssh would read as an option, or a reference to
+    delete outside `refs/`, like `HEAD`.
 -   `RuntimeException`: any other failure, like a hook that exists already
     (`Hooks::set()`), a file of the git directory that can't be written, or
     an output of git that gitlib can't read. `DriverException` and
@@ -251,8 +251,10 @@ try {
 The message of an exception hides the credentials of the URLs it holds
 (`https://***@example.com/repository.git`): `getErrorOutput()` and
 `getOutput()` of a `ProcessException` return the output of git as it is.
-A `git://` URL takes no credentials: git quotes one without its scheme in
-its errors, so a password put there isn't hidden.
+A `git://` URL takes no credentials, and git prints one without its scheme
+in its errors: gitlib still hides a user and a password there
+(`***@example.com`), but not a token alone, which nothing tells from the
+user of an ssh address, like `git@example.com`.
 
 Choosing a driver
 -----------------
@@ -320,22 +322,41 @@ Differences with `CliDriver`:
 
 -   `Repository::run()` and `Repository::runProcess()` throw an
     `UnsupportedOperationException`: there is no `git` process to run.
--   Nothing is logged, and nothing times out, not even network operations.
+-   Nothing is logged, and no operation times out as a whole. A network
+    operation only fails when the server doesn't accept the connection
+    within 60 seconds, or neither sends nor takes data for an hour, the
+    default `processTimeout` of `CliDriver`.
 -   SSH and git's credential helpers aren't supported: clone a private
     repository through HTTPS, with the credentials in the URL
     (`https://user:token@example.com/repo.git`).
--   Bundles (`.bundle` files) can't be cloned, and repositories storing
-    their references in the reftable format can't be opened: both throw an
-    `UnsupportedOperationException`.
+-   Bundles (`.bundle` files) can't be cloned, repositories storing their
+    references in the reftable format, or with an extension libgit2 doesn't
+    know (`extensions.*` in their configuration), can't be opened, and the
+    working copy of one with a split or a sparse index can't be read: all
+    throw an `UnsupportedOperationException`.
+-   A repository another user owns can't be opened, unless `safe.directory`
+    lists it in the configuration of the user running PHP: `CliDriver`
+    opens it, see ["Git configuration"](#git-configuration).
 -   The paths of a log don't support the magic of git's pathspecs
     (`:(exclude)src`, `:/src`...): a path starting with `:` throws an
     `UnsupportedOperationException`.
 -   Neither hooks nor external filters (Git LFS...) are run: a checkout or a
     merge writes the files without them.
+-   In a sparse checkout (`core.sparseCheckout`), `WorkingCopy::checkout()`,
+    `checkoutNewBranch()` and `merge()` throw an
+    `UnsupportedOperationException`: libgit2 doesn't read its patterns.
+-   A checkout or a merge is refused, with a `DriverException` and before it
+    writes anything, in cases where git goes on: when it changes a tracked
+    file that is deleted from the working tree, which git writes again; when
+    it removes a submodule that is checked out, whose directory git keeps;
+    and when it replaces a directory with a file while the directory holds
+    files git ignores or empty directories, which recent versions of git
+    delete.
 -   Like git, `LibGit2Driver` doesn't read `/etc/gitconfig` when the
     `GIT_CONFIG_NOSYSTEM` environment variable is true, but it doesn't read
     `/etc/gitattributes` either, which git only skips with
-    `GIT_ATTR_NOSYSTEM`.
+    `GIT_ATTR_NOSYSTEM`. It ignores `GIT_CONFIG_GLOBAL`, and reads
+    `~/.gitconfig` whatever its value.
 -   `Diff::getRawDiff()` returns an empty string.
 -   Short hashes (`Commit::getShortHash()`) have 7 characters, more when 7
     are ambiguous: git adapts their length to the size of the repository.
@@ -344,6 +365,19 @@ Differences with `CliDriver`:
     working copy. A merge commit is never signed, whatever
     `commit.gpgSign`, and its message never lists the merged commits,
     whatever `merge.log`, nor has the output of gpg checking a signed tag.
+    A merge may also commit another result than git: libgit2 doesn't run the
+    merge drivers of the configuration (`merge.<driver>.driver`), doesn't
+    detect the renames of directories, so a file added to a directory the
+    other side renamed stays in the old one, and ignores
+    `branch.<name>.mergeoptions`.
+-   A clone doesn't learn the branch of an empty repository, unless it is a
+    local one: HEAD is on `init.defaultBranch`, or `master`, where git since
+    2.31 is on the branch of the remote.
+-   A shallow clone can't be read through one of its linked worktrees
+    (`git worktree add`): libgit2 1.9 doesn't find where its history stops
+    from there, so its last commit has a parent the repository doesn't
+    have, and its log throws a `DriverException`. Open its main working
+    tree instead.
 -   Blame is much slower on a long history: see
     ["Performance"](#performance). It may attribute some lines to another
     commit than git, which detects renames and aligns identical lines
@@ -451,10 +485,12 @@ The arguments of `CliDriver` are:
 -   `command`: the git binary to run, `git` by default;
 -   `environmentVariables`: the environment variables to set on every git
     process, where `false` removes an inherited one: git inherits the
-    environment variables of PHP;
+    environment variables of PHP. `CliDriver` sets `LANGUAGE` to `C`, unless
+    you pass it: gitlib reads messages of git, which a translation would
+    change, so git writes them in English, the output of `run()` included;
 -   `processTimeout`: the timeout of every git process, in seconds, for its
-    whole duration and without output, `3600` by default, `null` for none. A
-    git process running longer throws a `ProcessTimedOutException`;
+    whole duration and without output, `3600` by default, `null` or `0` for
+    none. A git process running longer throws a `ProcessTimedOutException`;
 -   `logger`: see ["Logger"](#logger).
 
 ```php
@@ -499,13 +535,15 @@ credentials and the rewrites of URLs, line endings, hooks, `merge.log`,
 `blame.ignoreRevsFile`, or `core.abbrev`, the length of short hashes, with
 `LibGit2Driver` too.
 
-`safe.directory` doesn't apply: `CliDriver` runs git with `--git-dir`, which
-git trusts, whoever owns the repository. Like git, gitlib then runs the
-commands the configuration of the repository names: its hooks, and the
-filters of its `.gitattributes`, when it checks files out, merges, or reads
-the working tree. Only open a repository whose `.git` directory you trust:
-not one another user of the machine owns, nor one extracted from an archive
-your users send. `LibGit2Driver` runs neither hooks nor external filters.
+`safe.directory` doesn't apply to `CliDriver`, which runs git with
+`--git-dir`: git trusts it, whoever owns the repository. Like git, gitlib
+then runs the commands the configuration of the repository names: its hooks,
+and the filters of its `.gitattributes`, when it checks files out, merges,
+or reads the working tree. Only open a repository whose `.git` directory you
+trust: not one another user of the machine owns, nor one extracted from an
+archive your users send. `LibGit2Driver` runs neither hooks nor external
+filters, and `safe.directory` applies to it: it throws a `DriverException`
+for a repository another user owns, unless `safe.directory` lists it.
 
 `run()` and `runProcess()` get `branch.autoSetupMerge`,
 `branch.autoSetupRebase`, `branch.sort`, `core.fsmonitor`, `log.follow`,

@@ -12,7 +12,6 @@
 
 namespace Gitonomy\Git\Tests;
 
-use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\PushReference;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -47,11 +46,29 @@ class PushReferenceTest extends AbstractTestCase
         ];
     }
 
+    public function testGetFullname(): void
+    {
+        $reference = new PushReference(self::createFoobarRepository(), 'refs/heads/master', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT);
+
+        $this->assertSame('refs/heads/master', $reference->getFullname());
+    }
+
+    public function testGetRepository(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        $this->assertSame($repository, new PushReference($repository, 'refs/heads/master', self::BEFORE_LONGFILE_COMMIT, self::LONGFILE_COMMIT)->getRepository());
+    }
+
     public function testUnknownBeforeIsAnErrorNotAForcePush(): void
     {
         $reference = new PushReference(self::createFoobarRepository(), 'foo', str_repeat('1', 40), self::LONGFILE_COMMIT);
 
-        $this->expectException(DriverException::class);
+        $this->expectDriverException(
+            'merge-base',
+            'fatal: Not a valid commit name 1111111111111111111111111111111111111111.',
+            'Unable to compute the merge bases of "1111111111111111111111111111111111111111" and "'.self::LONGFILE_COMMIT.'": object not found - no match for id (1111111111111111111111111111111111111111).',
+        );
 
         $reference->isForce();
     }

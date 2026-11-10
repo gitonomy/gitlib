@@ -15,6 +15,8 @@ namespace Gitonomy\Git\Tests;
 use Gitonomy\Git\Blob;
 use Gitonomy\Git\Commit;
 use Gitonomy\Git\Diff\File;
+use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Reference\Branch;
@@ -40,10 +42,19 @@ class CommitTest extends AbstractTestCase
         $repository = self::createFoobarRepository();
         $hash = self::writeObject($repository, 'commit', "tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904\nauthor A <a@example.com> 99999999999999999999 +0000\ncommitter A <a@example.com> 99999999999999999999 +0000\n\nCorrupt\n");
 
-        // A RuntimeException of gitlib, not of PHP.
-        $this->expectException(RuntimeException::class);
-
-        $repository->getCommit($hash)->getAuthorDate();
+        try {
+            $repository->getCommit($hash)->getAuthorDate();
+            $this->fail('The date is out of range.');
+        } catch (RuntimeException $e) {
+            // A RuntimeException of gitlib, not of PHP: git prints the date, which libgit2 refuses to parse.
+            if (self::getDriver() instanceof CliDriver) {
+                $this->assertSame(RuntimeException::class, $e::class);
+                $this->assertSame('The date "99999999999999999999" is out of range.', $e->getMessage());
+            } else {
+                $this->assertSame(DriverException::class, $e::class);
+                $this->assertSame(\sprintf('Unable to read the commit "%s": failed to parse signature - invalid Unix timestamp.', $hash), $e->getMessage());
+            }
+        }
     }
 
     /**
@@ -99,6 +110,23 @@ class CommitTest extends AbstractTestCase
         yield 'no date' => ['A <a@example.com>', 'A', 'a@example.com', '1970-01-01T00:00:00+00:00'];
         yield 'an offset of 5 digits' => ['A <a@example.com> 1700000000 +05030', 'A', 'a@example.com', '2023-11-14T22:13:20+00:00'];
         yield 'no name nor email' => ['<> 0 +0000', '', '', '1970-01-01T00:00:00+00:00'];
+        yield 'a date before 1970' => ['A <a@example.com> -1 +0100', 'A', 'a@example.com', '1970-01-01T00:00:00+00:00'];
+    }
+
+    /**
+     * Like git log, which shows the last "author" and "committer" headers of
+     * a commit with several, as some tools wrote: libgit2 reads the first.
+     */
+    public function testTheLastOfSeveralSignaturesIsRead(): void
+    {
+        $repository = self::createEmptyRepository();
+        $tree = self::writeObject($repository, 'tree', '');
+        $hash = self::writeObject($repository, 'commit', "tree {$tree}\nauthor First <first@example.com> 1700000000 +0100\nauthor Last <last@example.com> 1700000100 +0200\ncommitter First <first@example.com> 1700000200 +0300\ncommitter Last <last@example.com> 1700000300 +0400\n\nSeveral\n");
+
+        $commit = $repository->getCommit($hash);
+
+        $this->assertSame(['Last', 'last@example.com', '2023-11-15T00:15:00+02:00'], [$commit->getAuthorName(), $commit->getAuthorEmail(), $commit->getAuthorDate()->format(\DATE_ATOM)]);
+        $this->assertSame(['Last', 'last@example.com', '2023-11-15T02:18:20+04:00'], [$commit->getCommitterName(), $commit->getCommitterEmail(), $commit->getCommitterDate()->format(\DATE_ATOM)]);
     }
 
     /**
@@ -173,6 +201,81 @@ class CommitTest extends AbstractTestCase
         $repository = self::createFoobarRepository();
 
         $this->assertSame('e1a83f1', $repository->getCommit(self::SIGNED_COMMIT)->getShortHash());
+    }
+
+    /**
+     * "git log" abbreviates the hash of a commit only, and gives the one of
+     * the commit of a tag.
+     */
+    public function testTheDriverAbbreviatesTheHashOfAnyObject(): void
+    {
+        $repository = self::createFoobarRepository();
+        $driver = $repository->getRepositoryDriver();
+        $tree = $repository->getCommit(self::LONGFILE_COMMIT)->getTreeHash();
+        $tag = self::writeObject($repository, 'tag', \sprintf("object %s\ntype commit\ntag short\ntagger A <a@example.com> 1700000000 +0000\n\nShort\n", self::LONGFILE_COMMIT));
+
+        $this->assertSame(substr($tree, 0, 7), $driver->getShortHash($tree));
+        $this->assertSame(substr($tag, 0, 7), $driver->getShortHash($tag));
+
+        $this->expectException(ReferenceNotFoundException::class);
+
+        $driver->getShortHash(str_repeat('1', 40));
+    }
+
+    /**
+     * Like git, which reads the tree, then the parents, on the first lines of
+     * a commit: a forged commit showed another tree and other parents than
+     * the ones git logs and checks out.
+     */
+    public function testTheTreeAndTheParentsAreTheFirstHeadersOfACommit(): void
+    {
+        $repository = self::createFoobarRepository();
+        $tree = $repository->getCommit(self::LONGFILE_COMMIT)->getTreeHash();
+        $hash = self::writeObject($repository, 'commit', \sprintf("tree %s\nparent %s\nauthor A <a@example.com> 1700000000 +0000\ncommitter A <a@example.com> 1700000000 +0000\nparent %s\ntree 4b825dc642cb6eb9a060e54bf8d69288fbee4904\n\nForged\n", $tree, self::LONGFILE_COMMIT, self::INITIAL_COMMIT));
+
+        $commit = $repository->getCommit($hash);
+
+        $this->assertSame($tree, $commit->getTreeHash());
+        $this->assertSame([self::LONGFILE_COMMIT], $commit->getParentHashes());
+        $this->assertSame("Forged\n", $commit->getMessage());
+    }
+
+    /**
+     * A shallow clone has the commits it cuts the history at, without their
+     * parents: git logs and diffs them as root commits.
+     */
+    public function testACommitAShallowCloneCutsTheHistoryAtHasNoParent(): void
+    {
+        $dir = self::createTempDir();
+        new Process([self::gitCommand(), 'clone', '-q', '--depth', '1', 'file://'.self::createFoobarRepository()->getGitDir(), $dir])->mustRun();
+        $repository = new Repository($dir, driver: self::getDriver());
+
+        $commit = $repository->getHeadCommit();
+
+        $this->assertSame([], $commit->getParentHashes());
+        $this->assertSame([], $commit->getParents());
+        $this->assertContains('README.md', array_map(static fn (File $file): string => $file->getName(), $commit->getDiff()->getFiles()), 'Every file is new');
+        $this->assertSame([$commit], $repository->getLog()->getCommits());
+    }
+
+    /**
+     * The repository keeps its "shallow" file, not the worktree.
+     */
+    public function testACommitOfALinkedWorktreeOfAShallowCloneHasNoParent(): void
+    {
+        if (version_compare(self::gitVersion(), '2.5.0', '<')) {
+            $this->markTestSkipped('git worktree requires git 2.5.');
+        }
+        if (!self::getDriver() instanceof CliDriver) {
+            $this->markTestSkipped('libgit2 1.9 looks for the "shallow" file in the git directory of the worktree.');
+        }
+
+        $dir = self::createTempDir();
+        new Process([self::gitCommand(), 'clone', '-q', '--depth', '1', 'file://'.self::createFoobarRepository()->getGitDir(), $dir])->mustRun();
+        $worktree = self::createTempDir().'/worktree';
+        self::git(new Repository($dir, driver: self::getDriver()), 'worktree', ['add', '-b', 'in-worktree', $worktree]);
+
+        $this->assertSame([], new Repository($worktree, driver: self::getDriver())->getHeadCommit()->getParentHashes());
     }
 
     #[DataProvider('provideBare')]
@@ -430,14 +533,10 @@ class CommitTest extends AbstractTestCase
 
     public function testReencodesCommitsToUtf8(): void
     {
-        $repository = self::createFoobarRepository(false);
-        self::git($repository, 'config', ['i18n.commitEncoding', 'ISO-8859-1']);
-        self::git($repository, 'config', ['user.name', "Andr\xe9"]);
-        self::git($repository, 'config', ['user.email', 'andre@example.com']);
-        file_put_contents($repository->getWorkingDir().'/latin1.txt', 'latin1');
-        self::git($repository, 'add', ['latin1.txt']);
-        self::git($repository, 'commit', ['-m', "Caf\xe9"]);
-        $hash = trim(self::git($repository, 'rev-parse', ['HEAD']));
+        // Written as an object: Windows passes no ISO-8859-1 argument to "git commit".
+        $repository = self::createEmptyRepository();
+        $tree = self::writeObject($repository, 'tree', '');
+        $hash = self::writeObject($repository, 'commit', "tree {$tree}\nauthor Andr\xe9 <andre@example.com> 1700000000 +0000\ncommitter Andr\xe9 <andre@example.com> 1700000000 +0000\nencoding ISO-8859-1\n\nCaf\xe9\n");
 
         $commit = new Repository($repository->getPath(), driver: self::getDriver())->getCommit($hash);
         $this->assertSame("Caf\u{e9}\n", $commit->getMessage());

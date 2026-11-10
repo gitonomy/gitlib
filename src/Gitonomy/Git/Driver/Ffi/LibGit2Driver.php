@@ -132,6 +132,8 @@ final readonly class LibGit2Driver implements DriverInterface
             try {
                 if (null !== $tag) {
                     $this->checkOutTag($repository, $tag);
+                } elseif (null === $branch) {
+                    $this->trackUnbornBranch($repository, $url);
                 }
             } finally {
                 $this->ffi->git_repository_free($repository);
@@ -193,19 +195,28 @@ final readonly class LibGit2Driver implements DriverInterface
      */
     private static function assertNotBundle(#[\SensitiveParameter] string $url): void
     {
-        // A local path only, a Windows one included: is_file() would hand any
-        // other URL to the stream wrapper of its scheme, like the one of
-        // "ftp://", which connects with the credentials of the URL. A
-        // "host:path" address isn't local either.
-        $path = str_starts_with($url, 'file://') ? substr($url, \strlen('file://')) : $url;
-        if (1 === preg_match('#^[a-zA-Z][a-zA-Z0-9+.-]*:#', $path) && 1 !== preg_match('#^[a-zA-Z]:[\\\/]#', $path)) {
-            return;
-        }
+        // A local path only: is_file() would hand any other URL to the stream
+        // wrapper of its scheme, like the one of "ftp://", which connects
+        // with the credentials of the URL.
+        $path = self::localPath($url);
 
         // The signatures of the formats of bundles.
-        if (is_file($path) && is_readable($path) && \in_array(file_get_contents($path, length: 16), ["# v2 git bundle\n", "# v3 git bundle\n"], true)) {
+        if (null !== $path && is_file($path) && is_readable($path) && \in_array(file_get_contents($path, length: 16), ["# v2 git bundle\n", "# v3 git bundle\n"], true)) {
             throw new UnsupportedOperationException(\sprintf('"%s" is a bundle, which LibGit2Driver doesn\'t support; use CliDriver.', $url));
         }
+    }
+
+    /**
+     * @return string|null The path $url names on this machine, a Windows one included, or null for the URL of another transport, or a "host:path" address
+     */
+    private static function localPath(#[\SensitiveParameter] string $url): ?string
+    {
+        $path = str_starts_with($url, 'file://') ? substr($url, \strlen('file://')) : $url;
+        if (1 === preg_match('#^[a-zA-Z][a-zA-Z0-9+.-]*:#', $path) && 1 !== preg_match('#^[a-zA-Z]:[\\\/]#', $path)) {
+            return null;
+        }
+
+        return $path;
     }
 
     private function initRepository(string $path, bool $bare): CData
@@ -239,7 +250,7 @@ final readonly class LibGit2Driver implements DriverInterface
             } finally {
                 $this->ffi->git_repository_free($repository);
             }
-        } catch (DriverException $e) {
+        } catch (DriverException|UnsupportedOperationException $e) {
             // Like git, which removes what it created when a clone fails.
             self::remove($path, $existing);
 
@@ -275,14 +286,7 @@ final readonly class LibGit2Driver implements DriverInterface
      */
     private function checkOutTag(CData $repository, string $tag): void
     {
-        $head = $this->ffi->new('git_reference*');
-        LibGit2::check($this->ffi, $this->ffi->git_reference_lookup(\FFI::addr($head), $repository, 'HEAD'), 'Unable to read HEAD');
-
-        try {
-            $branch = $this->ffi->git_reference_type($head) === $this->ffi->GIT_REFERENCE_SYMBOLIC ? $this->ffi->git_reference_symbolic_target($head) : null;
-        } finally {
-            $this->ffi->git_reference_free($head);
-        }
+        $branch = $this->headBranch($repository);
 
         $commit = $this->ffi->new('git_object*');
         LibGit2::check($this->ffi, $this->ffi->git_revparse_single(\FFI::addr($commit), $repository, 'refs/tags/'.$tag.'^{commit}'), \sprintf('Unable to resolve the tag "%s"', $tag));
@@ -355,20 +359,35 @@ final readonly class LibGit2Driver implements DriverInterface
             $options->update_fetchhead = 0;
 
             $refspecBuffer = LibGit2::cString($this->ffi, $refspec);
-            $refspecs = $this->ffi->new('char*[1]');
+            // Like git, the commit of HEAD too, which no branch may have when it is detached: it is written nowhere.
+            $headBuffer = LibGit2::cString($this->ffi, 'HEAD');
+            $refspecs = $this->ffi->new('char*[2]');
             $refspecs[0] = $this->ffi->cast('char *', $refspecBuffer);
+            $refspecs[1] = $this->ffi->cast('char *', $headBuffer);
             $refspecArray = $this->ffi->new('git_strarray');
             $refspecArray->strings = $this->ffi->cast('char **', $refspecs);
-            $refspecArray->count = 1;
+            $refspecArray->count = 2;
 
             LibGit2::check($this->ffi, $this->ffi->git_remote_fetch($remote, \FFI::addr($refspecArray), \FFI::addr($options), null), \sprintf('Unable to fetch "%s"', $url));
 
             $head = null !== $branch ? 'refs/heads/'.$branch : $this->defaultBranch($remote);
+            $detachedHead = null === $head ? $this->remoteHead($remote) : null;
         } finally {
             $this->ffi->git_remote_free($remote);
         }
 
+        if (null !== $detachedHead) {
+            // Like git, HEAD detached where the one of the remote is, at a commit none of its branches points to.
+            $oid = $this->ffi->new('git_oid');
+            LibGit2::check($this->ffi, $this->ffi->git_oid_fromstrn(\FFI::addr($oid), $detachedHead, \strlen($detachedHead)), \sprintf('Invalid hash "%s"', $detachedHead));
+            LibGit2::check($this->ffi, $this->ffi->git_repository_set_head_detached($repository, \FFI::addr($oid)), 'Unable to detach HEAD');
+
+            return;
+        }
+
         if (null === $head) {
+            $this->setHeadToUnbornBranch($repository, $url);
+
             return;
         }
 
@@ -421,6 +440,108 @@ final readonly class LibGit2Driver implements DriverInterface
             return \FFI::string($buffer->ptr, $buffer->size);
         } finally {
             $this->ffi->git_buf_dispose(\FFI::addr($buffer));
+        }
+    }
+
+    /**
+     * @return string|null The commit HEAD points to on the remote, or null for an empty repository
+     */
+    private function remoteHead(CData $remote): ?string
+    {
+        $heads = $this->ffi->new('git_remote_head**');
+        $count = $this->ffi->new('size_t');
+        LibGit2::check($this->ffi, $this->ffi->git_remote_ls(\FFI::addr($heads), \FFI::addr($count), $remote), 'Unable to list the references of the remote');
+
+        // A remote lists HEAD first.
+        if (0 === $count->cdata || 'HEAD' !== \FFI::string($heads[0]->name)) {
+            return null;
+        }
+
+        return LibGit2::oidToHex($this->ffi, \FFI::addr($heads[0]->oid));
+    }
+
+    /**
+     * Like git, points HEAD to the branch the one of an empty repository
+     * points to. libgit2 only learns it from a local repository: unlike git,
+     * it doesn't speak the version 2 of the protocol, which tells it.
+     *
+     * @return string|null The full name of the branch, or null when $url isn't a local repository
+     */
+    private function setHeadToUnbornBranch(CData $repository, #[\SensitiveParameter] string $url): ?string
+    {
+        $path = self::localPath($url);
+        if (null === $path) {
+            return null;
+        }
+
+        $remote = $this->ffi->new('git_repository*');
+        LibGit2::check($this->ffi, $this->ffi->git_repository_open(\FFI::addr($remote), $path), \sprintf('Unable to open the repository "%s"', $path));
+
+        try {
+            $branch = $this->headBranch($remote);
+        } finally {
+            $this->ffi->git_repository_free($remote);
+        }
+
+        if (null !== $branch) {
+            LibGit2::check($this->ffi, $this->ffi->git_repository_set_head($repository, $branch), 'Unable to update HEAD');
+        }
+
+        return $branch;
+    }
+
+    /**
+     * git_clone() leaves the clone of an empty repository on the default
+     * branch of libgit2, tracking the one of this name: like git, on the
+     * branch of the remote instead.
+     */
+    private function trackUnbornBranch(CData $repository, #[\SensitiveParameter] string $url): void
+    {
+        $default = $this->headBranch($repository);
+        if (null === $default) {
+            return;
+        }
+
+        $reference = $this->ffi->new('git_reference*');
+        $rc = $this->ffi->git_reference_lookup(\FFI::addr($reference), $repository, $default);
+        // The branch has commits: the remote isn't empty.
+        if (LibGit2::GIT_ENOTFOUND !== $rc) {
+            LibGit2::check($this->ffi, $rc, \sprintf('Unable to look up "%s"', $default));
+            $this->ffi->git_reference_free($reference);
+
+            return;
+        }
+
+        $branch = $this->setHeadToUnbornBranch($repository, $url);
+        if (null === $branch || $branch === $default) {
+            return;
+        }
+
+        $config = $this->ffi->new('git_config*');
+        LibGit2::check($this->ffi, $this->ffi->git_repository_config(\FFI::addr($config), $repository), 'Unable to open the repository configuration');
+
+        try {
+            foreach (['merge' => $branch, 'remote' => 'origin'] as $key => $value) {
+                LibGit2::check($this->ffi, $this->ffi->git_config_delete_entry($config, 'branch.'.substr($default, \strlen('refs/heads/')).'.'.$key), \sprintf('Unable to stop tracking "%s"', $default));
+                LibGit2::check($this->ffi, $this->ffi->git_config_set_string($config, 'branch.'.substr($branch, \strlen('refs/heads/')).'.'.$key, $value), \sprintf('Unable to track "%s"', $branch));
+            }
+        } finally {
+            $this->ffi->git_config_free($config);
+        }
+    }
+
+    /**
+     * @return string|null The full name of the branch HEAD points to, or null when it is detached
+     */
+    private function headBranch(CData $repository): ?string
+    {
+        $head = $this->ffi->new('git_reference*');
+        LibGit2::check($this->ffi, $this->ffi->git_reference_lookup(\FFI::addr($head), $repository, 'HEAD'), 'Unable to read HEAD');
+
+        try {
+            return $this->ffi->git_reference_type($head) === $this->ffi->GIT_REFERENCE_SYMBOLIC ? $this->ffi->git_reference_symbolic_target($head) : null;
+        } finally {
+            $this->ffi->git_reference_free($head);
         }
     }
 

@@ -99,10 +99,12 @@ final readonly class WorkingCopy
      * branch, like "origin/feature", as with branch.autoSetupMerge=true,
      * git's default, whatever the configuration. A failure leaves the
      * branches and the files as they were: like `git checkout -b`, no
-     * branch is created when the checkout fails.
+     * branch is created when the checkout fails. Like it too, the failure of
+     * the post-checkout hook, which CliDriver runs, leaves the branch created
+     * and checked out.
      *
      * @throws ReferenceNotFoundException $startPoint names no commit
-     * @throws DriverException            $branch exists already or isn't a valid name, $startPoint is the short name of several references, which git refuses, or the checkout would overwrite local changes
+     * @throws DriverException            $branch exists already or isn't a valid name, $startPoint is the short name of several references, which git refuses, the checkout would overwrite local changes, or the post-checkout hook fails
      */
     public function checkoutNewBranch(string $branch, Revision|string $startPoint = 'HEAD'): static
     {

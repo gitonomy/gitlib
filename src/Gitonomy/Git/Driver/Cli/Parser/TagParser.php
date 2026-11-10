@@ -40,7 +40,13 @@ final class TagParser extends ParserBase
             $this->consumeNewLine();
         }
 
-        $this->consumeNewLine();
+        // Like git and libgit2, the message starts after the first empty
+        // line: the tags of other tools may have more headers, or no message
+        // at all, not even the empty line.
+        while (!$this->isFinished() && !$this->expects("\n")) {
+            $this->consumeTo("\n");
+            $this->consumeNewLine();
+        }
 
         $this->data = TagData::fromSignedMessage($taggerName, $taggerEmail, $taggerDate, $this->consumeAll());
     }

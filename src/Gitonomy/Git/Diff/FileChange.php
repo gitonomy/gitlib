@@ -28,6 +28,8 @@ final readonly class FileChange
 
     /**
      * @param DiffLine[] $lines
+     *
+     * @throws InvalidArgumentException A line isn't a DiffLine, like the arrays 1.x took
      */
     public function __construct(
         private int $rangeOldStart,
@@ -36,6 +38,12 @@ final readonly class FileChange
         private int $rangeNewCount,
         array $lines,
     ) {
+        foreach ($lines as $line) {
+            if (!$line instanceof DiffLine) { // @phpstan-ignore instanceof.alwaysTrue (PHP doesn't check the types of the elements, unlike PHPStan.)
+                throw new InvalidArgumentException(\sprintf('The lines of a change must be "%s" objects, "%s" given.', DiffLine::class, get_debug_type($line)));
+            }
+        }
+
         $this->lines = array_values($lines);
     }
 

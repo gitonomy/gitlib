@@ -112,10 +112,12 @@ A URL that makes git run a command, or use a file of PHP, throws an
 -   an `fd::` URL, like `fd::7`, which makes git talk through a file
     descriptor it inherits from PHP, like the socket of a database: git waits
     on it until it times out;
--   an ssh URL whose host or user starts with a dash, even encoded (`%2D`),
-    like `ssh://-oProxyCommand=.../repository` or
-    `ssh://-oProxyCommand=...@host/repository`: before 2.14.1, git passes it
-    to ssh, which reads it as an option and runs the command.
+-   an ssh or git URL whose host, user or port starts with a dash, even
+    encoded (`%2D`), like `ssh://-oProxyCommand=.../repository`,
+    `ssh://-oProxyCommand=...@host/repository` or
+    `git://host:-oProxyCommand=.../repository`: before 2.14.1, git passes it
+    to ssh, or to the command of `core.gitProxy`, which reads it as an option
+    and runs the command.
 
 The message of an exception hides the credentials of the URL
 (`https://***@example.com/repository.git`). gitlib doesn't check the URLs

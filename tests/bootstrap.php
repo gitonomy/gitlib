@@ -19,10 +19,32 @@ require __DIR__.'/../vendor/autoload.php';
 // tests. Symfony Process passes on the variables of getenv() that $_SERVER has
 // too, $_ENV taking precedence.
 $gitVariables = array_filter(array_keys([...getenv(), ...$_ENV]), static fn (string $name): bool => str_starts_with($name, 'GIT_') && 'GIT_COMMAND' !== $name);
+
+// HOME is in the working tree: gpg, which git runs to check a signature, would
+// create its ".gnupg" directory there.
+$gnupgHome = tempnam(sys_get_temp_dir(), 'gitlib_gnupg_') ?: throw new RuntimeException('Unable to create a temporary file.');
+unlink($gnupgHome);
+mkdir($gnupgHome, 0o700);
+register_shutdown_function(static function () use ($gnupgHome): void {
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($gnupgHome, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+    /** @var SplFileInfo $file */
+    foreach ($files as $file) {
+        if ($file->isDir() && !$file->isLink()) {
+            rmdir($file->getPathname());
+        } else {
+            unlink($file->getPathname());
+        }
+    }
+    rmdir($gnupgHome);
+});
+
 foreach ([
     ...array_fill_keys($gitVariables, null),
     'GIT_CONFIG_NOSYSTEM' => '1',
+    'GNUPGHOME' => $gnupgHome,
     'HOME' => __DIR__.'/fixtures/home',
+    // The tests read the messages of git, which the language of the developer would translate.
+    'LANGUAGE' => 'C',
     'XDG_CONFIG_HOME' => null,
 ] as $name => $value) {
     if (null === $value) {

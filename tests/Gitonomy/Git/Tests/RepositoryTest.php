@@ -124,6 +124,8 @@ class RepositoryTest extends AbstractTestCase
     public function testOpensAGitFileWhateverItsLineEnding(string $lineEnding): void
     {
         [$dir, $gitDir] = self::cloneWithASeparateGitDir(self::createFoobarRepository());
+        // Removed first: Windows hides it, and PHP writes no hidden file.
+        unlink($dir.'/.git');
         file_put_contents($dir.'/.git', 'gitdir: '.$gitDir.$lineEnding);
 
         $this->assertSame(realpath($gitDir), new Repository($dir, driver: self::getDriver())->getGitDir());
@@ -444,9 +446,82 @@ class RepositoryTest extends AbstractTestCase
         $this->assertFileDoesNotExist($repository->getGitDir().'/FETCH_HEAD');
     }
 
+    /**
+     * Like git, at the commit of the HEAD of the remote, which none of its
+     * branches may have.
+     *
+     * @param \Closure(string, string): Repository $clone
+     */
+    #[DataProvider('provideBareClones')]
+    public function testABareCloneOfADetachedHeadDetachesHead(\Closure $clone): void
+    {
+        $source = self::createFoobarRepository(false);
+        self::git($source, 'config', ['user.name', 'Unit Test']);
+        self::git($source, 'config', ['user.email', 'unit_test@unit-test.com']);
+        self::git($source, 'checkout', ['-q', '--detach']);
+        self::git($source, 'commit', ['-q', '--allow-empty', '-m', 'Detached']);
+        $head = trim(self::git($source, 'rev-parse', ['HEAD']));
+
+        $repository = $clone($source->getPath(), self::createTempDir());
+
+        $this->assertTrue($repository->isHeadDetached());
+        $this->assertSame($head, $repository->getHeadCommit()->getHash());
+        $this->assertFileDoesNotExist($repository->getGitDir().'/FETCH_HEAD');
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(string, string): Repository}>
+     */
+    public static function provideBareClones(): iterable
+    {
+        yield 'bare clone' => [static fn (string $url, string $path): Repository => Repository::cloneBareFrom($url, $path, driver: self::getDriver())];
+        yield 'mirror' => [static fn (string $url, string $path): Repository => Repository::mirrorFrom($url, $path, self::getDriver())];
+    }
+
+    /**
+     * Like git since 2.31, which learns the branch of an empty repository
+     * from it: LibGit2Driver does from a local one.
+     *
+     * @param \Closure(string, string): Repository $clone
+     * @param list<string>                         $tracking What the branch tracks, in the configuration of the clone
+     */
+    #[DataProvider('provideClonesOfAnEmptyRepository')]
+    public function testACloneOfAnEmptyRepositoryIsOnItsBranch(\Closure $clone, array $tracking): void
+    {
+        if (self::getDriver() instanceof CliDriver && version_compare(self::gitVersion(), '2.31.0', '<')) {
+            $this->markTestSkipped('git learns the branch of an empty repository since 2.31.');
+        }
+
+        $source = self::createEmptyRepository();
+        self::git($source, 'symbolic-ref', ['HEAD', 'refs/heads/trunk']);
+
+        $repository = $clone($source->getGitDir(), self::createTempDir().'/clone');
+
+        $this->assertSame('refs/heads/trunk', $repository->getRepositoryDriver()->getHeadReference());
+        // Without branch.trunk.rebase, which the configuration of the tests makes git add.
+        $configuration = array_filter(explode("\n", self::git($repository, 'config', ['--local', '--list'])), static fn (string $line): bool => 1 === preg_match('/^branch\.[^.]+\.(?:merge|remote)=/', $line));
+        sort($configuration);
+        $this->assertSame($tracking, $configuration);
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(string, string): Repository, list<string>}>
+     */
+    public static function provideClonesOfAnEmptyRepository(): iterable
+    {
+        yield 'clone' => [static fn (string $url, string $path): Repository => Repository::cloneFrom($url, $path, driver: self::getDriver()), ['branch.trunk.merge=refs/heads/trunk', 'branch.trunk.remote=origin']];
+        foreach (self::provideBareClones() as $name => [$clone]) {
+            yield $name => [$clone, []];
+        }
+    }
+
     public function testCloneOfAMissingBranchThrows(): void
     {
-        $this->expectException(DriverException::class);
+        $this->expectDriverException(
+            'clone',
+            'fatal: Remote branch missing not found in upstream origin.',
+            \sprintf('Unable to clone "%s": reference \'refs/remotes/origin/missing\' not found.', self::repositoryUrl()),
+        );
 
         Repository::cloneFrom(self::repositoryUrl(), self::createTempDir().'/clone', 'missing', self::getDriver());
     }
@@ -464,9 +539,14 @@ class RepositoryTest extends AbstractTestCase
     {
         $dir = self::createTempDir();
         $repository = Repository::cloneBareFrom(self::repositoryUrl(), $dir.'/repository', driver: self::getDriver());
+        $gitDir = $repository->getGitDir();
         rename($dir.'/repository', $dir.'/moved');
 
+        // git doesn't even start, in a working directory that is no more: no ProcessException.
         $this->expectException(DriverException::class);
+        $this->expectExceptionMessageMatches('/^'.preg_quote(\sprintf(self::getDriver() instanceof CliDriver
+            ? 'The git command "show-ref" could not start: The provided cwd "%s" does not exist.'
+            : 'The repository "%s" does not exist anymore.', $gitDir), '/').'$/');
 
         $repository->getReferences()->getBranches();
     }
@@ -495,7 +575,11 @@ class RepositoryTest extends AbstractTestCase
         $dir = self::createTempDir();
         touch($dir.'/file');
 
-        $this->expectException(DriverException::class);
+        $this->expectDriverException(
+            'clone',
+            \sprintf('fatal: destination path \'%s\' already exists and is not an empty directory.', $dir),
+            \sprintf('Unable to clone "%s": "%s" exists and is not an empty directory.', self::repositoryUrl(), $dir),
+        );
 
         Repository::cloneBareFrom(self::repositoryUrl(), $dir, driver: self::getDriver());
     }
@@ -648,7 +732,11 @@ class RepositoryTest extends AbstractTestCase
 
     public function testCloneFromAnUnknownBranchFails(): void
     {
-        $this->expectException(DriverException::class);
+        $this->expectDriverException(
+            'clone',
+            'fatal: Remote branch unknown not found in upstream origin.',
+            \sprintf('Remote branch "unknown" not found in "%s".', self::repositoryUrl()),
+        );
 
         Repository::cloneBareFrom(self::repositoryUrl(), self::createTempDir().'/clone', 'unknown', driver: self::getDriver());
     }
@@ -730,6 +818,70 @@ class RepositoryTest extends AbstractTestCase
         $this->assertNull($process->getIdleTimeout());
     }
 
+    public function testAProcessTimeoutOfZeroDisablesTheTimeout(): void
+    {
+        $this->skipUnlessCliDriver();
+
+        $repository = new Repository(self::createFoobarRepository()->getPath(), driver: self::getCliDriver(processTimeout: 0));
+
+        $this->assertNull($repository->runProcess('rev-parse', ['HEAD'])->getTimeout());
+    }
+
+    /**
+     * Symfony Process refused it when the first git command ran, with its own exception.
+     */
+    public function testANegativeProcessTimeoutIsRefused(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The timeout of git processes can\'t be negative, got -1.');
+
+        new CliDriver(processTimeout: -1);
+    }
+
+    /**
+     * A translation changes the messages gitlib reads: git gets LANGUAGE=C,
+     * whatever the one of PHP.
+     */
+    public function testGitWritesItsMessagesInEnglish(): void
+    {
+        $this->skipUnlessCliDriver();
+
+        $repository = self::createFoobarRepository();
+        self::git($repository, 'config', ['alias.language', '!echo "$LANGUAGE"']);
+        $language = getenv('LANGUAGE');
+        $server = $_SERVER;
+        // Symfony Process passes on the variables of getenv() that $_SERVER has too.
+        putenv('LANGUAGE=fr');
+        $_SERVER['LANGUAGE'] = 'fr';
+
+        try {
+            $this->assertSame("C\n", $repository->run('language'));
+            $this->assertSame("de\n", new Repository($repository->getPath(), driver: self::getCliDriver(['LANGUAGE' => 'de']))->run('language'), 'Unless the application sets it');
+        } finally {
+            putenv(false === $language ? 'LANGUAGE' : 'LANGUAGE='.$language);
+            $_SERVER = $server;
+        }
+    }
+
+    public function testAHashEndingWithANewLineIsRefused(): void
+    {
+        $repository = self::createFoobarRepository();
+
+        // An abbreviated hash, for the blob and the tree: "$" matched before the new line of its 40 characters.
+        foreach ([
+            'commit' => static fn () => $repository->getCommit(self::LONGFILE_COMMIT."\n"),
+            'blob' => static fn () => $repository->getBlob("412a0dad051163dcf9f9ce2fc04a141ffcb6947\n"),
+            'tree' => static fn () => $repository->getTree(substr($repository->getCommit(self::LONGFILE_COMMIT)->getTreeHash(), 0, 39)."\n"),
+        ] as $type => $get) {
+            try {
+                $get();
+                $this->fail(\sprintf('The hash of the %s is refused.', $type));
+            } catch (ReferenceNotFoundException $e) {
+                $this->assertStringContainsString("\n\" is not ", $e->getMessage(), $type);
+            }
+        }
+    }
+
     public function testRunThrowsWhenTheCommandFails(): void
     {
         $this->skipUnlessCliDriver();
@@ -787,6 +939,10 @@ class RepositoryTest extends AbstractTestCase
 
     public function testGetSizeInBytesFollowsNoLink(): void
     {
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('Windows creates no link to a missing file.');
+        }
+
         $repository = self::createEmptyRepository();
         $size = $repository->getSizeInBytes();
 
@@ -833,6 +989,33 @@ class RepositoryTest extends AbstractTestCase
     {
         $repository = self::createFoobarRepository($bare);
         $this->assertSame("Unnamed repository; edit this file 'description' to name the repository.\n", $repository->getDescription());
+    }
+
+    #[DataProvider('provideBare')]
+    public function testSetDescription(bool $bare): void
+    {
+        $repository = self::createFoobarRepository($bare);
+
+        $this->assertSame($repository, $repository->setDescription("The fixture of the tests\n"));
+
+        $this->assertStringEqualsFile($repository->getGitDir().'/description', "The fixture of the tests\n");
+        $this->assertSame("The fixture of the tests\n", $repository->getDescription());
+    }
+
+    /**
+     * The description git writes in a new repository is none.
+     */
+    #[DataProvider('provideBare')]
+    public function testHasDescription(bool $bare): void
+    {
+        $repository = self::createFoobarRepository($bare);
+        $this->assertFalse($repository->hasDescription());
+
+        $repository->setDescription("The fixture of the tests\n");
+        $this->assertTrue($repository->hasDescription());
+
+        unlink($repository->getGitDir().'/description');
+        $this->assertFalse($repository->hasDescription(), 'No file, no description');
     }
 
     #[DataProvider('provideBare')]

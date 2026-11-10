@@ -153,5 +153,6 @@ $tags     = $references->resolveTags($commit); // Annotated tags included
 $all      = $references->resolve($commit);
 ```
 
-You can pass a `Commit` object, a hash or any revision name.
+You can pass a `Commit`, another revision like a `Branch`, a hash or any
+revision name.
 `Commit::resolveReferences()` is a shortcut for `resolve()`.

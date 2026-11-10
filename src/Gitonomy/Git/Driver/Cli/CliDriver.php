@@ -14,9 +14,11 @@ namespace Gitonomy\Git\Driver\Cli;
 
 use Gitonomy\Git\Driver\DriverInterface;
 use Gitonomy\Git\Driver\RepositoryPaths;
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Util\RemoteUrl;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Process\Process;
 
 /**
  * Runs the git binary, through Symfony Process.
@@ -26,12 +28,21 @@ use Psr\Log\LoggerInterface;
 final readonly class CliDriver implements DriverInterface
 {
     /**
-     * git inherits the environment variables of PHP, like any process run by Symfony Process.
+     * A path under a file is never a directory: git finds no repository there.
+     */
+    private const string NO_GIT_DIR = __FILE__.'/none';
+
+    /**
+     * git inherits the environment variables of PHP, like any process run by
+     * Symfony Process. LANGUAGE is "C", unless $environmentVariables has it:
+     * gitlib reads messages of git, which a translation would change.
      *
      * @param string                                  $command              The git binary
      * @param array<string, string|\Stringable|false> $environmentVariables Set on every git process, false removing an inherited one
-     * @param float|null                              $processTimeout       In seconds, for the whole process and without output; null for none
+     * @param float|null                              $processTimeout       In seconds, for the whole process and without output; null or 0 for none
      * @param LoggerInterface|null                    $logger               Receives every git command run, with its output
+     *
+     * @throws InvalidArgumentException $processTimeout is negative
      */
     public function __construct(
         private string $command = 'git',
@@ -39,6 +50,9 @@ final readonly class CliDriver implements DriverInterface
         private ?float $processTimeout = 3600,
         private ?LoggerInterface $logger = null,
     ) {
+        if (null !== $processTimeout && $processTimeout < 0) {
+            throw new InvalidArgumentException(\sprintf('The timeout of git processes can\'t be negative, got %s.', $processTimeout));
+        }
     }
 
     public function open(string $dir, ?string $workingDir): CliRepositoryDriver
@@ -79,7 +93,7 @@ final readonly class CliDriver implements DriverInterface
         // ls-remote only takes "--" since git 2.8.
         RemoteUrl::assertSafe($url);
 
-        return $this->runner()->run('ls-remote', [self::absoluteUrl($url)], workingDirectory: self::neutralDirectory())->isSuccessful();
+        return $this->lsRemote([$url])->isSuccessful();
     }
 
     public function isValidRepositoryAndBranch(#[\SensitiveParameter] string $url, string $branch): bool
@@ -87,7 +101,7 @@ final readonly class CliDriver implements DriverInterface
         RemoteUrl::assertSafe($url);
 
         // git lists the branches whose name ends with the pattern: "release" matches "feature/release".
-        $process = $this->runner()->run('ls-remote', ['--heads', self::absoluteUrl($url), 'refs/heads/'.$branch], workingDirectory: self::neutralDirectory());
+        $process = $this->lsRemote(['--heads', $url, 'refs/heads/'.$branch]);
         if (!$process->isSuccessful()) {
             return false;
         }
@@ -133,36 +147,16 @@ final readonly class CliDriver implements DriverInterface
     }
 
     /**
-     * Out of the working directory of PHP, which may be a repository, like
-     * the checkout of an application: ls-remote, unlike clone, would read its
-     * configuration, its rewrites of URLs for instance. git 1.8.4 can't even
-     * run in a linked worktree.
+     * --git-dir keeps git from looking for a repository from the working
+     * directory of PHP, which may be in one, like the checkout of an
+     * application: ls-remote, unlike clone, would read its configuration,
+     * whose rewrites of URLs may run a command, and a relative path as the
+     * name of one of its remotes.
+     *
+     * @param string[] $args Arguments of ``git ls-remote``
      */
-    private static function neutralDirectory(): string
+    private function lsRemote(#[\SensitiveParameter] array $args): Process
     {
-        return sys_get_temp_dir();
-    }
-
-    /**
-     * Run in a repository, ls-remote reads a relative path as the name of a
-     * remote first: "origin" would be the URL of the remote of PHP's working
-     * directory. The path stays relative to it.
-     */
-    private static function absoluteUrl(#[\SensitiveParameter] string $url): string
-    {
-        if (str_starts_with($url, '/') || 1 === preg_match('#^[a-zA-Z]:[\\\/]#', $url)) {
-            return $url;
-        }
-
-        // Like git: a URL, or an address like "host:path", has a colon before any slash.
-        $colon = strpos($url, ':');
-        $slash = strpos($url, '/');
-        if (false !== $colon && (false === $slash || $colon < $slash)) {
-            return $url;
-        }
-
-        $cwd = getcwd();
-
-        return false === $cwd ? $url : $cwd.'/'.$url;
+        return $this->runner()->run('ls-remote', $args, ['--git-dir', self::NO_GIT_DIR]);
     }
 }

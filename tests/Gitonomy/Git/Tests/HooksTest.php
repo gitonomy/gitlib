@@ -112,6 +112,8 @@ class HooksTest extends AbstractTestCase
         yield 'empty' => [''];
         yield 'hidden file' => ['.pre-commit'];
         yield 'NUL byte' => ["pre-commit\0.sample"];
+        // "$" alone matches before a trailing line feed.
+        yield 'trailing line feed' => ["pre-commit\n"];
     }
 
     #[DataProvider('provideBare')]
@@ -242,6 +244,9 @@ class HooksTest extends AbstractTestCase
     public function testASymlinkToAMissingFileIsAHook(): void
     {
         $this->markAsSkippedIfSymlinkIsMissing();
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('Windows creates no link to a missing file.');
+        }
 
         $repository = self::createFoobarRepository();
         $target = self::createTempDir().'/pre-receive';

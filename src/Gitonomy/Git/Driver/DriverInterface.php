@@ -34,8 +34,9 @@ use Gitonomy\Git\Exception\UnsupportedOperationException;
  * taking one refuses, with an {@see InvalidArgumentException}, a URL git would
  * misread, before running git. A URL starting with a dash is an option for
  * git, an "ext::" URL runs its command, an "fd::" URL talks through a file
- * descriptor of PHP, and an ssh host or user starting with a dash is an
- * option for ssh.
+ * descriptor of PHP, and the host, the user or the port of an ssh or git
+ * URL starting with a dash is an option for ssh, or for the command of
+ * core.gitProxy.
  *
  * gitlib may add methods to this interface in a minor version: the promise of
  * backward compatibility covers the code calling it, not the drivers

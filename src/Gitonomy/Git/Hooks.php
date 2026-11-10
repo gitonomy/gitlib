@@ -12,6 +12,7 @@
 
 namespace Gitonomy\Git;
 
+use Gitonomy\Git\Driver\RepositoryPaths;
 use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\RuntimeException;
 
@@ -160,19 +161,7 @@ final readonly class Hooks
      */
     private function getDirectory(): string
     {
-        $gitDir = $this->repository->getGitDir();
         // Like git, a linked worktree runs the hooks of the repository it belongs to.
-        if (!is_file($gitDir.'/commondir')) {
-            return $gitDir.'/hooks';
-        }
-
-        $commonDir = file_get_contents($gitDir.'/commondir');
-        if (false === $commonDir) {
-            throw new RuntimeException(\sprintf('Unable to read "%s/commondir".', $gitDir));
-        }
-
-        $commonDir = rtrim($commonDir, "\r\n");
-
-        return (preg_match('#^(/|[a-zA-Z]:[\\\/])#', $commonDir) ? $commonDir : $gitDir.'/'.$commonDir).'/hooks';
+        return RepositoryPaths::commonDir($this->repository->getGitDir()).'/hooks';
     }
 }

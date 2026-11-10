@@ -42,7 +42,7 @@ final class Commit extends Revision
      */
     public function __construct(Repository $repository, string $hash, ?CommitData $data = null)
     {
-        if (!preg_match('/^[a-f0-9]{40}$/', $hash)) {
+        if (!preg_match('/^[a-f0-9]{40}$/D', $hash)) {
             throw new ReferenceNotFoundException(\sprintf('"%s" is not the hash of a commit: get a commit by its name with getRevision(...)->getCommit().', $hash));
         }
 
@@ -141,7 +141,7 @@ final class Commit extends Revision
     /**
      * Resolves all references associated to this commit.
      *
-     * @return Reference[] An array of references (Branch, Tag, Squash)
+     * @return Reference[] An array of references (Branch, Tag, Stash)
      */
     public function resolveReferences(): array
     {

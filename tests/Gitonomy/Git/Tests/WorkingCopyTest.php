@@ -14,14 +14,19 @@ namespace Gitonomy\Git\Tests;
 
 use Gitonomy\Git\Diff\File;
 use Gitonomy\Git\Driver\Cli\CliDriver;
+use Gitonomy\Git\Driver\Ffi\LibGit2Driver;
 use Gitonomy\Git\Exception\DriverException;
 use Gitonomy\Git\Exception\LogicException;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
+use Gitonomy\Git\Exception\UnsupportedOperationException;
 use Gitonomy\Git\FastForward;
 use Gitonomy\Git\Reference\Branch;
 use Gitonomy\Git\Repository;
+use Gitonomy\Git\WorkingCopy;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
+use Symfony\Component\Process\Process;
 
 class WorkingCopyTest extends AbstractTestCase
 {
@@ -369,7 +374,7 @@ class WorkingCopyTest extends AbstractTestCase
         $repository = self::createFoobarRepository(false);
         $wc = $repository->getWorkingCopy();
 
-        $this->expectException(DriverException::class);
+        $this->expectDriverException('merge', 'fatal: Not possible to fast-forward, aborting.', 'Unable to fast-forward to "origin/diff-features".');
 
         $wc->merge('origin/diff-features', FastForward::Only);
     }
@@ -511,6 +516,28 @@ class WorkingCopyTest extends AbstractTestCase
         $this->assertSame(['newdir/a.txt', 'newdir/sub/b.txt'], $files);
     }
 
+    /**
+     * "git status -z" gives the name a renamed file had as an entry of its
+     * own: here, one that reads like the entry of an untracked file.
+     */
+    public function testTheFormerNameOfAStagedRenameIsNotUntracked(): void
+    {
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('A file name can\'t hold a "?" on Windows.');
+        }
+
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        file_put_contents($repository->getWorkingDir().'/?? fake', "foo\n");
+        self::git($repository, 'add', ['?? fake']);
+        self::git($repository, 'commit', ['-q', '-m', 'Add a file']);
+        self::git($repository, 'mv', ['?? fake', 'renamed']);
+        file_put_contents($repository->getWorkingDir().'/untracked.txt', 'foo');
+
+        $this->assertSame(['untracked.txt'], $repository->getWorkingCopy()->getUntrackedFiles());
+    }
+
     public function testCheckoutPrefersTheBranchToATagOfTheSameName(): void
     {
         $repository = self::createFoobarRepository(false);
@@ -641,6 +668,29 @@ class WorkingCopyTest extends AbstractTestCase
         $this->assertSame([], $repository->getWorkingCopy()->getDiffPending()->getFiles());
     }
 
+    /**
+     * Like "git checkout -b": git runs the hook once the branch is created
+     * and checked out, and can't delete the branch HEAD points to.
+     */
+    public function testCheckoutNewBranchKeepsTheBranchWhenThePostCheckoutHookFails(): void
+    {
+        $this->skipUnlessCliDriver();
+
+        $repository = self::createFoobarRepository(false);
+        $repository->getHooks()->set('post-checkout', "#!/bin/sh\nexit 3\n");
+
+        try {
+            $repository->getWorkingCopy()->checkoutNewBranch('feature', 'origin/new-feature');
+            $this->fail('The hook fails.');
+        } catch (ProcessException $e) {
+            $this->assertStringStartsWith('The git command "checkout" failed (exit ', $e->getMessage());
+        }
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $this->assertSame('refs/heads/feature', self::headBranch($repository)->getFullname());
+        $this->assertSame(['branch.feature.merge' => 'refs/heads/new-feature', 'branch.feature.remote' => 'origin'], self::branchConfiguration($repository, 'feature'));
+    }
+
     public function testCheckoutNewBranchWithAnInvalidNameChangesNothing(): void
     {
         $repository = self::createFoobarRepository(false);
@@ -659,11 +709,15 @@ class WorkingCopyTest extends AbstractTestCase
 
     public function testMergeRefusesUnrelatedHistories(): void
     {
+        if (self::getDriver() instanceof CliDriver && version_compare(self::gitVersion(), '2.9.0', '<')) {
+            $this->markTestSkipped('git refuses to merge unrelated histories since 2.9.');
+        }
+
         $repository = self::createFoobarRepository(false);
         $tree = $repository->getHeadCommit()->getTreeHash();
         $orphan = self::writeObject($repository, 'commit', "tree {$tree}\nauthor A <a@example.com> 1000000000 +0000\ncommitter A <a@example.com> 1000000000 +0000\n\nOrphan\n");
 
-        $this->expectException(DriverException::class);
+        $this->expectDriverException('merge', 'fatal: refusing to merge unrelated histories.', \sprintf('Refusing to merge "%s", whose history is unrelated.', $orphan));
 
         $repository->getWorkingCopy()->merge($orphan);
     }
@@ -684,6 +738,248 @@ class WorkingCopyTest extends AbstractTestCase
         }
 
         $this->assertSame($head, $repository->getHeadCommit()->getHash());
+    }
+
+    /**
+     * libgit2 deletes the directory of a submodule a checkout removes, with
+     * its repository when it is in it, as "git clone" then "git add" leave
+     * it: LibGit2Driver refuses the checkout. git keeps the directory.
+     *
+     * @param \Closure(WorkingCopy, string): void $checkout
+     */
+    #[DataProvider('provideCheckouts')]
+    public function testACheckoutRemovingASubmoduleKeepsItsRepository(\Closure $checkout): void
+    {
+        $repository = self::createRepositoryWithASubmoduleToRemove();
+
+        $this->assertSubmoduleIsKept($repository, static fn () => $checkout($repository->getWorkingCopy(), 'removal'));
+        $this->assertDirectoryExists($repository->getWorkingDir().'/sub/.git');
+    }
+
+    public function testAMergeRemovingASubmoduleKeepsItsRepository(): void
+    {
+        $repository = self::createRepositoryWithASubmoduleToRemove();
+        file_put_contents($repository->getWorkingDir().'/ours', "ours\n");
+        self::git($repository, 'add', ['ours']);
+        self::git($repository, 'commit', ['-q', '-m', 'Ours']);
+
+        $this->assertSubmoduleIsKept($repository, static fn () => $repository->getWorkingCopy()->merge('removal'));
+        $this->assertDirectoryExists($repository->getWorkingDir().'/sub/.git');
+    }
+
+    /**
+     * The repository of a submodule "git submodule add" checks out is in the
+     * one of its superproject: libgit2 would still delete the files git
+     * ignores in its directory.
+     */
+    public function testACheckoutRemovingASubmoduleKeepsItsFiles(): void
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        $repository->getReferences()->createBranch('removal', $repository->getHeadCommit()->getHash());
+        // git refuses to clone a local submodule since 2.38.1, unless protocol.file.allow allows it.
+        new Process([self::gitCommand(), '-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', self::createFoobarRepository()->getGitDir(), 'sub'], $repository->getWorkingDir(), self::gitEnvs())->mustRun();
+        self::git($repository, 'commit', ['-q', '-m', 'Add the submodule']);
+        file_put_contents($repository->getGitDir().'/modules/sub/info/exclude', "ignored\n");
+        file_put_contents($repository->getWorkingDir().'/sub/ignored', 'local');
+
+        $this->assertSubmoduleIsKept($repository, static fn () => $repository->getWorkingCopy()->checkout('removal'));
+        $this->assertSame('local', file_get_contents($repository->getWorkingDir().'/sub/ignored'));
+    }
+
+    /**
+     * A checkout replacing a directory with a file is refused before it
+     * writes anything, when an untracked file would be left in the directory.
+     *
+     * @param \Closure(WorkingCopy, string): void $checkout
+     */
+    #[DataProvider('provideCheckouts')]
+    public function testARefusedCheckoutWritesNothing(\Closure $checkout): void
+    {
+        $repository = self::createRepositoryWithADirectoryBecomingAFile();
+        file_put_contents($repository->getWorkingDir().'/dir/untracked', 'untracked');
+
+        try {
+            $checkout($repository->getWorkingCopy(), 'feature');
+            $this->fail('The checkout should have been refused.');
+        } catch (DriverException $e) {
+            if (self::getDriver() instanceof LibGit2Driver) {
+                $this->assertStringEndsWith(': it replaces the directory "dir" with a file, but "dir/untracked" would be left in it.', $e->getMessage());
+            }
+        }
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $this->assertSame('refs/heads/master', self::headBranch($repository)->getFullname());
+        $this->assertFalse($repository->getReferences()->hasBranch('new'));
+        $this->assertSame([], $repository->getWorkingCopy()->getDiffPending()->getFiles());
+        $this->assertSame(['dir/untracked'], $repository->getWorkingCopy()->getUntrackedFiles());
+    }
+
+    /**
+     * doc/repository.md: LibGit2Driver also refuses the checkout for a file
+     * git ignores, like git 2.34, where git 2.43 deletes the file.
+     */
+    public function testACheckoutReplacingADirectoryWithAFileDeletesAnIgnoredFileOrWritesNothing(): void
+    {
+        $repository = self::createRepositoryWithADirectoryBecomingAFile();
+        file_put_contents($repository->getGitDir().'/info/exclude', "ignored\n");
+        file_put_contents($repository->getWorkingDir().'/dir/ignored', 'ignored');
+
+        try {
+            $repository->getWorkingCopy()->checkout('feature');
+        } catch (DriverException $e) {
+            if (self::getDriver() instanceof LibGit2Driver) {
+                $this->assertStringEndsWith(': it replaces the directory "dir" with a file, but "dir/ignored" would be left in it.', $e->getMessage());
+            }
+            $this->assertSame('ignored', file_get_contents($repository->getWorkingDir().'/dir/ignored'));
+            $this->assertSame([], $repository->getWorkingCopy()->getDiffPending()->getFiles());
+
+            return;
+        }
+
+        $this->assertNotInstanceOf(LibGit2Driver::class, self::getDriver());
+        $this->assertSame('file', file_get_contents($repository->getWorkingDir().'/dir'));
+    }
+
+    /**
+     * Like git, which reads the files a sparse checkout leaves out from the
+     * index.
+     */
+    public function testDiffsLeaveOutTheFilesASparseCheckoutLeavesOut(): void
+    {
+        $repository = self::createSparseCheckout();
+        $wc = $repository->getWorkingCopy();
+
+        $this->assertFileDoesNotExist($repository->getWorkingDir().'/AUTHORS');
+        $this->assertSame([], $wc->getDiffPending()->getFiles());
+        $this->assertSame([], $wc->getDiffStaged()->getFiles());
+        $this->assertSame([], $wc->getDiff()->getFiles());
+        $this->assertSame([], $wc->getUntrackedFiles());
+    }
+
+    /**
+     * doc/repository.md: libgit2 doesn't read the patterns of a sparse
+     * checkout.
+     *
+     * @param \Closure(WorkingCopy, string): void $checkout
+     */
+    #[DataProvider('provideCheckouts')]
+    public function testLibGit2DriverChecksNothingOutInASparseCheckout(\Closure $checkout): void
+    {
+        $repository = self::createSparseCheckout();
+
+        try {
+            $checkout($repository->getWorkingCopy(), 'master~1');
+            $this->assertInstanceOf(CliDriver::class, self::getDriver());
+        } catch (UnsupportedOperationException $e) {
+            $this->assertSame(\sprintf('The repository "%s" has a sparse checkout, in which LibGit2Driver checks out and merges nothing; use CliDriver.', $repository->getGitDir()), $e->getMessage());
+            $this->assertFalse(new Repository($repository->getPath(), driver: self::getDriver())->getReferences()->hasBranch('new'));
+        }
+
+        $this->assertFileDoesNotExist($repository->getWorkingDir().'/AUTHORS');
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(WorkingCopy, string): void}>
+     */
+    public static function provideCheckouts(): iterable
+    {
+        yield 'checkout' => [static function (WorkingCopy $wc, string $revision): void { $wc->checkout($revision); }];
+        yield 'new branch' => [static function (WorkingCopy $wc, string $revision): void { $wc->checkoutNewBranch('new', $revision); }];
+        yield 'fast-forward' => [static function (WorkingCopy $wc, string $revision): void { $wc->merge($revision); }];
+    }
+
+    /**
+     * Runs $checkout, which removes the submodule "sub": LibGit2Driver
+     * refuses it, and changes nothing.
+     *
+     * @param \Closure(): mixed $checkout
+     */
+    private function assertSubmoduleIsKept(Repository $repository, \Closure $checkout): void
+    {
+        if (!self::getDriver() instanceof LibGit2Driver) {
+            $checkout();
+
+            return;
+        }
+
+        $head = $repository->getHeadCommit()->getHash();
+
+        try {
+            $checkout();
+            $this->fail('The checkout would delete the directory of the submodule.');
+        } catch (DriverException $e) {
+            $this->assertStringEndsWith(': it removes the submodule "sub", whose directory would be deleted with all its files.', $e->getMessage());
+        }
+
+        $repository = new Repository($repository->getPath(), driver: self::getDriver());
+        $this->assertSame('refs/heads/master', self::headBranch($repository)->getFullname());
+        $this->assertSame($head, $repository->getHeadCommit()->getHash());
+        $this->assertFalse($repository->getReferences()->hasBranch('new'));
+        $this->assertSame([], $repository->getWorkingCopy()->getDiffStaged()->getFiles());
+    }
+
+    /**
+     * @return Repository On the branch "master", which has a submodule "sub" with its repository in its directory; the branch "removal", ahead of it, removes the submodule
+     */
+    private static function createRepositoryWithASubmoduleToRemove(): Repository
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        $tree = $repository->getHeadCommit()->getTreeHash();
+
+        $submodule = Repository::init($repository->getWorkingDir().'/sub', self::getCliDriver());
+        self::git($submodule, 'config', ['user.name', 'Unit Test']);
+        self::git($submodule, 'config', ['user.email', 'unit_test@unit-test.com']);
+        self::git($submodule, 'commit', ['-q', '--allow-empty', '-m', 'First']);
+        self::git($repository, 'update-index', ['--add', '--cacheinfo', '160000', trim(self::git($submodule, 'rev-parse', ['HEAD'])), 'sub']);
+        self::git($repository, 'commit', ['-q', '-m', 'Add the submodule']);
+
+        self::git($repository, 'update-ref', ['refs/heads/removal', trim(self::git($repository, 'commit-tree', [$tree, '-p', 'HEAD', '-m', 'Remove the submodule']))]);
+
+        return $repository;
+    }
+
+    /**
+     * @return Repository On the branch "master", which has a directory "dir"; the branch "feature", ahead of it, replaces it with a file, after it changes a file and adds another
+     */
+    private static function createRepositoryWithADirectoryBecomingAFile(): Repository
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['user.name', 'Unit Test']);
+        self::git($repository, 'config', ['user.email', 'unit_test@unit-test.com']);
+        $dir = $repository->getWorkingDir();
+
+        mkdir($dir.'/dir');
+        file_put_contents($dir.'/dir/tracked', 'tracked');
+        self::git($repository, 'add', ['dir']);
+        self::git($repository, 'commit', ['-q', '-m', 'Directory']);
+
+        self::git($repository, 'checkout', ['-q', '-b', 'feature']);
+        self::git($repository, 'rm', ['-q', '-r', 'dir']);
+        file_put_contents($dir.'/dir', 'file');
+        file_put_contents($dir.'/AUTHORS', 'changed');
+        file_put_contents($dir.'/added', 'added');
+        self::git($repository, 'add', ['-A']);
+        self::git($repository, 'commit', ['-q', '-m', 'File']);
+        self::git($repository, 'checkout', ['-q', 'master']);
+
+        return $repository;
+    }
+
+    /**
+     * @return Repository With the file README.md alone checked out
+     */
+    private static function createSparseCheckout(): Repository
+    {
+        $repository = self::createFoobarRepository(false);
+        self::git($repository, 'config', ['core.sparseCheckout', 'true']);
+        file_put_contents($repository->getGitDir().'/info/sparse-checkout', "/README.md\n");
+        self::git($repository, 'read-tree', ['-m', '-u', 'HEAD']);
+
+        return $repository;
     }
 
     /**

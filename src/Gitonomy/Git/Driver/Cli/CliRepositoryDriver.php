@@ -22,12 +22,15 @@ use Gitonomy\Git\Driver\Data\DiffData;
 use Gitonomy\Git\Driver\Data\ObjectType;
 use Gitonomy\Git\Driver\Data\TagData;
 use Gitonomy\Git\Driver\RepositoryDriverInterface;
+use Gitonomy\Git\Driver\RepositoryPaths;
 use Gitonomy\Git\Exception\DriverException;
+use Gitonomy\Git\Exception\InvalidArgumentException;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Exception\ReferenceNotFoundException;
 use Gitonomy\Git\FastForward;
 use Gitonomy\Git\Parser\DiffParser;
 use Gitonomy\Git\Util\LeadingDash;
+use Gitonomy\Git\Util\NulByte;
 use Gitonomy\Git\Util\ReferenceName;
 use Symfony\Component\Process\Process;
 
@@ -117,7 +120,8 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     {
         LeadingDash::assertNone($revision);
 
-        $process = $this->execute('rev-parse', ['--verify', '--quiet', $revision]);
+        // git takes a full hash at its word, unless it has to read its object.
+        $process = $this->execute('rev-parse', ['--verify', '--quiet', self::isFullHash($revision) ? $revision.'^{object}' : $revision]);
 
         // --quiet: git exits with 1 when nothing has this name, or when it
         // names several objects, like the range "a...b", which it prints.
@@ -129,22 +133,39 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
             throw new ProcessException($process, 'rev-parse');
         }
 
-        return trim($process->getOutput());
+        $hash = trim($process->getOutput());
+        // git prints "^<hash>" for "^HEAD", the commits to exclude from a log.
+        if (!self::isFullHash($hash)) {
+            throw new ReferenceNotFoundException(\sprintf('The revision "%s" does not exist.', $revision));
+        }
+
+        return $hash;
     }
 
     public function getShortHash(string $hash): string
     {
         LeadingDash::assertNone($hash);
+        NulByte::assertNone($hash);
 
-        // --: a file of the working tree may have the name of the hash.
-        return trim($this->runOnObject($hash, null, 'log', ['--abbrev-commit', '--format=%h', '-n', '1', $hash, '--']));
+        // ^{object}: without it, git abbreviates a hash no object has.
+        $process = $this->execute('rev-parse', ['--verify', '--quiet', '--short', $hash.'^{object}']);
+
+        if (1 === $process->getExitCode()) {
+            throw new ReferenceNotFoundException(\sprintf('The object "%s" does not exist.', $hash));
+        }
+
+        if (!$process->isSuccessful()) {
+            throw new ProcessException($process, 'rev-parse');
+        }
+
+        return trim($process->getOutput());
     }
 
     public function getCommitData(string $hash): CommitData
     {
         LeadingDash::assertNone($hash);
 
-        $parser = new LogParser();
+        $parser = new LogParser($this->shallowHashes());
         $parser->parse($this->runOnObject($hash, ObjectType::Commit, 'log', ['--encoding=UTF-8', '--format=raw', '--no-color', '-n', '1', $hash, '--']));
 
         $commit = $parser->commits[0] ?? null;
@@ -172,7 +193,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
             $args[] = (string) $limit;
         }
 
-        $parser = new LogParser();
+        $parser = new LogParser($this->shallowHashes());
         $parser->parse($this->runOnRevisions('log', $args, $includes, $excludes, $paths));
 
         return $parser->commits;
@@ -331,9 +352,14 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     public function getUntrackedFiles(): array
     {
         $files = [];
-        foreach (explode("\0", $this->run('status', ['--porcelain', '--untracked-files=all', '-z'])) as $entry) {
-            if (str_starts_with($entry, '?? ')) {
-                $files[] = substr($entry, 3);
+        $entries = explode("\0", $this->run('status', ['--porcelain', '--untracked-files=all', '-z']));
+        for ($i = 0; $i < \count($entries); ++$i) {
+            // "XY <path>": the path a renamed or copied file had before comes
+            // next, alone, and may start with "?? " itself.
+            if (false !== strpbrk(substr($entries[$i], 0, 2), 'CR')) {
+                ++$i;
+            } elseif (str_starts_with($entries[$i], '?? ')) {
+                $files[] = substr($entries[$i], 3);
             }
         }
 
@@ -363,8 +389,12 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
             $this->checkout($branch);
         } catch (DriverException $e) {
             // Like "checkout -b", which creates nothing when the checkout
-            // fails. The configuration of the branch goes with it.
-            $this->run('branch', ['-D', $branch]);
+            // fails: the configuration of the branch goes with it. When the
+            // post-checkout hook is what fails, the branch is checked out:
+            // "checkout -b" keeps it, and git can't delete it.
+            if ('refs/heads/'.$branch !== $this->getHeadReference()) {
+                $this->run('branch', ['-D', $branch]);
+            }
 
             throw $e;
         }
@@ -436,7 +466,9 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
      */
     private function readObject(string $hash, ObjectType $type): string
     {
-        $output = $this->runProcess('cat-file', ['--batch'], $hash."\n")->getOutput();
+        LeadingDash::assertNone($hash);
+
+        $output = $this->runProcess('cat-file', ['--batch'], self::inputLine($hash))->getOutput();
 
         // "<hash> <type> <size>", or "<hash> missing".
         $header = explode(' ', (string) strstr($output, "\n", true));
@@ -453,12 +485,12 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     /**
      * Runs a command reading the object $hash.
      *
-     * @param ObjectType|null $type The type $hash must have, null for any
-     * @param string[]        $args
+     * @param ObjectType $type The type $hash must have
+     * @param string[]   $args
      *
      * @throws ReferenceNotFoundException $hash doesn't exist, or isn't of the type $type
      */
-    private function runOnObject(string $hash, ?ObjectType $type, string $command, array $args): string
+    private function runOnObject(string $hash, ObjectType $type, string $command, array $args): string
     {
         try {
             return $this->run($command, $args);
@@ -468,7 +500,7 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
             if (!$process->isSuccessful()) {
                 throw new ReferenceNotFoundException(\sprintf('The object "%s" does not exist.', $hash), 0, $e);
             }
-            if (null !== $type && $type->value !== trim($process->getOutput())) {
+            if ($type->value !== trim($process->getOutput())) {
                 throw new ReferenceNotFoundException(\sprintf('The object "%s" is not a %s.', $hash, $type->value), 0, $e);
             }
 
@@ -492,11 +524,54 @@ final readonly class CliRepositoryDriver implements RepositoryDriverInterface
     {
         // A hash per line, "^" excluding it. The standard input takes no option, like "--all".
         $input = '';
-        foreach ([...$includes ?? [], ...array_map(static fn (string $hash): string => '^'.$hash, $excludes)] as $revision) {
-            $input .= $revision."\n";
+        foreach ($includes ?? [] as $hash) {
+            $input .= self::inputLine($hash);
+        }
+        foreach ($excludes as $hash) {
+            $input .= '^'.self::inputLine($hash);
         }
 
         return $this->runProcess($command, [...$args, ...null === $includes ? ['--all'] : [], '--stdin', '--', ...$paths], $input)->getOutput();
+    }
+
+    /**
+     * @throws InvalidArgumentException $revision contains a NUL byte or a new line, where git stops reading it, or reads another one
+     */
+    private static function inputLine(string $revision): string
+    {
+        NulByte::assertNone($revision);
+
+        if (str_contains($revision, "\n")) {
+            throw new InvalidArgumentException(\sprintf('"%s" contains a new line, which git doesn\'t accept.', addcslashes($revision, "\n")));
+        }
+
+        return $revision."\n";
+    }
+
+    /**
+     * @return array<string, true> The commits a shallow clone cuts the history at, as keys: their parents are missing
+     *
+     * @throws DriverException The "shallow" file can't be read
+     */
+    private function shallowHashes(): array
+    {
+        // A linked worktree shares it with its repository.
+        $file = RepositoryPaths::commonDir($this->gitDir).'/shallow';
+        if (!is_file($file)) {
+            return [];
+        }
+
+        $hashes = @file($file, \FILE_IGNORE_NEW_LINES | \FILE_SKIP_EMPTY_LINES);
+        if (false === $hashes) {
+            throw new DriverException(\sprintf('Unable to read "%s".', $file));
+        }
+
+        return array_fill_keys($hashes, true);
+    }
+
+    private static function isFullHash(string $revision): bool
+    {
+        return 1 === preg_match('/^[0-9a-f]{40}$/Di', $revision);
     }
 
     /**

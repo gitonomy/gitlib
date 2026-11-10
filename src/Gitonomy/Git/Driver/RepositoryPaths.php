@@ -69,6 +69,27 @@ final readonly class RepositoryPaths
     }
 
     /**
+     * @return string The git directory holding what a linked worktree shares with the repository it belongs to, like the hooks: $gitDir itself, but for a linked worktree
+     *
+     * @throws DriverException The "commondir" file of a linked worktree can't be read
+     */
+    public static function commonDir(string $gitDir): string
+    {
+        if (!is_file($gitDir.'/commondir')) {
+            return $gitDir;
+        }
+
+        $commonDir = file_get_contents($gitDir.'/commondir');
+        if (false === $commonDir) {
+            throw new DriverException(\sprintf('Unable to read "%s/commondir".', $gitDir));
+        }
+
+        $commonDir = rtrim($commonDir, "\r\n");
+
+        return str_starts_with($commonDir, '/') || preg_match('/^[a-zA-Z]:[\\\\\/]/', $commonDir) ? $commonDir : $gitDir.'/'.$commonDir;
+    }
+
+    /**
      * Reads the file like git: "gitdir: " then the path, absolute or relative
      * to $dir, without the line ending, "\r\n" included. The path may end with
      * a space.

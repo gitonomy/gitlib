@@ -69,10 +69,14 @@ final class Blob
     /**
      * @return string The mimetype of the content, like "text/plain"
      *
-     * @throws RuntimeException fileinfo can't read the content
+     * @throws RuntimeException The fileinfo extension is missing, or can't read the content
      */
     public function getMimetype(): string
     {
+        if (!\extension_loaded('fileinfo')) {
+            throw new RuntimeException('The fileinfo extension of PHP is required to read the mimetype of a blob.');
+        }
+
         return $this->mimetype ??= new \finfo(\FILEINFO_MIME_TYPE)->buffer($this->getContent()) ?: throw new RuntimeException(\sprintf('Unable to read the mimetype of the blob "%s".', $this->hash));
     }
 

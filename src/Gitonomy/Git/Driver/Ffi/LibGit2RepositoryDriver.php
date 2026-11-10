@@ -65,6 +65,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     private const int GIT_DIFF_FIND_RENAMES = 1 << 0;
     private const int GIT_DIRECTION_FETCH = 0;
     private const int GIT_INDEX_ENTRY_INTENT_TO_ADD = 1 << 13;
+    private const int GIT_INDEX_ENTRY_SKIP_WORKTREE = 1 << 14;
     private const int GIT_STATUS_OPT_INCLUDE_UNTRACKED = 1 << 0;
     private const int GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS = 1 << 4;
     private const int GIT_STATUS_WT_NEW = 1 << 7;
@@ -80,7 +81,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
      * @param string      $gitDir     The git directory
      * @param string|null $workingDir The working tree, null for a bare repository
      *
-     * @throws UnsupportedOperationException The repository stores its references in the reftable format
+     * @throws UnsupportedOperationException The repository stores its references in the reftable format, or has an extension libgit2 doesn't know
      */
     public function __construct(
         private \FFI $ffi,
@@ -266,6 +267,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
     public function getTreeEntries(string $hash): array
     {
+        LeadingDash::assertNone($hash);
         NulByte::assertNone($hash);
 
         $tree = $this->lookupTree($hash);
@@ -291,6 +293,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
     public function getBlobContent(string $hash): string
     {
+        LeadingDash::assertNone($hash);
         NulByte::assertNone($hash);
 
         $oid = $this->hexToOid($hash);
@@ -306,6 +309,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
     public function getTagData(string $hash): TagData
     {
+        LeadingDash::assertNone($hash);
         NulByte::assertNone($hash);
 
         $object = $this->lookupObject($hash);
@@ -362,6 +366,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         NulByte::assertNone($fullname, $hash);
         LeadingDash::assertNone($fullname, $hash);
         ReferenceName::assertUnderRefs($fullname);
+        $this->assertBranchPointsToCommit($fullname, $hash);
 
         $oid = $this->hexToOid($hash);
         $ref = $this->ffi->new('git_reference*');
@@ -374,6 +379,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         NulByte::assertNone($fullname, $hash);
         LeadingDash::assertNone($fullname, $hash);
         ReferenceName::assertUnderRefs($fullname);
+        $this->assertBranchPointsToCommit($fullname, $hash);
 
         $oid = $this->hexToOid($hash);
         $ref = $this->ffi->new('git_reference*');
@@ -466,12 +472,13 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         $tree = $this->treeForRevision($hash);
 
         try {
+            $skipped = $this->indexEntriesFlagged(self::GIT_INDEX_ENTRY_SKIP_WORKTREE);
             $diff = $this->ffi->new('git_diff*');
             $opts = $this->diffOptions();
             LibGit2::check($this->ffi, $this->ffi->git_diff_tree_to_workdir_with_index(\FFI::addr($diff), $this->repo, $tree, \FFI::addr($opts)), 'Unable to compute working copy diff');
             $unmerged = $this->unmergedPaths($diff);
-            // libgit2 keeps a file the working tree changes back to the commit, after the index changed it, or `git add -N` added it.
-            $files = array_values(array_filter($this->buildDiff($diff)->files, static fn (DiffFileData $file): bool => [] !== $file->changes || $file->oldName !== $file->newName || $file->oldMode !== $file->newMode || $file->oldIndex !== $file->newIndex));
+            // Like git, which reads a file a sparse checkout leaves out from the index: libgit2 finds it deleted.
+            $files = array_values(array_filter($this->buildDiff($diff)->files, static fn (DiffFileData $file): bool => !isset($skipped[$file->name])));
 
             if ([] !== $unmerged) {
                 // Like git diff <commit>, which compares the unmerged files, conflict markers included, to the commit.
@@ -495,16 +502,23 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
     public function getDiffPending(): DiffData
     {
+        // Like git since 2.19, which diffs the files `git add -N` added as
+        // absent from the index: created. Like any git, one deleted since is
+        // deleted, from the empty file the index has for it.
+        $intentToAdd = $this->indexEntriesFlagged(self::GIT_INDEX_ENTRY_INTENT_TO_ADD);
+        $skipped = $this->indexEntriesFlagged(self::GIT_INDEX_ENTRY_SKIP_WORKTREE);
+
         $diff = $this->ffi->new('git_diff*');
         $opts = $this->diffOptions();
         LibGit2::check($this->ffi, $this->ffi->git_diff_index_to_workdir(\FFI::addr($diff), $this->repo, null, \FFI::addr($opts)), 'Unable to compute working copy diff');
 
-        // Like git since 2.19, which diffs the files `git add -N` added as
-        // absent from the index: created. Like any git, one deleted since is
-        // deleted, from the empty file the index has for it.
-        $intentToAdd = $this->intentToAddFiles();
         $files = [];
         foreach ($this->buildDiff($diff)->files as $file) {
+            // Like git, which reads a file a sparse checkout leaves out from the index: libgit2 finds it deleted.
+            if (isset($skipped[$file->name])) {
+                continue;
+            }
+
             if (isset($intentToAdd[$file->name]) && null !== $file->newName) {
                 $files[] = new DiffFileData(null, $file->newName, null, $file->newMode, null, $file->newIndex, $file->isBinary, $file->isCopy, $file->changes);
             } else {
@@ -527,6 +541,8 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
 
     public function getDiffStaged(): DiffData
     {
+        // Like git since 2.19, which diffs the files `git add -N` added as absent from the index: not staged, or deleted when HEAD has them.
+        $intentToAdd = $this->indexEntriesFlagged(self::GIT_INDEX_ENTRY_INTENT_TO_ADD);
         $tree = $this->headTree();
 
         try {
@@ -539,8 +555,6 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             }
         }
 
-        // Like git since 2.19, which diffs the files `git add -N` added as absent from the index: not staged, or deleted when HEAD has them.
-        $intentToAdd = $this->intentToAddFiles();
         $files = [];
         foreach ($this->buildDiff($diff)->files as $file) {
             if (!isset($intentToAdd[$file->name])) {
@@ -624,6 +638,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     {
         NulByte::assertNone($revision);
         LeadingDash::assertNone($revision);
+        $this->assertNoSparseCheckout();
 
         // `git checkout <revision>` attaches HEAD when <revision> names a
         // local branch, before a tag of the same name, or is @{-<n>}, the nth
@@ -649,6 +664,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     {
         NulByte::assertNone($branch, $startPoint);
         LeadingDash::assertNone($branch, $startPoint);
+        $this->assertNoSparseCheckout();
 
         if ($this->referenceExists('refs/heads/'.$branch)) {
             throw new DriverException(\sprintf('A branch named "%s" already exists.', $branch));
@@ -679,7 +695,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
                 $this->setUpstream($branch, ...$upstream);
             }
             $this->checkoutRevision($startHash);
-        } catch (DriverException $e) {
+        } catch (DriverException|UnsupportedOperationException $e) {
             // Its configuration with it.
             LibGit2::check($this->ffi, $this->ffi->git_branch_delete($reference), \sprintf('Unable to delete the branch "%s" after a failed checkout', $branch));
 
@@ -695,6 +711,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     {
         NulByte::assertNone($revision);
         LeadingDash::assertNone($revision);
+        $this->assertNoSparseCheckout();
 
         $branch = $this->getHeadReference();
         $theirHash = $this->resolveCommit($revision);
@@ -1061,9 +1078,11 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
     }
 
     /**
-     * @return array<string, string> The mode of the files `git add -N` added to the index, by path
+     * @param int $flag GIT_INDEX_ENTRY_INTENT_TO_ADD, for the files `git add -N` added, or GIT_INDEX_ENTRY_SKIP_WORKTREE, for the ones a sparse checkout leaves out
+     *
+     * @return array<string, string> The mode of the files of the index with the extended flag $flag, by path
      */
-    private function intentToAddFiles(): array
+    private function indexEntriesFlagged(int $flag): array
     {
         $index = $this->ffi->new('git_index*');
         LibGit2::check($this->ffi, $this->ffi->git_repository_index(\FFI::addr($index), $this->repo), 'Unable to open the index');
@@ -1078,7 +1097,7 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             $files = [];
             for ($i = 0, $count = $this->ffi->git_index_entrycount($index); $i < $count; ++$i) {
                 $entry = $this->ffi->git_index_get_byindex($index, $i);
-                if (0 !== ($entry->flags_extended & self::GIT_INDEX_ENTRY_INTENT_TO_ADD)) {
+                if (0 !== ($entry->flags_extended & $flag)) {
                     $files[$entry->path] = \sprintf('%06o', $entry->mode);
                 }
             }
@@ -1133,6 +1152,15 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
                 }
 
                 $file = $this->patchToFile($diff, $i);
+
+                // libgit2 lists files git finds unchanged: one the working
+                // tree changes back to the commit, after the index changed
+                // it, or `git add -N` added it, one whose line endings alone
+                // differ, which the filters normalize, and one whose mode
+                // alone differs, by bits git ignores (100664 and 100644).
+                if ([] === $file->changes && $file->oldName === $file->newName && $file->oldMode === $file->newMode && $file->oldIndex === $file->newIndex) {
+                    continue;
+                }
 
                 // libgit2 splits a type change into a creation, then a deletion: git into a deletion, then a creation.
                 $previous = [] === $files ? null : $files[\count($files) - 1];
@@ -1208,13 +1236,27 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         $oldName = $isAdded ? null : $delta->old_file->path;
         $newName = $isDeleted ? null : $delta->new_file->path;
 
-        $oldMode = $isAdded ? null : \sprintf('%06o', $delta->old_file->mode);
-        $newMode = $isDeleted ? null : \sprintf('%06o', $delta->new_file->mode);
+        $oldMode = $isAdded ? null : self::canonicalMode($delta->old_file->mode);
+        $newMode = $isDeleted ? null : self::canonicalMode($delta->new_file->mode);
 
         $oldIndex = $this->ffi->git_oid_is_zero(\FFI::addr($delta->old_file->id)) ? null : $this->oidToHex(\FFI::addr($delta->old_file->id));
         $newIndex = $this->ffi->git_oid_is_zero(\FFI::addr($delta->new_file->id)) ? null : $this->oidToHex(\FFI::addr($delta->new_file->id));
 
         return new DiffFileData($oldName, $newName, $oldMode, $newMode, $oldIndex, $newIndex, $isBinary, $isCopy, $changes);
+    }
+
+    /**
+     * Like git's diffs, and git_tree_entry_filemode(): the trees of old
+     * versions of git have files of mode 100664 or 100600, which libgit2
+     * diffs as they are.
+     */
+    private static function canonicalMode(int $mode): string
+    {
+        if (0o100000 === ($mode & 0o170000)) {
+            return 0 === ($mode & 0o100) ? '100644' : '100755';
+        }
+
+        return \sprintf('%06o', $mode);
     }
 
     // -- working copy --------------------------------------------------------
@@ -1237,9 +1279,143 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
      */
     private function checkoutObject(CData $treeish, string $context): void
     {
+        $this->assertCheckoutLosesNothing($treeish, $context);
+
         $opts = $this->ffi->new('git_checkout_options');
         LibGit2::check($this->ffi, $this->ffi->git_checkout_options_init(\FFI::addr($opts), 1), 'Unable to initialize checkout options');
         LibGit2::check($this->ffi, $this->ffi->git_checkout_tree($this->repo, $treeish, \FFI::addr($opts)), $context);
+    }
+
+    /**
+     * libgit2 refuses a checkout that overwrites local changes before it
+     * writes anything, but for what it doesn't see as one:
+     *
+     * - a submodule the checkout removes, whose directory it deletes, with
+     *   the files git ignores in it, and its repository when ".git" is a
+     *   directory (the branches that aren't pushed included), where git
+     *   keeps it;
+     * - a directory the checkout replaces with a file, which it only finds
+     *   not to be empty once it has written the files before it.
+     *
+     * @throws DriverException The checkout would delete the directory of a submodule, or stop halfway
+     */
+    private function assertCheckoutLosesNothing(CData $treeish, string $context): void
+    {
+        // libgit2 refuses to check out in a bare repository.
+        if (null === $this->workingDir) {
+            return;
+        }
+
+        $target = $this->ffi->new('git_object*');
+        LibGit2::check($this->ffi, $this->ffi->git_object_peel(\FFI::addr($target), $treeish, $this->ffi->GIT_OBJECT_TREE), $context);
+
+        try {
+            // What libgit2 compares the target with.
+            $head = $this->headTree();
+
+            try {
+                $diff = $this->ffi->new('git_diff*');
+                $opts = $this->diffOptions();
+                LibGit2::check($this->ffi, $this->ffi->git_diff_tree_to_tree(\FFI::addr($diff), $this->repo, $head, $this->ffi->cast('git_tree *', $target), \FFI::addr($opts)), $context);
+
+                try {
+                    $removed = [];
+                    $created = [];
+                    for ($i = 0, $count = $this->ffi->git_diff_num_deltas($diff); $i < $count; ++$i) {
+                        $delta = $this->ffi->git_diff_get_delta($diff, $i);
+                        // A change of type is a deletion, then a creation.
+                        if (self::GIT_DELTA_DELETED === $delta->status) {
+                            $removed[$delta->old_file->path] = $delta->old_file->mode;
+                        } elseif (self::GIT_DELTA_ADDED === $delta->status && $this->ffi->GIT_FILEMODE_COMMIT !== $delta->new_file->mode) {
+                            $created[] = $delta->new_file->path;
+                        }
+                    }
+                } finally {
+                    $this->ffi->git_diff_free($diff);
+                }
+            } finally {
+                if (null !== $head) {
+                    $this->ffi->git_tree_free($head);
+                }
+            }
+        } finally {
+            $this->ffi->git_object_free($target);
+        }
+
+        foreach ($removed as $path => $mode) {
+            // A submodule that isn't checked out is an empty directory.
+            if ($this->ffi->GIT_FILEMODE_COMMIT === $mode && file_exists($this->workingDir.'/'.$path.'/.git')) {
+                throw new DriverException(\sprintf('%s: it removes the submodule "%s", whose directory would be deleted with all its files.', $context, $path));
+            }
+        }
+
+        foreach ($created as $path) {
+            $directory = $this->workingDir.'/'.$path;
+            // libgit2 sees a directory no file is removed from as untracked, like git.
+            if (!is_dir($directory) || is_link($directory) || [] === array_filter(array_keys($removed), static fn (string $file): bool => str_starts_with($file, $path.'/'))) {
+                continue;
+            }
+
+            $kept = self::entryKeptIn($directory, $path, $removed);
+            if (null !== $kept) {
+                throw new DriverException(\sprintf('%s: it replaces the directory "%s" with a file, but "%s" would be left in it.', $context, $path, $kept));
+            }
+        }
+    }
+
+    /**
+     * @param string             $path    The path of $directory in the repository
+     * @param array<string, int> $removed The mode of the files a checkout removes, by path
+     *
+     * @return string|null The path of the first entry of $directory the checkout doesn't remove: an untracked or ignored file, or an empty directory; null when it removes them all
+     */
+    private static function entryKeptIn(string $directory, string $path, array $removed): ?string
+    {
+        foreach (array_diff(scandir($directory) ?: [], ['.', '..']) as $name) {
+            $entry = $path.'/'.$name;
+            $file = $directory.'/'.$name;
+            if (!is_dir($file) || is_link($file)) {
+                if (!isset($removed[$entry])) {
+                    return $entry;
+                }
+
+                continue;
+            }
+
+            $kept = [] === array_diff(scandir($file) ?: [], ['.', '..']) ? $entry : self::entryKeptIn($file, $entry, $removed);
+            if (null !== $kept) {
+                return $kept;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * libgit2 doesn't read the patterns of a sparse checkout: it would write
+     * the files they leave out, and refuse to update the ones it finds missing.
+     *
+     * @throws UnsupportedOperationException core.sparseCheckout is on
+     */
+    private function assertNoSparseCheckout(): void
+    {
+        $config = $this->ffi->new('git_config*');
+        LibGit2::check($this->ffi, $this->ffi->git_repository_config(\FFI::addr($config), $this->repo), 'Unable to open the repository configuration');
+
+        try {
+            $sparse = $this->ffi->new('int');
+            $rc = $this->ffi->git_config_get_bool(\FFI::addr($sparse), $config, 'core.sparseCheckout');
+            if (LibGit2::GIT_ENOTFOUND === $rc) {
+                return;
+            }
+            LibGit2::check($this->ffi, $rc, 'Unable to read "core.sparseCheckout"');
+
+            if (0 !== $sparse->cdata) {
+                throw new UnsupportedOperationException(\sprintf('The repository "%s" has a sparse checkout, in which LibGit2Driver checks out and merges nothing; use CliDriver.', $this->gitDir));
+            }
+        } finally {
+            $this->ffi->git_config_free($config);
+        }
     }
 
     /**
@@ -1621,6 +1797,32 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
         }
     }
 
+    /**
+     * Like git, which writes nothing but a commit under refs/heads/, not
+     * even a tag of one: libgit2 writes any object.
+     *
+     * @throws DriverException $fullname is a branch, and $hash is no commit
+     */
+    private function assertBranchPointsToCommit(string $fullname, string $hash): void
+    {
+        // git_reference_create() refuses an object that doesn't exist.
+        if (!str_starts_with($fullname, 'refs/heads/') || !$this->objectExists($hash)) {
+            return;
+        }
+
+        $object = $this->lookupObject($hash);
+
+        try {
+            $type = $this->objectType($this->ffi->git_object_type($object));
+        } finally {
+            $this->ffi->git_object_free($object);
+        }
+
+        if (ObjectType::Commit !== $type) {
+            throw new DriverException(\sprintf('Unable to write the reference "%s": the object "%s" is a %s, and a branch only points to a commit.', $fullname, $hash, $type->value));
+        }
+    }
+
     private function referenceExists(string $fullname): bool
     {
         $ref = $this->ffi->new('git_reference*');
@@ -1919,22 +2121,61 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
             $parents[] = $this->oidToHex($this->ffi->git_commit_parent_id($commit, $i));
         }
 
-        $author = $this->ffi->git_commit_author($commit);
-        $committer = $this->ffi->git_commit_committer($commit);
         $encoding = $this->ffi->git_commit_message_encoding($commit);
+        $header = $this->ffi->git_commit_raw_header($commit);
+        $lastAuthor = $this->lastSignature($header, 'author');
 
-        return new CommitData(
-            $this->oidToHex($this->ffi->git_commit_id($commit)),
-            $this->oidToHex($this->ffi->git_commit_tree_id($commit)),
-            $parents,
-            $this->toUtf8(\FFI::string($author->name), $encoding),
-            $this->toUtf8(\FFI::string($author->email), $encoding),
-            $this->signatureDate($author),
-            $this->toUtf8(\FFI::string($committer->name), $encoding),
-            $this->toUtf8(\FFI::string($committer->email), $encoding),
-            $this->signatureDate($committer),
-            self::cleanMessage($this->toUtf8($this->ffi->git_commit_message($commit), $encoding)),
-        );
+        try {
+            $lastCommitter = $this->lastSignature($header, 'committer');
+
+            try {
+                $author = $lastAuthor ?? $this->ffi->git_commit_author($commit);
+                $committer = $lastCommitter ?? $this->ffi->git_commit_committer($commit);
+
+                return new CommitData(
+                    $this->oidToHex($this->ffi->git_commit_id($commit)),
+                    $this->oidToHex($this->ffi->git_commit_tree_id($commit)),
+                    $parents,
+                    $this->toUtf8(\FFI::string($author->name), $encoding),
+                    $this->toUtf8(\FFI::string($author->email), $encoding),
+                    $this->signatureDate($author),
+                    $this->toUtf8(\FFI::string($committer->name), $encoding),
+                    $this->toUtf8(\FFI::string($committer->email), $encoding),
+                    $this->signatureDate($committer),
+                    self::cleanMessage($this->toUtf8($this->ffi->git_commit_message($commit), $encoding)),
+                );
+            } finally {
+                if (null !== $lastCommitter) {
+                    $this->ffi->git_signature_free($lastCommitter);
+                }
+            }
+        } finally {
+            if (null !== $lastAuthor) {
+                $this->ffi->git_signature_free($lastAuthor);
+            }
+        }
+    }
+
+    /**
+     * Like git, which reads the last "author" or "committer" header of a
+     * commit with several, as some tools wrote: libgit2 reads the first.
+     *
+     * @param string $header The headers of a commit
+     * @param string $field  "author" or "committer"
+     *
+     * @return CData|null The git_signature* of the last header $field, to free, or null when the commit has only one
+     */
+    private function lastSignature(string $header, string $field): ?CData
+    {
+        // The greedy start leaves the last header to the capture.
+        if (substr_count("\n".$header, "\n".$field.' ') < 2 || 1 !== preg_match('/(?s:.*)^'.$field.' (.*)$/m', $header, $match)) {
+            return null;
+        }
+
+        $signature = $this->ffi->new('git_signature*');
+        LibGit2::check($this->ffi, $this->ffi->git_signature_from_buffer(\FFI::addr($signature), $match[1]), \sprintf('Unable to read the last "%s" header of a commit', $field));
+
+        return $signature;
     }
 
     /**
@@ -1971,6 +2212,11 @@ final readonly class LibGit2RepositoryDriver implements RepositoryDriverInterfac
      */
     private function signatureDate(CData $signature): \DateTimeImmutable
     {
+        // Like git, which reads a date before 1970 as 1970, in UTC.
+        if ($signature->when->time < 0) {
+            return new \DateTimeImmutable('@0');
+        }
+
         // In minutes. libgit2 gives 0 for an offset of more than 14 hours or
         // 59 minutes, which no timezone has, in a corrupt object.
         $offset = $signature->when->offset;

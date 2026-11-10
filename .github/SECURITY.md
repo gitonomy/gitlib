@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Only 2.x gets security fixes: 1.x is no longer maintained. 1.7.1 has the
+Only 2.x gets security fixes: 1.x is no longer maintained. 1.7.2 has the
 security fixes of 2.0 that break nothing of 1.x, and
 [its changelog](https://github.com/gitonomy/gitlib/blob/1.x/CHANGELOG.md) lists
 the ones it doesn't have. To upgrade, see

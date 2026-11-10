@@ -99,6 +99,87 @@ class LibGit2DriverTest extends AbstractTestCase
         $this->assertNotSame('', $process->getOutput());
     }
 
+    /**
+     * libgit2 waits forever by default: a server that keeps a connection
+     * open without answering would block PHP, whatever max_execution_time.
+     */
+    #[RequiresPhpExtension('ffi')]
+    public function testNetworkOperationsTimeOut(): void
+    {
+        if (!LibGit2Driver::isSupported()) {
+            $this->markTestSkipped('libgit2 1.9 is not installed.');
+        }
+
+        // libgit2 is initialized once per process. 40 and 42 read the
+        // timeouts, in milliseconds, of a connection to a server
+        // (GIT_OPT_GET_SERVER_CONNECT_TIMEOUT) and of its answers
+        // (GIT_OPT_GET_SERVER_TIMEOUT).
+        $code = <<<'PHP'
+            require $argv[1];
+            $ffi = Gitonomy\Git\Driver\Ffi\LibGit2::load(null);
+            $connect = $ffi->new('int');
+            $ffi->git_libgit2_opts(40, FFI::addr($connect));
+            $answer = $ffi->new('int');
+            $ffi->git_libgit2_opts(42, FFI::addr($answer));
+            echo $connect->cdata, ' ', $answer->cdata;
+            PHP;
+
+        $process = new Process([\PHP_BINARY, '-r', $code, self::AUTOLOAD]);
+        $process->mustRun();
+
+        $this->assertSame('60000 3600000', $process->getOutput());
+    }
+
+    /**
+     * libgit2 1.9 reads neither a split index, which "git update-index
+     * --split-index" or core.splitIndex write, nor a sparse one.
+     */
+    public function testASplitIndexIsUnsupported(): void
+    {
+        if (!LibGit2Driver::isSupported()) {
+            $this->markTestSkipped('libgit2 1.9 is not installed.');
+        }
+        if (version_compare(self::gitVersion(), '2.0.0', '<')) {
+            $this->markTestSkipped('git splits the index since 2.0.');
+        }
+
+        $path = self::createFoobarRepository(false)->getPath();
+        new Process([self::gitCommand(), 'update-index', '--split-index'], $path, self::gitEnvs())->mustRun();
+        $repository = new Repository($path, driver: new LibGit2Driver());
+
+        try {
+            $repository->getWorkingCopy()->getDiffStaged();
+            $this->fail('libgit2 reads no split index.');
+        } catch (UnsupportedOperationException $e) {
+            $this->assertSame('Unable to open the index: unsupported mandatory extension: \'link\'. LibGit2Driver doesn\'t support it; use CliDriver.', $e->getMessage());
+        }
+
+        try {
+            $repository->getWorkingCopy()->checkoutNewBranch('new', self::INITIAL_COMMIT);
+            $this->fail('libgit2 reads no split index.');
+        } catch (UnsupportedOperationException $e) {
+            $this->assertStringEndsWith('unsupported mandatory extension: \'link\'. LibGit2Driver doesn\'t support it; use CliDriver.', $e->getMessage());
+        }
+        $this->assertFalse($repository->getReferences()->hasBranch('new'), 'No branch is created when the checkout fails');
+    }
+
+    public function testAnUnknownExtensionOfTheRepositoryIsUnsupported(): void
+    {
+        if (!LibGit2Driver::isSupported()) {
+            $this->markTestSkipped('libgit2 1.9 is not installed.');
+        }
+
+        $path = self::createFoobarRepository()->getPath();
+        // git and libgit2 only read the extensions of a repository of version
+        // 1, which git 1.8 refuses to configure.
+        file_put_contents($path.'/config', "[core]\n\trepositoryFormatVersion = 1\n[extensions]\n\tfromTheFuture = true\n", \FILE_APPEND);
+
+        $this->expectException(UnsupportedOperationException::class);
+        $this->expectExceptionMessage('unsupported extension name extensions.fromthefuture. LibGit2Driver doesn\'t support it; use CliDriver.');
+
+        new Repository($path, driver: new LibGit2Driver());
+    }
+
     public function testReftableRepositoriesAreUnsupported(): void
     {
         if (!LibGit2Driver::isSupported()) {
