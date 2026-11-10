@@ -14,6 +14,9 @@ namespace Gitonomy\Git\Parser;
 
 use Gitonomy\Git\Exception\RuntimeException;
 
+/**
+ * @deprecated since gitonomy/gitlib 1.7.2, gitlib 2.0 makes it internal, like the parsers extending it
+ */
 abstract class ParserBase
 {
     protected $cursor;

@@ -19,6 +19,8 @@ use Gitonomy\Git\Diff\FileChange;
 
 /**
  * @final since gitonomy/gitlib 1.7
+ *
+ * @deprecated since gitonomy/gitlib 1.7.2, gitlib 2.0 makes it internal: parse a diff with Diff::parse()
  */
 class DiffParser extends ParserBase
 {

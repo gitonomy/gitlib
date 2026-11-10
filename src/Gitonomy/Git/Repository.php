@@ -488,7 +488,7 @@ class Repository
      */
     public function getTree($hash)
     {
-        if (!preg_match('/^[0-9a-f]{4,40}$/', $hash)) {
+        if (!preg_match('/^[0-9a-f]{4,40}$/D', $hash)) {
             trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing "%s", which is not a hash, to "%s()" is deprecated, it throws in 2.0: use "getRevision($name)->getCommit()->getTree()" instead.', $hash, __METHOD__);
         }
 
@@ -510,7 +510,7 @@ class Repository
      */
     public function getBlob($hash)
     {
-        if (!preg_match('/^[0-9a-f]{4,40}$/', $hash)) {
+        if (!preg_match('/^[0-9a-f]{4,40}$/D', $hash)) {
             trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing "%s", which is not a hash, to "%s()" is deprecated, it throws in 2.0: use "Tree::resolvePath()" instead.', $hash, __METHOD__);
         }
 

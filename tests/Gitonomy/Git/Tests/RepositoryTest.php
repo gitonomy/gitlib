@@ -406,6 +406,23 @@ class RepositoryTest extends AbstractTest
     }
 
     /**
+     * "$" matched before the new line.
+     *
+     * @group legacy
+     */
+    public function testAHashEndingWithANewLineIsNotAHash()
+    {
+        $repository = self::createFoobarRepository();
+        $hash = $repository->getCommit(self::LONGFILE_COMMIT)->getTreeHash();
+
+        $this->expectDeprecation(sprintf('Since gitonomy/gitlib 1.7: Passing "%s", which is not a hash, to "Gitonomy\\Git\\Repository::getTree()" is deprecated, it throws in 2.0: use "getRevision($name)->getCommit()->getTree()" instead.', $hash."\n"));
+        $this->expectDeprecation(sprintf('Since gitonomy/gitlib 1.7: Passing "%s", which is not a hash, to "Gitonomy\\Git\\Repository::getBlob()" is deprecated, it throws in 2.0: use "Tree::resolvePath()" instead.', $hash."\n"));
+
+        $repository->getTree($hash."\n");
+        $repository->getBlob($hash."\n");
+    }
+
+    /**
      * @group legacy
      */
     public function testGetObjectsByName()

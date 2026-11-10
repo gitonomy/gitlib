@@ -212,6 +212,33 @@ class SecurityTest extends AbstractTest
         $this->assertFileIsAbsent($file);
     }
 
+    /**
+     * "git ls-remote" reads the configuration of the repository it runs in:
+     * another user of the machine may create one in the temporary directory,
+     * whose rewrites of URLs run a command. Here, it rewrites the URL to a
+     * path that doesn't exist.
+     */
+    public function testARepositoryOfTheTemporaryDirectoryIsNotRead()
+    {
+        $planted = sys_get_temp_dir().'/.git';
+        if (file_exists($planted)) {
+            $this->markTestSkipped('The temporary directory holds a repository already.');
+        }
+
+        $url = self::createFoobarRepository()->getGitDir();
+        Repository::initBare($planted, self::getDriver());
+        file_put_contents($planted.'/config', sprintf("[url \"/nonexistent/\"]\n\tinsteadOf = %s\n", $url), FILE_APPEND);
+
+        try {
+            $this->assertTrue(Repository::isValidRepository($url, self::getDriver()));
+            $this->assertTrue(Repository::isValidRepository('file://'.$url, self::getDriver()));
+            $this->assertTrue(Repository::isValidRepositoryAndBranch($url, 'master', self::getDriver()));
+            $this->assertFalse(Repository::isValidRepositoryAndBranch($url, 'none', self::getDriver()));
+        } finally {
+            self::deleteDir($planted);
+        }
+    }
+
     public static function provideUrlChecks()
     {
         $options = self::getOptions();
@@ -331,6 +358,10 @@ class SecurityTest extends AbstractTest
         yield 'address' => ['git@'.$command.':repository'];
         yield 'address between brackets' => ['['.$command.']:repository'];
         yield 'git, for the command of core.gitProxy' => ['git://'.$command.'/repository'];
+        yield 'port of git, for the command of core.gitProxy' => ['git://example.com:'.$command.'/repository'];
+        yield 'port after a host between brackets' => ['git://[example.com]:'.$command.'/repository'];
+        yield 'port without a host' => ['git://:'.$command.'/repository'];
+        yield 'encoded dash of a port' => ['git://example.com:%2D'.substr($command, 1).'/repository'];
         yield 'encoded dash' => ['ssh://%2D'.substr($command, 1).'/repository'];
         yield 'encoded dash, lowercase' => ['git+ssh://%2d'.substr($command, 1).'/repository'];
         yield 'encoded dash of a user' => ['ssh://%2D'.substr($command, 1).'@example.com/repository'];
@@ -349,6 +380,7 @@ class SecurityTest extends AbstractTest
     {
         yield 'ssh' => ['ssh://git@example.com:2222/repository.git'];
         yield 'host between brackets' => ['ssh://git@[::1]/repository.git'];
+        yield 'host between brackets and port' => ['git://[::1]:9418/repository.git'];
         yield 'address' => ['git@example.com:repository.git'];
         yield 'dash in the path of an address' => ['git@example.com:-repository.git'];
         yield 'dash in the host' => ['ssh://git@my-host.example.com/repository.git'];
@@ -573,6 +605,59 @@ class SecurityTest extends AbstractTest
         yield 'no credentials' => ['https://example.com/a.git', 'https://example.com/a.git'];
         yield 'address' => ['git@example.com:a.git', 'git@example.com:a.git'];
         yield 'an email after a URL' => ['https://example.com/ user@example.com', 'https://example.com/ user@example.com'];
+        yield 'a URL after the host of another' => ['http://***@a://***@b', 'http://u:p@a://u:p@b'];
+        yield 'the last part of a scheme' => ['git+ssh://***@example.com/a.git', 'git+ssh://user:secret@example.com/a.git'];
+        yield 'uppercase scheme' => ['HTTPS://***@example.com/a.git', 'HTTPS://user:secret@example.com/a.git'];
+        yield 'tabulation after the URL' => ["https://***@example.com\tuser@example.com", "https://user:secret@example.com\tuser@example.com"];
+        yield 'no scheme, unlike 2.0' => ['fatal: unable to look up user:secret@example.com', 'fatal: unable to look up user:secret@example.com'];
+        yield 'no scheme before the slashes' => ['://user:secret@example.com', '://user:secret@example.com'];
+        yield 'at sign in the path' => ['https://example.com/user:secret@example.com', 'https://example.com/user:secret@example.com'];
+    }
+
+    /**
+     * With a logger, the output of every command is redacted: megabytes, for
+     * a blob. The regular expression reached the limits of PCRE on them, and
+     * threw a TypeError.
+     *
+     * @dataProvider provideLongTexts
+     */
+    public function testRedactTakesALongText(string $expected, string $text)
+    {
+        $this->assertSame($expected, Credentials::redact($text));
+    }
+
+    public static function provideLongTexts()
+    {
+        yield 'a password of "@"' => ['https://***@example.com/a.git', 'https://x:'.str_repeat('a@', 1100000).'example.com/a.git'];
+        $text = 'x:'.str_repeat('a@', 1100000);
+        yield 'no scheme' => [$text, $text];
+        $text = str_repeat('a-', 250000)."\n";
+        yield 'a long word before a URL' => [$text.'https://***@example.com', $text.'https://user:secret@example.com'];
+        $text = str_repeat('1+', 1000000);
+        yield 'a long scheme without a letter' => [$text.'://user:secret@example.com', $text.'://user:secret@example.com'];
+        $text = str_repeat("a.b-c+d e:f g@h\n", 100000);
+        yield 'no credentials' => [$text, $text];
+    }
+
+    public function testTheLogsTakeALongOutput()
+    {
+        $logger = new class() extends AbstractLogger {
+            public $messages = [];
+
+            public function log($level, $message, array $context = [])
+            {
+                $this->messages[] = $message;
+            }
+        };
+
+        $options = self::getOptions();
+        $repository = new Repository(self::createFoobarRepository()->getGitDir(), null, new CliDriver($options['command'], $options['environment_variables'], 60, $logger));
+        $content = 'https://user:secret'.str_repeat('@a', 1100000).'@example.com/a.git';
+        file_put_contents($file = self::createTempDir().'/blob', $content);
+        $hash = trim($repository->run('hash-object', ['-w', $file]));
+
+        $this->assertSame($content, $repository->getBlob($hash)->getContent());
+        $this->assertStringNotContainsString('user:secret', implode("\n", $logger->messages));
     }
 
     /**

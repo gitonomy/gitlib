@@ -59,6 +59,13 @@ class CommitTest extends AbstractTest
         new Commit($repository, 'that-hash-doest-not-exists');
     }
 
+    public function testAHashEndingWithANewLineIsRefused()
+    {
+        $this->expectException(ReferenceNotFoundException::class);
+
+        self::createFoobarRepository()->getCommit(self::LONGFILE_COMMIT."\n");
+    }
+
     /**
      * @dataProvider provideFoobar
      */

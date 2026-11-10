@@ -30,6 +30,12 @@ use Symfony\Component\Process\Process;
 final class CliDriver
 {
     /**
+     * A path under a file is never a directory, whatever another user of the
+     * machine creates: git finds no repository there.
+     */
+    private const NO_GIT_DIR = __FILE__.'/none';
+
+    /**
      * @param string                                  $command              The git binary
      * @param array<string, string|\Stringable|false> $environmentVariables Set on every git process, false removing an inherited one
      * @param float|null                              $processTimeout       In seconds, for the whole process and without output; null for none
@@ -193,12 +199,7 @@ final class CliDriver
      */
     public function createProcess(string $command, array $args): Process
     {
-        $process = new Process(array_merge([$this->command, $command], $args));
-        $process->setEnv($this->environmentVariables);
-        $process->setTimeout($this->processTimeout);
-        $process->setIdleTimeout($this->processTimeout);
-
-        return $process;
+        return $this->createGitProcess(array_merge([$command], $args));
     }
 
     /**
@@ -206,13 +207,30 @@ final class CliDriver
      * repository, like the checkout of an application: ls-remote would read
      * its configuration, and a relative path as the name of one of its remotes.
      *
+     * --git-dir keeps git from looking for a repository, and reading its
+     * configuration: another user of the machine may create a ".git" in the
+     * temporary directory, whose rewrites of URLs run a command.
+     *
      * @param string[] $options
      * @param string[] $patterns
      */
     private function createLsRemoteProcess(array $options, string $url, array $patterns): Process
     {
-        $process = $this->createProcess('ls-remote', array_merge($options, [self::absoluteUrl($url)], $patterns));
+        $process = $this->createGitProcess(array_merge(['--git-dir', self::NO_GIT_DIR, 'ls-remote'], $options, [self::absoluteUrl($url)], $patterns));
         $process->setWorkingDirectory(sys_get_temp_dir());
+
+        return $process;
+    }
+
+    /**
+     * @param string[] $args The options of git, its command, and the arguments of the command
+     */
+    private function createGitProcess(array $args): Process
+    {
+        $process = new Process(array_merge([$this->command], $args));
+        $process->setEnv($this->environmentVariables);
+        $process->setTimeout($this->processTimeout);
+        $process->setIdleTimeout($this->processTimeout);
 
         return $process;
     }
