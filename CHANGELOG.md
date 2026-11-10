@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented in this file.
 
+## [v1.7.2] - Unreleased
+
+Changes since [v1.7.1](https://github.com/gitonomy/gitlib/releases/tag/v1.7.1).
+
+### Security
+
+-   Fix `Repository::isValidRepository()` and `isValidRepositoryAndBranch()` reading the
+    configuration of a repository of the temporary directory, where they run `git ls-remote`:
+    another user of the machine may create a `.git` there, whose rewrites of URLs
+    (`url.<base>.insteadOf`) make git run a command, or check another repository.
+-   Refuse a `git://` URL whose port starts with a dash, even encoded, like
+    `git://host:-oProxyCommand=.../repository`: old versions of git, 1.8.4 for instance, pass it
+    to the command of `core.gitProxy`, which reads it as an option.
+
+### Bug fixes
+
+-   Fix a `TypeError` when hiding the credentials of a long text, the megabytes of a blob in the
+    logs for instance: with a logger, reading a file with a long password in a URL failed. It
+    no longer takes seconds either, without the JIT of PCRE.
+-   Fix `WorkingCopy::getUntrackedFiles()` returning the former name of a staged rename, when
+    it starts with `?? `.
+-   Fix a hash ending with a new line read as a hash: `Repository::getCommit()` returned a
+    commit holding it, instead of throwing a `ReferenceNotFoundException`, and `getTree()` and
+    `getBlob()` did not trigger the deprecation of a name that isn't a hash.
+-   Read the annotated tags of other tools like git does: with a header after the tagger, or
+    without the empty line before the message, `Tag::getMessage()` and the methods reading the
+    tagger threw a `RuntimeException`.
+
+### Deprecations
+
+-   `Parser\DiffParser` and `Parser\ParserBase`, internal in 2.0: parse a diff with
+    `Diff::parse()`.
+
 ## [v1.7.1] - 2026-11-07
 
 Changes since [v1.7.0](https://github.com/gitonomy/gitlib/releases/tag/v1.7.0).
@@ -165,6 +198,7 @@ _Earlier versions are not documented here. See the
 [GitHub releases](https://github.com/gitonomy/gitlib/releases) and
 [commit history](https://github.com/gitonomy/gitlib/commits/v1.6.0) for prior changes._
 
+[v1.7.2]: https://github.com/gitonomy/gitlib/compare/v1.7.1...v1.7.2
 [v1.7.1]: https://github.com/gitonomy/gitlib/compare/v1.7.0...v1.7.1
 [v1.7.0]: https://github.com/gitonomy/gitlib/compare/v1.6.0...v1.7.0
 [v1.6.0]: https://github.com/gitonomy/gitlib/releases/tag/v1.6.0

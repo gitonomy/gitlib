@@ -43,6 +43,7 @@
     },
     "require-dev": {
         "ext-fileinfo": "*",
+        "ext-zlib": "*",
         "phpspec/prophecy-phpunit": "^2.1",
         "phpunit/phpunit": "^7.5.20 || ^8.5.20 || ^9.5.9",
         "psr/log": "^1.0",

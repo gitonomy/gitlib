@@ -51,7 +51,7 @@ class Commit extends Revision
             trigger_deprecation('gitonomy/gitlib', '1.7', 'Passing data to "%s()" is deprecated, the constructor is internal in 2.0, and takes a "CommitData" instead of an array: get the commit from "%s::getCommit()".', __METHOD__, Repository::class);
         }
 
-        if (!preg_match('/^[a-f0-9]{40}$/', $hash)) {
+        if (!preg_match('/^[a-f0-9]{40}$/D', $hash)) {
             throw new ReferenceNotFoundException($hash);
         }
 

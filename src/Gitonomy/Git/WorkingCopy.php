@@ -43,14 +43,18 @@ class WorkingCopy
     public function getUntrackedFiles()
     {
         $lines = explode("\0", $this->run('status', ['--porcelain', '--untracked-files=all', '-z']));
-        $lines = array_filter($lines, function ($l) {
-            return substr($l, 0, 3) === '?? ';
-        });
-        $lines = array_map(function ($l) {
-            return substr($l, 3);
-        }, $lines);
+        $files = [];
+        for ($i = 0; $i < count($lines); ++$i) {
+            // "XY <path>": the path a renamed or copied file had before comes
+            // next, alone, and may start with "?? " itself.
+            if (false !== strpbrk(substr($lines[$i], 0, 2), 'CR')) {
+                ++$i;
+            } elseif (substr($lines[$i], 0, 3) === '?? ') {
+                $files[$i] = substr($lines[$i], 3);
+            }
+        }
 
-        return $lines;
+        return $files;
     }
 
     /**

@@ -172,6 +172,28 @@ class WorkingCopyTest extends AbstractTest
         $this->assertContains('untracked.txt', $wc->getUntrackedFiles());
     }
 
+    /**
+     * "git status -z" gives the name a renamed file had as an entry of its
+     * own: here, one that reads like the entry of an untracked file.
+     */
+    public function testTheFormerNameOfAStagedRenameIsNotUntracked()
+    {
+        if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+            $this->markTestSkipped('A file name can\'t hold a "?" on Windows.');
+        }
+
+        $repository = self::createFoobarRepository(false);
+        $repository->run('config', ['user.name', 'Unit Test']);
+        $repository->run('config', ['user.email', 'unit_test@unit-test.com']);
+        file_put_contents($repository->getWorkingDir().'/?? fake', "foo\n");
+        $repository->run('add', ['?? fake']);
+        $repository->run('commit', ['-q', '-m', 'Add a file']);
+        $repository->run('mv', ['?? fake', 'renamed']);
+        file_put_contents($repository->getWorkingDir().'/untracked.txt', 'foo');
+
+        $this->assertSame(['untracked.txt'], array_values($repository->getWorkingCopy()->getUntrackedFiles()));
+    }
+
     public function testDiffThrowsForAnUnknownRevision()
     {
         $this->expectException(ReferenceNotFoundException::class);

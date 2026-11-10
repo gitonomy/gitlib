@@ -112,6 +112,38 @@ class ReferenceTest extends AbstractTest
     }
 
     /**
+     * Like git, which reads the tags other tools write: with a header after
+     * the tagger, or without the empty line before the message.
+     *
+     * @dataProvider provideTagsOfOtherTools
+     */
+    public function testATagOfAnotherToolIsReadLikeGit(string $end, string $message)
+    {
+        $repository = self::createFoobarRepository();
+        // A loose object, without the checks recent versions of git apply to it.
+        $object = sprintf("object %s\ntype commit\ntag other\ntagger A <a@example.com> 1700000000 +0000\n%s", self::LONGFILE_COMMIT, $end);
+        $object = 'tag '.strlen($object)."\0".$object;
+        $hash = sha1($object);
+        if (!is_dir($dir = $repository->getGitDir().'/objects/'.substr($hash, 0, 2))) {
+            mkdir($dir);
+        }
+        file_put_contents($dir.'/'.substr($hash, 2), gzcompress($object));
+        $repository->run('update-ref', ['refs/tags/other', $hash]);
+
+        $tag = $repository->getReferences()->getTag('other');
+
+        $this->assertSame('A', $tag->getTaggerName());
+        $this->assertSame($message, $tag->getMessage());
+        $this->assertSame(self::LONGFILE_COMMIT, $tag->getCommit()->getHash());
+    }
+
+    public static function provideTagsOfOtherTools()
+    {
+        yield 'a header after the tagger' => ["encoding ISO-8859-1\n\nMessage\n", "Message\n"];
+        yield 'no message, without the empty line' => ['', ''];
+    }
+
+    /**
      * @dataProvider provideFoobar
      */
     public function testGetTag_NotExisting_Error($repository)

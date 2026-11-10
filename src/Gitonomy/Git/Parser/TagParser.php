@@ -47,7 +47,14 @@ class TagParser extends ParserBase
         $this->taggerDate = $this->parseDate($taggerDate);
 
         $this->consumeNewLine();
-        $this->consumeNewLine();
+
+        // Like git, the message starts after the first empty line: the tags
+        // of other tools may have more headers, or no message at all, not
+        // even the empty line.
+        while (!$this->isFinished() && !$this->expects("\n")) {
+            $this->consumeTo("\n");
+            $this->consumeNewLine();
+        }
 
         try {
             $this->message = $this->consumeTo('-----BEGIN PGP SIGNATURE-----');
