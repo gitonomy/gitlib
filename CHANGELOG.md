@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [v1.7.2] - Unreleased
+## [v1.7.2] - 2026-11-10
 
 Changes since [v1.7.1](https://github.com/gitonomy/gitlib/releases/tag/v1.7.1).
 
